@@ -1,10 +1,7 @@
 package main
 
 import (
-	"encoding/xml"
 	"fmt"
-	"github.com/google/uuid"
-	"go.uber.org/atomic"
 	"io"
 	"net"
 	"os"
@@ -13,7 +10,10 @@ import (
 	"sync"
 	"time"
 
+	"go.uber.org/atomic"
+
 	"gotac/cot"
+	"gotac/xml"
 )
 
 const (
@@ -76,12 +76,19 @@ func (h *ClientHandler) Start() {
 func (h *ClientHandler) handleRead() {
 	defer h.stopHandle()
 
-	h.log, _ = os.Create(uuid.New().String() + ".log")
-
-	dec := xml.NewDecoder(io.TeeReader(h.conn, h.log))
+	var dec *xml.Decoder
+	if debug {
+		h.log, _ = os.Create(time.Now().Format("20060102-15040507.log"))
+		dec = xml.NewDecoder(io.TeeReader(h.conn, h.log))
+	} else {
+		dec = xml.NewDecoder(h.conn)
+	}
 
 Loop:
 	for {
+		if !h.active.Load() {
+			break
+		}
 		// Read tokens from the XML document in a stream.
 		t, _ := dec.Token()
 		if t == nil {
@@ -155,7 +162,9 @@ func (h *ClientHandler) stopHandle() {
 
 	if h.active.CAS(true, false) {
 		close(h.Ch)
-		h.log.Close()
+		if h.log != nil {
+			h.log.Close()
+		}
 		if h.Uid != "" {
 			h.app.RemoveClient(h.Uid)
 		}
@@ -213,6 +222,8 @@ func (h *ClientHandler) AddMsg(msg []byte) bool {
 
 func (h *ClientHandler) sendPing() {
 	if time.Now().Sub(h.lastWrite) > pingTimeout {
-		h.AddMsg([]byte(cot.MakePing(h.app.uid)))
+		if msg, err := xml.Marshal(cot.MakePing(h.app.uid)); err == nil {
+			h.AddMsg(msg)
+		}
 	}
 }

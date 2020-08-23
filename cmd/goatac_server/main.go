@@ -2,10 +2,8 @@ package main
 
 import (
 	"context"
-	"encoding/xml"
 	"flag"
 	"fmt"
-	"gotac/cot"
 	"os"
 	"os/signal"
 	"strings"
@@ -14,6 +12,9 @@ import (
 
 	"github.com/google/uuid"
 	"go.uber.org/zap"
+
+	"gotac/cot"
+	"gotac/xml"
 )
 
 var (
@@ -87,27 +88,42 @@ func (app *App) EventProcessor() {
 	for {
 		evt := <-app.ch
 
+		app.Logger.Debugf("%s", evt)
 		switch {
 		case evt.Type == "t-x-c-t":
 			// ping
 			app.Logger.Debugf("ping from %s", evt.Uid)
-			app.SendToAll(evt, evt.Uid)
-			app.SendMsgTo([]byte(cot.MakePing(app.uid)), evt.Uid)
+			app.SendToAll(evt, "")
+			//app.SendTo(cot.MakePing(app.uid), evt.Uid)
 		case evt.IsChat():
 			app.Logger.Infof("chat %s %s", evt.Detail.Chat, evt.GetText())
-			app.SendToAll(evt, evt.Uid)
-		case strings.HasPrefix(evt.Type, "a-"), strings.HasPrefix(evt.Type, "b-"):
-			if evt.GetCallsignTo() != "" {
-				app.Logger.Debugf("point or pos %s (%s) for %s", evt.Uid, evt.GetCallsign(), evt.GetCallsignTo())
-				app.SendToCallsign(evt, evt.GetCallsignTo())
+			if len(evt.GetCallsignTo()) > 0 {
+				for _, s := range evt.GetCallsignTo() {
+					app.SendToCallsign(evt, s)
+				}
 			} else {
-				app.Logger.Debugf("point or pos %s (%s)", evt.Uid, evt.Detail.Contact.Callsign)
 				app.SendToAll(evt, evt.Uid)
 			}
 
+		case strings.HasPrefix(evt.Type, "a-"), strings.HasPrefix(evt.Type, "b-"):
+			app.Logger.Debugf("point or pos %s (%s)", evt.Uid, evt.Detail.Contact.Callsign)
+			if len(evt.GetCallsignTo()) > 0 {
+				for _, s := range evt.GetCallsignTo() {
+					app.SendToCallsign(evt, s)
+				}
+			} else {
+				app.SendToAll(evt, "")
+			}
+
 		default:
-			app.Logger.Infof("event: %s %s", evt.Type, evt.Uid)
-			app.SendToAll(evt, evt.Uid)
+			app.Logger.Infof("event: %s", evt)
+			if len(evt.GetCallsignTo()) > 0 {
+				for _, s := range evt.GetCallsignTo() {
+					app.SendToCallsign(evt, s)
+				}
+			} else {
+				app.SendToAll(evt, evt.Uid)
+			}
 		}
 	}
 }

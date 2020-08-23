@@ -22,7 +22,7 @@ checkdep:
 
 .PHONY: test
 test:
-	go test -v ./...
+	go test ./...
 
 .PHONY: build
 build: clean dep

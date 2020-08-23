@@ -1,24 +1,97 @@
 package cot
 
 import (
-	"encoding/xml"
 	"fmt"
+	"strings"
 	"time"
+
+	"gotac/xml"
 )
+
+type Event struct {
+	XMLName xml.Name  `xml:"event"`
+	Version string    `xml:"version,attr"`
+	Type    string    `xml:"type,attr"`
+	Uid     string    `xml:"uid,attr"`
+	Time    time.Time `xml:"time,attr"`
+	Start   time.Time `xml:"start,attr"`
+	Stale   time.Time `xml:"stale,attr"`
+	How     string    `xml:"how,attr"`
+
+	Point  Point  `xml:"point,selfclose"`
+	Detail Detail `xml:"detail,selfclose"`
+}
+
+func (e *Event) String() string {
+	if e == nil {
+		return "nil"
+	}
+	return fmt.Sprintf("version=%s, type=%s, uid=%s, how=%s, stale=%s, detail={%s}", e.Version, e.Type, e.Uid, e.How, e.Stale.Sub(e.Start), e.Detail)
+}
 
 type Point struct {
 	XMLName xml.Name `xml:"point"`
 	Lat     float64  `xml:"lat,attr"`
 	Lon     float64  `xml:"lon,attr"`
-	Hae     string   `xml:"hae,attr"`
-	Ce      string   `xml:"ce,attr"`
-	Le      string   `xml:"le,attr"`
+	Hae     float64  `xml:"hae,attr"`
+	Ce      float64  `xml:"ce,attr"`
+	Le      float64  `xml:"le,attr"`
+}
+
+type Detail struct {
+	Uid               *Uid               `xml:"uid,omitempty,selfclose"`
+	TakVersion        *TakVersion        `xml:"takv,omitempty,selfclose"`
+	Contact           *Contact           `xml:"contact,omitempty,selfclose"`
+	PrecisionLocation *Precisionlocation `xml:"precisionlocation,omitempty,selfclose"`
+	Group             *Group             `xml:"__group,omitempty,selfclose"`
+	Status            *Status            `xml:"status,omitempty,selfclose"`
+	Usericon          *Usericon          `xml:"usericon,omitempty,selfclose"`
+	Track             *Track             `xml:"track,omitempty,selfclose"`
+	Chat              *Chat              `xml:"__chat,omitempty"`
+	Link              *Link              `xml:"link,omitempty,selfclose"`
+	Remarks           *Remarks           `xml:"remarks,omitempty"`
+	Marti             *Marti             `xml:"marti,omitempty"`
+}
+
+func (d Detail) String() string {
+	var s string
+
+	if d.Uid != nil {
+		s += fmt.Sprintf("uid={%s}", d.Uid)
+	}
+	if d.TakVersion != nil {
+		s += fmt.Sprintf(", takv={%s}", d.TakVersion)
+	}
+	if d.Contact != nil {
+		s += fmt.Sprintf(", contact={%s}", d.Contact)
+	}
+	if d.Group != nil {
+		s += fmt.Sprintf(", group={%s}", d.Group)
+	}
+	if d.Chat != nil {
+		s += fmt.Sprintf(", chat={%s}", d.Chat)
+	}
+	return strings.TrimLeft(s, " ,")
 }
 
 type Contact struct {
 	Endpoint string `xml:"endpoint,attr,omitempty"`
 	Callsign string `xml:"callsign,attr,omitempty"`
 	Phone    string `xml:"phone,attr,omitempty"`
+}
+
+func (c *Contact) String() string {
+	s := ""
+	if c.Endpoint != "" {
+		s += fmt.Sprintf(", endpoint=%s", c.Endpoint)
+	}
+	if c.Callsign != "" {
+		s += fmt.Sprintf(", callsign=%s", c.Callsign)
+	}
+	if c.Phone != "" {
+		s += fmt.Sprintf(", phone=%s", c.Phone)
+	}
+	return strings.TrimLeft(s, ", ")
 }
 
 type TakVersion struct {
@@ -34,14 +107,25 @@ type Precisionlocation struct {
 }
 
 type Group struct {
-	Role string `xml:"role,attr"`
 	Name string `xml:"name,attr"`
+	Role string `xml:"role,attr"`
+}
+
+func (g *Group) String() string {
+	if g == nil {
+		return "nil"
+	}
+	return fmt.Sprintf("name=%s, role=%s", g.Name, g.Role)
 }
 
 type Status struct {
 	Text      string `xml:",chardata"`
 	Battery   string `xml:"battery,attr,omitempty"`
 	Readiness string `xml:"readiness,attr,omitempty"`
+}
+
+type Usericon struct {
+	Iconsetpath string `xml:"iconsetpath,attr,omitempty"`
 }
 
 type Track struct {
@@ -53,17 +137,25 @@ type Uid struct {
 	Droid string `xml:"Droid,attr,omitempty"`
 }
 
+func (u *Uid) String() string {
+	if u == nil {
+		return "nil"
+	}
+	return fmt.Sprintf("Droid=%s", u.Droid)
+}
+
 type Chat struct {
 	Id      string   `xml:"id,attr"`
 	Parent  string   `xml:"parent,attr,omitempty"`
 	Sender  string   `xml:"senderCallsign,attr,omitempty"`
 	Room    string   `xml:"chatroom,attr,omitempty"`
 	Owner   string   `xml:"groupOwner,attr,omitempty"`
-	ChatGrp *ChatGrp `xml:"chatgrp,omitempty"`
+	ChatGrp *ChatGrp `xml:"chatgrp,omitempty,selfclose"`
 }
 
-func (c Chat) String() string {
-	return fmt.Sprintf("id: %s, parent: %s, sender: %s, room: %s, owner: %s, grp: {%s}", c.Id, c.Parent, c.Sender, c.Room, c.Owner, c.ChatGrp)
+func (c *Chat) String() string {
+
+	return fmt.Sprintf("id=%s, parent=%s, sender=%s, room=%s, owner=%s, grp={%s}", c.Id, c.Parent, c.Sender, c.Room, c.Owner, c.ChatGrp)
 }
 
 type ChatGrp struct {
@@ -73,7 +165,7 @@ type ChatGrp struct {
 }
 
 func (cg ChatGrp) String() string {
-	return fmt.Sprintf("id: {%s}, uid0: {%s},  uid1: {%s}", cg.Id, cg.Uid0, cg.Uid1)
+	return fmt.Sprintf("id={%s}, uid0={%s},  uid1={%s}", cg.Id, cg.Uid0, cg.Uid1)
 }
 
 type Link struct {
@@ -99,90 +191,65 @@ func (r Remarks) String() string {
 }
 
 type Marti struct {
-	Dest *MartiDest `xml:"dest,omitempty"`
+	Dest []MartiDest `xml:"dest,omitempty"`
 }
 
 type MartiDest struct {
 	Callsign string `xml:"callsign,attr,omitempty"`
 }
 
-type Detail struct {
-	Text              string             `xml:",chardata"`
-	Uid               *Uid               `xml:"uid"`
-	TakVersion        *TakVersion        `xml:"takv,omitempty"`
-	Contact           *Contact           `xml:"contact,omitempty"`
-	PrecisionLocation *Precisionlocation `xml:"precisionlocation,omitempty"`
-	Group             *Group             `xml:"__group,omitempty"`
-	Status            *Status            `xml:"status,omitempty"`
-	Track             *Track             `xml:"track,omitempty"`
-	Chat              *Chat              `xml:"__chat,omitempty"`
-	Link              *Link              `xml:"link,omitempty"`
-	Remarks           *Remarks           `xml:"remarks,omitempty"`
-	Marti             *Marti             `xml:"marti,omitempty"`
-}
-
-type Event struct {
-	XMLName xml.Name  `xml:"event"`
-	Text    string    `xml:",chardata"`
-	Version string    `xml:"version,attr"`
-	Uid     string    `xml:"uid,attr"`
-	Type    string    `xml:"type,attr"`
-	Time    time.Time `xml:"time,attr"`
-	Start   time.Time `xml:"start,attr"`
-	Stale   time.Time `xml:"stale,attr"`
-	How     string    `xml:"how,attr"`
-	Point   *Point    `xml:"point,omitempty"`
-	Detail  *Detail   `xml:"detail,omitempty"`
-}
-
 func (e *Event) GetCallsign() string {
-	if e.Detail != nil && e.Detail.Contact != nil {
+	if e.Detail.Contact != nil {
 		return e.Detail.Contact.Callsign
 	}
 	return ""
 }
 
-func (e *Event) GetCallsignTo() string {
-	if e.Detail != nil && e.Detail.Marti != nil && e.Detail.Marti.Dest != nil {
-		return  e.Detail.Marti.Dest.Callsign
+func (e *Event) GetCallsignTo() []string {
+	if e.Detail.Marti != nil {
+		res := make([]string, len(e.Detail.Marti.Dest))
+		for i, d := range e.Detail.Marti.Dest {
+			res[i] = d.Callsign
+		}
+		return res
 	}
-	return ""
+	return nil
 }
 
 func (e *Event) GetDroid() string {
-	if e.Detail != nil && e.Detail.Uid != nil {
-		return  e.Detail.Uid.Droid
+	if e.Detail.Uid != nil {
+		return e.Detail.Uid.Droid
 	}
 	return ""
 }
 
 func (e *Event) IsChat() bool {
-	return e.Detail != nil && e.Detail.Chat != nil
+	return e.Detail.Chat != nil
 }
 
 func (e *Event) GetText() string {
-	if e.Detail != nil && e.Detail.Remarks != nil {
+	if e.Detail.Remarks != nil {
 		return e.Detail.Remarks.Text
 	}
 
 	return ""
 }
 
-func BasicEvent(typ string, uid string) *Event {
+func BasicEvent(typ string, uid string, stale time.Duration) *Event {
 	return &Event{
 		Version: "2.0",
 		Uid:     uid,
 		Type:    typ,
 		Time:    time.Now().UTC(),
 		Start:   time.Now().UTC(),
-		Stale:   time.Now().Add(time.Hour).UTC(),
-		Point: &Point{
-			XMLName: xml.Name{},
-			Lat:     0,
-			Lon:     0,
-			Hae:     "0.0",
-			Ce:      "0.0",
-			Le:      "999999",
+		Stale:   time.Now().Add(stale).UTC(),
+		How:     "m-g",
+		Point: Point{
+			Lat: 0,
+			Lon: 0,
+			Hae: 0,
+			Ce:  9999999,
+			Le:  9999999,
 		},
 	}
 }
@@ -215,28 +282,30 @@ func BasicDetail(callsign string, team string, role string) *Detail {
 }
 
 func MakeMe(uid string, callsign string) *Event {
-	ev := BasicEvent("a-f-G-U-U-S-O", uid)
-	ev.Detail = BasicDetail(callsign, "Red", "HQ")
+	ev := BasicEvent("a-f-G-U-U-S-O", uid, time.Minute)
+	ev.Detail = *BasicDetail(callsign, "Red", "HQ")
 
 	return ev
 }
 
-func MakePos(uid string, callsign string) string {
-	tpl := `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<event version="2.0" uid="%s" type="a-f-G-U-C" time="%s" start="%s" stale="%s" how="h-e"><point lat="60.2" lon="32.3" hae="65.1" ce="10.7" le="9999999.0"/><detail><takv os="29" version="4.0.0.7 (7939f102).1592931989-CIV" device="XIAOMI MI 9T" platform="ATAK-CIV"/><contact endpoint="*:-1:stcp" callsign="%s"/><uid Droid="%s"/><precisionlocation altsrc="GPS" geopointsrc="GPS"/><__group role="Team Member" name="Dark Green"/><status battery="48"/><track course="213.27765249411488" speed="0.0"/></detail></event>`
+func MakePos(uid string, callsign string) *Event {
+	ev := BasicEvent("a-f-G-E-V-C", uid, time.Minute*5)
+	ev.Detail = *BasicDetail(callsign, "Red", "Team Member")
+	ev.Detail.Status = &Status{
+		Battery: "95",
+	}
+	ev.Detail.PrecisionLocation = &Precisionlocation{
+		Altsrc:      "GPS",
+		Geopointsrc: "GPS",
+	}
 
-	now := time.Now().UTC().Format("2006-01-02T15:04:05Z")
-	stale := time.Now().Add(time.Hour).UTC().Format("2006-01-02T15:04:05Z")
-
-	return fmt.Sprintf(tpl, uid, now, now, stale, callsign, callsign)
+	ev.Detail.TakVersion.Version = "4.0.0.7 (7939f102).1592931989-CIV"
+	ev.Detail.TakVersion.Os = "29"
+	ev.Detail.TakVersion.Device = "XIAOMI MI 9T"
+	ev.Detail.TakVersion.Platform = "ATAK-CIV"
+	return ev
 }
 
-func MakePing(uid string) string {
-	tpl := `<?xml version="1.0"?>
-<event version="2.0" uid="%s-ping" type="t-x-c-t" time="%s" start="%s" stale="%s" how="m-g"><point lat="0.00000000" lon="0.00000000" hae="0.00000000" ce="9999999" le="9999999"/><detail/></event>`
-
-	now := time.Now().UTC().Format("2006-01-02T15:04:05Z")
-	stale := time.Now().Add(time.Hour).UTC().Format("2006-01-02T15:04:05Z")
-
-	return fmt.Sprintf(tpl, uid, now, now, stale)
+func MakePing(uid string) *Event {
+	return BasicEvent("t-x-c-t", uid+"-ping", time.Second*10)
 }

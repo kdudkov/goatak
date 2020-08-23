@@ -27,5 +27,4 @@ func TestParseEvent(t *testing.T) {
 
 	_ = xml.Unmarshal([]byte(evt), e)
 
-	println(e.Point)
 }
