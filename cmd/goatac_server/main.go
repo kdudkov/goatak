@@ -76,6 +76,12 @@ func (app *App) Run() {
 	app.ctx, cancel = context.WithCancel(context.Background())
 
 	go func() {
+		if err := app.ListenUDP(fmt.Sprintf(":%d", 4242)); err != nil {
+			panic(err)
+		}
+	}()
+
+	go func() {
 		if err := app.ListenTCP(fmt.Sprintf(":%d", app.port)); err != nil {
 			panic(err)
 		}
@@ -99,7 +105,7 @@ func (app *App) EventProcessor() {
 		}
 
 		if app.logging {
-			if f, err := os.OpenFile(msg.event.Type+".xml", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666); err == nil {
+			if f, err := os.OpenFile(msg.event.Type+".log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666); err == nil {
 				f.Write(msg.dat)
 				f.Write([]byte{13})
 				f.Close()
@@ -115,9 +121,9 @@ func (app *App) EventProcessor() {
 		case msg.event.IsChat():
 			app.Logger.Infof("chat %s %s", msg.event.Detail.Chat, msg.event.GetText())
 		case strings.HasPrefix(msg.event.Type, "a-"):
-			app.Logger.Debugf("point %s (%s)", msg.event.Uid, msg.event.Detail.Contact.Callsign)
-		case strings.HasPrefix(msg.event.Type, "b-"):
 			app.Logger.Debugf("pos %s (%s)", msg.event.Uid, msg.event.Detail.Contact.Callsign)
+		case strings.HasPrefix(msg.event.Type, "b-"):
+			app.Logger.Debugf("point %s (%s)", msg.event.Uid, msg.event.Detail.Contact.Callsign)
 		default:
 			app.Logger.Debugf("event: %s", msg.event)
 		}
