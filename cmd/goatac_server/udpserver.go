@@ -1,9 +1,10 @@
 package main
 
 import (
+	"net"
+
 	"gotac/cot"
 	"gotac/xml"
-	"net"
 )
 
 func (app *App) ListenUDP(addr string) error {
