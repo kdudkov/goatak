@@ -48,9 +48,21 @@ type Detail struct {
 	Usericon          *Usericon          `xml:"usericon,omitempty,selfclose"`
 	Track             *Track             `xml:"track,omitempty,selfclose"`
 	Chat              *Chat              `xml:"__chat,omitempty"`
-	Link              *Link              `xml:"link,omitempty,selfclose"`
+	Link              []*Link            `xml:"link,omitempty,selfclose"`
 	Remarks           *Remarks           `xml:"remarks,omitempty"`
 	Marti             *Marti             `xml:"marti,omitempty"`
+	Color             struct {
+		Value string `xml:"argb,attr,omitempty"`
+	} `xml:"color,omitempty,selfclose"`
+	StrokeColor struct {
+		Value string `xml:"value,attr,omitempty"`
+	} `xml:"strokeColor,omitempty,selfclose"`
+	FillColor struct {
+		Value string `xml:"value,attr,omitempty"`
+	} `xml:"fillColor,omitempty,selfclose"`
+	StrokeWeight struct {
+		Value string `xml:"value,attr,omitempty"`
+	} `xml:"strokeWeight,omitempty,selfclose"`
 }
 
 func (d Detail) String() string {
@@ -176,6 +188,7 @@ type Link struct {
 	Relation string    `xml:"relation,attr"`
 	Type     string    `xml:"type,attr"`
 	Uid      string    `xml:"uid,attr"`
+	Point    string    `xml:"point,attr"`
 }
 
 func (l Link) String() string {

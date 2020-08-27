@@ -29,7 +29,9 @@ func (app *App) ListenUDP(addr string) error {
 			continue
 		}
 
-		app.ch <- &Msg{event: evt, dat: buf[:n]}
+		dat := make([]byte, n)
+		copy(dat, buf[:n])
+		app.ch <- &Msg{event: evt, dat: dat}
 	}
 
 	return nil

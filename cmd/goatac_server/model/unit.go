@@ -1,10 +1,16 @@
 package model
 
-import "time"
+import (
+	"time"
+
+	"gotac/cot"
+)
 
 type Unit struct {
 	Uid      string
 	Callsign string
-	Lastseen time.Time
+	Time     time.Time
+	Stale    time.Time
 	Type     string
+	evt      *cot.Event
 }

@@ -13,6 +13,7 @@ import (
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 
+	"gotac/cmd/goatac_server/model"
 	"gotac/cot"
 	"gotac/xml"
 )
@@ -28,41 +29,46 @@ type Msg struct {
 }
 
 type App struct {
-	Logger *zap.SugaredLogger
-	port   int
+	Logger  *zap.SugaredLogger
+	tcpport int
+	udpport int
 
 	clients map[string]*ClientHandler
-	points  map[string]*cot.Point
-	mx      sync.RWMutex
+	points  map[string]*model.Unit
 	ctx     context.Context
 	uid     string
 	ch      chan *Msg
 	logging bool
+
+	clientMx sync.RWMutex
+	pointMx  sync.RWMutex
 }
 
-func NewApp(port int, logger *zap.SugaredLogger) *App {
+func NewApp(tcpport, udpport int, logger *zap.SugaredLogger) *App {
 	return &App{
-		Logger:  logger,
-		port:    port,
-		mx:      sync.RWMutex{},
-		ch:      make(chan *Msg, 20),
-		clients: make(map[string]*ClientHandler, 0),
-		points:  make(map[string]*cot.Point, 0),
-		uid:     uuid.New().String(),
+		Logger:   logger,
+		tcpport:  tcpport,
+		udpport:  udpport,
+		ch:       make(chan *Msg, 20),
+		clients:  make(map[string]*ClientHandler, 0),
+		points:   make(map[string]*model.Unit, 0),
+		uid:      uuid.New().String(),
+		clientMx: sync.RWMutex{},
+		pointMx:  sync.RWMutex{},
 	}
 }
 
 func (app *App) AddClient(uid string, cl *ClientHandler) {
-	app.mx.Lock()
-	defer app.mx.Unlock()
+	app.clientMx.Lock()
+	defer app.clientMx.Unlock()
 
 	app.Logger.Infof("new client: %s", uid)
 	app.clients[uid] = cl
 }
 
 func (app *App) RemoveClient(uid string) {
-	app.mx.Lock()
-	defer app.mx.Unlock()
+	app.clientMx.Lock()
+	defer app.clientMx.Unlock()
 
 	if _, ok := app.clients[uid]; ok {
 		app.Logger.Infof("remove client: %s", uid)
@@ -76,13 +82,13 @@ func (app *App) Run() {
 	app.ctx, cancel = context.WithCancel(context.Background())
 
 	go func() {
-		if err := app.ListenUDP(fmt.Sprintf(":%d", 4242)); err != nil {
+		if err := app.ListenUDP(fmt.Sprintf(":%d", app.udpport)); err != nil {
 			panic(err)
 		}
 	}()
 
 	go func() {
-		if err := app.ListenTCP(fmt.Sprintf(":%d", app.port)); err != nil {
+		if err := app.ListenTCP(fmt.Sprintf(":%d", app.tcpport)); err != nil {
 			panic(err)
 		}
 	}()
@@ -107,7 +113,7 @@ func (app *App) EventProcessor() {
 		if app.logging {
 			if f, err := os.OpenFile(msg.event.Type+".log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666); err == nil {
 				f.Write(msg.dat)
-				f.Write([]byte{13})
+				f.Write([]byte{10})
 				f.Close()
 			} else {
 				fmt.Println(err)
@@ -150,8 +156,8 @@ func (app *App) SendToAll(evt *cot.Event, author string) {
 }
 
 func (app *App) SendMsgToAll(msg []byte, author string) {
-	app.mx.RLock()
-	defer app.mx.RUnlock()
+	app.clientMx.RLock()
+	defer app.clientMx.RUnlock()
 
 	for uid, h := range app.clients {
 		if uid != author {
@@ -183,8 +189,8 @@ func (app *App) SendToCallsign(evt *cot.Event, callsign string) {
 }
 
 func (app *App) SendMsgTo(msg []byte, uid string) {
-	app.mx.RLock()
-	defer app.mx.RUnlock()
+	app.clientMx.RLock()
+	defer app.clientMx.RUnlock()
 
 	if h, ok := app.clients[uid]; ok {
 		h.AddMsg(msg)
@@ -192,8 +198,8 @@ func (app *App) SendMsgTo(msg []byte, uid string) {
 }
 
 func (app *App) SendMsgToCallsign(msg []byte, callsign string) {
-	app.mx.RLock()
-	defer app.mx.RUnlock()
+	app.clientMx.RLock()
+	defer app.clientMx.RUnlock()
 
 	for _, h := range app.clients {
 		if h.Callsign == callsign {
@@ -205,8 +211,9 @@ func (app *App) SendMsgToCallsign(msg []byte, callsign string) {
 func main() {
 	fmt.Printf("version %s:%s\n", gitBranch, gitRevision)
 
-	var tcpPort = flag.Int("tcp", 8089, "port for udp")
-	var logging = flag.Bool("logging", false, "port for udp")
+	var tcpPort = flag.Int("tcp_port", 8089, "port for tcp")
+	var udpPort = flag.Int("udp_port", 4242, "port for udp")
+	var logging = flag.Bool("logging", false, "save all events to files")
 
 	flag.Parse()
 
@@ -214,7 +221,7 @@ func main() {
 	logger, _ := cfg.Build()
 	defer logger.Sync()
 
-	app := NewApp(*tcpPort, logger.Sugar())
+	app := NewApp(*tcpPort, *udpPort, logger.Sugar())
 	app.logging = *logging
 	app.Run()
 }
