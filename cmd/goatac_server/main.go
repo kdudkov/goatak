@@ -22,6 +22,11 @@ var (
 	gitBranch   = "unknown"
 )
 
+type Msg struct {
+	event *cot.Event
+	dat   []byte
+}
+
 type App struct {
 	Logger *zap.SugaredLogger
 	port   int
@@ -31,7 +36,8 @@ type App struct {
 	mx      sync.RWMutex
 	ctx     context.Context
 	uid     string
-	ch      chan *cot.Event
+	ch      chan *Msg
+	logging bool
 }
 
 func NewApp(port int, logger *zap.SugaredLogger) *App {
@@ -39,7 +45,7 @@ func NewApp(port int, logger *zap.SugaredLogger) *App {
 		Logger:  logger,
 		port:    port,
 		mx:      sync.RWMutex{},
-		ch:      make(chan *cot.Event, 20),
+		ch:      make(chan *Msg, 20),
 		clients: make(map[string]*ClientHandler, 0),
 		points:  make(map[string]*cot.Point, 0),
 		uid:     uuid.New().String(),
@@ -58,7 +64,7 @@ func (app *App) RemoveClient(uid string) {
 	app.mx.Lock()
 	defer app.mx.Unlock()
 
-	if _, ok := app.clients[uid]; !ok {
+	if _, ok := app.clients[uid]; ok {
 		app.Logger.Infof("remove client: %s", uid)
 		delete(app.clients, uid)
 	}
@@ -86,58 +92,60 @@ func (app *App) Run() {
 
 func (app *App) EventProcessor() {
 	for {
-		evt := <-app.ch
+		msg := <-app.ch
 
-		app.Logger.Debugf("%s", evt)
+		if msg.event == nil {
+			continue
+		}
+
+		if app.logging {
+			if f, err := os.OpenFile(msg.event.Type+".xml", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666); err == nil {
+				f.Write(msg.dat)
+				f.Write([]byte{13})
+				f.Close()
+			} else {
+				fmt.Println(err)
+			}
+		}
+
 		switch {
-		case evt.Type == "t-x-c-t":
+		case msg.event.Type == "t-x-c-t":
 			// ping
-			app.Logger.Debugf("ping from %s", evt.Uid)
-			app.SendToAll(evt, "")
-			//app.SendTo(cot.MakePing(app.uid), evt.Uid)
-		case evt.IsChat():
-			app.Logger.Infof("chat %s %s", evt.Detail.Chat, evt.GetText())
-			if len(evt.GetCallsignTo()) > 0 {
-				for _, s := range evt.GetCallsignTo() {
-					app.SendToCallsign(evt, s)
-				}
-			} else {
-				app.SendToAll(evt, evt.Uid)
-			}
-
-		case strings.HasPrefix(evt.Type, "a-"), strings.HasPrefix(evt.Type, "b-"):
-			app.Logger.Debugf("point or pos %s (%s)", evt.Uid, evt.Detail.Contact.Callsign)
-			if len(evt.GetCallsignTo()) > 0 {
-				for _, s := range evt.GetCallsignTo() {
-					app.SendToCallsign(evt, s)
-				}
-			} else {
-				app.SendToAll(evt, "")
-			}
-
+			app.Logger.Debugf("ping from %s", msg.event.Uid)
+		case msg.event.IsChat():
+			app.Logger.Infof("chat %s %s", msg.event.Detail.Chat, msg.event.GetText())
+		case strings.HasPrefix(msg.event.Type, "a-"):
+			app.Logger.Debugf("point %s (%s)", msg.event.Uid, msg.event.Detail.Contact.Callsign)
+		case strings.HasPrefix(msg.event.Type, "b-"):
+			app.Logger.Debugf("pos %s (%s)", msg.event.Uid, msg.event.Detail.Contact.Callsign)
 		default:
-			app.Logger.Infof("event: %s", evt)
-			if len(evt.GetCallsignTo()) > 0 {
-				for _, s := range evt.GetCallsignTo() {
-					app.SendToCallsign(evt, s)
-				}
-			} else {
-				app.SendToAll(evt, evt.Uid)
+			app.Logger.Debugf("event: %s", msg.event)
+		}
+
+		if len(msg.event.GetCallsignTo()) > 0 {
+			for _, s := range msg.event.GetCallsignTo() {
+				app.SendMsgToCallsign(msg.dat, s)
 			}
+		} else {
+			app.SendMsgToAll(msg.dat, msg.event.Uid)
 		}
 	}
 }
 
 func (app *App) SendToAll(evt *cot.Event, author string) {
-	app.mx.RLock()
-	defer app.mx.RUnlock()
-
 	msg, err := xml.Marshal(evt)
 
 	if err != nil {
 		app.Logger.Errorf("marshalling error: %v", err)
 		return
 	}
+
+	app.SendMsgToAll(msg, author)
+}
+
+func (app *App) SendMsgToAll(msg []byte, author string) {
+	app.mx.RLock()
+	defer app.mx.RUnlock()
 
 	for uid, h := range app.clients {
 		if uid != author {
@@ -192,6 +200,7 @@ func main() {
 	fmt.Printf("version %s:%s\n", gitBranch, gitRevision)
 
 	var tcpPort = flag.Int("tcp", 8089, "port for udp")
+	var logging = flag.Bool("logging", false, "port for udp")
 
 	flag.Parse()
 
@@ -200,5 +209,6 @@ func main() {
 	defer logger.Sync()
 
 	app := NewApp(*tcpPort, logger.Sugar())
+	app.logging = *logging
 	app.Run()
 }

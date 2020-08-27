@@ -1,11 +1,8 @@
 package main
 
 import (
-	"fmt"
 	"io"
 	"net"
-	"os"
-	"reflect"
 	"strings"
 	"sync"
 	"time"
@@ -17,10 +14,10 @@ import (
 )
 
 const (
-	idleTimeout = 5 * time.Minute
-	pingTimeout = 5 * time.Second
+	idleTimeout = 1 * time.Minute
+	pingTimeout = 15 * time.Second
 
-	debug = true
+	backping = false
 )
 
 type ClientHandler struct {
@@ -33,7 +30,6 @@ type ClientHandler struct {
 	pingTimer    *time.Timer
 	app          *App
 	Ch           chan []byte
-	log          *os.File
 	active       atomic.Bool
 	mx           sync.Mutex
 }
@@ -76,46 +72,31 @@ func (h *ClientHandler) Start() {
 func (h *ClientHandler) handleRead() {
 	defer h.stopHandle()
 
-	var dec *xml.Decoder
-	if debug {
-		h.log, _ = os.Create(time.Now().Format("20060102-15040507.log"))
-		dec = xml.NewDecoder(io.TeeReader(h.conn, h.log))
-	} else {
-		dec = xml.NewDecoder(h.conn)
-	}
+	er := NewEventnReader(h.conn)
 
 Loop:
 	for {
 		if !h.active.Load() {
 			break
 		}
-		// Read tokens from the XML document in a stream.
-		t, _ := dec.Token()
-		if t == nil {
-			h.app.Logger.Infof("stop reading for %s", h.Uid)
-			break
-		}
-		h.setActivity()
 
-		switch se := t.(type) {
-		case xml.StartElement:
-			if se.Name.Local == "event" {
-				var ev cot.Event
-				if err := dec.DecodeElement(&ev, &se); err != nil {
-					h.app.Logger.Errorf("error decoding element: %v", err)
-					continue
-				}
-				if err := h.processEvent(&ev); err != nil {
-					h.app.Logger.Errorf("%v", err)
-					break Loop
-				}
+		dat, err := er.ReadEvent()
+		if err != nil {
+			if err == io.EOF {
+				break Loop
 			}
-		case xml.CharData:
-		case xml.ProcInst:
+			h.app.Logger.Errorf("read error: %v", err)
 			continue
-		default:
-			h.app.Logger.Errorf("wtf? %s\n", reflect.TypeOf(t).Name())
 		}
+
+		ev := &cot.Event{}
+		if err := xml.Unmarshal(dat, ev); err != nil {
+			h.app.Logger.Errorf("decode error: %v, data: %s", err, string(dat))
+			continue
+		}
+
+		h.checkFirstMsg(ev)
+		h.processEvent(dat, ev)
 	}
 
 	if h.closeTimer != nil {
@@ -123,21 +104,19 @@ Loop:
 	}
 }
 
-func (h *ClientHandler) processEvent(evt *cot.Event) error {
+func (h *ClientHandler) checkFirstMsg(evt *cot.Event) {
 	if strings.HasPrefix(evt.Type, "a-f-") {
 		// position (assume it's client one)
 		if h.Uid == "" {
 			h.Uid = evt.Uid
-			h.app.AddClient(evt.Uid, h)
-		} else {
-			if h.Uid != evt.Uid {
-				return fmt.Errorf("bad uid: was %s, now %s", h.Uid, evt.Uid)
-			}
 			h.Callsign = evt.GetCallsign()
+			h.app.AddClient(evt.Uid, h)
 		}
 	}
-	h.app.ch <- evt
-	return nil
+}
+
+func (h *ClientHandler) processEvent(dat []byte, evt *cot.Event) {
+	h.app.ch <- &Msg{dat: dat, event: evt}
 }
 
 func (h *ClientHandler) handleWrite() {
@@ -145,7 +124,6 @@ func (h *ClientHandler) handleWrite() {
 		msg := <-h.Ch
 
 		if _, err := h.conn.Write(msg); err != nil {
-			h.app.Logger.Infof("stop writing for %s", h.Uid)
 			if h.pingTimer != nil {
 				h.pingTimer.Stop()
 			}
@@ -161,13 +139,11 @@ func (h *ClientHandler) stopHandle() {
 	defer h.mx.Unlock()
 
 	if h.active.CAS(true, false) {
-		close(h.Ch)
-		if h.log != nil {
-			h.log.Close()
-		}
 		if h.Uid != "" {
 			h.app.RemoveClient(h.Uid)
 		}
+
+		close(h.Ch)
 
 		if h.conn != nil {
 			h.conn.Close()
@@ -186,7 +162,6 @@ func (h *ClientHandler) setActivity() {
 	}
 }
 
-// closeIdle closes the connection if last activity is passed behind idleTimeout.
 func (h *ClientHandler) closeIdle() {
 	idle := time.Now().Sub(h.lastActivity)
 
@@ -199,10 +174,12 @@ func (h *ClientHandler) closeIdle() {
 func (h *ClientHandler) setWriteActivity() {
 	h.lastWrite = time.Now()
 
-	if h.pingTimer == nil {
-		h.pingTimer = time.AfterFunc(pingTimeout, h.sendPing)
-	} else {
-		h.pingTimer.Reset(pingTimeout)
+	if backping {
+		if h.pingTimer == nil {
+			h.pingTimer = time.AfterFunc(pingTimeout, h.sendPing)
+		} else {
+			h.pingTimer.Reset(pingTimeout)
+		}
 	}
 }
 

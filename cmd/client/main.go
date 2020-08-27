@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"crypto/md5"
 	"flag"
 	"fmt"
@@ -8,7 +9,9 @@ import (
 	"math/rand"
 	"net"
 	"os"
+	"os/signal"
 	"sync"
+	"syscall"
 	"time"
 
 	"gotac/cot"
@@ -25,11 +28,23 @@ func main() {
 	var call = flag.String("name", "miner", "callsign")
 	flag.Parse()
 
-	for {
+	ctx, cancel := context.WithCancel(context.Background())
+
+	go run(ctx, *call)
+
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, syscall.SIGINT, syscall.SIGTERM, syscall.SIGKILL)
+	<-c
+	cancel()
+
+}
+
+func run(ctx context.Context, callsign string) {
+	for ctx.Err() == nil {
 		fmt.Println("connecting...")
 		//if err := NewHandler(*call).Start("204.48.30.216:8087"); err != nil {
 		//if err := NewHandler(*call).Start("127.0.0.1:8099"); err != nil {
-		if err := NewHandler(*call).Start("127.0.0.1:8089"); err != nil {
+		if err := NewHandler(callsign).Start(ctx, "127.0.0.1:8089"); err != nil {
 			time.Sleep(time.Second * 5)
 		}
 		fmt.Println("disconnected")
@@ -48,7 +63,7 @@ func NewHandler(callsign string) *Handler {
 	}
 }
 
-func (h *Handler) Start(addr string) error {
+func (h *Handler) Start(ctx context.Context, addr string) error {
 	var err error
 
 	h.conn, err = net.Dial("tcp", addr)
@@ -61,19 +76,19 @@ func (h *Handler) Start(addr string) error {
 
 	wg := &sync.WaitGroup{}
 	wg.Add(2)
-	go h.read(wg)
-	go h.write(wg)
+	go h.read(ctx, wg)
+	go h.write(ctx, wg)
 	wg.Wait()
 	return nil
 }
 
-func (h *Handler) read(wg *sync.WaitGroup) {
+func (h *Handler) read(ctx context.Context, wg *sync.WaitGroup) {
 	defer wg.Done()
 	f, _ := os.Create(h.callsign + ".out")
 	n := 0
 	dec := xml.NewDecoder(io.TeeReader(h.conn, f))
 
-	for {
+	for ctx.Err() == nil {
 		// Read tokens from the XML document in a stream.
 		evt := &cot.Event{}
 		if err := dec.Decode(evt); err != nil {
@@ -90,7 +105,7 @@ func (h *Handler) read(wg *sync.WaitGroup) {
 	fmt.Printf("got %d messages\n", n)
 }
 
-func (h *Handler) write(wg *sync.WaitGroup) {
+func (h *Handler) write(ctx context.Context, wg *sync.WaitGroup) {
 	defer wg.Done()
 
 	var n int = 0
@@ -99,13 +114,13 @@ func (h *Handler) write(wg *sync.WaitGroup) {
 		panic(err)
 	}
 
-	for {
+	for ctx.Err() == nil {
 		var ev *cot.Event
 
 		if n%10 == 0 {
 			ev = cot.MakePos(h.uid, h.callsign)
-			ev.Point.Lat = 60 + (rand.Float64()-0.5)*5
-			ev.Point.Lon = 30 + (rand.Float64()-0.5)*5
+			ev.Point.Lat = 59.9 + (rand.Float64()-0.5)/5
+			ev.Point.Lon = 30.3 + (rand.Float64()-0.5)/5
 			ev.Point.Hae = 20
 
 			fmt.Println("pos")

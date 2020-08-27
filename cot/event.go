@@ -68,6 +68,9 @@ func (d Detail) String() string {
 	if d.Group != nil {
 		s += fmt.Sprintf(", group={%s}", d.Group)
 	}
+	if d.Status != nil {
+		s += fmt.Sprintf(", status={%s}", d.Status)
+	}
 	if d.Chat != nil {
 		s += fmt.Sprintf(", chat={%s}", d.Chat)
 	}
