@@ -146,6 +146,8 @@ func (app *App) EventProcessor() {
 		case msg.event.Type == "t-x-c-t":
 			// ping
 			app.Logger.Debugf("ping from %s", msg.event.Uid)
+			app.SendTo(cot.MakePong(), msg.event.Uid)
+			continue
 		case msg.event.IsChat():
 			app.Logger.Infof("chat %s %s", msg.event.Detail.Chat, msg.event.GetText())
 		case strings.HasPrefix(msg.event.Type, "a-"):

@@ -297,13 +297,6 @@ func BasicDetail(callsign string, team string, role string) *Detail {
 	}
 }
 
-func MakeMe(uid string, callsign string) *Event {
-	ev := BasicEvent("a-f-G-U-U-S-O", uid, time.Minute)
-	ev.Detail = *BasicDetail(callsign, "Red", "HQ")
-
-	return ev
-}
-
 func MakePos(uid string, callsign string) *Event {
 	ev := BasicEvent("a-f-G-E-V-C", uid, time.Minute*5)
 	ev.Detail = *BasicDetail(callsign, "Red", "Team Member")
@@ -324,4 +317,10 @@ func MakePos(uid string, callsign string) *Event {
 
 func MakePing(uid string) *Event {
 	return BasicEvent("t-x-c-t", uid+"-ping", time.Second*10)
+}
+
+func MakePong() *Event {
+	ev := BasicEvent("t-x-c-t-r", "takPong", time.Second*20)
+	ev.How = "h-g-i-g-o"
+	return ev
 }

@@ -117,6 +117,7 @@
                     p = this.points.get(item.uid);
                     p.setLatLng([item.lat, item.lon], {title: item.callsign});
                     p.setIcon(getIcon(item.icon))
+                    p.bindTooltip(item.callsign, {direction: 'right'});
                     p.bindPopup(popup(item));
                 } else {
                     p = L.marker([item.lat, item.lon], {icon: getIcon(item.icon)});

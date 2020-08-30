@@ -72,7 +72,7 @@ func (h *ClientHandler) Start() {
 func (h *ClientHandler) handleRead() {
 	defer h.stopHandle()
 
-	er := NewEventnReader(h.conn)
+	er := cot.NewEventnReader(h.conn)
 
 Loop:
 	for {

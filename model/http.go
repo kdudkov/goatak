@@ -8,6 +8,8 @@ import (
 type WebUnit struct {
 	Uid      string    `json:"uid"`
 	Callsign string    `json:"callsign"`
+	Team     string    `json:"team"`
+	Role     string    `json:"role"`
 	Time     time.Time `json:"time"`
 	Stale    time.Time `json:"stale"`
 	Type     string    `json:"type"`
@@ -39,6 +41,11 @@ func (u *Unit) ToWeb() *WebUnit {
 
 	if u.evt.Detail.Remarks != nil {
 		w.Text = u.evt.Detail.Remarks.Text
+	}
+
+	if u.evt.Detail.Group != nil {
+		w.Team = u.evt.Detail.Group.Name
+		w.Role = u.evt.Detail.Group.Role
 	}
 
 	return w

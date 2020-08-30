@@ -5,33 +5,53 @@ import (
 	"crypto/md5"
 	"flag"
 	"fmt"
-	"io"
-	"math/rand"
 	"net"
 	"os"
 	"os/signal"
+	"strings"
 	"sync"
 	"syscall"
 	"time"
 
+	"go.uber.org/zap"
+
 	"goatac/cot"
+	"goatac/model"
 	"goatac/xml"
 )
 
-type Handler struct {
-	conn     net.Conn
-	callsign string
-	uid      string
+const (
+	pingTimeout = time.Second * 15
+)
+
+type App struct {
+	conn      net.Conn
+	Logger    *zap.SugaredLogger
+	callsign  string
+	addr      string
+	uid       string
+	ch        chan []byte
+	lastWrite time.Time
+	pingTimer *time.Timer
+	unitsMx   sync.RWMutex
+	lat       float64
+	lon       float64
+	units     map[string]*model.Unit
 }
 
 func main() {
 	var call = flag.String("name", "miner", "callsign")
-	var addr = flag.String("addr", "127.0.0.1:8089", "host:port to connect")
+	//var addr = flag.String("addr", "127.0.0.1:8089", "host:port to connect")
+	var addr = flag.String("addr", "discordtakserver.mooo.com:48088", "host:port to connect")
 	flag.Parse()
 
 	ctx, cancel := context.WithCancel(context.Background())
+	cfg := zap.NewDevelopmentConfig()
+	logger, _ := cfg.Build()
+	defer logger.Sync()
 
-	go run(ctx, *addr, *call)
+	app := NewApp(*call, *addr, logger.Sugar())
+	go app.Run(ctx)
 
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, syscall.SIGINT, syscall.SIGTERM, syscall.SIGKILL)
@@ -39,138 +59,186 @@ func main() {
 	cancel()
 }
 
-func run(ctx context.Context, addr, callsign string) {
+func NewApp(callsign string, addr string, logger *zap.SugaredLogger) *App {
+	return &App{
+		Logger:   logger,
+		callsign: callsign,
+		addr:     addr,
+		lat:      35.462939,
+		lon:      -97.537283,
+		uid:      makeUid(callsign),
+		unitsMx:  sync.RWMutex{},
+		units:    make(map[string]*model.Unit, 0),
+	}
+}
+
+func (app *App) Run(ctx context.Context) {
+	go func() {
+		if err := NewHttp(app, ":8080").Serve(); err != nil {
+			panic(err)
+		}
+	}()
+
 	for ctx.Err() == nil {
 		fmt.Println("connecting...")
-		if err := NewHandler(callsign).Start(ctx, addr); err != nil {
+		if err := app.connect(); err != nil {
 			time.Sleep(time.Second * 5)
+			continue
 		}
+
+		app.ch = make(chan []byte, 20)
+		app.AddEvent(app.MakeMe())
+
+		wg := &sync.WaitGroup{}
+		wg.Add(2)
+		go app.reader(ctx, wg)
+		go app.writer(ctx, wg)
+		wg.Wait()
+
 		fmt.Println("disconnected")
 	}
 }
 
-func NewHandler(callsign string) *Handler {
+func makeUid(callsign string) string {
 	h := md5.New()
 	h.Write([]byte(callsign))
 	uid := fmt.Sprintf("%x", h.Sum(nil))
 	uid = uid[len(uid)-14:]
 
-	return &Handler{
-		callsign: callsign,
-		uid:      "ANDROID-" + uid,
-	}
+	return "ANDROID-" + uid
 }
 
-func (h *Handler) Start(ctx context.Context, addr string) error {
+func (app *App) connect() error {
 	var err error
-
-	h.conn, err = net.Dial("tcp", addr)
-
-	if err != nil {
+	if app.conn, err = net.Dial("tcp", app.addr); err != nil {
 		return err
 	}
 
-	fmt.Printf("connected with uid %s\n", h.uid)
-
-	wg := &sync.WaitGroup{}
-	wg.Add(2)
-	go h.read(ctx, wg)
-	go h.write(ctx, wg)
-	wg.Wait()
 	return nil
 }
 
-func (h *Handler) read(ctx context.Context, wg *sync.WaitGroup) {
+func (app *App) reader(ctx context.Context, wg *sync.WaitGroup) {
 	defer wg.Done()
-	f, _ := os.Create(h.callsign + ".out")
 	n := 0
-	dec := xml.NewDecoder(io.TeeReader(h.conn, f))
+	er := cot.NewEventnReader(app.conn)
 
 	for ctx.Err() == nil {
-		evt := &cot.Event{}
-		if err := dec.Decode(evt); err != nil {
-			if err == io.EOF {
-				break
-			}
-			fmt.Printf("err: %v\n", err)
+		app.conn.SetReadDeadline(time.Now().Add(time.Second * 120))
+		dat, err := er.ReadEvent()
+		if err != nil {
+			app.Logger.Errorf("read error: %v", err)
 			break
 		}
 
-		ProcessEvent(evt)
+		evt := &cot.Event{}
+		if err := xml.Unmarshal(dat, evt); err != nil {
+			app.Logger.Errorf("decode err: %v", err)
+			break
+		}
+		app.ProcessEvent(evt)
+		n++
 	}
-	h.conn.Close()
+	app.conn.Close()
+	close(app.ch)
 
-	fmt.Printf("got %d messages\n", n)
+	app.Logger.Infof("got %d messages", n)
 }
 
-func (h *Handler) write(ctx context.Context, wg *sync.WaitGroup) {
+func (app *App) writer(ctx context.Context, wg *sync.WaitGroup) {
 	defer wg.Done()
 
-	var n int = 0
-
-	if err := h.send(cot.MakePos(h.uid, h.callsign)); err != nil {
-		panic(err)
-	}
-
-	for ctx.Err() == nil {
-		var ev *cot.Event
-
-		if n%10 == 0 {
-			ev = cot.MakePos(h.uid, h.callsign)
-			ev.Point.Lat = 59.9 + (rand.Float64()-0.5)/5
-			ev.Point.Lon = 30.3 + (rand.Float64()-0.5)/5
-			ev.Point.Hae = 20
-
-			fmt.Println("send pos")
-		} else {
-			ev = cot.MakePing(h.uid)
-			fmt.Println("send ping")
-		}
-
-		if ev != nil {
-			if err := h.send(ev); err != nil {
+Loop:
+	for {
+		select {
+		case msg := <-app.ch:
+			app.setWriteActivity()
+			//if _, err := h.conn.Write([]byte("<?xml version=\"1.0\" encoding=\"utf-8\"?>\n")); err != nil {
+			//	h.stop()
+			//	return err
+			//}
+			if len(msg) == 0 {
 				break
 			}
+			if _, err := app.conn.Write(msg); err != nil {
+				break Loop
+			}
+		case <-ctx.Done():
+			break Loop
 		}
-		time.Sleep(time.Second * 5)
 	}
-	h.conn.Close()
+
+	app.conn.Close()
 }
 
-func (h *Handler) send(evt *cot.Event) error {
-	if evt == nil {
-		return nil
+func (app *App) setWriteActivity() {
+	app.lastWrite = time.Now()
+
+	if app.pingTimer == nil {
+		app.pingTimer = time.AfterFunc(pingTimeout, app.sendPing)
+	} else {
+		app.pingTimer.Reset(pingTimeout)
 	}
+}
 
-	dat, err := xml.Marshal(evt)
-
+func (app *App) AddEvent(evt *cot.Event) bool {
+	msg, err := xml.Marshal(evt)
 	if err != nil {
-		return err
+		app.Logger.Errorf("marshal error: %v", err)
+		return false
 	}
 
-	//if _, err := h.conn.Write([]byte("<?xml version=\"1.0\" encoding=\"utf-8\"?>\n")); err != nil {
-	//	h.stop()
-	//	return err
-	//}
-	if _, err := h.conn.Write(dat); err != nil {
-		h.stop()
-		return err
+	select {
+	case app.ch <- msg:
+		return true
+	default:
+		return false
 	}
 
-	return nil
+	return false
 }
 
-func (h *Handler) stop() {
-	h.conn.Close()
+func (app *App) sendPing() {
+	if time.Now().Sub(app.lastWrite) > pingTimeout {
+		app.Logger.Debug("sending ping")
+		app.AddEvent(cot.MakePing(app.uid))
+	}
 }
 
-func ProcessEvent(evt *cot.Event) {
+func (app *App) ProcessEvent(evt *cot.Event) {
 	switch {
 	case evt.Type == "t-x-c-t":
-		fmt.Printf("ping from %s\n", evt.Uid)
+		app.Logger.Debugf("ping from %s", evt.Uid)
+	case evt.Type == "t-x-c-t-r":
+		app.Logger.Debugf("pong")
 	case evt.IsChat():
-		fmt.Printf("message from %s chat %s: %s\n", evt.Detail.Chat.Sender, evt.Detail.Chat.Room, evt.GetText())
+		app.Logger.Infof("message from %s chat %s: %s", evt.Detail.Chat.Sender, evt.Detail.Chat.Room, evt.GetText())
+	case strings.HasPrefix(evt.Type, "a-"):
+		app.Logger.Debugf("pos %s (%s) %s", evt.Uid, evt.Detail.Contact.Callsign, evt.Type)
+		if evt.Stale.After(time.Now()) {
+			app.AddUnit(evt.Uid, model.FromEvent(evt))
+		}
+	case strings.HasPrefix(evt.Type, "b-"):
+		app.Logger.Debugf("point %s (%s) %s", evt.Uid, evt.Detail.Contact.Callsign, evt.Type)
+		if evt.Stale.After(time.Now()) {
+			app.AddUnit(evt.Uid, model.FromEvent(evt))
+		}
 	default:
-		fmt.Printf("event: %s\n", evt)
+		app.Logger.Debugf("event: %s", evt)
 	}
+}
+
+func (app *App) AddUnit(uid string, u *model.Unit) {
+	app.unitsMx.Lock()
+	defer app.unitsMx.Unlock()
+
+	app.units[uid] = u
+}
+
+func (app *App) MakeMe() *cot.Event {
+	ev := cot.BasicEvent("a-f-G-U-C", app.uid, time.Hour)
+	ev.Detail = *cot.BasicDetail(app.callsign, "Red", "HQ")
+	ev.Point.Lat = app.lat
+	ev.Point.Lon = app.lon
+
+	return ev
 }
