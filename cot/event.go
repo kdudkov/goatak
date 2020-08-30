@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	"gotac/xml"
+	"goatac/xml"
 )
 
 type Event struct {

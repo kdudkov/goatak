@@ -13,9 +13,9 @@ import (
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 
-	"gotac/cmd/goatac_server/model"
-	"gotac/cot"
-	"gotac/xml"
+	"goatac/cot"
+	"goatac/model"
+	"goatac/xml"
 )
 
 var (
@@ -58,6 +58,38 @@ func NewApp(tcpport, udpport int, logger *zap.SugaredLogger) *App {
 	}
 }
 
+func (app *App) Run() {
+	var cancel context.CancelFunc
+
+	app.ctx, cancel = context.WithCancel(context.Background())
+
+	go func() {
+		if err := app.ListenUDP(fmt.Sprintf(":%d", app.udpport)); err != nil {
+			panic(err)
+		}
+	}()
+
+	go func() {
+		if err := app.ListenTCP(fmt.Sprintf(":%d", app.tcpport)); err != nil {
+			panic(err)
+		}
+	}()
+
+	go func() {
+		if err := NewHttp(app, ":8080").Serve(); err != nil {
+			panic(err)
+		}
+	}()
+
+	go app.EventProcessor()
+
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, syscall.SIGINT, syscall.SIGTERM, syscall.SIGKILL)
+	<-c
+	app.Logger.Info("exiting...")
+	cancel()
+}
+
 func (app *App) AddClient(uid string, cl *ClientHandler) {
 	app.clientMx.Lock()
 	defer app.clientMx.Unlock()
@@ -76,30 +108,20 @@ func (app *App) RemoveClient(uid string) {
 	}
 }
 
-func (app *App) Run() {
-	var cancel context.CancelFunc
+func (app *App) AddUnit(uid string, u *model.Unit) {
+	app.pointMx.Lock()
+	defer app.pointMx.Unlock()
 
-	app.ctx, cancel = context.WithCancel(context.Background())
+	app.points[uid] = u
+}
 
-	go func() {
-		if err := app.ListenUDP(fmt.Sprintf(":%d", app.udpport)); err != nil {
-			panic(err)
-		}
-	}()
+func (app *App) RemovePoint(uid string) {
+	app.pointMx.Lock()
+	defer app.pointMx.Unlock()
 
-	go func() {
-		if err := app.ListenTCP(fmt.Sprintf(":%d", app.tcpport)); err != nil {
-			panic(err)
-		}
-	}()
-
-	go app.EventProcessor()
-
-	c := make(chan os.Signal, 1)
-	signal.Notify(c, syscall.SIGINT, syscall.SIGTERM, syscall.SIGKILL)
-	<-c
-	app.Logger.Info("exiting...")
-	cancel()
+	if _, ok := app.points[uid]; ok {
+		delete(app.points, uid)
+	}
 }
 
 func (app *App) EventProcessor() {
@@ -128,8 +150,10 @@ func (app *App) EventProcessor() {
 			app.Logger.Infof("chat %s %s", msg.event.Detail.Chat, msg.event.GetText())
 		case strings.HasPrefix(msg.event.Type, "a-"):
 			app.Logger.Debugf("pos %s (%s)", msg.event.Uid, msg.event.Detail.Contact.Callsign)
+			app.AddUnit(msg.event.Uid, model.FromEvent(msg.event))
 		case strings.HasPrefix(msg.event.Type, "b-"):
 			app.Logger.Debugf("point %s (%s)", msg.event.Uid, msg.event.Detail.Contact.Callsign)
+			app.AddUnit(msg.event.Uid, model.FromEvent(msg.event))
 		default:
 			app.Logger.Debugf("event: %s", msg.event)
 		}

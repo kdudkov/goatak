@@ -9,8 +9,8 @@ import (
 
 	"go.uber.org/atomic"
 
-	"gotac/cot"
-	"gotac/xml"
+	"goatac/cot"
+	"goatac/xml"
 )
 
 const (

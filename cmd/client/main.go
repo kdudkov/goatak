@@ -14,8 +14,8 @@ import (
 	"syscall"
 	"time"
 
-	"gotac/cot"
-	"gotac/xml"
+	"goatac/cot"
+	"goatac/xml"
 )
 
 type Handler struct {
@@ -26,25 +26,23 @@ type Handler struct {
 
 func main() {
 	var call = flag.String("name", "miner", "callsign")
+	var addr = flag.String("addr", "127.0.0.1:8089", "host:port to connect")
 	flag.Parse()
 
 	ctx, cancel := context.WithCancel(context.Background())
 
-	go run(ctx, *call)
+	go run(ctx, *addr, *call)
 
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, syscall.SIGINT, syscall.SIGTERM, syscall.SIGKILL)
 	<-c
 	cancel()
-
 }
 
-func run(ctx context.Context, callsign string) {
+func run(ctx context.Context, addr, callsign string) {
 	for ctx.Err() == nil {
 		fmt.Println("connecting...")
-		//if err := NewHandler(*call).Start("204.48.30.216:8087"); err != nil {
-		//if err := NewHandler(*call).Start("127.0.0.1:8099"); err != nil {
-		if err := NewHandler(callsign).Start(ctx, "127.0.0.1:8089"); err != nil {
+		if err := NewHandler(callsign).Start(ctx, addr); err != nil {
 			time.Sleep(time.Second * 5)
 		}
 		fmt.Println("disconnected")
@@ -89,18 +87,18 @@ func (h *Handler) read(ctx context.Context, wg *sync.WaitGroup) {
 	dec := xml.NewDecoder(io.TeeReader(h.conn, f))
 
 	for ctx.Err() == nil {
-		// Read tokens from the XML document in a stream.
 		evt := &cot.Event{}
 		if err := dec.Decode(evt); err != nil {
 			if err == io.EOF {
 				break
 			}
 			fmt.Printf("err: %v\n", err)
-			continue
+			break
 		}
 
 		ProcessEvent(evt)
 	}
+	h.conn.Close()
 
 	fmt.Printf("got %d messages\n", n)
 }
@@ -123,10 +121,10 @@ func (h *Handler) write(ctx context.Context, wg *sync.WaitGroup) {
 			ev.Point.Lon = 30.3 + (rand.Float64()-0.5)/5
 			ev.Point.Hae = 20
 
-			fmt.Println("pos")
+			fmt.Println("send pos")
 		} else {
 			ev = cot.MakePing(h.uid)
-			fmt.Println("ping")
+			fmt.Println("send ping")
 		}
 
 		if ev != nil {
@@ -136,6 +134,7 @@ func (h *Handler) write(ctx context.Context, wg *sync.WaitGroup) {
 		}
 		time.Sleep(time.Second * 5)
 	}
+	h.conn.Close()
 }
 
 func (h *Handler) send(evt *cot.Event) error {

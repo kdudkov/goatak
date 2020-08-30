@@ -4,7 +4,7 @@ import (
 	"encoding/xml"
 	"testing"
 
-	"gotac/cot"
+	"goatac/cot"
 )
 
 func TestParseEvent(t *testing.T) {
