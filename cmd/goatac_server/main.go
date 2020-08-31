@@ -33,6 +33,7 @@ type App struct {
 	Logger  *zap.SugaredLogger
 	tcpport int
 	udpport int
+	webport int
 
 	clients map[string]*ClientHandler
 	units   map[string]*model.Unit
@@ -45,11 +46,12 @@ type App struct {
 	unitMx   sync.RWMutex
 }
 
-func NewApp(tcpport, udpport int, logger *zap.SugaredLogger) *App {
+func NewApp(tcpport, udpport, webport int, logger *zap.SugaredLogger) *App {
 	return &App{
 		Logger:   logger,
 		tcpport:  tcpport,
 		udpport:  udpport,
+		webport: webport,
 		ch:       make(chan *Msg, 20),
 		clients:  make(map[string]*ClientHandler, 0),
 		units:    make(map[string]*model.Unit, 0),
@@ -77,7 +79,7 @@ func (app *App) Run() {
 	}()
 
 	go func() {
-		if err := NewHttp(app, ":8080").Serve(); err != nil {
+		if err := NewHttp(app, fmt.Sprintf(":%d", app.webport)).Serve(); err != nil {
 			panic(err)
 		}
 	}()
@@ -273,6 +275,7 @@ func main() {
 
 	var tcpPort = flag.Int("tcp_port", 8089, "port for tcp")
 	var udpPort = flag.Int("udp_port", 4242, "port for udp")
+	var webPort = flag.Int("web_port", 8080, "port for http server")
 	var logging = flag.Bool("logging", false, "save all events to files")
 
 	flag.Parse()
@@ -281,7 +284,7 @@ func main() {
 	logger, _ := cfg.Build()
 	defer logger.Sync()
 
-	app := NewApp(*tcpPort, *udpPort, logger.Sugar())
+	app := NewApp(*tcpPort, *udpPort, *webPort, logger.Sugar())
 	app.logging = *logging
 	app.Run()
 }
