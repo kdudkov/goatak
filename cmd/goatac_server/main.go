@@ -275,7 +275,7 @@ func main() {
 
 	var tcpPort = flag.Int("tcp_port", 8089, "port for tcp")
 	var udpPort = flag.Int("udp_port", 4242, "port for udp")
-	var webPort = flag.Int("web_port", 8080, "port to use for http server")
+	var webPort = flag.Int("web_port", 8080, "port for http server")
 	var logging = flag.Bool("logging", false, "save all events to files")
 
 	flag.Parse()
