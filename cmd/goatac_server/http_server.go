@@ -27,12 +27,12 @@ func NewHttp(app *App, address string) *air.Air {
 func getUnitsHandler(app *App) func(req *air.Request, res *air.Response) error {
 
 	return func(req *air.Request, res *air.Response) error {
-		app.pointMx.RLock()
-		defer app.pointMx.RUnlock()
+		app.unitMx.RLock()
+		defer app.unitMx.RUnlock()
 
 		r := make([]*model.WebUnit, 0)
 
-		for _, u := range app.points {
+		for _, u := range app.units {
 			if u.Stale.After(time.Now()) {
 				r = append(r, u.ToWeb())
 			}

@@ -35,14 +35,14 @@ type App struct {
 	udpport int
 
 	clients map[string]*ClientHandler
-	points  map[string]*model.Unit
+	units   map[string]*model.Unit
 	ctx     context.Context
 	uid     string
 	ch      chan *Msg
 	logging bool
 
 	clientMx sync.RWMutex
-	pointMx  sync.RWMutex
+	unitMx   sync.RWMutex
 }
 
 func NewApp(tcpport, udpport int, logger *zap.SugaredLogger) *App {
@@ -52,10 +52,10 @@ func NewApp(tcpport, udpport int, logger *zap.SugaredLogger) *App {
 		udpport:  udpport,
 		ch:       make(chan *Msg, 20),
 		clients:  make(map[string]*ClientHandler, 0),
-		points:   make(map[string]*model.Unit, 0),
+		units:    make(map[string]*model.Unit, 0),
 		uid:      uuid.New().String(),
 		clientMx: sync.RWMutex{},
-		pointMx:  sync.RWMutex{},
+		unitMx:   sync.RWMutex{},
 	}
 }
 
@@ -111,18 +111,18 @@ func (app *App) RemoveClient(uid string) {
 }
 
 func (app *App) AddUnit(uid string, u *model.Unit) {
-	app.pointMx.Lock()
-	defer app.pointMx.Unlock()
+	app.unitMx.Lock()
+	defer app.unitMx.Unlock()
 
-	app.points[uid] = u
+	app.units[uid] = u
 }
 
 func (app *App) RemovePoint(uid string) {
-	app.pointMx.Lock()
-	defer app.pointMx.Unlock()
+	app.unitMx.Lock()
+	defer app.unitMx.Unlock()
 
-	if _, ok := app.points[uid]; ok {
-		delete(app.points, uid)
+	if _, ok := app.units[uid]; ok {
+		delete(app.units, uid)
 	}
 }
 
@@ -157,7 +157,7 @@ func (app *App) EventProcessor() {
 		case msg.event.IsChat():
 			app.Logger.Infof("chat %s %s", msg.event.Detail.Chat, msg.event.GetText())
 		case strings.HasPrefix(msg.event.Type, "a-"):
-			app.Logger.Debugf("pos %s (%s)", msg.event.Uid, msg.event.Detail.Contact.Callsign)
+			app.Logger.Debugf("pos %s (%s) stale %s", msg.event.Uid, msg.event.Detail.Contact.Callsign, msg.event.Stale.Sub(time.Now()))
 			app.AddUnit(msg.event.Uid, model.FromEvent(msg.event))
 		case strings.HasPrefix(msg.event.Type, "b-"):
 			app.Logger.Debugf("point %s (%s)", msg.event.Uid, msg.event.Detail.Contact.Callsign)
@@ -188,17 +188,18 @@ func (app *App) cleaner() {
 }
 
 func (app *App) cleanStale() {
-	app.pointMx.Lock()
-	defer app.pointMx.Unlock()
+	app.unitMx.Lock()
+	defer app.unitMx.Unlock()
 
 	toDelete := make([]string, 0)
-	for k, v := range app.points {
-		if v.Stale.After(time.Now()) {
+	for k, v := range app.units {
+		if v.Stale.Before(time.Now()) {
 			toDelete = append(toDelete, k)
+			app.Logger.Debugf("removing %s (stale %s)", k, v.Stale.Sub(time.Now()))
 		}
 	}
 	for _, uid := range toDelete {
-		delete(app.points, uid)
+		delete(app.units, uid)
 
 	}
 }
