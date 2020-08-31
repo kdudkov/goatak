@@ -1,4 +1,4 @@
-module goatac
+module github.com/kdudkov/goatak
 
 go 1.14
 

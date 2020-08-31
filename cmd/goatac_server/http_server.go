@@ -1,9 +1,10 @@
 package main
 
 import (
-	"goatac/model"
 	"runtime/pprof"
 	"time"
+
+	"github.com/kdudkov/goatak/model"
 
 	"github.com/aofei/air"
 )

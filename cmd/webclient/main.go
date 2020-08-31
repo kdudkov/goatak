@@ -15,9 +15,9 @@ import (
 
 	"go.uber.org/zap"
 
-	"goatac/cot"
-	"goatac/model"
-	"goatac/xml"
+	"github.com/kdudkov/goatak/cot"
+	"github.com/kdudkov/goatak/model"
+	"github.com/kdudkov/goatak/xml"
 )
 
 const (

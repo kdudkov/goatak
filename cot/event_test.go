@@ -3,7 +3,7 @@ package cot
 import (
 	"testing"
 
-	"goatac/xml"
+	"github.com/kdudkov/goatak/xml"
 )
 
 func TestEventMarshal(t *testing.T) {

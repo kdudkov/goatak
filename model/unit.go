@@ -3,7 +3,7 @@ package model
 import (
 	"time"
 
-	"goatac/cot"
+	"github.com/kdudkov/goatak/cot"
 )
 
 type Unit struct {

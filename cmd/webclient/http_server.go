@@ -1,11 +1,12 @@
 package main
 
 import (
-	"goatac/model"
 	"runtime/pprof"
 	"time"
 
 	"github.com/aofei/air"
+
+	"github.com/kdudkov/goatak/model"
 )
 
 func NewHttp(app *App, address string) *air.Air {
