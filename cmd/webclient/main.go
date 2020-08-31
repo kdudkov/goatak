@@ -41,8 +41,7 @@ type App struct {
 
 func main() {
 	var call = flag.String("name", "miner", "callsign")
-	//var addr = flag.String("addr", "127.0.0.1:8089", "host:port to connect")
-	var addr = flag.String("addr", "discordtakserver.mooo.com:48088", "host:port to connect")
+	var addr = flag.String("addr", "127.0.0.1:8089", "host:port to connect")
 	flag.Parse()
 
 	ctx, cancel := context.WithCancel(context.Background())
