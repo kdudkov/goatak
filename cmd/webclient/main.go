@@ -5,6 +5,7 @@ import (
 	"crypto/md5"
 	"flag"
 	"fmt"
+	"math/rand"
 	"net"
 	"os"
 	"os/signal"
@@ -13,6 +14,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/spf13/viper"
 	"go.uber.org/zap"
 
 	"github.com/kdudkov/goatak/cot"
@@ -22,6 +24,7 @@ import (
 
 const (
 	pingTimeout = time.Second * 15
+	alfaNum     = "abcdefghijklmnopqrstuvwxyz012346789"
 )
 
 var (
@@ -31,46 +34,29 @@ var (
 
 type App struct {
 	conn      net.Conn
-	Logger    *zap.SugaredLogger
-	callsign  string
 	addr      string
-	uid       string
+	Logger    *zap.SugaredLogger
 	ch        chan []byte
 	lastWrite time.Time
 	pingTimer *time.Timer
 	unitsMx   sync.RWMutex
-	lat       float64
-	lon       float64
 	units     map[string]*model.Unit
+
+	callsign string
+	uid      string
+	typ      string
+	team     string
+	role     string
+	lat      float64
+	lon      float64
 }
 
-func main() {
-	var call = flag.String("name", "miner", "callsign")
-	var addr = flag.String("addr", "127.0.0.1:8089", "host:port to connect")
-	flag.Parse()
-
-	ctx, cancel := context.WithCancel(context.Background())
-	cfg := zap.NewDevelopmentConfig()
-	logger, _ := cfg.Build()
-	defer logger.Sync()
-
-	app := NewApp(*call, *addr, logger.Sugar())
-	go app.Run(ctx)
-
-	c := make(chan os.Signal, 1)
-	signal.Notify(c, syscall.SIGINT, syscall.SIGTERM, syscall.SIGKILL)
-	<-c
-	cancel()
-}
-
-func NewApp(callsign string, addr string, logger *zap.SugaredLogger) *App {
+func NewApp(uid string, callsign string, addr string, logger *zap.SugaredLogger) *App {
 	return &App{
 		Logger:   logger,
 		callsign: callsign,
+		uid:      uid,
 		addr:     addr,
-		lat:      35.462939,
-		lon:      -97.537283,
-		uid:      makeUid(callsign),
 		unitsMx:  sync.RWMutex{},
 		units:    make(map[string]*model.Unit, 0),
 	}
@@ -239,12 +225,77 @@ func (app *App) AddUnit(uid string, u *model.Unit) {
 }
 
 func (app *App) MakeMe() *cot.Event {
-	ev := cot.BasicEvent("a-f-G-U-C", app.uid, time.Hour)
-	ev.Detail = *cot.BasicDetail(app.callsign, "Red", "HQ")
+	ev := cot.BasicEvent(app.typ, app.uid, time.Hour)
+	ev.Detail = *cot.BasicDetail(app.callsign, app.team, app.role)
 	ev.Point.Lat = app.lat
 	ev.Point.Lon = app.lon
 	ev.Detail.TakVersion.Platform = "GoATAK web client"
 	ev.Detail.TakVersion.Version = fmt.Sprintf("%s:%s", gitBranch, gitRevision)
 
 	return ev
+}
+
+func RandString(strlen int) string {
+	result := make([]byte, strlen)
+	for i := 0; i < strlen; i++ {
+		result[i] = alfaNum[rand.Intn(len(alfaNum))]
+	}
+	return string(result)
+}
+
+func main() {
+	var conf = flag.String("config", "atak-web.yml", "name of config file")
+	flag.Parse()
+
+	viper.SetConfigFile(*conf)
+
+	viper.SetDefault("server_address", "127.0.0.1:8089")
+	viper.SetDefault("me.callsign", RandString(10))
+	viper.SetDefault("me.uid", RandString(16))
+	viper.SetDefault("me.lat", 35.462939)
+	viper.SetDefault("me.lon", -97.537283)
+	viper.SetDefault("me.type", "a-f-G-U-C")
+	viper.SetDefault("me.team", "Blue")
+	viper.SetDefault("me.role", "HQ")
+
+	err := viper.ReadInConfig()
+	if err != nil {
+		panic(fmt.Errorf("Fatal error config file: %s \n", err))
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cfg := zap.NewDevelopmentConfig()
+	logger, _ := cfg.Build()
+	defer logger.Sync()
+
+	uid := viper.GetString("me.uid")
+	if uid == "auto" {
+		uid = makeUid(viper.GetString("me.callsign"))
+	}
+
+	app := NewApp(
+		uid,
+		viper.GetString("me.callsign"),
+		viper.GetString("server_address"),
+		logger.Sugar(),
+	)
+
+	app.lat = viper.GetFloat64("me.lat")
+	app.lon = viper.GetFloat64("me.lon")
+	app.typ = viper.GetString("me.typ")
+	app.team = viper.GetString("me.team")
+	app.role = viper.GetString("me.role")
+
+	app.Logger.Infof("callsign: %s", app.callsign)
+	app.Logger.Infof("uid: %s", app.uid)
+	app.Logger.Infof("team: %s", app.team)
+	app.Logger.Infof("role: %s", app.role)
+	app.Logger.Infof("server: %s", app.addr)
+
+	go app.Run(ctx)
+
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, syscall.SIGINT, syscall.SIGTERM, syscall.SIGKILL)
+	<-c
+	cancel()
 }

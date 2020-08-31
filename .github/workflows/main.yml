@@ -34,17 +34,21 @@ jobs:
         with:
           name: server windows
           path: bin/goatak_server_windows_amd64.exe
+      - name: empty config
+        run: echo "---" > bin/atak-web.yml
       - name: linux client
         uses: actions/upload-artifact@v2
         with:
           name: web client linux
           path: |
-            bin/client_linux_amd64
+            bin/webclient_linux_amd64
             bin/static
+            bin/atak-web.yml
       - name: win client
         uses: actions/upload-artifact@v2
         with:
           name: web client windows
           path: |
-            bin/client_windows_amd64.exe
+            bin/webclient_windows_amd64.exe
             bin/static
+            bin/atak-web.yml

@@ -3,3 +3,4 @@ bin/
 *.log
 *.tmp
 *.out
+test-*.yml

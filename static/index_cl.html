@@ -34,6 +34,9 @@
         </div>
         <div class="col-3">
             <div class="overflow-auto h-50">
+                <div class="alert alert-secondary info" role="alert" v-if="config != null">
+                    {{config.callsign}} Team {{config.team}} {{config.role}}
+                </div>
                 <table class="table table-hover table-sm units">
                     <tr v-for="u in all_units">
                         <td>

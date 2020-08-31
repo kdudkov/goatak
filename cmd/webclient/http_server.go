@@ -17,6 +17,7 @@ func NewHttp(app *App, address string) *air.Air {
 	srv.FILES("/static", "static")
 
 	srv.GET("/units", getUnitsHandler(app))
+	srv.GET("/config", getConfigHandler(app))
 
 	srv.GET("/stack", getStackHandler())
 
@@ -26,7 +27,6 @@ func NewHttp(app *App, address string) *air.Air {
 }
 
 func getUnitsHandler(app *App) func(req *air.Request, res *air.Response) error {
-
 	return func(req *air.Request, res *air.Response) error {
 		app.unitsMx.RLock()
 		defer app.unitsMx.RUnlock()
@@ -40,6 +40,18 @@ func getUnitsHandler(app *App) func(req *air.Request, res *air.Response) error {
 		}
 
 		return res.WriteJSON(r)
+	}
+}
+
+func getConfigHandler(app *App) func(req *air.Request, res *air.Response) error {
+	m := make(map[string]interface{}, 0)
+	m["lat"] = app.lat
+	m["lon"] = app.lon
+	m["callsign"] = app.callsign
+	m["team"] = app.team
+	m["role"] = app.role
+	return func(req *air.Request, res *air.Response) error {
+		return res.WriteJSON(m)
 	}
 }
 

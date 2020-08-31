@@ -35,6 +35,9 @@ type App struct {
 	udpport int
 	webport int
 
+	lat float64
+	lon float64
+
 	clients map[string]*ClientHandler
 	units   map[string]*model.Unit
 	ctx     context.Context

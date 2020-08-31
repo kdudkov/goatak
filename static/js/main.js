@@ -22,6 +22,7 @@ let app = new Vue({
         ts: 0,
         locked_unit: '',
         unit: null,
+        config: null,
     },
 
     mounted() {
@@ -33,6 +34,16 @@ let app = new Vue({
 
         this.renew();
         this.timer = setInterval(this.renew, 3000);
+
+        let vm = this;
+        fetch('/config')
+            .then(function (response) {
+                return response.json()
+            })
+            .then(function (data) {
+                vm.config = data;
+                vm.map.setView([data.lat, data.lon]);
+            });
     },
     computed: {
         all_units: function () {
