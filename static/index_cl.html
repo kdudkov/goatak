@@ -21,6 +21,10 @@
         table.units {
             font-size: 10pt;
         }
+
+        div.info {
+            font-size: 11pt;
+        }
     </style>
 </head>
 <body>
@@ -38,13 +42,30 @@
                             <img height="24" src="/static/icons/coord_lock.png" v-if="locked_unit == u.uid"
                                  v-on:click="locked_unit=''"/>
                         </td>
-                        <td v-on:click="map.setView([u.lat, u.lon])"><img height="24"
-                                                                          v-bind:src="'/static/icons/' + u.icon"/></td>
-                        <td v-on:click="map.setView([u.lat, u.lon])">{{u.callsign}}</td>
+                        <td v-on:click="map.setView([u.lat, u.lon]); unit=u;">
+                            <img height="24" v-bind:src="'/static/icons/' + u.icon"/>
+                        </td>
+                        <td v-on:click="map.setView([u.lat, u.lon]); unit=u;">{{u.callsign}}</td>
                     </tr>
                 </table>
             </div>
-            <div class="h-50"></div>
+            <div class="h-50">
+                <div class="alert alert-secondary info" role="alert" v-if="unit != null">
+                    <h5 v-on:click="map.setView([unit.lat, unit.lon])">{{unit.callsign}}
+                        <img height="24" src="/static/icons/coord_unlock.png" v-if="locked_unit != unit.uid"
+                             v-on:click="locked_unit=unit.uid"/>
+                        <img height="24" src="/static/icons/coord_lock.png" v-if="locked_unit == unit.uid"
+                             v-on:click="locked_unit=''"/>
+                    </h5>
+                    Team: {{unit.team}}, Role: {{unit.role}}<br/>
+                    type: {{unit.type}}<br/>
+                    coord: {{unit.lat}}, {{unit.lon}}<br/>
+                    speed: {{unit.speed}}, hae: {{unit.hae}}<br/>
+                    tak: {{unit.tak_version}}<br/>
+                    last seen: {{unit.time}}<br/>
+                    {{unit.text}}
+                </div>
+            </div>
         </div>
     </div>
 </div>

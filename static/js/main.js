@@ -17,10 +17,11 @@ let app = new Vue({
     el: '#app',
     data: {
         units: new Map(),
-        points: new Map(),
+        markers: new Map(),
         map: null,
         ts: 0,
         locked_unit: '',
+        unit: null,
     },
 
     mounted() {
@@ -32,7 +33,6 @@ let app = new Vue({
 
         this.renew();
         this.timer = setInterval(this.renew, 3000);
-
     },
     computed: {
         all_units: function () {
@@ -57,46 +57,62 @@ let app = new Vue({
                     return response.json()
                 })
                 .then(function (data) {
-                    let tid = Date.now();
                     let keys = new Set();
 
                     data.forEach(function (i) {
                         units.set(i.uid, i);
-                        vm.updatePoint(i);
+                        vm.updateMarker(i);
                         keys.add(i.uid);
+                        if (vm.unit != null && vm.unit.uid === i.uid) {
+                            vm.unit = i;
+                        }
                     });
 
                     vm.units.forEach(function (v, k) {
                         if (!keys.has(k)) {
-                            vm.removePoint(k);
+                            vm.removeUnit(k);
                         }
                     });
                     vm.ts += 1;
                 });
         },
-        updatePoint: function (item) {
-            if (this.points.has(item.uid)) {
-                p = this.points.get(item.uid);
+        updateMarker: function (item) {
+            if (this.markers.has(item.uid)) {
+                p = this.markers.get(item.uid);
                 p.setLatLng([item.lat, item.lon], {title: item.callsign});
                 p.setIcon(getIcon(item.icon))
-                p.bindPopup(popup(item));
-                if (this.locked_unit == item.uid) {
-                    this.map.flyTo([item.lat, item.lon]);
+                // p.bindPopup(popup(item));
+                if (this.locked_unit === item.uid) {
+                    this.map.setView([item.lat, item.lon]);
                 }
+                p.on('click', function (e) {
+                    app.setUnit(item.uid);
+                });
             } else {
                 p = L.marker([item.lat, item.lon], {icon: getIcon(item.icon)});
-                this.points.set(item.uid, p);
+                this.markers.set(item.uid, p);
                 p.addTo(this.map);
-                p.bindPopup(popup(item));
+                // p.bindPopup(popup(item));
+                p.on('click', function (e) {
+                    app.setUnit(item.uid);
+                });
             }
         },
-        removePoint: function (uid) {
-            if (this.points.has(uid)) {
-                p = this.points.get(uid);
+        removeUnit: function (uid) {
+            if (this.markers.has(uid)) {
+                p = this.markers.get(uid);
                 p.remove();
-                this.points.delete(uid);
+                this.markers.delete(uid);
             }
             this.units.delete(uid);
+            if (this.unit != null && this.unit.uid === uid) {
+                this.unit = null;
+            }
+        },
+        setUnit: function (uid) {
+            if (this.units.has(uid)) {
+                this.unit = this.units.get(uid);
+            }
         }
     },
 });

@@ -1,24 +1,26 @@
 package model
 
 import (
+	"fmt"
 	"strings"
 	"time"
 )
 
 type WebUnit struct {
-	Uid      string    `json:"uid"`
-	Callsign string    `json:"callsign"`
-	Team     string    `json:"team"`
-	Role     string    `json:"role"`
-	Time     time.Time `json:"time"`
-	Stale    time.Time `json:"stale"`
-	Type     string    `json:"type"`
-	Lat      float64   `json:"lat"`
-	Lon      float64   `json:"lon"`
-	Hae      float64   `json:"hae"`
-	Speed    float64   `json:"speed"`
-	Icon     string    `json:"icon"`
-	Text     string    `json:"text"`
+	Uid        string    `json:"uid"`
+	Callsign   string    `json:"callsign"`
+	Team       string    `json:"team"`
+	Role       string    `json:"role"`
+	Time       time.Time `json:"time"`
+	Stale      time.Time `json:"stale"`
+	Type       string    `json:"type"`
+	Lat        float64   `json:"lat"`
+	Lon        float64   `json:"lon"`
+	Hae        float64   `json:"hae"`
+	Speed      float64   `json:"speed"`
+	Icon       string    `json:"icon"`
+	Text       string    `json:"text"`
+	TakVersion string    `json:"tak_version"`
 }
 
 func (u *Unit) ToWeb() *WebUnit {
@@ -48,6 +50,9 @@ func (u *Unit) ToWeb() *WebUnit {
 		w.Role = u.evt.Detail.Group.Role
 	}
 
+	if v := u.evt.Detail.TakVersion; v != nil {
+		w.TakVersion = strings.Trim(fmt.Sprintf("%s %s on %s", v.Platform, v.Version, v.Device), " ")
+	}
 	return w
 }
 
