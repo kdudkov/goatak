@@ -24,6 +24,11 @@ const (
 	pingTimeout = time.Second * 15
 )
 
+var (
+	gitRevision = "unknown"
+	gitBranch   = "unknown"
+)
+
 type App struct {
 	conn      net.Conn
 	Logger    *zap.SugaredLogger
@@ -238,6 +243,8 @@ func (app *App) MakeMe() *cot.Event {
 	ev.Detail = *cot.BasicDetail(app.callsign, "Red", "HQ")
 	ev.Point.Lat = app.lat
 	ev.Point.Lon = app.lon
+	ev.Detail.TakVersion.Platform = "GoATAK web client"
+	ev.Detail.TakVersion.Version = fmt.Sprintf("%s:%s", gitBranch, gitRevision)
 
 	return ev
 }

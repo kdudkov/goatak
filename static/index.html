@@ -57,12 +57,12 @@
                         <img height="24" src="/static/icons/coord_lock.png" v-if="locked_unit == unit.uid"
                              v-on:click="locked_unit=''"/>
                     </h5>
-                    Team: {{unit.team}}, Role: {{unit.role}}<br/>
+                    <span v-if="unit.team != ''">Team: {{unit.team}}, Role: {{unit.role}}<br/></span>
                     type: {{unit.type}}<br/>
                     coord: {{unit.lat}}, {{unit.lon}}<br/>
-                    speed: {{unit.speed}}, hae: {{unit.hae}}<br/>
-                    tak: {{unit.tak_version}}<br/>
-                    last seen: {{unit.time}}<br/>
+                    speed: {{unit.speed.toFixed(1)}}, hae: {{unit.hae.toFixed(1)}}<br/>
+                    <span v-if="unit.tak_version != ''">tak: {{unit.tak_version}}<br/></span>
+                    last seen: {{new Date(Date.parse(unit.time))}}<br/>
                     {{unit.text}}
                 </div>
             </div>
