@@ -116,6 +116,10 @@ func (app *App) RemoveClient(uid string) {
 }
 
 func (app *App) AddUnit(uid string, u *model.Unit) {
+	if u == nil {
+		return
+	}
+
 	app.unitMx.Lock()
 	defer app.unitMx.Unlock()
 

@@ -1,10 +1,8 @@
 package main
 
 import (
-	"runtime/pprof"
-	"time"
-
 	"github.com/kdudkov/goatak/model"
+	"runtime/pprof"
 
 	"github.com/aofei/air"
 )
@@ -43,9 +41,7 @@ func getUnitsHandler(app *App) func(req *air.Request, res *air.Response) error {
 		r := make([]*model.WebUnit, 0)
 
 		for _, u := range app.units {
-			if u.Stale.After(time.Now()) {
-				r = append(r, u.ToWeb())
-			}
+			r = append(r, u.ToWeb())
 		}
 
 		return res.WriteJSON(r)

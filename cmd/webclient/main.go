@@ -25,6 +25,8 @@ import (
 const (
 	pingTimeout = time.Second * 15
 	alfaNum     = "abcdefghijklmnopqrstuvwxyz012346789"
+
+	cleanTimeout = time.Minute * 10
 )
 
 var (
@@ -68,6 +70,8 @@ func (app *App) Run(ctx context.Context) {
 			panic(err)
 		}
 	}()
+
+	go app.cleaner()
 
 	for ctx.Err() == nil {
 		fmt.Println("connecting...")
@@ -218,6 +222,10 @@ func (app *App) ProcessEvent(evt *cot.Event) {
 }
 
 func (app *App) AddUnit(uid string, u *model.Unit) {
+	if u == nil {
+		return
+	}
+
 	app.unitsMx.Lock()
 	defer app.unitsMx.Unlock()
 
@@ -233,6 +241,33 @@ func (app *App) MakeMe() *cot.Event {
 	ev.Detail.TakVersion.Version = fmt.Sprintf("%s:%s", gitBranch, gitRevision)
 
 	return ev
+}
+
+func (app *App) cleaner() {
+	ticker := time.NewTicker(time.Second * 120)
+
+	for {
+		select {
+		case <-ticker.C:
+			app.cleanStale()
+		}
+	}
+}
+
+func (app *App) cleanStale() {
+	app.unitsMx.Lock()
+	defer app.unitsMx.Unlock()
+
+	toDelete := make([]string, 0)
+	for k, v := range app.units {
+		if v.Stale.Add(cleanTimeout).Before(time.Now()) {
+			toDelete = append(toDelete, k)
+			app.Logger.Debugf("removing %s (stale %s)", k, v.Stale.Sub(time.Now()))
+		}
+	}
+	for _, uid := range toDelete {
+		delete(app.units, uid)
+	}
 }
 
 func RandString(strlen int) string {
@@ -282,7 +317,7 @@ func main() {
 
 	app.lat = viper.GetFloat64("me.lat")
 	app.lon = viper.GetFloat64("me.lon")
-	app.typ = viper.GetString("me.typ")
+	app.typ = viper.GetString("me.type")
 	app.team = viper.GetString("me.team")
 	app.role = viper.GetString("me.role")
 
