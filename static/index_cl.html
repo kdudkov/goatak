@@ -92,8 +92,7 @@
         },
         computed: {
             all_units: function () {
-                let arr = Array.from(this.units.values()
-                );
+                let arr = Array.from(this.units.values());
                 arr.sort(function (a, b) {
                     var ua = a.callsign.toLowerCase(), ub = b.callsign.toLowerCase();
                     if (ua < ub) return -1;
@@ -101,16 +100,16 @@
                     return 0;
                 });
                 return this.ts && arr;
-            },
+            }
+        },
 
+        methods: {
+            renew: function () {
+                let vm = this;
+                let units = vm.units;
 
-            methods: {
-                renew: function () {
-                    let vm = this;
-                    let units = vm.units;
-
-                    fetch('/units')
-                        .then(function (response) {
+                fetch('/units')
+                    .then(function (response) {
                         return response.json()
                     })
                     .then(function (data) {
@@ -129,7 +128,7 @@
                             }
                         });
                         vm.ts += 1;
-                    })
+                    });
             },
             updatePoint: function (item) {
                 if (this.points.has(item.uid)) {
