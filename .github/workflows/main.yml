@@ -28,12 +28,12 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           name: server linux
-          path: bin/goatac_server_linux_amd64
+          path: bin/goatak_server_linux_amd64
       - name: win server
         uses: actions/upload-artifact@v2
         with:
           name: server windows
-          path: bin/goatac_server_windows_amd64.exe
+          path: bin/goatak_server_windows_amd64.exe
       - name: linux client
         uses: actions/upload-artifact@v2
         with:
