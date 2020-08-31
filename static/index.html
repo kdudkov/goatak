@@ -103,12 +103,19 @@
                     })
                     .then(function (data) {
                         let tid = Date.now();
+                        let keys = new Set();
 
                         data.forEach(function (i) {
                             units.set(i.uid, i);
                             vm.updatePoint(i);
+                            keys.add(i.uid);
                         });
 
+                        vm.units.forEach(function (v, k) {
+                            if (!keys.has(k)) {
+                                vm.removePoint(k);
+                            }
+                        });
                         vm.ts += 1;
                     })
             },
@@ -124,9 +131,16 @@
                     p.addTo(this.map);
                     p.bindPopup(popup(item));
                 }
+            },
+            removePoint: function (uid) {
+                if (this.points.has(uid)) {
+                    p = this.points.get(uid);
+                    p.remove();
+                    this.points.delete(uid);
+                }
+                this.units.delete(uid);
             }
         },
-
     });
 
     function popup(item) {

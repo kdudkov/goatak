@@ -9,6 +9,7 @@ import (
 	"strings"
 	"sync"
 	"syscall"
+	"time"
 
 	"github.com/google/uuid"
 	"go.uber.org/zap"
@@ -82,6 +83,7 @@ func (app *App) Run() {
 	}()
 
 	go app.EventProcessor()
+	go app.cleaner()
 
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, syscall.SIGINT, syscall.SIGTERM, syscall.SIGKILL)
@@ -146,7 +148,11 @@ func (app *App) EventProcessor() {
 		case msg.event.Type == "t-x-c-t":
 			// ping
 			app.Logger.Debugf("ping from %s", msg.event.Uid)
-			app.SendTo(cot.MakePong(), msg.event.Uid)
+			uid := msg.event.Uid
+			if strings.HasSuffix(uid, "-ping") {
+				uid = uid[:len(uid)-5]
+			}
+			app.SendTo(cot.MakePong(), uid)
 			continue
 		case msg.event.IsChat():
 			app.Logger.Infof("chat %s %s", msg.event.Detail.Chat, msg.event.GetText())
@@ -167,6 +173,33 @@ func (app *App) EventProcessor() {
 		} else {
 			app.SendMsgToAll(msg.dat, msg.event.Uid)
 		}
+	}
+}
+
+func (app *App) cleaner() {
+	ticker := time.NewTicker(time.Second * 120)
+
+	for {
+		select {
+		case <-ticker.C:
+			app.cleanStale()
+		}
+	}
+}
+
+func (app *App) cleanStale() {
+	app.pointMx.Lock()
+	defer app.pointMx.Unlock()
+
+	toDelete := make([]string, 0)
+	for k, v := range app.points {
+		if v.Stale.After(time.Now()) {
+			toDelete = append(toDelete, k)
+		}
+	}
+	for _, uid := range toDelete {
+		delete(app.points, uid)
+
 	}
 }
 

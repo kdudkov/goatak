@@ -103,12 +103,19 @@
                     })
                     .then(function (data) {
                         let tid = Date.now();
+                        let keys = new Set();
 
                         data.forEach(function (i) {
                             units.set(i.uid, i);
                             vm.updatePoint(i);
+                            keys.add(i.uid);
                         });
 
+                        vm.units.forEach(function (v, k) {
+                            if (!keys.has(k)) {
+                                vm.removePoint(k);
+                            }
+                        });
                         vm.ts += 1;
                     })
             },
@@ -117,7 +124,6 @@
                     p = this.points.get(item.uid);
                     p.setLatLng([item.lat, item.lon], {title: item.callsign});
                     p.setIcon(getIcon(item.icon))
-                    p.bindTooltip(item.callsign, {direction: 'right'});
                     p.bindPopup(popup(item));
                 } else {
                     p = L.marker([item.lat, item.lon], {icon: getIcon(item.icon)});
@@ -125,9 +131,16 @@
                     p.addTo(this.map);
                     p.bindPopup(popup(item));
                 }
+            },
+            removePoint: function (uid) {
+                if (this.points.has(uid)) {
+                    p = this.points.get(uid);
+                    p.remove();
+                    this.points.delete(uid);
+                }
+                this.units.delete(uid);
             }
         },
-
     });
 
     function popup(item) {
