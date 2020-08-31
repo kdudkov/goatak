@@ -51,7 +51,7 @@ func NewApp(tcpport, udpport, webport int, logger *zap.SugaredLogger) *App {
 		Logger:   logger,
 		tcpport:  tcpport,
 		udpport:  udpport,
-		webport: webport,
+		webport:  webport,
 		ch:       make(chan *Msg, 20),
 		clients:  make(map[string]*ClientHandler, 0),
 		units:    make(map[string]*model.Unit, 0),
