@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <meta name="description" content="">
     <meta name="author" content="">
-    <title>Web ATAK client</title>
+    <title>GoATAK server</title>
 
     <!-- Bootstrap core CSS -->
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css"
@@ -29,12 +29,15 @@
         <div id="map" class="col-9">
         </div>
         <div class="col-3">
-            <table class="table table-hover units">
-                <tr v-for="u in all_units" v-on:click="map.setView([u.lat, u.lon])">
-                    <td><img height="24" v-bind:src="'/static/icons/' + u.icon"/></td>
-                    <td>{{u.callsign}}</td>
-                </tr>
-            </table>
+            <div class="overflow-auto h-50">
+                <table class="table table-hover units">
+                    <tr v-for="u in all_units" v-on:click="map.setView([u.lat, u.lon])">
+                        <td><img height="24" v-bind:src="'/static/icons/' + u.icon"/></td>
+                        <td>{{u.callsign}}</td>
+                    </tr>
+                </table>
+            </div>
+            <div class="h-50"></div>
         </div>
     </div>
 </div>
@@ -81,6 +84,7 @@
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
             }).addTo(this.map);
+            L.control.scale({metric: true}).addTo(this.map);
 
             this.renew();
             this.timer = setInterval(this.renew, 3000);
@@ -88,7 +92,14 @@
         },
         computed: {
             all_units: function () {
-                return this.ts && this.units.values();
+                let arr = Array.from(this.units.values());
+                arr.sort(function (a, b) {
+                    var ua = a.callsign.toLowerCase(), ub = b.callsign.toLowerCase();
+                    if (ua < ub) return -1;
+                    if (ua > ub) return 1;
+                    return 0;
+                });
+                return this.ts && arr;
             }
         },
 
