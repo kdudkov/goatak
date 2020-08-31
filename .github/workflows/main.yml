@@ -32,3 +32,13 @@ jobs:
         with:
           name: server windows
           path: bin/goatac_server_windows_amd64.exe
+      - name: linux client
+        uses: actions/upload-artifact@v2
+        with:
+          name: web client linux
+          path: bin/client_linux_amd64
+      - name: win client
+        uses: actions/upload-artifact@v2
+        with:
+          name: web client windows
+          path: bin/client_windows_amd64.exe
