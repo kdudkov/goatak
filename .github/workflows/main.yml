@@ -22,6 +22,8 @@ jobs:
         run: go get github.com/mitchellh/gox
       - name: Build
         run: make gox
+      - name: copy static
+        run: cp -r static bin/
       - name: linux server
         uses: actions/upload-artifact@v2
         with:
@@ -36,9 +38,13 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           name: web client linux
-          path: bin/client_linux_amd64
+          path: |
+            bin/client_linux_amd64
+            bin/static
       - name: win client
         uses: actions/upload-artifact@v2
         with:
           name: web client windows
-          path: bin/client_windows_amd64.exe
+          path: |
+            bin/client_windows_amd64.exe
+            bin/static
