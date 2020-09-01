@@ -61,7 +61,7 @@
                     <span v-if="unit.team != ''">Team: {{unit.team}}, Role: {{unit.role}}<br/></span>
                     type: {{unit.type}}<br/>
                     coord: {{unit.lat}}, {{unit.lon}}<br/>
-                    speed: {{unit.speed.toFixed(1)}}, hae: {{unit.hae.toFixed(1)}}<br/>
+                    speed: {{unit.speed.toFixed(1)}} m/s, hae: {{unit.hae.toFixed(1)}}<br/>
                     <span v-if="unit.tak_version != ''">tak: {{unit.tak_version}}<br/></span>
                     last seen: {{new Date(Date.parse(unit.time))}}<br/>
                     {{unit.text}}

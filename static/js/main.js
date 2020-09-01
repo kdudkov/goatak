@@ -13,7 +13,7 @@ function getIcon(item) {
 function milIcon(item) {
     opts = {uniqueDesignation: item.callsign, size: 24};
     if (item.speed > 0) {
-        opts['speed'] = item.speed;
+        opts['speed'] = item.speed.toFixed(1) + " m/s";
         opts['direction'] = item.course;
     }
 
