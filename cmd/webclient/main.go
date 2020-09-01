@@ -78,7 +78,7 @@ func (app *App) Run(ctx context.Context) {
 	go app.cleaner()
 
 	for ctx.Err() == nil {
-		fmt.Println("connecting...")
+		app.Logger.Infof("connecting to %s...", app.addr)
 		if err := app.connect(); err != nil {
 			time.Sleep(time.Second * 5)
 			continue
@@ -93,7 +93,7 @@ func (app *App) Run(ctx context.Context) {
 		go app.writer(ctx, wg)
 		wg.Wait()
 
-		fmt.Println("disconnected")
+		app.Logger.Info("disconnected")
 	}
 }
 
