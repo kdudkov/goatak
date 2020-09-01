@@ -37,13 +37,13 @@
                 <table class="table table-hover table-sm units">
                     <tr v-for="u in all_units">
                         <td>
-                            <img height="24" src="/static/icons/coord_unlock.png" v-if="locked_unit != u.uid"
+                            <img height="24px" src="/static/icons/coord_unlock.png" v-if="locked_unit != u.uid"
                                  v-on:click="locked_unit=u.uid"/>
-                            <img height="24" src="/static/icons/coord_lock.png" v-if="locked_unit == u.uid"
+                            <img height="24px" src="/static/icons/coord_lock.png" v-if="locked_unit == u.uid"
                                  v-on:click="locked_unit=''"/>
                         </td>
                         <td v-on:click="map.setView([u.lat, u.lon]); unit=u;">
-                            <img height="24" v-bind:src="'/static/icons/' + u.icon"/>
+                            <img height="24px" v-bind:src="getImg(u)"/>
                         </td>
                         <td v-on:click="map.setView([u.lat, u.lon]); unit=u;">{{u.callsign}}</td>
                     </tr>
@@ -51,7 +51,8 @@
             </div>
             <div class="h-50">
                 <div class="alert alert-secondary info" role="alert" v-if="unit != null">
-                    <h5 v-on:click="map.setView([unit.lat, unit.lon])">{{unit.callsign}}
+                    <h5 v-on:click="map.setView([unit.lat, unit.lon])"><img
+                                v-bind:src="milImg(unit)"/> {{unit.callsign}}
                         <img height="24" src="/static/icons/coord_unlock.png" v-if="locked_unit != unit.uid"
                              v-on:click="locked_unit=unit.uid"/>
                         <img height="24" src="/static/icons/coord_lock.png" v-if="locked_unit == unit.uid"
@@ -81,5 +82,6 @@
         integrity="sha512-gZwIG9x3wUXg2hdXF6+rVkLF/0Vi9U8D2Ntg4Ga5I5BZpVkVxlJWbSQtXPSiUTtC0TjtGOmxa1AJPuV0CPthew=="
         crossorigin=""></script>
 <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+<script src="/static/js/milsymbol.js"></script>
 <script src="/static/js/main.js"></script>
 </html>

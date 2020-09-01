@@ -2,8 +2,6 @@
 
 name: CI
 
-# Controls when the action will run. Triggers the workflow on push or pull request
-# events but only for the master branch
 on:
   push:
     branches: [ master ]
@@ -24,20 +22,28 @@ jobs:
         run: make gox
       - name: copy static
         run: cp -r static bin/
+      - name: empty config
+        run: echo "---" > bin/atak-web.yml
+      - name: empty config
+        run: echo "---" > bin/goatak-server.yml
+      - name: example config
+        run: cp atak-web.yml.example bin/
       - name: linux server
         uses: actions/upload-artifact@v2
         with:
           name: server linux
-          path: bin/goatak_server_linux_amd64
+          path: |
+            bin/goatak_server_linux_amd64
+            bin/static
+            bin/goatak-server.yml
       - name: win server
         uses: actions/upload-artifact@v2
         with:
           name: server windows
-          path: bin/goatak_server_windows_amd64.exe
-      - name: empty config
-        run: echo "---" > bin/atak-web.yml
-      - name: example config
-        run: cp atak-web.yml.example bin/
+          path: |
+            bin/goatak_server_windows_amd64.exe
+            bin/static
+            bin/goatak-server.yml
       - name: linux client
         uses: actions/upload-artifact@v2
         with:

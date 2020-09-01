@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"github.com/spf13/viper"
 	"os"
 	"os/signal"
 	"strings"
@@ -279,11 +280,24 @@ func (app *App) SendMsgToCallsign(msg []byte, callsign string) {
 
 func main() {
 	fmt.Printf("version %s:%s\n", gitBranch, gitRevision)
-
-	var tcpPort = flag.Int("tcp_port", 8089, "port for tcp")
-	var udpPort = flag.Int("udp_port", 4242, "port for udp")
-	var webPort = flag.Int("web_port", 8080, "port for http server")
 	var logging = flag.Bool("logging", false, "save all events to files")
+	var conf = flag.String("config", "goatak-server.yml", "name of config file")
+	flag.Parse()
+
+	viper.SetConfigFile(*conf)
+
+	viper.SetDefault("server_address", "127.0.0.1:8089")
+	viper.SetDefault("web_port", 8080)
+	viper.SetDefault("tcp_port", 8089)
+	viper.SetDefault("udp_port", 4242)
+
+	viper.SetDefault("me.lat", 35.462939)
+	viper.SetDefault("me.lon", -97.537283)
+
+	err := viper.ReadInConfig()
+	if err != nil {
+		panic(fmt.Errorf("Fatal error config file: %s \n", err))
+	}
 
 	flag.Parse()
 
@@ -291,7 +305,13 @@ func main() {
 	logger, _ := cfg.Build()
 	defer logger.Sync()
 
-	app := NewApp(*tcpPort, *udpPort, *webPort, logger.Sugar())
+	app := NewApp(
+		viper.GetInt("tcp_port"),
+		viper.GetInt("udp_port"),
+		viper.GetInt("web_port"),
+		logger.Sugar())
 	app.logging = *logging
+	app.lat = viper.GetFloat64("me.lat")
+	app.lon = viper.GetFloat64("me.lon")
 	app.Run()
 }

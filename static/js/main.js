@@ -1,16 +1,28 @@
-icons = new Map();
-
-function getIcon(name) {
-    if (icons.has(name)) {
-        return icons.get(name);
-    } else {
+function getIcon(item) {
+    if (item.icon != "") {
         icon = L.icon({
-            iconUrl: '/static/icons/' + name,
-            iconSize: [32, 32],
+            iconUrl: '/static/icons/' + item.icon,
+            iconSize: [24, 24],
+            iconAnchor: [12, 12]
         });
-        icons.set(name, icon);
         return icon;
     }
+    return milIcon(item);
+}
+
+function milIcon(item) {
+    opts = {uniqueDesignation: item.callsign, size: 24};
+    if (item.speed > 0) {
+        opts['speed'] = item.speed;
+        opts['direction'] = item.course;
+    }
+
+    let symb = new ms.Symbol(item.sidc, opts);
+
+    return L.icon({
+        iconUrl: symb.toDataURL(),
+        iconAnchor: new L.Point(symb.getAnchor().x, symb.getAnchor().y)
+    });
 }
 
 let app = new Vue({
@@ -91,7 +103,7 @@ let app = new Vue({
             if (this.markers.has(item.uid)) {
                 p = this.markers.get(item.uid);
                 p.setLatLng([item.lat, item.lon], {title: item.callsign});
-                p.setIcon(getIcon(item.icon))
+                p.setIcon(getIcon(item))
                 // p.bindPopup(popup(item));
                 if (this.locked_unit === item.uid) {
                     this.map.setView([item.lat, item.lon]);
@@ -100,7 +112,7 @@ let app = new Vue({
                     app.setUnit(item.uid);
                 });
             } else {
-                p = L.marker([item.lat, item.lon], {icon: getIcon(item.icon)});
+                p = L.marker([item.lat, item.lon], {icon: getIcon(item)});
                 this.markers.set(item.uid, p);
                 p.addTo(this.map);
                 // p.bindPopup(popup(item));
@@ -124,6 +136,15 @@ let app = new Vue({
             if (this.units.has(uid)) {
                 this.unit = this.units.get(uid);
             }
+        },
+        getImg: function (item) {
+            if (item.icon != "") {
+                return '/static/icons/' + item.icon;
+            }
+            return new ms.Symbol(item.sidc, {size: 24}).toDataURL();
+        },
+        milImg: function (item) {
+            return new ms.Symbol(item.sidc, {size: 24}).toDataURL();
         }
     },
 });

@@ -2,16 +2,14 @@ package model
 
 import "testing"
 
-func TestGetIcon(t *testing.T) {
-	check(t, "a-u-G", "0.sugp.png")
-	check(t, "a-f-G", "1.sfgp.png")
-	check(t, "a-n-G", "2.sngp.png")
-	check(t, "a-h-G", "3.shgp.png")
-
+func TestSiDC(t *testing.T) {
+	checkSIDC(t, "a-u-G", "SUG-------")
+	checkSIDC(t, "a-f-G-U-C", "SFG-UC----")
+	checkSIDC(t, "a-n-A-C-F", "SNA-CF----")
 }
 
-func check(t *testing.T, fn, icon string) {
-	if GetIcon(fn) != icon {
-		t.Errorf("got %s, must be %s", GetIcon(fn), icon)
+func checkSIDC(t *testing.T, fn, sidc string) {
+	if getSIDC(fn) != sidc {
+		t.Errorf("got %s, must be %s", getSIDC(fn), sidc)
 	}
 }

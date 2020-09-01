@@ -18,7 +18,9 @@ type WebUnit struct {
 	Lon        float64   `json:"lon"`
 	Hae        float64   `json:"hae"`
 	Speed      float64   `json:"speed"`
+	Course     float64   `json:"course"`
 	Icon       string    `json:"icon"`
+	Sidc       string    `json:"sidc"`
 	Text       string    `json:"text"`
 	TakVersion string    `json:"tak_version"`
 }
@@ -34,11 +36,13 @@ func (u *Unit) ToWeb() *WebUnit {
 		Lat:      u.evt.Point.Lat,
 		Lon:      u.evt.Point.Lon,
 		Hae:      u.evt.Point.Hae,
-		Icon:     GetIcon(u.Type),
+		Icon:     GetIcon(u),
+		Sidc:     getSIDC(u.Type),
 	}
 
 	if u.evt.Detail.Track != nil {
 		w.Speed = u.evt.Detail.Track.Speed
+		w.Course = u.evt.Detail.Track.Course
 	}
 
 	if u.evt.Detail.Remarks != nil {
@@ -56,44 +60,75 @@ func (u *Unit) ToWeb() *WebUnit {
 	return w
 }
 
-func GetIcon(fn string) string {
+func GetIcon(u *Unit) string {
+	if !strings.HasPrefix(u.Type, "a-") {
+		return ""
+	}
+
+	if g := u.evt.Detail.Group; g != nil {
+		s := "roles/"
+
+		switch g.Name {
+		case "White":
+			s += "white"
+		case "Yellow":
+			s += "grey"
+		case "Orange":
+			s += "grey"
+		case "Magenta":
+			s += "grey"
+		case "Red":
+			s += "red"
+		case "Maroon":
+			s += "grey"
+		case "Purple":
+			s += "grey"
+		case "Dark Blue":
+			s += "darkblue"
+		case "Blue":
+			s += "blue"
+		case "Cyan":
+			s += "cyan"
+		case "Teal":
+			s += "grey"
+		case "Green":
+			s += "green"
+		case "Dark Green":
+			s += "grey"
+		case "Brown":
+			s += "grey"
+		default:
+			s += "grey"
+		}
+
+		switch g.Role {
+		case "Team Member":
+		case "HQ":
+			s += "-hq"
+		case "Team Lead":
+			s += "-tl"
+		case "K9":
+			s += "-k9"
+		default:
+		}
+		return s + ".png"
+	}
+
+	return ""
+}
+
+func getSIDC(fn string) string {
 	if !strings.HasPrefix(fn, "a-") {
 		return ""
 	}
 
-	var prefix string
-
-	switch fn[2] {
-	case 'u':
-		prefix = "0.su"
-	case 'f':
-		prefix = "1.sf"
-	case 'n':
-		prefix = "2.sn"
-	case 'h':
-		prefix = "3.sh"
+	sidc := "S" + string(fn[2]) + string(fn[4]) + "-"
+	if len(fn) > 6 {
+		sidc += strings.ReplaceAll(fn[6:], "-", "")
 	}
 
-	return prefix + getCode(fn) + ".png"
-}
-
-func getCode(fn string) string {
-	switch {
-	case strings.HasPrefix(fn[4:], "G-E-V-A"):
-		return "gpeva"
-	case strings.HasPrefix(fn[4:], "G-E-V-C"):
-		return "gpevc"
-
-	case strings.HasPrefix(fn[4:], "A-C-F"), strings.HasPrefix(fn[4:], "G-C-F"):
-		return "apcf"
-	case strings.HasPrefix(fn[4:], "A-C-R"), strings.HasPrefix(fn[4:], "G-C-R"):
-		return "apch"
-	case strings.HasPrefix(fn[4:], "A-C"), strings.HasPrefix(fn[4:], "G-C"):
-		return "apc"
-	case strings.HasPrefix(fn[4:], "A-"):
-		return "ap"
-
-	default:
-		return "gp"
+	if len(sidc) < 10 {
+		sidc += strings.Repeat("-", 10-len(sidc))
 	}
+	return strings.ToUpper(sidc)
 }
