@@ -37,6 +37,7 @@ var (
 type App struct {
 	conn      net.Conn
 	addr      string
+	webPort   int
 	Logger    *zap.SugaredLogger
 	ch        chan []byte
 	lastWrite time.Time
@@ -53,12 +54,13 @@ type App struct {
 	lon      float64
 }
 
-func NewApp(uid string, callsign string, addr string, logger *zap.SugaredLogger) *App {
+func NewApp(uid string, callsign string, addr string, webPort int, logger *zap.SugaredLogger) *App {
 	return &App{
 		Logger:   logger,
 		callsign: callsign,
 		uid:      uid,
 		addr:     addr,
+		webPort:  webPort,
 		unitsMx:  sync.RWMutex{},
 		units:    make(map[string]*model.Unit, 0),
 	}
@@ -66,7 +68,9 @@ func NewApp(uid string, callsign string, addr string, logger *zap.SugaredLogger)
 
 func (app *App) Run(ctx context.Context) {
 	go func() {
-		if err := NewHttp(app, ":8080").Serve(); err != nil {
+		addr := fmt.Sprintf(":%d", app.webPort)
+		app.Logger.Infof("listening %s", addr)
+		if err := NewHttp(app, addr).Serve(); err != nil {
 			panic(err)
 		}
 	}()
@@ -207,17 +211,17 @@ func (app *App) ProcessEvent(evt *cot.Event) {
 	case evt.IsChat():
 		app.Logger.Infof("message from %s chat %s: %s", evt.Detail.Chat.Sender, evt.Detail.Chat.Room, evt.GetText())
 	case strings.HasPrefix(evt.Type, "a-"):
-		app.Logger.Debugf("pos %s (%s) %s", evt.Uid, evt.Detail.Contact.Callsign, evt.Type)
+		app.Logger.Infof("pos %s (%s) %s", evt.Uid, evt.Detail.Contact.Callsign, evt.Type)
 		if evt.Stale.After(time.Now()) {
 			app.AddUnit(evt.Uid, model.FromEvent(evt))
 		}
 	case strings.HasPrefix(evt.Type, "b-"):
-		app.Logger.Debugf("point %s (%s) %s", evt.Uid, evt.Detail.Contact.Callsign, evt.Type)
+		app.Logger.Infof("point %s (%s) %s", evt.Uid, evt.Detail.Contact.Callsign, evt.Type)
 		if evt.Stale.After(time.Now()) {
 			app.AddUnit(evt.Uid, model.FromEvent(evt))
 		}
 	default:
-		app.Logger.Debugf("event: %s", evt)
+		app.Logger.Infof("event: %s", evt)
 	}
 }
 
@@ -285,6 +289,7 @@ func main() {
 	viper.SetConfigFile(*conf)
 
 	viper.SetDefault("server_address", "127.0.0.1:8089")
+	viper.SetDefault("web_port", 8080)
 	viper.SetDefault("me.callsign", RandString(10))
 	viper.SetDefault("me.uid", RandString(16))
 	viper.SetDefault("me.lat", 35.462939)
@@ -312,6 +317,7 @@ func main() {
 		uid,
 		viper.GetString("me.callsign"),
 		viper.GetString("server_address"),
+		viper.GetInt("web_port"),
 		logger.Sugar(),
 	)
 
