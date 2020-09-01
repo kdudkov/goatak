@@ -9,6 +9,10 @@ import (
 	"github.com/kdudkov/goatak/model"
 )
 
+const (
+	staleThreshold = time.Minute
+)
+
 func NewHttp(app *App, address string) *air.Air {
 	srv := air.New()
 	srv.Address = address
@@ -33,8 +37,10 @@ func getUnitsHandler(app *App) func(req *air.Request, res *air.Response) error {
 
 		r := make([]*model.WebUnit, 0)
 
+		now := time.Now()
+
 		for _, u := range app.units {
-			if !u.Stale.Before(time.Now()) {
+			if !u.Stale.Add(staleThreshold).Before(now) {
 				r = append(r, u.ToWeb())
 			}
 		}

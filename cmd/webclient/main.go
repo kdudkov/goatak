@@ -231,9 +231,11 @@ func (app *App) ProcessEvent(evt *cot.Event) {
 	case evt.IsChat():
 		app.Logger.Infof("message from %s chat %s: %s", evt.Detail.Chat.Sender, evt.Detail.Chat.Room, evt.GetText())
 	case strings.HasPrefix(evt.Type, "a-"):
-		app.Logger.Infof("pos %s (%s) %s", evt.Uid, evt.Detail.Contact.Callsign, evt.Type)
 		if evt.Stale.After(time.Now()) {
+			app.Logger.Infof("pos %s (%s) %s", evt.Uid, evt.Detail.Contact.Callsign, evt.Type)
 			app.AddUnit(evt.Uid, model.FromEvent(evt))
+		} else {
+			app.Logger.Debugf("pos %s (%s) %s - stale %s", evt.Uid, evt.Detail.Contact.Callsign, evt.Type, evt.Stale)
 		}
 	case strings.HasPrefix(evt.Type, "b-"):
 		app.Logger.Infof("point %s (%s) %s", evt.Uid, evt.Detail.Contact.Callsign, evt.Type)
