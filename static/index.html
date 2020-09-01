@@ -64,6 +64,7 @@
                     speed: {{unit.speed.toFixed(1)}} m/s, hae: {{unit.hae.toFixed(1)}}<br/>
                     <span v-if="unit.tak_version != ''">tak: {{unit.tak_version}}<br/></span>
                     last seen: {{new Date(Date.parse(unit.time))}}<br/>
+                    stale: {{new Date(Date.parse(unit.stale))}}<br/>
                     {{unit.text}}
                 </div>
             </div>

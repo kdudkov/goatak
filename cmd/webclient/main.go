@@ -88,9 +88,13 @@ func (app *App) Run(ctx context.Context) {
 		app.AddEvent(app.MakeMe())
 
 		wg := &sync.WaitGroup{}
-		wg.Add(2)
-		go app.reader(ctx, wg)
-		go app.writer(ctx, wg)
+		wg.Add(3)
+
+		stopCh := make(chan bool)
+
+		go app.reader(ctx, wg, stopCh)
+		go app.writer(ctx, wg, stopCh)
+		go app.sender(ctx, wg, stopCh)
 		wg.Wait()
 
 		app.Logger.Info("disconnected")
@@ -115,7 +119,7 @@ func (app *App) connect() error {
 	return nil
 }
 
-func (app *App) reader(ctx context.Context, wg *sync.WaitGroup) {
+func (app *App) reader(ctx context.Context, wg *sync.WaitGroup, ch chan bool) {
 	defer wg.Done()
 	n := 0
 	er := cot.NewEventnReader(app.conn)
@@ -138,11 +142,11 @@ func (app *App) reader(ctx context.Context, wg *sync.WaitGroup) {
 	}
 	app.conn.Close()
 	close(app.ch)
-
+	close(ch)
 	app.Logger.Infof("got %d messages", n)
 }
 
-func (app *App) writer(ctx context.Context, wg *sync.WaitGroup) {
+func (app *App) writer(ctx context.Context, wg *sync.WaitGroup, ch chan bool) {
 	defer wg.Done()
 
 Loop:
@@ -162,10 +166,26 @@ Loop:
 			}
 		case <-ctx.Done():
 			break Loop
+		case <-ch:
+			break Loop
 		}
 	}
 
 	app.conn.Close()
+}
+
+func (app *App) sender(ctx context.Context, wg *sync.WaitGroup, ch chan bool) {
+	defer wg.Done()
+
+Loop:
+	for ctx.Err() == nil {
+		select {
+		case <-ch:
+			break Loop
+		case <-time.Tick(time.Second * 10):
+			app.AddEvent(app.MakeMe())
+		}
+	}
 }
 
 func (app *App) setWriteActivity() {

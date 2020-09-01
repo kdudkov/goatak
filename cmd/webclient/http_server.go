@@ -34,7 +34,7 @@ func getUnitsHandler(app *App) func(req *air.Request, res *air.Response) error {
 		r := make([]*model.WebUnit, 0)
 
 		for _, u := range app.units {
-			if u.Stale.After(time.Now()) {
+			if !u.Stale.Before(time.Now()) {
 				r = append(r, u.ToWeb())
 			}
 		}
