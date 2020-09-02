@@ -51,16 +51,16 @@ type Detail struct {
 	Link              []*Link            `xml:"link,omitempty,selfclose"`
 	Remarks           *Remarks           `xml:"remarks,omitempty"`
 	Marti             *Marti             `xml:"marti,omitempty"`
-	Color             struct {
+	Color             *struct {
 		Value string `xml:"argb,attr,omitempty"`
 	} `xml:"color,omitempty,selfclose"`
-	StrokeColor struct {
+	StrokeColor *struct {
 		Value string `xml:"value,attr,omitempty"`
 	} `xml:"strokeColor,omitempty,selfclose"`
-	FillColor struct {
+	FillColor *struct {
 		Value string `xml:"value,attr,omitempty"`
 	} `xml:"fillColor,omitempty,selfclose"`
-	StrokeWeight struct {
+	StrokeWeight *struct {
 		Value string `xml:"value,attr,omitempty"`
 	} `xml:"strokeWeight,omitempty,selfclose"`
 }
@@ -295,24 +295,6 @@ func BasicDetail(callsign string, team string, role string) *Detail {
 			Speed:  0,
 		},
 	}
-}
-
-func MakePos(uid string, callsign string) *Event {
-	ev := BasicEvent("a-f-G-E-V-C", uid, time.Minute*5)
-	ev.Detail = *BasicDetail(callsign, "Red", "Team Member")
-	ev.Detail.Status = &Status{
-		Battery: "95",
-	}
-	ev.Detail.PrecisionLocation = &Precisionlocation{
-		Altsrc:      "GPS",
-		Geopointsrc: "GPS",
-	}
-
-	ev.Detail.TakVersion.Version = "4.0.0.7 (7939f102).1592931989-CIV"
-	ev.Detail.TakVersion.Os = "29"
-	ev.Detail.TakVersion.Device = "XIAOMI MI 9T"
-	ev.Detail.TakVersion.Platform = "ATAK-CIV"
-	return ev
 }
 
 func MakePing(uid string) *Event {

@@ -26,8 +26,9 @@ var (
 )
 
 type Msg struct {
-	event *cot.Event
-	dat   []byte
+	event  *cot.Event
+	dat    []byte
+	client bool
 }
 
 type App struct {
@@ -41,6 +42,7 @@ type App struct {
 
 	clients map[string]*ClientHandler
 	units   map[string]*model.Unit
+
 	ctx     context.Context
 	uid     string
 	ch      chan *Msg
@@ -127,7 +129,7 @@ func (app *App) AddUnit(uid string, u *model.Unit) {
 	app.units[uid] = u
 }
 
-func (app *App) RemovePoint(uid string) {
+func (app *App) RemoveUnit(uid string) {
 	app.unitMx.Lock()
 	defer app.unitMx.Unlock()
 
@@ -168,10 +170,10 @@ func (app *App) EventProcessor() {
 			app.Logger.Infof("chat %s %s", msg.event.Detail.Chat, msg.event.GetText())
 		case strings.HasPrefix(msg.event.Type, "a-"):
 			app.Logger.Debugf("pos %s (%s) stale %s", msg.event.Uid, msg.event.Detail.Contact.Callsign, msg.event.Stale.Sub(time.Now()))
-			app.AddUnit(msg.event.Uid, model.FromEvent(msg.event))
+			app.AddUnit(msg.event.Uid, model.FromEvent(msg.event, msg.client))
 		case strings.HasPrefix(msg.event.Type, "b-"):
 			app.Logger.Debugf("point %s (%s)", msg.event.Uid, msg.event.Detail.Contact.Callsign)
-			app.AddUnit(msg.event.Uid, model.FromEvent(msg.event))
+			app.AddUnit(msg.event.Uid, model.FromEvent(msg.event, false))
 		default:
 			app.Logger.Debugf("event: %s", msg.event)
 		}
@@ -286,7 +288,6 @@ func main() {
 
 	viper.SetConfigFile(*conf)
 
-	viper.SetDefault("server_address", "127.0.0.1:8089")
 	viper.SetDefault("web_port", 8080)
 	viper.SetDefault("tcp_port", 8089)
 	viper.SetDefault("udp_port", 4242)
@@ -309,7 +310,8 @@ func main() {
 		viper.GetInt("tcp_port"),
 		viper.GetInt("udp_port"),
 		viper.GetInt("web_port"),
-		logger.Sugar())
+		logger.Sugar(),
+	)
 	app.logging = *logging
 	app.lat = viper.GetFloat64("me.lat")
 	app.lon = viper.GetFloat64("me.lon")

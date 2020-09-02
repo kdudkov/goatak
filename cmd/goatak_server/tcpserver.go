@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/google/uuid"
 	"io"
 	"net"
 	"strings"
@@ -96,7 +97,6 @@ Loop:
 		}
 
 		h.checkFirstMsg(ev)
-		h.processEvent(dat, ev)
 	}
 
 	if h.closeTimer != nil {
@@ -116,7 +116,7 @@ func (h *ClientHandler) checkFirstMsg(evt *cot.Event) {
 }
 
 func (h *ClientHandler) processEvent(dat []byte, evt *cot.Event) {
-	h.app.ch <- &Msg{dat: dat, event: evt}
+	h.app.ch <- &Msg{dat: dat, event: evt, client: evt.Uid == h.Uid}
 }
 
 func (h *ClientHandler) handleWrite() {
@@ -148,6 +148,8 @@ func (h *ClientHandler) stopHandle() {
 		if h.conn != nil {
 			h.conn.Close()
 		}
+
+		h.app.SendToAll(MakeOfflineMsg(h.Uid, "a-f-G"), h.Uid)
 	}
 	return
 }
@@ -203,4 +205,10 @@ func (h *ClientHandler) sendPing() {
 			h.AddMsg(msg)
 		}
 	}
+}
+func MakeOfflineMsg(uid string, typ string) *cot.Event {
+	evt := cot.BasicEvent("t-x-d-d", uuid.New().String(), time.Minute*3)
+	evt.How = "h-g-i-g-o"
+	evt.Detail = cot.Detail{Link: []*cot.Link{{Uid: uid, Type: typ, Relation: "p-p"}}}
+	return evt
 }

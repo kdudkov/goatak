@@ -137,7 +137,7 @@ func (app *App) reader(ctx context.Context, wg *sync.WaitGroup, ch chan bool) {
 			app.Logger.Errorf("decode err: %v", err)
 			break
 		}
-		app.ProcessEvent(evt)
+		app.ProcessEvent(evt, dat)
 		n++
 	}
 	app.conn.Close()
@@ -176,13 +176,13 @@ Loop:
 
 func (app *App) sender(ctx context.Context, wg *sync.WaitGroup, ch chan bool) {
 	defer wg.Done()
-
 Loop:
 	for ctx.Err() == nil {
 		select {
 		case <-ch:
 			break Loop
-		case <-time.Tick(time.Second * 10):
+		case <-time.Tick(time.Minute):
+			app.Logger.Debugf("sending pos")
 			app.AddEvent(app.MakeMe())
 		}
 	}
@@ -211,8 +211,6 @@ func (app *App) AddEvent(evt *cot.Event) bool {
 	default:
 		return false
 	}
-
-	return false
 }
 
 func (app *App) sendPing() {
@@ -222,7 +220,7 @@ func (app *App) sendPing() {
 	}
 }
 
-func (app *App) ProcessEvent(evt *cot.Event) {
+func (app *App) ProcessEvent(evt *cot.Event, dat []byte) {
 	switch {
 	case evt.Type == "t-x-c-t":
 		app.Logger.Debugf("ping from %s", evt.Uid)
@@ -233,17 +231,17 @@ func (app *App) ProcessEvent(evt *cot.Event) {
 	case strings.HasPrefix(evt.Type, "a-"):
 		if evt.Stale.After(time.Now()) {
 			app.Logger.Infof("pos %s (%s) %s", evt.Uid, evt.Detail.Contact.Callsign, evt.Type)
-			app.AddUnit(evt.Uid, model.FromEvent(evt))
+			app.AddUnit(evt.Uid, model.FromEvent(evt, false))
 		} else {
 			app.Logger.Debugf("pos %s (%s) %s - stale %s", evt.Uid, evt.Detail.Contact.Callsign, evt.Type, evt.Stale)
 		}
 	case strings.HasPrefix(evt.Type, "b-"):
 		app.Logger.Infof("point %s (%s) %s", evt.Uid, evt.Detail.Contact.Callsign, evt.Type)
 		if evt.Stale.After(time.Now()) {
-			app.AddUnit(evt.Uid, model.FromEvent(evt))
+			app.AddUnit(evt.Uid, model.FromEvent(evt, false))
 		}
 	default:
-		app.Logger.Infof("event: %s", evt)
+		app.Logger.Debugf("unknown event: %s", dat)
 	}
 }
 
@@ -270,13 +268,8 @@ func (app *App) MakeMe() *cot.Event {
 }
 
 func (app *App) cleaner() {
-	ticker := time.NewTicker(time.Second * 120)
-
-	for {
-		select {
-		case <-ticker.C:
-			app.cleanStale()
-		}
+	for range time.Tick(time.Second * 120) {
+		app.cleanStale()
 	}
 }
 
