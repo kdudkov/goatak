@@ -32,17 +32,13 @@ func NewHttp(app *App, address string) *air.Air {
 
 func getUnitsHandler(app *App) func(req *air.Request, res *air.Response) error {
 	return func(req *air.Request, res *air.Response) error {
-		app.unitsMx.RLock()
-		defer app.unitsMx.RUnlock()
+		app.unitMx.RLock()
+		defer app.unitMx.RUnlock()
 
 		r := make([]*model.WebUnit, 0)
 
-		now := time.Now()
-
 		for _, u := range app.units {
-			if !u.Stale.Add(staleThreshold).Before(now) {
-				r = append(r, u.ToWeb())
-			}
+			r = append(r, u.ToWeb())
 		}
 
 		return res.WriteJSON(r)

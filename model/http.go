@@ -12,6 +12,7 @@ type WebUnit struct {
 	Team       string    `json:"team"`
 	Role       string    `json:"role"`
 	Time       time.Time `json:"time"`
+	LastSeen   time.Time `json:"last_seen"`
 	Stale      time.Time `json:"stale"`
 	Type       string    `json:"type"`
 	Lat        float64   `json:"lat"`
@@ -30,7 +31,8 @@ func (u *Unit) ToWeb() *WebUnit {
 	w := &WebUnit{
 		Uid:      u.Uid,
 		Callsign: u.Callsign,
-		Time:     u.Time,
+		Time:     u.evt.Time,
+		LastSeen: u.LastSeen,
 		Stale:    u.Stale,
 		Type:     u.Type,
 		Lat:      u.evt.Point.Lat,

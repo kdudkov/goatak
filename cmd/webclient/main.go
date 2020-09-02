@@ -15,6 +15,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
 
@@ -26,7 +27,8 @@ const (
 	pingTimeout = time.Second * 15
 	alfaNum     = "abcdefghijklmnopqrstuvwxyz012346789"
 
-	cleanTimeout = time.Minute * 10
+	cleanTimeout    = time.Minute * 10
+	lastSeenTimeout = time.Minute * 10
 )
 
 var (
@@ -42,16 +44,17 @@ type App struct {
 	ch        chan []byte
 	lastWrite time.Time
 	pingTimer *time.Timer
-	unitsMx   sync.RWMutex
+	unitMx    sync.RWMutex
 	units     map[string]*model.Unit
 
-	callsign string
-	uid      string
-	typ      string
-	team     string
-	role     string
-	lat      float64
-	lon      float64
+	callsign    string
+	uid         string
+	typ         string
+	team        string
+	role        string
+	lat         float64
+	lon         float64
+	ignoreStale bool
 }
 
 func NewApp(uid string, callsign string, addr string, webPort int, logger *zap.SugaredLogger) *App {
@@ -61,7 +64,7 @@ func NewApp(uid string, callsign string, addr string, webPort int, logger *zap.S
 		uid:      uid,
 		addr:     addr,
 		webPort:  webPort,
-		unitsMx:  sync.RWMutex{},
+		unitMx:   sync.RWMutex{},
 		units:    make(map[string]*model.Unit, 0),
 	}
 }
@@ -221,25 +224,28 @@ func (app *App) sendPing() {
 }
 
 func (app *App) ProcessEvent(evt *cot.Event, dat []byte) {
+	app.updateTime(evt.Uid)
+
+	if evt.Stale.Before(time.Now()) && app.ignoreStale {
+		app.Logger.Infof("stale message: uid: %s, callsign: %s, type: %s, stale: %s", evt.Uid, evt.GetCallsign(), evt.Type, evt.Stale)
+		return
+	}
+
 	switch {
 	case evt.Type == "t-x-c-t":
 		app.Logger.Debugf("ping from %s", evt.Uid)
 	case evt.Type == "t-x-c-t-r":
 		app.Logger.Debugf("pong")
+	case evt.Type == "t-x-d-d":
+		app.removeByLink(evt)
 	case evt.IsChat():
 		app.Logger.Infof("message from %s chat %s: %s", evt.Detail.Chat.Sender, evt.Detail.Chat.Room, evt.GetText())
 	case strings.HasPrefix(evt.Type, "a-"):
-		if evt.Stale.After(time.Now()) {
-			app.Logger.Infof("pos %s (%s) %s", evt.Uid, evt.Detail.Contact.Callsign, evt.Type)
-			app.AddUnit(evt.Uid, model.FromEvent(evt, false))
-		} else {
-			app.Logger.Debugf("pos %s (%s) %s - stale %s", evt.Uid, evt.Detail.Contact.Callsign, evt.Type, evt.Stale)
-		}
+		app.Logger.Infof("pos %s (%s) %s", evt.Uid, evt.Detail.Contact.Callsign, evt.Type)
+		app.AddUnit(evt.Uid, model.FromEvent(evt, false))
 	case strings.HasPrefix(evt.Type, "b-"):
 		app.Logger.Infof("point %s (%s) %s", evt.Uid, evt.Detail.Contact.Callsign, evt.Type)
-		if evt.Stale.After(time.Now()) {
-			app.AddUnit(evt.Uid, model.FromEvent(evt, false))
-		}
+		app.AddUnit(evt.Uid, model.FromEvent(evt, false))
 	default:
 		app.Logger.Debugf("unknown event: %s", dat)
 	}
@@ -250,10 +256,36 @@ func (app *App) AddUnit(uid string, u *model.Unit) {
 		return
 	}
 
-	app.unitsMx.Lock()
-	defer app.unitsMx.Unlock()
+	app.unitMx.Lock()
+	defer app.unitMx.Unlock()
 
 	app.units[uid] = u
+}
+
+func (app *App) RemoveUnit(uid string) {
+	app.unitMx.Lock()
+	defer app.unitMx.Unlock()
+
+	if _, ok := app.units[uid]; ok {
+		delete(app.units, uid)
+	}
+}
+
+func (app *App) removeByLink(evt *cot.Event) {
+	if len(evt.Detail.Link) > 0 {
+		uid := evt.Detail.Link[0].Uid
+		app.Logger.Debugf("remove %s by message", uid)
+		app.RemoveUnit(uid)
+	}
+}
+
+func (app *App) updateTime(uid string) {
+	app.unitMx.Lock()
+	defer app.unitMx.Unlock()
+
+	if u, ok := app.units[uid]; ok {
+		u.LastSeen = time.Now()
+	}
 }
 
 func (app *App) MakeMe() *cot.Event {
@@ -274,14 +306,15 @@ func (app *App) cleaner() {
 }
 
 func (app *App) cleanStale() {
-	app.unitsMx.Lock()
-	defer app.unitsMx.Unlock()
+	app.unitMx.Lock()
+	defer app.unitMx.Unlock()
 
 	toDelete := make([]string, 0)
+	now := time.Now()
 	for k, v := range app.units {
-		if v.Stale.Add(cleanTimeout).Before(time.Now()) {
+		if v.Stale.Add(cleanTimeout).Before(now) && v.LastSeen.Add(lastSeenTimeout).Before(now) {
 			toDelete = append(toDelete, k)
-			app.Logger.Debugf("removing %s (stale %s)", k, v.Stale.Sub(time.Now()))
+			app.Logger.Debugf("removing %s (stale %s, lastseen %s)", k, v.Stale.Sub(now), v.LastSeen.Sub(now))
 		}
 	}
 	for _, uid := range toDelete {
@@ -305,8 +338,9 @@ func main() {
 
 	viper.SetDefault("server_address", "127.0.0.1:8089")
 	viper.SetDefault("web_port", 8080)
+	viper.SetDefault("ignore_stale", true)
 	viper.SetDefault("me.callsign", RandString(10))
-	viper.SetDefault("me.uid", RandString(16))
+	viper.SetDefault("me.uid", uuid.New().String())
 	viper.SetDefault("me.lat", 35.462939)
 	viper.SetDefault("me.lon", -97.537283)
 	viper.SetDefault("me.type", "a-f-G-U-C")
@@ -324,7 +358,7 @@ func main() {
 	defer logger.Sync()
 
 	uid := viper.GetString("me.uid")
-	if uid == "auto" {
+	if uid == "auto" || uid == "" {
 		uid = makeUid(viper.GetString("me.callsign"))
 	}
 
@@ -336,6 +370,7 @@ func main() {
 		logger.Sugar(),
 	)
 
+	app.ignoreStale = viper.GetBool("ignore_stale")
 	app.lat = viper.GetFloat64("me.lat")
 	app.lon = viper.GetFloat64("me.lon")
 	app.typ = viper.GetString("me.type")

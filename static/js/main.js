@@ -145,6 +145,11 @@ let app = new Vue({
         },
         milImg: function (item) {
             return new ms.Symbol(item.sidc, {size: 24}).toDataURL();
+        },
+        dt: function (str) {
+            let d = new Date(Date.parse(str));
+            return ("0" + d.getDate()).slice(-2) + "-" + ("0" + (d.getMonth() + 1)).slice(-2) + "-" +
+                d.getFullYear() + " " + ("0" + d.getHours()).slice(-2) + ":" + ("0" + d.getMinutes()).slice(-2);
         }
     },
 });
