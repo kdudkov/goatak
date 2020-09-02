@@ -1,11 +1,10 @@
 package cot
 
 import (
+	"encoding/xml"
 	"fmt"
 	"strings"
 	"time"
-
-	"github.com/kdudkov/goatak/xml"
 )
 
 type Event struct {
@@ -18,8 +17,8 @@ type Event struct {
 	Stale   time.Time `xml:"stale,attr"`
 	How     string    `xml:"how,attr"`
 
-	Point  Point  `xml:"point,selfclose"`
-	Detail Detail `xml:"detail,selfclose"`
+	Point  Point  `xml:"point"`
+	Detail Detail `xml:"detail"`
 }
 
 func (e *Event) String() string {
@@ -39,30 +38,30 @@ type Point struct {
 }
 
 type Detail struct {
-	Uid               *Uid               `xml:"uid,omitempty,selfclose"`
-	TakVersion        *TakVersion        `xml:"takv,omitempty,selfclose"`
-	Contact           *Contact           `xml:"contact,omitempty,selfclose"`
-	PrecisionLocation *Precisionlocation `xml:"precisionlocation,omitempty,selfclose"`
-	Group             *Group             `xml:"__group,omitempty,selfclose"`
-	Status            *Status            `xml:"status,omitempty,selfclose"`
-	Usericon          *Usericon          `xml:"usericon,omitempty,selfclose"`
-	Track             *Track             `xml:"track,omitempty,selfclose"`
+	Uid               *Uid               `xml:"uid,omitempty"`
+	TakVersion        *TakVersion        `xml:"takv,omitempty"`
+	Contact           *Contact           `xml:"contact,omitempty"`
+	PrecisionLocation *Precisionlocation `xml:"precisionlocation,omitempty"`
+	Group             *Group             `xml:"__group,omitempty"`
+	Status            *Status            `xml:"status,omitempty"`
+	Usericon          *Usericon          `xml:"usericon,omitempty"`
+	Track             *Track             `xml:"track,omitempty"`
 	Chat              *Chat              `xml:"__chat,omitempty"`
-	Link              []*Link            `xml:"link,omitempty,selfclose"`
+	Link              []*Link            `xml:"link,omitempty"`
 	Remarks           *Remarks           `xml:"remarks,omitempty"`
 	Marti             *Marti             `xml:"marti,omitempty"`
 	Color             *struct {
 		Value string `xml:"argb,attr,omitempty"`
-	} `xml:"color,omitempty,selfclose"`
+	} `xml:"color,omitempty"`
 	StrokeColor *struct {
 		Value string `xml:"value,attr,omitempty"`
-	} `xml:"strokeColor,omitempty,selfclose"`
+	} `xml:"strokeColor,omitempty"`
 	FillColor *struct {
 		Value string `xml:"value,attr,omitempty"`
-	} `xml:"fillColor,omitempty,selfclose"`
+	} `xml:"fillColor,omitempty"`
 	StrokeWeight *struct {
 		Value string `xml:"value,attr,omitempty"`
-	} `xml:"strokeWeight,omitempty,selfclose"`
+	} `xml:"strokeWeight,omitempty"`
 }
 
 func (d Detail) String() string {
@@ -165,7 +164,7 @@ type Chat struct {
 	Sender  string   `xml:"senderCallsign,attr,omitempty"`
 	Room    string   `xml:"chatroom,attr,omitempty"`
 	Owner   string   `xml:"groupOwner,attr,omitempty"`
-	ChatGrp *ChatGrp `xml:"chatgrp,omitempty,selfclose"`
+	ChatGrp *ChatGrp `xml:"chatgrp,omitempty"`
 }
 
 func (c *Chat) String() string {

@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"crypto/md5"
+	"encoding/xml"
 	"flag"
 	"fmt"
 	"math/rand"
@@ -19,7 +20,6 @@ import (
 
 	"github.com/kdudkov/goatak/cot"
 	"github.com/kdudkov/goatak/model"
-	"github.com/kdudkov/goatak/xml"
 )
 
 const (

@@ -1,9 +1,8 @@
 package cot
 
 import (
+	"encoding/xml"
 	"testing"
-
-	"github.com/kdudkov/goatak/xml"
 )
 
 func TestEventMarshal(t *testing.T) {

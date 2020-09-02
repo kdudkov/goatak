@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/xml"
 	"flag"
 	"fmt"
 	"github.com/spf13/viper"
@@ -17,7 +18,6 @@ import (
 
 	"github.com/kdudkov/goatak/cot"
 	"github.com/kdudkov/goatak/model"
-	"github.com/kdudkov/goatak/xml"
 )
 
 var (
@@ -165,6 +165,7 @@ func (app *App) EventProcessor() {
 				uid = uid[:len(uid)-5]
 			}
 			app.SendTo(cot.MakePong(), uid)
+			app.SendMsgToAll(msg.dat, uid)
 			continue
 		case msg.event.IsChat():
 			app.Logger.Infof("chat %s %s", msg.event.Detail.Chat, msg.event.GetText())
@@ -178,13 +179,17 @@ func (app *App) EventProcessor() {
 			app.Logger.Debugf("event: %s", msg.event)
 		}
 
-		if len(msg.event.GetCallsignTo()) > 0 {
-			for _, s := range msg.event.GetCallsignTo() {
-				app.SendMsgToCallsign(msg.dat, s)
-			}
-		} else {
-			app.SendMsgToAll(msg.dat, msg.event.Uid)
+		app.route(msg)
+	}
+}
+
+func (app *App) route(msg *Msg) {
+	if len(msg.event.GetCallsignTo()) > 0 {
+		for _, s := range msg.event.GetCallsignTo() {
+			app.SendMsgToCallsign(msg.dat, s)
 		}
+	} else {
+		app.SendMsgToAll(msg.dat, msg.event.Uid)
 	}
 }
 

@@ -28,6 +28,7 @@ func getConfigHandler(app *App) func(req *air.Request, res *air.Response) error 
 	m := make(map[string]interface{}, 0)
 	m["lat"] = app.lat
 	m["lon"] = app.lon
+	m["version"] = gitBranch + ":" + gitRevision
 	return func(req *air.Request, res *air.Response) error {
 		return res.WriteJSON(m)
 	}

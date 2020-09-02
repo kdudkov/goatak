@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/xml"
 	"github.com/google/uuid"
 	"io"
 	"net"
@@ -11,7 +12,6 @@ import (
 	"go.uber.org/atomic"
 
 	"github.com/kdudkov/goatak/cot"
-	"github.com/kdudkov/goatak/xml"
 )
 
 const (

@@ -1,10 +1,10 @@
 package main
 
 import (
+	"encoding/xml"
 	"net"
 
 	"github.com/kdudkov/goatak/cot"
-	"github.com/kdudkov/goatak/xml"
 )
 
 func (app *App) ListenUDP(addr string) error {
