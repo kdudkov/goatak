@@ -37,8 +37,9 @@ type App struct {
 	udpport int
 	webport int
 
-	lat float64
-	lon float64
+	lat  float64
+	lon  float64
+	zoom int8
 
 	clients map[string]*ClientHandler
 	units   map[string]*model.Unit
@@ -299,6 +300,7 @@ func main() {
 
 	viper.SetDefault("me.lat", 35.462939)
 	viper.SetDefault("me.lon", -97.537283)
+	viper.SetDefault("me.zoom", 5)
 
 	err := viper.ReadInConfig()
 	if err != nil {
@@ -320,5 +322,6 @@ func main() {
 	app.logging = *logging
 	app.lat = viper.GetFloat64("me.lat")
 	app.lon = viper.GetFloat64("me.lon")
+	app.zoom = int8(viper.GetInt("me.zoom"))
 	app.Run()
 }

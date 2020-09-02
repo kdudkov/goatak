@@ -49,6 +49,7 @@ func getConfigHandler(app *App) func(req *air.Request, res *air.Response) error 
 	m := make(map[string]interface{}, 0)
 	m["lat"] = app.lat
 	m["lon"] = app.lon
+	m["zoom"] = app.zoom
 	m["callsign"] = app.callsign
 	m["team"] = app.team
 	m["role"] = app.role

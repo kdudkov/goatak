@@ -54,6 +54,7 @@ type App struct {
 	role        string
 	lat         float64
 	lon         float64
+	zoom        int8
 	ignoreStale bool
 }
 
@@ -343,6 +344,7 @@ func main() {
 	viper.SetDefault("me.uid", uuid.New().String())
 	viper.SetDefault("me.lat", 35.462939)
 	viper.SetDefault("me.lon", -97.537283)
+	viper.SetDefault("me.zoom", 5)
 	viper.SetDefault("me.type", "a-f-G-U-C")
 	viper.SetDefault("me.team", "Blue")
 	viper.SetDefault("me.role", "HQ")
@@ -373,6 +375,7 @@ func main() {
 	app.ignoreStale = viper.GetBool("ignore_stale")
 	app.lat = viper.GetFloat64("me.lat")
 	app.lon = viper.GetFloat64("me.lon")
+	app.zoom = int8(viper.GetInt("me.zoom"))
 	app.typ = viper.GetString("me.type")
 	app.team = viper.GetString("me.team")
 	app.role = viper.GetString("me.role")

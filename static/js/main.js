@@ -38,7 +38,7 @@ let app = new Vue({
     },
 
     mounted() {
-        this.map = L.map('map').setView([35.462939, -97.537283], 5);
+        this.map = L.map('map');
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         }).addTo(this.map);
@@ -54,7 +54,7 @@ let app = new Vue({
             })
             .then(function (data) {
                 vm.config = data;
-                vm.map.setView([data.lat, data.lon]);
+                vm.map.setView([data.lat, data.lon], data.zoom);
             });
     },
     computed: {
