@@ -39,10 +39,24 @@ let app = new Vue({
 
     mounted() {
         this.map = L.map('map');
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        let osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-        }).addTo(this.map);
+        });
+        let topoAttribution = 'Kartendaten: &copy; <a href="https://openstreetmap.org/copyright">OpenStreetMap</a>-Mitwirkende, <a href="http://viewfinderpanoramas.org">SRTM</a> | Kartendarstellung: &copy; <a href="https://opentopomap.org">OpenTopoMap</a>';
+        let opentopo = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+            attribution: topoAttribution
+        });
+        let google = L.tileLayer('http://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}&s=Galileo', {
+            subdomains: ['mt1', 'mt2', 'mt3']
+        });
+        osm.addTo(this.map);
+
         L.control.scale({metric: true}).addTo(this.map);
+        L.control.layers({
+            "OSM": osm,
+            "OpenTopoMap": opentopo,
+            "Google sat": google
+        }, null, {hideSingleBase: true}).addTo(this.map);
 
         this.renew();
         this.timer = setInterval(this.renew, 3000);
