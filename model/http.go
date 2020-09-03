@@ -30,32 +30,32 @@ func (u *Unit) ToWeb() *WebUnit {
 	w := &WebUnit{
 		Uid:      u.Uid,
 		Callsign: u.Callsign,
-		Time:     u.evt.Time,
+		Time:     u.Evt.Time,
 		LastSeen: u.LastSeen,
 		Stale:    u.Stale,
 		Type:     u.Type,
-		Lat:      u.evt.Point.Lat,
-		Lon:      u.evt.Point.Lon,
-		Hae:      u.evt.Point.Hae,
+		Lat:      u.Evt.Point.Lat,
+		Lon:      u.Evt.Point.Lon,
+		Hae:      u.Evt.Point.Hae,
 		Icon:     GetIcon(u),
 		Sidc:     getSIDC(u.Type),
 	}
 
-	if u.evt.Detail.Track != nil {
-		w.Speed = u.evt.Detail.Track.Speed
-		w.Course = u.evt.Detail.Track.Course
+	if u.Evt.Detail.Track != nil {
+		w.Speed = u.Evt.Detail.Track.Speed
+		w.Course = u.Evt.Detail.Track.Course
 	}
 
-	if u.evt.Detail.Remarks != nil {
-		w.Text = u.evt.Detail.Remarks.Text
+	if u.Evt.Detail.Remarks != nil {
+		w.Text = u.Evt.Detail.Remarks.Text
 	}
 
-	if u.evt.Detail.Group != nil {
-		w.Team = u.evt.Detail.Group.Name
-		w.Role = u.evt.Detail.Group.Role
+	if u.Evt.Detail.Group != nil {
+		w.Team = u.Evt.Detail.Group.Name
+		w.Role = u.Evt.Detail.Group.Role
 	}
 
-	if v := u.evt.Detail.TakVersion; v != nil {
+	if v := u.Evt.Detail.TakVersion; v != nil {
 		w.TakVersion = strings.Trim(fmt.Sprintf("%s %s on %s", v.Platform, v.Version, v.Device), " ")
 	}
 	return w
@@ -66,7 +66,7 @@ func GetIcon(u *Unit) string {
 		return ""
 	}
 
-	if g := u.evt.Detail.Group; g != nil {
+	if g := u.Evt.Detail.Group; g != nil {
 		s := "roles/"
 
 		switch g.Name {

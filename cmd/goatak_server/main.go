@@ -30,6 +30,10 @@ type Msg struct {
 	dat   []byte
 }
 
+const (
+	lastSeenThreshold = time.Minute * 5
+)
+
 type App struct {
 	Logger  *zap.SugaredLogger
 	tcpport int
@@ -210,11 +214,20 @@ func (app *App) cleanStale() {
 
 	toDelete := make([]string, 0)
 	for k, v := range app.units {
-		if v.Stale.Before(time.Now()) {
-			toDelete = append(toDelete, k)
-			app.Logger.Debugf("removing %s (stale %s)", k, v.Stale.Sub(time.Now()))
+		if v.Evt.IsContact() {
+			if v.LastSeen.Add(lastSeenThreshold).Before(time.Now()) {
+				toDelete = append(toDelete, k)
+				app.Logger.Debugf("removing contact %s (lastseen %s)", k, v.LastSeen.Sub(time.Now()))
+
+			}
+		} else {
+			if v.Stale.Before(time.Now()) {
+				toDelete = append(toDelete, k)
+				app.Logger.Debugf("removing %s (stale %s)", k, v.Stale.Sub(time.Now()))
+			}
 		}
 	}
+
 	for _, uid := range toDelete {
 		delete(app.units, uid)
 

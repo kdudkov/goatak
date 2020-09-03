@@ -12,7 +12,7 @@ type Unit struct {
 	Stale    time.Time
 	LastSeen time.Time
 	Type     string
-	evt      *cot.Event
+	Evt      *cot.Event
 }
 
 func FromEvent(evt *cot.Event) *Unit {
@@ -22,6 +22,6 @@ func FromEvent(evt *cot.Event) *Unit {
 		LastSeen: time.Now(),
 		Stale:    evt.Stale,
 		Type:     evt.Type,
-		evt:      evt,
+		Evt:      evt,
 	}
 }
