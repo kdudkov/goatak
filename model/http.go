@@ -27,7 +27,6 @@ type WebUnit struct {
 }
 
 func (u *Unit) ToWeb() *WebUnit {
-
 	w := &WebUnit{
 		Uid:      u.Uid,
 		Callsign: u.Callsign,

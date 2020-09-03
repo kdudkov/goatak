@@ -16,9 +16,6 @@ import (
 
 const (
 	idleTimeout = 1 * time.Minute
-	pingTimeout = 15 * time.Second
-
-	backping = false
 )
 
 type ClientHandler struct {
@@ -28,7 +25,6 @@ type ClientHandler struct {
 	lastActivity time.Time
 	closeTimer   *time.Timer
 	lastWrite    time.Time
-	pingTimer    *time.Timer
 	app          *App
 	Ch           chan []byte
 	active       atomic.Bool
@@ -116,7 +112,7 @@ func (h *ClientHandler) checkFirstMsg(evt *cot.Event) {
 }
 
 func (h *ClientHandler) processEvent(dat []byte, evt *cot.Event) {
-	h.app.ch <- &Msg{dat: dat, event: evt, client: evt.Uid == h.Uid}
+	h.app.ch <- &Msg{dat: dat, event: evt}
 }
 
 func (h *ClientHandler) handleWrite() {
@@ -124,9 +120,6 @@ func (h *ClientHandler) handleWrite() {
 		msg := <-h.Ch
 
 		if _, err := h.conn.Write(msg); err != nil {
-			if h.pingTimer != nil {
-				h.pingTimer.Stop()
-			}
 			h.stopHandle()
 			break
 		}
@@ -175,14 +168,6 @@ func (h *ClientHandler) closeIdle() {
 
 func (h *ClientHandler) setWriteActivity() {
 	h.lastWrite = time.Now()
-
-	if backping {
-		if h.pingTimer == nil {
-			h.pingTimer = time.AfterFunc(pingTimeout, h.sendPing)
-		} else {
-			h.pingTimer.Reset(pingTimeout)
-		}
-	}
 }
 
 func (h *ClientHandler) AddMsg(msg []byte) bool {
@@ -199,13 +184,6 @@ func (h *ClientHandler) AddMsg(msg []byte) bool {
 	return false
 }
 
-func (h *ClientHandler) sendPing() {
-	if time.Now().Sub(h.lastWrite) > pingTimeout {
-		if msg, err := xml.Marshal(cot.MakePing(h.app.uid)); err == nil {
-			h.AddMsg(msg)
-		}
-	}
-}
 func MakeOfflineMsg(uid string, typ string) *cot.Event {
 	evt := cot.BasicEvent("t-x-d-d", uuid.New().String(), time.Minute*3)
 	evt.How = "h-g-i-g-o"

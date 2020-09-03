@@ -15,7 +15,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
 
@@ -44,7 +43,7 @@ type App struct {
 	ch        chan []byte
 	lastWrite time.Time
 	pingTimer *time.Timer
-	unitMx    sync.RWMutex
+	mx        sync.RWMutex
 	units     map[string]*model.Unit
 
 	callsign    string
@@ -65,7 +64,7 @@ func NewApp(uid string, callsign string, addr string, webPort int, logger *zap.S
 		uid:      uid,
 		addr:     addr,
 		webPort:  webPort,
-		unitMx:   sync.RWMutex{},
+		mx:       sync.RWMutex{},
 		units:    make(map[string]*model.Unit, 0),
 	}
 }
@@ -243,10 +242,10 @@ func (app *App) ProcessEvent(evt *cot.Event, dat []byte) {
 		app.Logger.Infof("message from %s chat %s: %s", evt.Detail.Chat.Sender, evt.Detail.Chat.Room, evt.GetText())
 	case strings.HasPrefix(evt.Type, "a-"):
 		app.Logger.Infof("pos %s (%s) %s", evt.Uid, evt.Detail.Contact.Callsign, evt.Type)
-		app.AddUnit(evt.Uid, model.FromEvent(evt, false))
+		app.AddUnit(evt.Uid, model.FromEvent(evt))
 	case strings.HasPrefix(evt.Type, "b-"):
 		app.Logger.Infof("point %s (%s) %s", evt.Uid, evt.Detail.Contact.Callsign, evt.Type)
-		app.AddUnit(evt.Uid, model.FromEvent(evt, false))
+		app.AddUnit(evt.Uid, model.FromEvent(evt))
 	default:
 		app.Logger.Debugf("unknown event: %s", dat)
 	}
@@ -257,15 +256,15 @@ func (app *App) AddUnit(uid string, u *model.Unit) {
 		return
 	}
 
-	app.unitMx.Lock()
-	defer app.unitMx.Unlock()
+	app.mx.Lock()
+	defer app.mx.Unlock()
 
 	app.units[uid] = u
 }
 
 func (app *App) RemoveUnit(uid string) {
-	app.unitMx.Lock()
-	defer app.unitMx.Unlock()
+	app.mx.Lock()
+	defer app.mx.Unlock()
 
 	if _, ok := app.units[uid]; ok {
 		delete(app.units, uid)
@@ -281,8 +280,8 @@ func (app *App) removeByLink(evt *cot.Event) {
 }
 
 func (app *App) updateTime(uid string) {
-	app.unitMx.Lock()
-	defer app.unitMx.Unlock()
+	app.mx.Lock()
+	defer app.mx.Unlock()
 
 	if u, ok := app.units[uid]; ok {
 		u.LastSeen = time.Now()
@@ -307,8 +306,8 @@ func (app *App) cleaner() {
 }
 
 func (app *App) cleanStale() {
-	app.unitMx.Lock()
-	defer app.unitMx.Unlock()
+	app.mx.Lock()
+	defer app.mx.Unlock()
 
 	toDelete := make([]string, 0)
 	now := time.Now()
@@ -341,7 +340,6 @@ func main() {
 	viper.SetDefault("web_port", 8080)
 	viper.SetDefault("ignore_stale", true)
 	viper.SetDefault("me.callsign", RandString(10))
-	viper.SetDefault("me.uid", uuid.New().String())
 	viper.SetDefault("me.lat", 35.462939)
 	viper.SetDefault("me.lon", -97.537283)
 	viper.SetDefault("me.zoom", 5)

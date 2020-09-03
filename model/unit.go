@@ -13,17 +13,15 @@ type Unit struct {
 	LastSeen time.Time
 	Type     string
 	evt      *cot.Event
-	client   bool
 }
 
-func FromEvent(evt *cot.Event, client bool) *Unit {
+func FromEvent(evt *cot.Event) *Unit {
 	return &Unit{
 		Uid:      evt.Uid,
 		Callsign: evt.GetCallsign(),
 		LastSeen: time.Now(),
 		Stale:    evt.Stale,
 		Type:     evt.Type,
-		client:   client,
 		evt:      evt,
 	}
 }

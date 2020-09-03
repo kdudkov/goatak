@@ -1,16 +1,10 @@
 package main
 
 import (
-	"runtime/pprof"
-	"time"
-
 	"github.com/aofei/air"
+	"runtime/pprof"
 
 	"github.com/kdudkov/goatak/model"
-)
-
-const (
-	staleThreshold = time.Minute
 )
 
 func NewHttp(app *App, address string) *air.Air {
@@ -32,8 +26,8 @@ func NewHttp(app *App, address string) *air.Air {
 
 func getUnitsHandler(app *App) func(req *air.Request, res *air.Response) error {
 	return func(req *air.Request, res *air.Response) error {
-		app.unitMx.RLock()
-		defer app.unitMx.RUnlock()
+		app.mx.RLock()
+		defer app.mx.RUnlock()
 
 		r := make([]*model.WebUnit, 0)
 
@@ -50,6 +44,7 @@ func getConfigHandler(app *App) func(req *air.Request, res *air.Response) error 
 	m["lat"] = app.lat
 	m["lon"] = app.lon
 	m["zoom"] = app.zoom
+	m["myuid"] = app.uid
 	m["callsign"] = app.callsign
 	m["team"] = app.team
 	m["role"] = app.role

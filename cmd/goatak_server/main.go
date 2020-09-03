@@ -26,9 +26,8 @@ var (
 )
 
 type Msg struct {
-	event  *cot.Event
-	dat    []byte
-	client bool
+	event *cot.Event
+	dat   []byte
 }
 
 type App struct {
@@ -172,10 +171,10 @@ func (app *App) EventProcessor() {
 			app.Logger.Infof("chat %s %s", msg.event.Detail.Chat, msg.event.GetText())
 		case strings.HasPrefix(msg.event.Type, "a-"):
 			app.Logger.Debugf("pos %s (%s) stale %s", msg.event.Uid, msg.event.Detail.Contact.Callsign, msg.event.Stale.Sub(time.Now()))
-			app.AddUnit(msg.event.Uid, model.FromEvent(msg.event, msg.client))
+			app.AddUnit(msg.event.Uid, model.FromEvent(msg.event))
 		case strings.HasPrefix(msg.event.Type, "b-"):
 			app.Logger.Debugf("point %s (%s)", msg.event.Uid, msg.event.Detail.Contact.Callsign)
-			app.AddUnit(msg.event.Uid, model.FromEvent(msg.event, false))
+			app.AddUnit(msg.event.Uid, model.FromEvent(msg.event))
 		default:
 			app.Logger.Debugf("event: %s", msg.event)
 		}
