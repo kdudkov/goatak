@@ -250,6 +250,10 @@ func (e *Event) GetText() string {
 	return ""
 }
 
+func (e *Event) IsContact() bool {
+	return strings.HasPrefix(e.Type, "a-f-") && e.Detail.Contact != nil && e.Detail.Contact.Endpoint != ""
+}
+
 func BasicEvent(typ string, uid string, stale time.Duration) *Event {
 	return &Event{
 		Version: "2.0",

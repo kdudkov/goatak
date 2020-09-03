@@ -5,7 +5,6 @@ import (
 	"github.com/google/uuid"
 	"io"
 	"net"
-	"strings"
 	"sync"
 	"time"
 
@@ -93,6 +92,7 @@ Loop:
 		}
 
 		h.checkFirstMsg(ev)
+		h.processEvent(dat, ev)
 	}
 
 	if h.closeTimer != nil {
@@ -101,13 +101,10 @@ Loop:
 }
 
 func (h *ClientHandler) checkFirstMsg(evt *cot.Event) {
-	if strings.HasPrefix(evt.Type, "a-f-") {
-		// position (assume it's client one)
-		if h.Uid == "" {
-			h.Uid = evt.Uid
-			h.Callsign = evt.GetCallsign()
-			h.app.AddClient(evt.Uid, h)
-		}
+	if h.Uid == "" && evt.IsContact() {
+		h.Uid = evt.Uid
+		h.Callsign = evt.GetCallsign()
+		h.app.AddClient(evt.Uid, h)
 	}
 }
 

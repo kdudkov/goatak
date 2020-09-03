@@ -295,7 +295,7 @@ func main() {
 
 	viper.SetDefault("web_port", 8080)
 	viper.SetDefault("tcp_port", 8089)
-	viper.SetDefault("udp_port", 4242)
+	viper.SetDefault("udp_port", 8999)
 
 	viper.SetDefault("me.lat", 35.462939)
 	viper.SetDefault("me.lon", -97.537283)
