@@ -174,10 +174,10 @@ func (app *App) EventProcessor() {
 		case msg.event.IsChat():
 			app.Logger.Infof("chat %s %s", msg.event.Detail.Chat, msg.event.GetText())
 		case strings.HasPrefix(msg.event.Type, "a-"):
-			app.Logger.Debugf("pos %s (%s) stale %s", msg.event.Uid, msg.event.Detail.Contact.Callsign, msg.event.Stale.Sub(time.Now()))
+			app.Logger.Debugf("pos %s (%s) stale %s", msg.event.Uid, msg.event.GetCallsign(), msg.event.Stale.Sub(time.Now()))
 			app.AddUnit(msg.event.Uid, model.FromEvent(msg.event))
 		case strings.HasPrefix(msg.event.Type, "b-"):
-			app.Logger.Debugf("point %s (%s)", msg.event.Uid, msg.event.Detail.Contact.Callsign)
+			app.Logger.Debugf("point %s (%s)", msg.event.Uid, msg.event.GetCallsign())
 			app.AddUnit(msg.event.Uid, model.FromEvent(msg.event))
 		default:
 			app.Logger.Debugf("event: %s", msg.event)
@@ -307,7 +307,7 @@ func main() {
 	viper.SetConfigFile(*conf)
 
 	viper.SetDefault("web_port", 8080)
-	viper.SetDefault("tcp_port", 8089)
+	viper.SetDefault("tcp_port", 8999)
 	viper.SetDefault("udp_port", 8999)
 
 	viper.SetDefault("me.lat", 35.462939)
