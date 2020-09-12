@@ -26,14 +26,20 @@ func NewHttp(app *App, address string) *air.Air {
 
 func getUnitsHandler(app *App) func(req *air.Request, res *air.Response) error {
 	return func(req *air.Request, res *air.Response) error {
-		app.mx.RLock()
-		defer app.mx.RUnlock()
+		units := make([]*model.WebUnit, 0)
 
-		r := make([]*model.WebUnit, 0)
+		app.units.Range(func(key, value interface{}) bool {
+			switch v := value.(type) {
+			case *model.Unit:
+				units = append(units, v.ToWeb())
+			case *model.Contact:
+				units = append(units, v.ToWeb())
+			}
+			return true
+		})
 
-		for _, u := range app.units {
-			r = append(r, u.ToWeb())
-		}
+		r := make(map[string]interface{}, 0)
+		r["units"] = units
 
 		return res.WriteJSON(r)
 	}

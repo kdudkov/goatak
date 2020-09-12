@@ -1,7 +1,26 @@
+const colors = new Map([
+    ['White', 'white'],
+    ['Yellow', 'yellow'],
+    ['Orange', 'orange'],
+    ['Magenta', 'magenta'],
+    ['Red', 'red'],
+    ['Maroon', 'maroon'],
+    ['Purple', 'purple'],
+    ['Dark Blue', 'darkblue'],
+    ['Blue', 'blue'],
+    ['Cyan', 'cyan'],
+    ['Teal', 'teal'],
+    ['Green', 'green'],
+    ['Dark Green', 'darkgreen'],
+    ['Brown', 'brown'],
+]);
+
+
 function getIcon(item) {
-    if (item.icon != "") {
+    if (item.team !== "") {
         icon = L.icon({
-            iconUrl: '/static/icons/' + item.icon,
+            iconUrl: roleCircle(item.role, colors.get(item.team), 24),
+            // iconUrl: '/static/icons/' + item.icon,
             iconSize: [24, 24],
             iconAnchor: [12, 12]
         });
@@ -11,7 +30,7 @@ function getIcon(item) {
 }
 
 function milIcon(item) {
-    opts = {uniqueDesignation: item.callsign, size: 24};
+    let opts = {uniqueDesignation: item.callsign, size: 24};
     if (item.speed > 0) {
         opts['speed'] = item.speed.toFixed(1) + " m/s";
         opts['direction'] = item.course;
@@ -96,7 +115,7 @@ let app = new Vue({
                 .then(function (data) {
                     let keys = new Set();
 
-                    data.forEach(function (i) {
+                    data.units.forEach(function (i) {
                         units.set(i.uid, i);
                         vm.updateMarker(i);
                         keys.add(i.uid);
@@ -117,7 +136,8 @@ let app = new Vue({
             if (this.markers.has(item.uid)) {
                 p = this.markers.get(item.uid);
                 p.setLatLng([item.lat, item.lon], {title: item.callsign});
-                p.setIcon(getIcon(item))
+                p.setIcon(getIcon(item));
+
                 // p.bindPopup(popup(item));
                 if (this.locked_unit === item.uid) {
                     this.map.setView([item.lat, item.lon]);
@@ -152,10 +172,10 @@ let app = new Vue({
             }
         },
         getImg: function (item) {
-            if (item.icon != "") {
-                return '/static/icons/' + item.icon;
+            if (item.team !== "") {
+                return roleCircle(item.role, colors.get(item.team), 24);
             }
-            return new ms.Symbol(item.sidc, {size: 24}).toDataURL();
+            return self.milImg(item);
         },
         milImg: function (item) {
             return new ms.Symbol(item.sidc, {size: 24}).toDataURL();
@@ -178,4 +198,42 @@ function popup(item) {
     v += 'Speed: ' + item.speed + '<br/>';
     v += item.text;
     return v;
+}
+
+function circle(color, size) {
+    let x = Math.round(size / 2);
+    let r = x - 1;
+    let s = '<svg width="' + size + '" height="' + size + '" xmlns="http://www.w3.org/2000/svg"><metadata id="metadata1">image/svg+xml</metadata>';
+    s += '<circle style="fill: ' + color + '; stroke: #000;" cx="' + x + '" cy="' + x + '" r="' + r + '"/>';
+    s += '</svg>';
+    return encodeURI("data:image/svg+xml," + s).replaceAll("#", "%23");
+}
+
+function roleCircle(role, color, size) {
+    let x = Math.round(size / 2);
+    let r = x - 1;
+    let s = '<svg width="' + size + '" height="' + size + '" xmlns="http://www.w3.org/2000/svg"><metadata id="metadata1">image/svg+xml</metadata>';
+    s += '<circle style="fill: ' + color + '; stroke: #000;" cx="' + x + '" cy="' + x + '" r="' + r + '"/>';
+    let t = '';
+    if (role === 'HQ') {
+        t = 'HQ';
+    } else if (role === 'Team Lead') {
+        t = 'TL';
+    } else if (role === 'K9') {
+        t = 'K9';
+    } else if (role === 'Forward Observer') {
+        t = 'FO';
+    } else if (role === 'Sniper') {
+        t = 'S';
+    } else if (role === 'Medic') {
+        t = 'M';
+    } else if (role === 'RTO') {
+        t = 'R';
+    }
+
+    if (t !== '') {
+        s += '<text x="50%" y="50%" text-anchor="middle" font-size="12px" font-family="Arial" dy=".3em">' + t + '</text>';
+    }
+    s += '</svg>';
+    return encodeURI("data:image/svg+xml," + s).replaceAll("#", "%23");
 }

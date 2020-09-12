@@ -41,38 +41,38 @@ type PackageInfo struct {
 }
 
 func NewHttp(app *App, address string) *HttpServer {
-	air := air.New()
-	air.Address = address
+	a := air.New()
+	a.Address = address
 
-	air.FILE("/", "static/index.html")
-	air.FILES("/static", "static")
+	a.FILE("/", "static/index.html")
+	a.FILES("/static", "static")
 
-	air.GET("/config", getConfigHandler(app))
-	air.GET("/units", getUnitsHandler(app))
+	a.GET("/config", getConfigHandler(app))
+	a.GET("/units", getUnitsHandler(app))
 
-	air.GET("/Marti/api/version", getVersionHandler())
-	air.GET("/Marti/api/version/config", getVersionConfigHandler())
-	air.GET("/Marti/api/clientEndPoints", getEndpointsHandler())
+	a.GET("/Marti/api/version", getVersionHandler())
+	a.GET("/Marti/api/version/config", getVersionConfigHandler())
+	a.GET("/Marti/api/clientEndPoints", getEndpointsHandler())
 
-	air.GET("/Marti/sync/search", getSearchHandler(app))
-	air.GET("/Marti/sync/missionquery", getMissionQueryHandler(app))
-	air.POST("/Marti/sync/missionupload", getMissionUploadyHandler(app))
+	a.GET("/Marti/sync/search", getSearchHandler(app))
+	a.GET("/Marti/sync/missionquery", getMissionQueryHandler(app))
+	a.POST("/Marti/sync/missionupload", getMissionUploadyHandler(app))
 
-	air.GET("/Marti/sync/content", getMetadataGetHandler(app))
+	a.GET("/Marti/sync/content", getMetadataGetHandler(app))
 
-	air.GET("/Marti/api/sync/metadata/:hash/tool", getMetadataGetHandler(app))
-	air.PUT("/Marti/api/sync/metadata/:hash/tool", getMetadataPutHandler(app))
+	a.GET("/Marti/api/sync/metadata/:hash/tool", getMetadataGetHandler(app))
+	a.PUT("/Marti/api/sync/metadata/:hash/tool", getMetadataPutHandler(app))
 
-	air.GET("/stack", getStackHandler())
+	a.GET("/stack", getStackHandler())
 
-	air.NotFoundHandler = getNotFoundHandler(app)
+	a.NotFoundHandler = getNotFoundHandler(app)
 
-	air.RendererTemplateLeftDelim = "[["
-	air.RendererTemplateRightDelim = "]]"
+	a.RendererTemplateLeftDelim = "[["
+	a.RendererTemplateRightDelim = "]]"
 
 	return &HttpServer{
 		app: app,
-		air: air,
+		air: a,
 	}
 }
 
@@ -101,14 +101,20 @@ func getConfigHandler(app *App) func(req *air.Request, res *air.Response) error 
 
 func getUnitsHandler(app *App) func(req *air.Request, res *air.Response) error {
 	return func(req *air.Request, res *air.Response) error {
-		app.unitMx.RLock()
-		defer app.unitMx.RUnlock()
+		units := make([]*model.WebUnit, 0)
 
-		r := make([]*model.WebUnit, 0)
+		app.units.Range(func(key, value interface{}) bool {
+			switch v := value.(type) {
+			case *model.Unit:
+				units = append(units, v.ToWeb())
+			case *model.Contact:
+				units = append(units, v.ToWeb())
+			}
+			return true
+		})
 
-		for _, u := range app.units {
-			r = append(r, u.ToWeb())
-		}
+		r := make(map[string]interface{}, 0)
+		r["units"] = units
 
 		return res.WriteJSON(r)
 	}

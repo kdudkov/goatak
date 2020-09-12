@@ -12,6 +12,7 @@ import (
 	"os/signal"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"syscall"
 	"time"
 
@@ -25,9 +26,6 @@ import (
 const (
 	pingTimeout = time.Second * 15
 	alfaNum     = "abcdefghijklmnopqrstuvwxyz012346789"
-
-	cleanTimeout    = time.Minute * 10
-	lastSeenTimeout = time.Minute * 10
 )
 
 var (
@@ -43,18 +41,17 @@ type App struct {
 	ch        chan []byte
 	lastWrite time.Time
 	pingTimer *time.Timer
-	mx        sync.RWMutex
-	units     map[string]*model.Unit
+	units     sync.Map
 
-	callsign    string
-	uid         string
-	typ         string
-	team        string
-	role        string
-	lat         float64
-	lon         float64
-	zoom        int8
-	ignoreStale bool
+	callsign string
+	uid      string
+	typ      string
+	team     string
+	role     string
+	lat      float64
+	lon      float64
+	zoom     int8
+	online   int32
 }
 
 func NewApp(uid string, callsign string, addr string, webPort int, logger *zap.SugaredLogger) *App {
@@ -64,9 +61,20 @@ func NewApp(uid string, callsign string, addr string, webPort int, logger *zap.S
 		uid:      uid,
 		addr:     addr,
 		webPort:  webPort,
-		mx:       sync.RWMutex{},
-		units:    make(map[string]*model.Unit, 0),
+		units:    sync.Map{},
 	}
+}
+
+func (app *App) setOnline(s bool) {
+	if s {
+		atomic.StoreInt32(&app.online, 1)
+	} else {
+		atomic.StoreInt32(&app.online, 0)
+	}
+}
+
+func (app *App) isOnline() bool {
+	return atomic.LoadInt32(&app.online) == 1
 }
 
 func (app *App) Run(ctx context.Context) {
@@ -78,7 +86,7 @@ func (app *App) Run(ctx context.Context) {
 		}
 	}()
 
-	go app.cleaner()
+	app.ch = make(chan []byte, 20)
 
 	for ctx.Err() == nil {
 		app.Logger.Infof("connecting to %s...", app.addr)
@@ -87,7 +95,7 @@ func (app *App) Run(ctx context.Context) {
 			continue
 		}
 
-		app.ch = make(chan []byte, 20)
+		app.setOnline(true)
 		app.AddEvent(app.MakeMe())
 
 		wg := &sync.WaitGroup{}
@@ -143,9 +151,9 @@ func (app *App) reader(ctx context.Context, wg *sync.WaitGroup, ch chan bool) {
 		app.ProcessEvent(evt, dat)
 		n++
 	}
+	app.setOnline(false)
 	app.conn.Close()
 	close(ch)
-	close(app.ch)
 	app.Logger.Infof("got %d messages", n)
 }
 
@@ -154,6 +162,9 @@ func (app *App) writer(ctx context.Context, wg *sync.WaitGroup, ch chan bool) {
 
 Loop:
 	for {
+		if !app.isOnline() {
+			break
+		}
 		select {
 		case msg := <-app.ch:
 			app.setWriteActivity()
@@ -202,6 +213,9 @@ func (app *App) setWriteActivity() {
 }
 
 func (app *App) AddEvent(evt *cot.Event) bool {
+	if !app.isOnline() {
+		return false
+	}
 	msg, err := xml.Marshal(evt)
 	if err != nil {
 		app.Logger.Errorf("marshal error: %v", err)
@@ -224,16 +238,11 @@ func (app *App) sendPing() {
 }
 
 func (app *App) ProcessEvent(evt *cot.Event, dat []byte) {
-	app.updateTime(evt.Uid)
-
-	if evt.Stale.Before(time.Now()) && app.ignoreStale {
-		app.Logger.Infof("stale message: uid: %s, callsign: %s, type: %s, stale: %s", evt.Uid, evt.GetCallsign(), evt.Type, evt.Stale)
-		return
-	}
 
 	switch {
 	case evt.Type == "t-x-c-t":
 		app.Logger.Debugf("ping from %s", evt.Uid)
+		app.SetLastSeenNow(evt.Uid, nil)
 	case evt.Type == "t-x-c-t-r":
 		app.Logger.Debugf("pong")
 	case evt.Type == "t-x-d-d":
@@ -242,11 +251,14 @@ func (app *App) ProcessEvent(evt *cot.Event, dat []byte) {
 		app.Logger.Infof("message from %s chat %s: %s", evt.Detail.Chat.Sender, evt.Detail.Chat.Room, evt.GetText())
 	case strings.HasPrefix(evt.Type, "a-"):
 		app.Logger.Infof("pos %s (%s) %s", evt.Uid, evt.GetCallsign(), evt.Type)
-		app.AddUnit(evt.Uid, model.FromEvent(evt))
+		if evt.IsContact() {
+			app.AddContact(evt.Uid, model.ContactFromEvent(evt))
+		} else {
+			app.AddUnit(evt.Uid, model.UnitFromEvent(evt))
+		}
 	case strings.HasPrefix(evt.Type, "b-"):
 		app.Logger.Infof("point %s (%s) %s", evt.Uid, evt.GetCallsign(), evt.Type)
-		app.AddUnit(evt.Uid, model.FromEvent(evt))
-		app.Logger.Debugf("unknown event: %s", dat)
+		app.AddUnit(evt.Uid, model.UnitFromEvent(evt))
 	default:
 		app.Logger.Debugf("unknown event: %s", dat)
 	}
@@ -256,36 +268,86 @@ func (app *App) AddUnit(uid string, u *model.Unit) {
 	if u == nil {
 		return
 	}
-
-	app.mx.Lock()
-	defer app.mx.Unlock()
-
-	app.units[uid] = u
+	app.units.Store(uid, u)
 }
 
-func (app *App) RemoveUnit(uid string) {
-	app.mx.Lock()
-	defer app.mx.Unlock()
-
-	if _, ok := app.units[uid]; ok {
-		delete(app.units, uid)
+func (app *App) GetUnit(uid string) *model.Unit {
+	if v, ok := app.units.Load(uid); ok {
+		if unit, ok := v.(*model.Unit); ok {
+			return unit
+		} else {
+			app.Logger.Errorf("invalid object for uid %s: %v", uid, v)
+		}
 	}
+	return nil
+}
+
+func (app *App) Remove(uid string) {
+	if _, ok := app.units.Load(uid); ok {
+		app.units.Delete(uid)
+	}
+}
+
+func (app *App) AddContact(uid string, u *model.Contact) {
+	if u == nil {
+		return
+	}
+	app.Logger.Infof("contact added %s", uid)
+	app.units.Store(uid, u)
+}
+
+func (app *App) GetContact(uid string) *model.Contact {
+	if v, ok := app.units.Load(uid); ok {
+		if contact, ok := v.(*model.Contact); ok {
+			return contact
+		} else {
+			app.Logger.Errorf("invalid object for uid %s: %v", uid, v)
+		}
+	}
+	return nil
+}
+
+func (app *App) UpdateContact(uid string, f func(c *model.Contact) bool) bool {
+	// we should never update event
+	if v, ok := app.units.Load(uid); ok {
+		if c, ok := v.(*model.Contact); ok {
+			newContact := c.Copy()
+			if f(newContact) {
+				app.units.Delete(uid)
+				app.units.Store(uid, newContact)
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func (app *App) SetLastSeenNow(uid string, evt *cot.Event) {
+	app.UpdateContact(uid, func(c *model.Contact) bool {
+		c.Online = true
+		c.LastSeen = time.Now()
+		if evt != nil {
+			c.Evt = evt
+		}
+		return true
+	})
+}
+
+func (app *App) SetOffline(uid string) {
+	app.UpdateContact(uid, func(c *model.Contact) bool {
+		if c.Online {
+			c.Online = false
+			return true
+		}
+		return false
+	})
 }
 
 func (app *App) removeByLink(evt *cot.Event) {
 	if len(evt.Detail.Link) > 0 {
 		uid := evt.Detail.Link[0].Uid
 		app.Logger.Debugf("remove %s by message", uid)
-		app.RemoveUnit(uid)
-	}
-}
-
-func (app *App) updateTime(uid string) {
-	app.mx.Lock()
-	defer app.mx.Unlock()
-
-	if u, ok := app.units[uid]; ok {
-		u.LastSeen = time.Now()
+		app.SetOffline(uid)
 	}
 }
 
@@ -298,29 +360,6 @@ func (app *App) MakeMe() *cot.Event {
 	ev.Detail.TakVersion.Version = fmt.Sprintf("%s:%s", gitBranch, gitRevision)
 
 	return ev
-}
-
-func (app *App) cleaner() {
-	for range time.Tick(time.Second * 120) {
-		app.cleanStale()
-	}
-}
-
-func (app *App) cleanStale() {
-	app.mx.Lock()
-	defer app.mx.Unlock()
-
-	toDelete := make([]string, 0)
-	now := time.Now()
-	for k, v := range app.units {
-		if v.Stale.Add(cleanTimeout).Before(now) && v.LastSeen.Add(lastSeenTimeout).Before(now) {
-			toDelete = append(toDelete, k)
-			app.Logger.Debugf("removing %s (stale %s, lastseen %s)", k, v.Stale.Sub(now), v.LastSeen.Sub(now))
-		}
-	}
-	for _, uid := range toDelete {
-		delete(app.units, uid)
-	}
 }
 
 func RandString(strlen int) string {
@@ -339,7 +378,6 @@ func main() {
 
 	viper.SetDefault("server_address", "127.0.0.1:8089")
 	viper.SetDefault("web_port", 8080)
-	viper.SetDefault("ignore_stale", true)
 	viper.SetDefault("me.callsign", RandString(10))
 	viper.SetDefault("me.lat", 35.462939)
 	viper.SetDefault("me.lon", -97.537283)
@@ -371,7 +409,6 @@ func main() {
 		logger.Sugar(),
 	)
 
-	app.ignoreStale = viper.GetBool("ignore_stale")
 	app.lat = viper.GetFloat64("me.lat")
 	app.lon = viper.GetFloat64("me.lon")
 	app.zoom = int8(viper.GetInt("me.zoom"))

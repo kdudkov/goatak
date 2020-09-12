@@ -46,7 +46,7 @@
                                  v-on:click="locked_unit=''"/>
                         </td>
                         <td v-on:click="map.setView([u.lat, u.lon]); unit=u;">
-                            <img height="24px" v-bind:src="getImg(u)"/>
+                            <img v-bind:src="getImg(u)"/>
                         </td>
                         <td v-on:click="map.setView([u.lat, u.lon]); unit=u;">{{u.callsign}}</td>
                     </tr>

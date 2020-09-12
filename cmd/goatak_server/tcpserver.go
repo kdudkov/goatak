@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/xml"
 	"github.com/google/uuid"
+	"github.com/kdudkov/goatak/model"
 	"io"
 	"net"
 	"sync"
@@ -104,12 +105,13 @@ func (h *ClientHandler) checkFirstMsg(evt *cot.Event) {
 	if h.Uid == "" && evt.IsContact() {
 		h.Uid = evt.Uid
 		h.Callsign = evt.GetCallsign()
-		h.app.AddClient(evt.Uid, h)
+		h.app.AddHandler(evt.Uid, h)
+		h.app.AddContact(evt.Uid, model.ContactFromEvent(evt))
 	}
 }
 
 func (h *ClientHandler) processEvent(dat []byte, evt *cot.Event) {
-	h.app.ch <- &Msg{dat: dat, event: evt}
+	h.app.ch <- &Msg{from: h.Uid, dat: dat, event: evt}
 }
 
 func (h *ClientHandler) handleWrite() {
@@ -125,12 +127,9 @@ func (h *ClientHandler) handleWrite() {
 }
 
 func (h *ClientHandler) stopHandle() {
-	h.mx.Lock()
-	defer h.mx.Unlock()
-
 	if h.active.CAS(true, false) {
 		if h.Uid != "" {
-			h.app.RemoveClient(h.Uid)
+			h.app.RemoveHandler(h.Uid)
 		}
 
 		close(h.Ch)
@@ -139,6 +138,7 @@ func (h *ClientHandler) stopHandle() {
 			h.conn.Close()
 		}
 
+		h.app.SetOffline(h.Uid)
 		h.app.SendToAll(MakeOfflineMsg(h.Uid, "a-f-G"), h.Uid)
 	}
 	return

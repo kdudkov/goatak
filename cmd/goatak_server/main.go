@@ -26,13 +26,10 @@ var (
 )
 
 type Msg struct {
+	from  string
 	event *cot.Event
 	dat   []byte
 }
-
-const (
-	lastSeenThreshold = time.Minute * 5
-)
 
 type App struct {
 	Logger  *zap.SugaredLogger
@@ -44,16 +41,13 @@ type App struct {
 	lon  float64
 	zoom int8
 
-	clients map[string]*ClientHandler
-	units   map[string]*model.Unit
+	handlers sync.Map
+	units    sync.Map
 
 	ctx     context.Context
 	uid     string
 	ch      chan *Msg
 	logging bool
-
-	clientMx sync.RWMutex
-	unitMx   sync.RWMutex
 }
 
 func NewApp(tcpport, udpport, webport int, logger *zap.SugaredLogger) *App {
@@ -63,11 +57,9 @@ func NewApp(tcpport, udpport, webport int, logger *zap.SugaredLogger) *App {
 		udpport:  udpport,
 		webport:  webport,
 		ch:       make(chan *Msg, 20),
-		clients:  make(map[string]*ClientHandler, 0),
-		units:    make(map[string]*model.Unit, 0),
+		handlers: sync.Map{},
+		units:    sync.Map{},
 		uid:      uuid.New().String(),
-		clientMx: sync.RWMutex{},
-		unitMx:   sync.RWMutex{},
 	}
 }
 
@@ -104,21 +96,15 @@ func (app *App) Run() {
 	cancel()
 }
 
-func (app *App) AddClient(uid string, cl *ClientHandler) {
-	app.clientMx.Lock()
-	defer app.clientMx.Unlock()
-
+func (app *App) AddHandler(uid string, cl *ClientHandler) {
 	app.Logger.Infof("new client: %s", uid)
-	app.clients[uid] = cl
+	app.handlers.Store(uid, cl)
 }
 
-func (app *App) RemoveClient(uid string) {
-	app.clientMx.Lock()
-	defer app.clientMx.Unlock()
-
-	if _, ok := app.clients[uid]; ok {
-		app.Logger.Infof("remove client: %s", uid)
-		delete(app.clients, uid)
+func (app *App) RemoveHandler(uid string) {
+	if _, ok := app.handlers.Load(uid); ok {
+		app.Logger.Infof("remove handler: %s", uid)
+		app.handlers.Delete(uid)
 	}
 }
 
@@ -126,20 +112,79 @@ func (app *App) AddUnit(uid string, u *model.Unit) {
 	if u == nil {
 		return
 	}
-
-	app.unitMx.Lock()
-	defer app.unitMx.Unlock()
-
-	app.units[uid] = u
+	app.units.Store(uid, u)
 }
 
-func (app *App) RemoveUnit(uid string) {
-	app.unitMx.Lock()
-	defer app.unitMx.Unlock()
-
-	if _, ok := app.units[uid]; ok {
-		delete(app.units, uid)
+func (app *App) GetUnit(uid string) *model.Unit {
+	if v, ok := app.units.Load(uid); ok {
+		if unit, ok := v.(*model.Unit); ok {
+			return unit
+		} else {
+			app.Logger.Errorf("invalid object for uid %s: %v", uid, v)
+		}
 	}
+	return nil
+}
+
+func (app *App) Remove(uid string) {
+	if _, ok := app.units.Load(uid); ok {
+		app.units.Delete(uid)
+	}
+}
+
+func (app *App) AddContact(uid string, u *model.Contact) {
+	if u == nil {
+		return
+	}
+	app.Logger.Infof("contact added %s", uid)
+	app.units.Store(uid, u)
+}
+
+func (app *App) GetContact(uid string) *model.Contact {
+	if v, ok := app.units.Load(uid); ok {
+		if contact, ok := v.(*model.Contact); ok {
+			return contact
+		} else {
+			app.Logger.Errorf("invalid object for uid %s: %v", uid, v)
+		}
+	}
+	return nil
+}
+
+func (app *App) UpdateContact(uid string, f func(c *model.Contact) bool) bool {
+	// we should never update event
+	if v, ok := app.units.Load(uid); ok {
+		if c, ok := v.(*model.Contact); ok {
+			newContact := c.Copy()
+			if f(newContact) {
+				app.units.Delete(uid)
+				app.units.Store(uid, newContact)
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func (app *App) SetLastSeenNow(uid string, evt *cot.Event) {
+	app.UpdateContact(uid, func(c *model.Contact) bool {
+		c.Online = true
+		c.LastSeen = time.Now()
+		if evt != nil {
+			c.Evt = evt
+		}
+		return true
+	})
+}
+
+func (app *App) SetOffline(uid string) {
+	app.UpdateContact(uid, func(c *model.Contact) bool {
+		if c.Online {
+			c.Online = false
+			return true
+		}
+		return false
+	})
 }
 
 func (app *App) EventProcessor() {
@@ -168,6 +213,7 @@ func (app *App) EventProcessor() {
 			if strings.HasSuffix(uid, "-ping") {
 				uid = uid[:len(uid)-5]
 			}
+			app.SetLastSeenNow(uid, nil)
 			app.SendTo(cot.MakePong(), uid)
 			app.SendMsgToAll(msg.dat, uid)
 			continue
@@ -175,10 +221,14 @@ func (app *App) EventProcessor() {
 			app.Logger.Infof("chat %s %s", msg.event.Detail.Chat, msg.event.GetText())
 		case strings.HasPrefix(msg.event.Type, "a-"):
 			app.Logger.Debugf("pos %s (%s) stale %s", msg.event.Uid, msg.event.GetCallsign(), msg.event.Stale.Sub(time.Now()))
-			app.AddUnit(msg.event.Uid, model.FromEvent(msg.event))
+			if msg.from == msg.event.Uid {
+				app.SetLastSeenNow(msg.event.Uid, msg.event)
+			} else {
+				app.AddUnit(msg.event.Uid, model.UnitFromEvent(msg.event))
+			}
 		case strings.HasPrefix(msg.event.Type, "b-"):
 			app.Logger.Debugf("point %s (%s)", msg.event.Uid, msg.event.GetCallsign())
-			app.AddUnit(msg.event.Uid, model.FromEvent(msg.event))
+			app.AddUnit(msg.event.Uid, model.UnitFromEvent(msg.event))
 		default:
 			app.Logger.Debugf("event: %s", msg.event)
 		}
@@ -203,34 +253,32 @@ func (app *App) cleaner() {
 	for {
 		select {
 		case <-ticker.C:
-			app.cleanStale()
+			app.cleanOldUnits()
 		}
 	}
 }
 
-func (app *App) cleanStale() {
-	app.unitMx.Lock()
-	defer app.unitMx.Unlock()
-
+func (app *App) cleanOldUnits() {
 	toDelete := make([]string, 0)
-	for k, v := range app.units {
-		if v.Evt.IsContact() {
-			if v.LastSeen.Add(lastSeenThreshold).Before(time.Now()) {
-				toDelete = append(toDelete, k)
-				app.Logger.Debugf("removing contact %s (lastseen %s)", k, v.LastSeen.Sub(time.Now()))
-
+	app.units.Range(func(key, value interface{}) bool {
+		switch val := value.(type) {
+		case *model.Unit:
+			if val.IsOld() {
+				toDelete = append(toDelete, key.(string))
+				app.Logger.Debugf("removing %s", key)
 			}
-		} else {
-			if v.Stale.Before(time.Now()) {
-				toDelete = append(toDelete, k)
-				app.Logger.Debugf("removing %s (stale %s)", k, v.Stale.Sub(time.Now()))
+
+		case *model.Contact:
+			if val.IsOld() {
+				toDelete = append(toDelete, key.(string))
+				app.Logger.Debugf("removing contact %s", key)
 			}
 		}
-	}
+		return true
+	})
 
 	for _, uid := range toDelete {
-		delete(app.units, uid)
-
+		app.units.Delete(uid)
 	}
 }
 
@@ -246,14 +294,12 @@ func (app *App) SendToAll(evt *cot.Event, author string) {
 }
 
 func (app *App) SendMsgToAll(msg []byte, author string) {
-	app.clientMx.RLock()
-	defer app.clientMx.RUnlock()
-
-	for uid, h := range app.clients {
-		if uid != author {
-			h.AddMsg(msg)
+	app.handlers.Range(func(key, value interface{}) bool {
+		if key.(string) != author {
+			value.(*ClientHandler).AddMsg(msg)
 		}
-	}
+		return true
+	})
 }
 
 func (app *App) SendTo(evt *cot.Event, uid string) {
@@ -279,23 +325,20 @@ func (app *App) SendToCallsign(evt *cot.Event, callsign string) {
 }
 
 func (app *App) SendMsgTo(msg []byte, uid string) {
-	app.clientMx.RLock()
-	defer app.clientMx.RUnlock()
-
-	if h, ok := app.clients[uid]; ok {
-		h.AddMsg(msg)
+	if h, ok := app.handlers.Load(uid); ok {
+		h.(*ClientHandler).AddMsg(msg)
 	}
 }
 
 func (app *App) SendMsgToCallsign(msg []byte, callsign string) {
-	app.clientMx.RLock()
-	defer app.clientMx.RUnlock()
-
-	for _, h := range app.clients {
+	app.handlers.Range(func(key, value interface{}) bool {
+		h := value.(*ClientHandler)
 		if h.Callsign == callsign {
 			h.AddMsg(msg)
+			return false
 		}
-	}
+		return true
+	})
 }
 
 func main() {
