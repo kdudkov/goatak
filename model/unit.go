@@ -1,6 +1,7 @@
 package model
 
 import (
+	"sync"
 	"time"
 
 	"github.com/kdudkov/goatak/cot"
@@ -21,13 +22,14 @@ type Unit struct {
 }
 
 type Contact struct {
-	Uid      string
-	Type     string
-	Callsign string
-	Stale    time.Time
-	LastSeen time.Time
-	Evt      *cot.Event
-	Online   bool
+	uid      string
+	type_    string
+	callsign string
+	stale    time.Time
+	lastSeen time.Time
+	evt      *cot.Event
+	online   bool
+	mx       sync.RWMutex
 }
 
 func (u *Unit) IsOld() bool {
@@ -35,30 +37,19 @@ func (u *Unit) IsOld() bool {
 }
 
 func (c *Contact) IsOld() bool {
-	return (!c.Online) && c.LastSeen.Add(staleContactDelete).Before(time.Now())
-}
-
-func (c *Contact) Copy() *Contact {
-	return &Contact{
-		Uid:      c.Uid,
-		Type:     c.Type,
-		Callsign: c.Callsign,
-		Stale:    c.Stale,
-		LastSeen: c.LastSeen,
-		Evt:      c.Evt,
-		Online:   c.Online,
-	}
+	return (!c.online) && c.lastSeen.Add(staleContactDelete).Before(time.Now())
 }
 
 func ContactFromEvent(evt *cot.Event) *Contact {
 	return &Contact{
-		Uid:      evt.Uid,
-		Callsign: evt.GetCallsign(),
-		LastSeen: time.Now(),
-		Stale:    evt.Stale,
-		Type:     evt.Type,
-		Evt:      evt,
-		Online:   true,
+		uid:      evt.Uid,
+		callsign: evt.GetCallsign(),
+		lastSeen: time.Now(),
+		stale:    evt.Stale,
+		type_:    evt.Type,
+		evt:      evt,
+		online:   true,
+		mx:       sync.RWMutex{},
 	}
 }
 
@@ -71,4 +62,22 @@ func UnitFromEvent(evt *cot.Event) *Unit {
 		Evt:      evt,
 		Received: time.Now(),
 	}
+}
+
+func (c *Contact) SetLastSeenNow(evt *cot.Event) {
+	c.mx.Lock()
+	defer c.mx.Unlock()
+
+	c.online = true
+	c.lastSeen = time.Now()
+	if evt != nil {
+		c.evt = evt
+	}
+}
+
+func (c *Contact) SetOffline() {
+	c.mx.Lock()
+	defer c.mx.Unlock()
+
+	c.online = false
 }

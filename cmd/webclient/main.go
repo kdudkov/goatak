@@ -134,6 +134,7 @@ func (app *App) reader(ctx context.Context, wg *sync.WaitGroup, ch chan bool) {
 	defer wg.Done()
 	n := 0
 	er := cot.NewEventnReader(app.conn)
+	app.Logger.Infof("start reader")
 
 	for ctx.Err() == nil {
 		app.conn.SetReadDeadline(time.Now().Add(time.Second * 120))
@@ -242,7 +243,9 @@ func (app *App) ProcessEvent(evt *cot.Event, dat []byte) {
 	switch {
 	case evt.Type == "t-x-c-t":
 		app.Logger.Debugf("ping from %s", evt.Uid)
-		app.SetLastSeenNow(evt.Uid, nil)
+		if c := app.GetContact(evt.Uid); c != nil {
+			c.SetLastSeenNow(nil)
+		}
 	case evt.Type == "t-x-c-t-r":
 		app.Logger.Debugf("pong")
 	case evt.Type == "t-x-d-d":
@@ -250,10 +253,20 @@ func (app *App) ProcessEvent(evt *cot.Event, dat []byte) {
 	case evt.IsChat():
 		app.Logger.Infof("message from %s chat %s: %s", evt.Detail.Chat.Sender, evt.Detail.Chat.Room, evt.GetText())
 	case strings.HasPrefix(evt.Type, "a-"):
-		app.Logger.Infof("pos %s (%s) %s", evt.Uid, evt.GetCallsign(), evt.Type)
 		if evt.IsContact() {
-			app.AddContact(evt.Uid, model.ContactFromEvent(evt))
+			if evt.Uid == app.uid {
+				app.Logger.Info("my own info")
+				break
+			}
+			if c := app.GetContact(evt.Uid); c != nil {
+				app.Logger.Infof("update pos %s (%s) %s", evt.Uid, evt.GetCallsign(), evt.Type)
+				c.SetLastSeenNow(evt)
+			} else {
+				app.Logger.Infof("new contact %s (%s) %s", evt.Uid, evt.GetCallsign(), evt.Type)
+				app.AddContact(evt.Uid, model.ContactFromEvent(evt))
+			}
 		} else {
+			app.Logger.Infof("new unit %s (%s) %s", evt.Uid, evt.GetCallsign(), evt.Type)
 			app.AddUnit(evt.Uid, model.UnitFromEvent(evt))
 		}
 	case strings.HasPrefix(evt.Type, "b-"):
@@ -289,10 +302,9 @@ func (app *App) Remove(uid string) {
 }
 
 func (app *App) AddContact(uid string, u *model.Contact) {
-	if u == nil {
+	if u == nil || uid == app.uid {
 		return
 	}
-	app.Logger.Infof("contact added %s", uid)
 	app.units.Store(uid, u)
 }
 
@@ -307,47 +319,13 @@ func (app *App) GetContact(uid string) *model.Contact {
 	return nil
 }
 
-func (app *App) UpdateContact(uid string, f func(c *model.Contact) bool) bool {
-	// we should never update event
-	if v, ok := app.units.Load(uid); ok {
-		if c, ok := v.(*model.Contact); ok {
-			newContact := c.Copy()
-			if f(newContact) {
-				app.units.Delete(uid)
-				app.units.Store(uid, newContact)
-				return true
-			}
-		}
-	}
-	return false
-}
-
-func (app *App) SetLastSeenNow(uid string, evt *cot.Event) {
-	app.UpdateContact(uid, func(c *model.Contact) bool {
-		c.Online = true
-		c.LastSeen = time.Now()
-		if evt != nil {
-			c.Evt = evt
-		}
-		return true
-	})
-}
-
-func (app *App) SetOffline(uid string) {
-	app.UpdateContact(uid, func(c *model.Contact) bool {
-		if c.Online {
-			c.Online = false
-			return true
-		}
-		return false
-	})
-}
-
 func (app *App) removeByLink(evt *cot.Event) {
 	if len(evt.Detail.Link) > 0 {
 		uid := evt.Detail.Link[0].Uid
 		app.Logger.Debugf("remove %s by message", uid)
-		app.SetOffline(uid)
+		if c := app.GetContact(uid); c != nil {
+			c.SetOffline()
+		}
 	}
 }
 

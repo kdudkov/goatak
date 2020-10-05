@@ -138,7 +138,9 @@ func (h *ClientHandler) stopHandle() {
 			h.conn.Close()
 		}
 
-		h.app.SetOffline(h.Uid)
+		if c := h.app.GetContact(h.Uid); c != nil {
+			c.SetOffline()
+		}
 		h.app.SendToAll(MakeOfflineMsg(h.Uid, "a-f-G"), h.Uid)
 	}
 	return

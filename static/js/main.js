@@ -19,7 +19,7 @@ const colors = new Map([
 function getIcon(item) {
     if (item.team !== "") {
         icon = L.icon({
-            iconUrl: roleCircle(item.role, colors.get(item.team), 24),
+            iconUrl: toUri(roleCircle(24, colors.get(item.team), '#000', item.role)),
             // iconUrl: '/static/icons/' + item.icon,
             iconSize: [24, 24],
             iconAnchor: [12, 12]
@@ -173,9 +173,9 @@ let app = new Vue({
         },
         getImg: function (item) {
             if (item.team !== "") {
-                return roleCircle(item.role, colors.get(item.team), 24);
+                return toUri(roleCircle(24, colors.get(item.team), '#000', item.role));
             }
-            return self.milImg(item);
+            return this.milImg(item);
         },
         milImg: function (item) {
             return new ms.Symbol(item.sidc, {size: 24}).toDataURL();
@@ -200,20 +200,21 @@ function popup(item) {
     return v;
 }
 
-function circle(color, size) {
+function circle(size, color, bg, text) {
     let x = Math.round(size / 2);
     let r = x - 1;
+
     let s = '<svg width="' + size + '" height="' + size + '" xmlns="http://www.w3.org/2000/svg"><metadata id="metadata1">image/svg+xml</metadata>';
-    s += '<circle style="fill: ' + color + '; stroke: #000;" cx="' + x + '" cy="' + x + '" r="' + r + '"/>';
+    s += '<circle style="fill: ' + color + '; stroke: ' + bg + ';" cx="' + x + '" cy="' + x + '" r="' + r + '"/>';
+
+    if (text != null && text !== '') {
+        s += '<text x="50%" y="50%" text-anchor="middle" font-size="12px" font-family="Arial" dy=".3em">' + text + '</text>';
+    }
     s += '</svg>';
-    return encodeURI("data:image/svg+xml," + s).replaceAll("#", "%23");
+    return s;
 }
 
-function roleCircle(role, color, size) {
-    let x = Math.round(size / 2);
-    let r = x - 1;
-    let s = '<svg width="' + size + '" height="' + size + '" xmlns="http://www.w3.org/2000/svg"><metadata id="metadata1">image/svg+xml</metadata>';
-    s += '<circle style="fill: ' + color + '; stroke: #000;" cx="' + x + '" cy="' + x + '" r="' + r + '"/>';
+function roleCircle(size, color, bg, role) {
     let t = '';
     if (role === 'HQ') {
         t = 'HQ';
@@ -231,9 +232,9 @@ function roleCircle(role, color, size) {
         t = 'R';
     }
 
-    if (t !== '') {
-        s += '<text x="50%" y="50%" text-anchor="middle" font-size="12px" font-family="Arial" dy=".3em">' + t + '</text>';
-    }
-    s += '</svg>';
+    return circle(size, color, bg, t);
+}
+
+function toUri(s) {
     return encodeURI("data:image/svg+xml," + s).replaceAll("#", "%23");
 }

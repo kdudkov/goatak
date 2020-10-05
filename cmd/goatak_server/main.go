@@ -155,36 +155,10 @@ func (app *App) UpdateContact(uid string, f func(c *model.Contact) bool) bool {
 	// we should never update event
 	if v, ok := app.units.Load(uid); ok {
 		if c, ok := v.(*model.Contact); ok {
-			newContact := c.Copy()
-			if f(newContact) {
-				app.units.Delete(uid)
-				app.units.Store(uid, newContact)
-				return true
-			}
+			f(c)
 		}
 	}
 	return false
-}
-
-func (app *App) SetLastSeenNow(uid string, evt *cot.Event) {
-	app.UpdateContact(uid, func(c *model.Contact) bool {
-		c.Online = true
-		c.LastSeen = time.Now()
-		if evt != nil {
-			c.Evt = evt
-		}
-		return true
-	})
-}
-
-func (app *App) SetOffline(uid string) {
-	app.UpdateContact(uid, func(c *model.Contact) bool {
-		if c.Online {
-			c.Online = false
-			return true
-		}
-		return false
-	})
 }
 
 func (app *App) EventProcessor() {
@@ -213,7 +187,9 @@ func (app *App) EventProcessor() {
 			if strings.HasSuffix(uid, "-ping") {
 				uid = uid[:len(uid)-5]
 			}
-			app.SetLastSeenNow(uid, nil)
+			if c := app.GetContact(uid); c != nil {
+				c.SetLastSeenNow(nil)
+			}
 			app.SendTo(cot.MakePong(), uid)
 			app.SendMsgToAll(msg.dat, uid)
 			continue
@@ -221,13 +197,17 @@ func (app *App) EventProcessor() {
 			app.Logger.Infof("chat %s %s", msg.event.Detail.Chat, msg.event.GetText())
 		case strings.HasPrefix(msg.event.Type, "a-"):
 			app.Logger.Debugf("pos %s (%s) stale %s", msg.event.Uid, msg.event.GetCallsign(), msg.event.Stale.Sub(time.Now()))
-			if msg.from == msg.event.Uid {
-				app.SetLastSeenNow(msg.event.Uid, msg.event)
+			if msg.event.IsContact() {
+				if c := app.GetContact(msg.event.Uid); c != nil {
+					c.SetLastSeenNow(msg.event)
+				} else {
+					app.AddContact(msg.event.Uid, model.ContactFromEvent(msg.event))
+				}
 			} else {
 				app.AddUnit(msg.event.Uid, model.UnitFromEvent(msg.event))
 			}
 		case strings.HasPrefix(msg.event.Type, "b-"):
-			app.Logger.Debugf("point %s (%s)", msg.event.Uid, msg.event.GetCallsign())
+			app.Logger.Debugf("point %s (%s) stale %s", msg.event.Uid, msg.event.GetCallsign(), msg.event.Stale.Sub(time.Now()))
 			app.AddUnit(msg.event.Uid, model.UnitFromEvent(msg.event))
 		default:
 			app.Logger.Debugf("event: %s", msg.event)

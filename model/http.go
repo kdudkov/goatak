@@ -28,40 +28,43 @@ type WebUnit struct {
 }
 
 func (c *Contact) ToWeb() *WebUnit {
+	c.mx.RLock()
+	defer c.mx.RUnlock()
+
 	w := &WebUnit{
-		Uid:      c.Uid,
-		Callsign: c.Callsign,
-		Time:     c.Evt.Time,
-		LastSeen: c.LastSeen,
-		Stale:    c.Stale,
-		Type:     c.Type,
-		Lat:      c.Evt.Point.Lat,
-		Lon:      c.Evt.Point.Lon,
-		Hae:      c.Evt.Point.Hae,
-		Sidc:     getSIDC(c.Type),
+		Uid:      c.uid,
+		Callsign: c.callsign,
+		Time:     c.evt.Time,
+		LastSeen: c.lastSeen,
+		Stale:    c.stale,
+		Type:     c.type_,
+		Lat:      c.evt.Point.Lat,
+		Lon:      c.evt.Point.Lon,
+		Hae:      c.evt.Point.Hae,
+		Sidc:     getSIDC(c.type_),
 	}
 
-	if c.Online {
+	if c.online {
 		w.Status = "Online"
 	} else {
 		w.Status = "Offline"
 	}
 
-	if c.Evt.Detail.Track != nil {
-		w.Speed = c.Evt.Detail.Track.Speed
-		w.Course = c.Evt.Detail.Track.Course
+	if c.evt.Detail.Track != nil {
+		w.Speed = c.evt.Detail.Track.Speed
+		w.Course = c.evt.Detail.Track.Course
 	}
 
-	if c.Evt.Detail.Remarks != nil {
-		w.Text = c.Evt.Detail.Remarks.Text
+	if c.evt.Detail.Remarks != nil {
+		w.Text = c.evt.Detail.Remarks.Text
 	}
 
-	if c.Evt.Detail.Group != nil {
-		w.Team = c.Evt.Detail.Group.Name
-		w.Role = c.Evt.Detail.Group.Role
+	if c.evt.Detail.Group != nil {
+		w.Team = c.evt.Detail.Group.Name
+		w.Role = c.evt.Detail.Group.Role
 	}
 
-	if v := c.Evt.Detail.TakVersion; v != nil {
+	if v := c.evt.Detail.TakVersion; v != nil {
 		w.TakVersion = strings.Trim(fmt.Sprintf("%s %s on %s", v.Platform, v.Version, v.Device), " ")
 	}
 	return w
