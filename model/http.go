@@ -2,6 +2,7 @@ package model
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -23,6 +24,7 @@ type WebUnit struct {
 	Icon       string    `json:"icon"`
 	Sidc       string    `json:"sidc"`
 	Text       string    `json:"text"`
+	Color      string    `json:"color"`
 	TakVersion string    `json:"tak_version"`
 	Status     string    `json:"status"`
 }
@@ -64,6 +66,10 @@ func (c *Contact) ToWeb() *WebUnit {
 		w.Role = c.evt.Detail.Group.Role
 	}
 
+	if c.evt.Detail.Color != nil {
+		w.Color = argb2hex(c.evt.Detail.Color.Value)
+	}
+
 	if v := c.evt.Detail.TakVersion; v != nil {
 		w.TakVersion = strings.Trim(fmt.Sprintf("%s %s on %s", v.Platform, v.Version, v.Device), " ")
 	}
@@ -101,6 +107,9 @@ func (u *Unit) ToWeb() *WebUnit {
 		w.Team = u.Evt.Detail.Group.Name
 		w.Role = u.Evt.Detail.Group.Role
 	}
+	if u.Evt.Detail.Color != nil {
+		w.Color = argb2hex(u.Evt.Detail.Color.Value)
+	}
 
 	return w
 }
@@ -119,4 +128,12 @@ func getSIDC(fn string) string {
 		sidc += strings.Repeat("-", 10-len(sidc))
 	}
 	return strings.ToUpper(sidc)
+}
+
+func argb2hex(argb string) string {
+	if s, err := strconv.Atoi(argb); err == nil {
+		return "#" + fmt.Sprintf("%x", uint32(s))[2:]
+	}
+
+	return ""
 }

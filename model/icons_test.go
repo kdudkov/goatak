@@ -1,6 +1,8 @@
 package model
 
-import "testing"
+import (
+	"testing"
+)
 
 func TestSiDC(t *testing.T) {
 	checkSIDC(t, "a-u-G", "SUG-------")
@@ -11,5 +13,13 @@ func TestSiDC(t *testing.T) {
 func checkSIDC(t *testing.T, fn, sidc string) {
 	if getSIDC(fn) != sidc {
 		t.Errorf("got %s, must be %s", getSIDC(fn), sidc)
+	}
+}
+
+func TestColor(t *testing.T) {
+	col := "-65536"
+
+	if argb2hex(col) != "#ff0000" {
+		t.Error(argb2hex(col))
 	}
 }

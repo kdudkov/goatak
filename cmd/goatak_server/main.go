@@ -228,11 +228,9 @@ func (app *App) route(msg *Msg) {
 }
 
 func (app *App) cleaner() {
-	ticker := time.NewTicker(time.Second * 120)
-
 	for {
 		select {
-		case <-ticker.C:
+		case <-time.Tick(time.Minute):
 			app.cleanOldUnits()
 		}
 	}
@@ -240,6 +238,7 @@ func (app *App) cleaner() {
 
 func (app *App) cleanOldUnits() {
 	toDelete := make([]string, 0)
+
 	app.units.Range(func(key, value interface{}) bool {
 		switch val := value.(type) {
 		case *model.Unit:
@@ -252,6 +251,10 @@ func (app *App) cleanOldUnits() {
 			if val.IsOld() {
 				toDelete = append(toDelete, key.(string))
 				app.Logger.Debugf("removing contact %s", key)
+			} else {
+				if val.IsOnline() && val.GetLastSeen().Before(time.Now().Add(-time.Minute*2)) {
+					val.SetOffline()
+				}
 			}
 		}
 		return true

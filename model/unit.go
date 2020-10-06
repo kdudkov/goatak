@@ -9,7 +9,6 @@ import (
 
 const (
 	staleContactDelete = time.Hour * 24
-	receiveUnitDelete  = time.Hour * 24
 )
 
 type Unit struct {
@@ -33,11 +32,28 @@ type Contact struct {
 }
 
 func (u *Unit) IsOld() bool {
-	return u.Received.Add(receiveUnitDelete).Before(time.Now())
+	return u.Stale.Before(time.Now())
 }
 
 func (c *Contact) IsOld() bool {
+	c.mx.RLock()
+	defer c.mx.RUnlock()
+
 	return (!c.online) && c.lastSeen.Add(staleContactDelete).Before(time.Now())
+}
+
+func (c *Contact) GetLastSeen() time.Time {
+	c.mx.RLock()
+	defer c.mx.RUnlock()
+
+	return c.lastSeen
+}
+
+func (c *Contact) IsOnline() bool {
+	c.mx.RLock()
+	defer c.mx.RUnlock()
+
+	return c.online
 }
 
 func ContactFromEvent(evt *cot.Event) *Contact {

@@ -16,32 +16,29 @@ const colors = new Map([
 ]);
 
 
-function getIcon(item) {
+function getIcon(item, withText) {
     if (item.team !== "") {
-        icon = L.icon({
-            iconUrl: toUri(roleCircle(24, colors.get(item.team), '#000', item.role)),
-            // iconUrl: '/static/icons/' + item.icon,
-            iconSize: [24, 24],
-            iconAnchor: [12, 12]
-        });
-        return icon;
+        return {uri: toUri(roleCircle(24, colors.get(item.team), '#000', item.role)), x: 12, y: 12};
     }
-    return milIcon(item);
+    if (item.icon.startsWith("COT_MAPPING_SPOTMAP/")) {
+        return {uri: toUri(circle(10, item.color === '' ? 'green' : item.color, '#000', null)), x: 5, y: 5}
+    }
+    return getMilIcon(item, withText);
 }
 
-function milIcon(item) {
-    let opts = {uniqueDesignation: item.callsign, size: 24};
-    if (item.speed > 0) {
+function getMilIcon(item, withText) {
+    let opts = {size: 24};
+    if (withText) {
+        opts['uniqueDesignation'] = item.callsign;
+    }
+    if (withText && item.speed > 0) {
         opts['speed'] = item.speed.toFixed(1) + " m/s";
         opts['direction'] = item.course;
     }
 
     let symb = new ms.Symbol(item.sidc, opts);
 
-    return L.icon({
-        iconUrl: symb.toDataURL(),
-        iconAnchor: new L.Point(symb.getAnchor().x, symb.getAnchor().y)
-    });
+    return {uri: symb.toDataURL(), x: symb.getAnchor().x, y: symb.getAnchor().y}
 }
 
 let app = new Vue({
@@ -134,9 +131,13 @@ let app = new Vue({
         },
         updateMarker: function (item) {
             if (this.markers.has(item.uid)) {
-                p = this.markers.get(item.uid);
+                let p = this.markers.get(item.uid);
                 p.setLatLng([item.lat, item.lon], {title: item.callsign});
-                p.setIcon(getIcon(item));
+                let icon = getIcon(item, true);
+                p.setIcon(L.icon({
+                    iconUrl: icon.uri,
+                    iconAnchor: new L.Point(icon.x, icon.y)
+                }));
 
                 // p.bindPopup(popup(item));
                 if (this.locked_unit === item.uid) {
@@ -172,13 +173,10 @@ let app = new Vue({
             }
         },
         getImg: function (item) {
-            if (item.team !== "") {
-                return toUri(roleCircle(24, colors.get(item.team), '#000', item.role));
-            }
-            return this.milImg(item);
+            return getIcon(item, false).uri;
         },
         milImg: function (item) {
-            return new ms.Symbol(item.sidc, {size: 24}).toDataURL();
+            return getMilIcon(item, false).uri;
         },
         dt: function (str) {
             let d = new Date(Date.parse(str));
