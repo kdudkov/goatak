@@ -32,14 +32,14 @@ type ClientHandler struct {
 }
 
 func (app *App) ListenTCP(addressPort string) (err error) {
-	listen, err := net.Listen("tcp", addressPort)
+	listener, err := net.Listen("tcp", addressPort)
 	if err != nil {
 		app.Logger.Errorf("Failed to listen: %v", err)
 		return err
 	}
 
 	for {
-		conn, err := listen.Accept()
+		conn, err := listener.Accept()
 		if err != nil {
 			app.Logger.Errorf("Unable to accept connections: %#v", err)
 			return err
