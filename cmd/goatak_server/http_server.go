@@ -93,7 +93,7 @@ func getConfigHandler(app *App) func(req *air.Request, res *air.Response) error 
 	m["lat"] = app.lat
 	m["lon"] = app.lon
 	m["zoom"] = app.zoom
-	m["version"] = gitBranch + ":" + gitRevision
+	m["version"] = gitRevision
 	return func(req *air.Request, res *air.Response) error {
 		return res.WriteJSON(m)
 	}
@@ -128,19 +128,19 @@ func getStackHandler() func(req *air.Request, res *air.Response) error {
 
 func getVersionHandler() func(req *air.Request, res *air.Response) error {
 	return func(req *air.Request, res *air.Response) error {
-		return res.WriteString(fmt.Sprintf("GoATAK server %s:%s", gitBranch, gitRevision))
+		return res.WriteString(fmt.Sprintf("GoATAK server %s", gitRevision))
 	}
 }
 
 func getVersionConfigHandler() func(req *air.Request, res *air.Response) error {
 	d := make(map[string]interface{}, 0)
 	r := make(map[string]interface{}, 0)
-	r["version"] = "3"
+	//r["version"] = "3"
 	r["type"] = "ServerConfig"
 	r["nodeId"] = "1"
 	r["data"] = d
 	d["api"] = "3"
-	d["version"] = gitBranch + ":" + gitRevision
+	d["version"] = gitRevision
 	d["hostname"] = "0.0.0.0"
 	return func(req *air.Request, res *air.Response) error {
 		return res.WriteJSON(r)

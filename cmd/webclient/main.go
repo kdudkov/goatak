@@ -349,7 +349,7 @@ func RandString(strlen int) string {
 }
 
 func main() {
-	var conf = flag.String("config", "atak-web.yml", "name of config file")
+	var conf = flag.String("config", "goatak_client.yml", "name of config file")
 	flag.Parse()
 
 	viper.SetConfigFile(*conf)

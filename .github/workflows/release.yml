@@ -1,13 +1,9 @@
-name: CI
+name: release
 on:
   push:
     branches: [ master ]
-
+    tags: [ 'v*' ]
 jobs:
-  build:
-    runs-on: ubuntu-latest
-
-    steps:
   goreleaser:
     runs-on: ubuntu-latest
     steps:
@@ -23,6 +19,6 @@ jobs:
         uses: goreleaser/goreleaser-action@v2
         with:
           version: latest
-          args: release --rm-dist --snapshot
+          args: release --rm-dist
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

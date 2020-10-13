@@ -1,11 +1,11 @@
 ---
 server_address: discordtakserver.mooo.com:48088
-web_port: 8080
+web_port: 8088
 me:
   callsign: Team safehouse
   uid: 555-1231344jhk1j231
   type: a-f-G-U-C
   team: Blue
   role: HQ
-  lat: 55
-  lon: -5
+  lat: 35.462939
+  lon: -97.537283

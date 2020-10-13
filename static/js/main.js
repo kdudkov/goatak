@@ -32,12 +32,11 @@ function getMilIcon(item, withText) {
         opts['uniqueDesignation'] = item.callsign;
     }
     if (withText && item.speed > 0) {
-        opts['speed'] = item.speed.toFixed(1) + " m/s";
+        opts['speed'] = (item.speed * 3.6).toFixed(1) + " km/h";
         opts['direction'] = item.course;
     }
 
     let symb = new ms.Symbol(item.sidc, opts);
-
     return {uri: symb.toDataURL(), x: symb.getAnchor().x, y: symb.getAnchor().y}
 }
 

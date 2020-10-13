@@ -22,7 +22,7 @@ import (
 
 var (
 	gitRevision = "unknown"
-	gitBranch   = "unknown"
+	gitCommit   = "unknown"
 )
 
 type Msg struct {
@@ -325,9 +325,9 @@ func (app *App) SendMsgToCallsign(msg []byte, callsign string) {
 }
 
 func main() {
-	fmt.Printf("version %s:%s\n", gitBranch, gitRevision)
+	fmt.Printf("version %s %s\n", gitRevision, gitCommit)
 	var logging = flag.Bool("logging", false, "save all events to files")
-	var conf = flag.String("config", "goatak-server.yml", "name of config file")
+	var conf = flag.String("config", "goatak_server.yml", "name of config file")
 	flag.Parse()
 
 	viper.SetConfigFile(*conf)

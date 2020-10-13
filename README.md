@@ -12,11 +12,11 @@ binary builds can be downloaded from [actions](https://github.com/kdudkov/goatak
 * initial data package support
 
 ## Web client setup
-1. Download latest binary build from [actions](https://github.com/kdudkov/goatak/actions?query=is%3Acompleted+workflow%3ACI) (choose `web client windows` or `web client linux`)
+1. Download latest binary build from [actions](https://github.com/kdudkov/goatak/actions?query=is%3Acompleted+workflow%3ACI)
 1. Unzip it to local directory
-1. edit `atak-web.yml`, see all options in [atak-web.yml.example](atak-web.yml.example). You must use TCP connection to server, not SSL!
-1. run `webclient`
-1. open [http://localhost:8080](http://localhost:8080) in your browser
+1. edit `goatak_client.yml`. You must use TCP connection to server, not SSL!
+1. run `goatak_client`
+1. open [http://localhost:8088](http://localhost:8088) in your browser
 
 ## Libraries used:
 * [Leaflet](https://leafletjs.com/)

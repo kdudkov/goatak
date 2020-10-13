@@ -1,0 +1,9 @@
+---
+web_port: 8080
+tcp_port: 8999
+udp_port: 8999
+
+me:
+  lat: 35.462939
+  lon: -97.537283
+  zoom: 5

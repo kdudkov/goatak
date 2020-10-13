@@ -4,9 +4,9 @@ default: all
 all: dep test build
 
 GIT_REVISION=$(shell git describe --always --dirty)
-GIT_BRANCH=$(shell git rev-parse --symbolic-full-name --abbrev-ref HEAD)
+GIT_COMMIT=$(shell git rev-parse --short HEAD)
 
-LDFLAGS=-ldflags "-s -X main.gitRevision=$(GIT_REVISION) -X main.gitBranch=$(GIT_BRANCH)"
+LDFLAGS=-ldflags "-s -X main.gitRevision=$(GIT_REVISION) -X main.gitCommit=$(GIT_COMMIT)"
 
 .PHONY: clean
 clean:
@@ -26,10 +26,5 @@ test:
 
 .PHONY: build
 build: clean dep
-	[ -d bin ] || mkdir bin
-	go build $(LDFLAGS) -o bin/ ./cmd/...
-
-.PHONY: gox
-gox: clean dep
-	[ -d bin ] || mkdir bin
-	GOARM=5 gox --osarch="linux/amd64 windows/amd64" -output "bin/{{.Dir}}_{{.OS}}_{{.Arch}}" $(LDFLAGS) ./cmd/...
+	[ -d dist ] || mkdir dist
+	go build $(LDFLAGS) -o dist/ ./cmd/...
