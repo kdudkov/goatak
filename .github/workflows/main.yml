@@ -4,11 +4,7 @@ on:
     branches: [ master ]
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
-
-    steps:
-  goreleaser:
+  goreleaser_snapshot:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
