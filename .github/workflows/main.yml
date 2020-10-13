@@ -31,7 +31,7 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           name: server win
-          path: dist/server_windows_amd64/goatak_server
+          path: dist/server_windows_amd64/goatak_server.exe
       - name: server mac
         uses: actions/upload-artifact@v2
         with:
@@ -46,7 +46,7 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           name: client win
-          path: dist/client_windows_amd64/goatak_client
+          path: dist/client_windows_amd64/goatak_client.exe
       - name: client mac
         uses: actions/upload-artifact@v2
         with:
