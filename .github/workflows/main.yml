@@ -22,8 +22,33 @@ jobs:
           args: release --rm-dist --snapshot
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: linux server
+      - name: server linux
         uses: actions/upload-artifact@v2
         with:
           name: server linux
-          path: dist/*.zip
+          path: dist/server_linux_amd64/goatak_server
+      - name: server win
+        uses: actions/upload-artifact@v2
+        with:
+          name: server win
+          path: dist/server_windows_amd64/goatak_server
+      - name: server mac
+        uses: actions/upload-artifact@v2
+        with:
+          name: server mac
+          path: dist/server_darwin_amd64/goatak_server
+      - name: client linux
+        uses: actions/upload-artifact@v2
+        with:
+          name: client linux
+          path: dist/client_linux_amd64/goatak_client
+      - name: client win
+        uses: actions/upload-artifact@v2
+        with:
+          name: client win
+          path: dist/client_windows_amd64/goatak_client
+      - name: client mac
+        uses: actions/upload-artifact@v2
+        with:
+          name: client mac
+          path: dist/client_darwin_amd64/goatak_client
