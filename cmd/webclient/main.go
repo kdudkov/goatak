@@ -133,17 +133,24 @@ func (app *App) connect() error {
 func (app *App) reader(ctx context.Context, wg *sync.WaitGroup, ch chan bool) {
 	defer wg.Done()
 	n := 0
-	er := cot.NewEventnReader(app.conn)
+	er := cot.NewTagReader(app.conn)
 	app.Logger.Infof("start reader")
 
 	for ctx.Err() == nil {
 		app.conn.SetReadDeadline(time.Now().Add(time.Second * 120))
-		dat, err := er.ReadEvent()
+		tag, dat, err := er.ReadTag()
 		if err != nil {
 			app.Logger.Errorf("read error: %v", err)
 			break
 		}
 
+		if tag == "?xml" {
+			continue
+		}
+		if tag != "event" {
+			app.Logger.Errorf("bad tag: %s", dat)
+			continue
+		}
 		evt := &cot.Event{}
 		if err := xml.Unmarshal(dat, evt); err != nil {
 			app.Logger.Errorf("decode err: %v", err)
@@ -335,7 +342,7 @@ func (app *App) MakeMe() *cot.Event {
 	ev.Point.Lat = app.lat
 	ev.Point.Lon = app.lon
 	ev.Detail.TakVersion.Platform = "GoATAK web client"
-	ev.Detail.TakVersion.Version = fmt.Sprintf("%s:%s", gitBranch, gitRevision)
+	ev.Detail.TakVersion.Version = fmt.Sprintf("%s", gitRevision)
 
 	return ev
 }

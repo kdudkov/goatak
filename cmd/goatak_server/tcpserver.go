@@ -69,7 +69,7 @@ func (h *ClientHandler) Start() {
 func (h *ClientHandler) handleRead() {
 	defer h.stopHandle()
 
-	er := cot.NewEventnReader(h.conn)
+	er := cot.NewTagReader(h.conn)
 
 Loop:
 	for {
@@ -77,12 +77,21 @@ Loop:
 			break
 		}
 
-		dat, err := er.ReadEvent()
+		tag, dat, err := er.ReadTag()
 		if err != nil {
 			if err == io.EOF {
 				break Loop
 			}
 			h.app.Logger.Errorf("read error: %v", err)
+			continue
+		}
+
+		if tag == "?xml" {
+			continue
+		}
+
+		if tag != "event" {
+			h.app.Logger.Errorf("bad tag: %s", dat)
 			continue
 		}
 
