@@ -15,6 +15,9 @@ const colors = new Map([
     ['Brown', 'brown'],
 ]);
 
+function getMarker(item) {
+    return r.Icon()
+}
 
 function getIcon(item, withText) {
     if (item.team !== "") {
@@ -149,7 +152,12 @@ let app = new Vue({
                     app.setUnit(item.uid);
                 });
             } else {
-                p = L.marker([item.lat, item.lon], {icon: getIcon(item)});
+                p = L.marker([item.lat, item.lon]);
+                let icon = getIcon(item, true);
+                p.setIcon(L.icon({
+                    iconUrl: icon.uri,
+                    iconAnchor: new L.Point(icon.x, icon.y)
+                }));
                 this.markers.set(item.uid, p);
                 p.addTo(this.map);
                 // p.bindPopup(popup(item));
@@ -161,6 +169,7 @@ let app = new Vue({
         removeUnit: function (uid) {
             if (this.markers.has(uid)) {
                 p = this.markers.get(uid);
+                this.map.removeLayer(p);
                 p.remove();
                 this.markers.delete(uid);
             }
