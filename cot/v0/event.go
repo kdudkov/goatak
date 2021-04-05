@@ -1,4 +1,4 @@
-package cot
+package v0
 
 import (
 	"encoding/xml"
@@ -38,30 +38,31 @@ type Point struct {
 }
 
 type Detail struct {
-	Uid               *Uid               `xml:"uid,omitempty"`
+	Uid               *Uid               `xml:"uid,omitempty" v1:"full"`
 	TakVersion        *TakVersion        `xml:"takv,omitempty"`
-	Contact           *Contact           `xml:"contact,omitempty"`
+	TakControl        *TakControl        `xml:"TakControl,omitempty"`
+	Contact           *Contact           `xml:"contact,omitempty" v1:"partial"`
 	PrecisionLocation *Precisionlocation `xml:"precisionlocation,omitempty"`
 	Group             *Group             `xml:"__group,omitempty"`
-	Status            *Status            `xml:"status,omitempty"`
-	Usericon          *Usericon          `xml:"usericon,omitempty"`
+	Status            *Status            `xml:"status,omitempty" v1:"partial"`
+	Usericon          *Usericon          `xml:"usericon,omitempty" v1:"full"`
 	Track             *Track             `xml:"track,omitempty"`
-	Chat              *Chat              `xml:"__chat,omitempty"`
-	Link              []*Link            `xml:"link,omitempty"`
-	Remarks           *Remarks           `xml:"remarks,omitempty"`
-	Marti             *Marti             `xml:"marti,omitempty"`
+	Chat              *Chat              `xml:"__chat,omitempty" v1:"full"`
+	Link              []*Link            `xml:"link,omitempty" v1:"full"`
+	Remarks           *Remarks           `xml:"remarks,omitempty" v1:"full"`
+	Marti             *Marti             `xml:"marti,omitempty" v1:"full"`
 	Color             *struct {
 		Value string `xml:"argb,attr,omitempty"`
-	} `xml:"color,omitempty"`
+	} `xml:"color,omitempty" v1:"full"`
 	StrokeColor *struct {
 		Value string `xml:"value,attr,omitempty"`
-	} `xml:"strokeColor,omitempty"`
+	} `xml:"strokeColor,omitempty" v1:"full"`
 	FillColor *struct {
 		Value string `xml:"value,attr,omitempty"`
-	} `xml:"fillColor,omitempty"`
+	} `xml:"fillColor,omitempty" v1:"full"`
 	StrokeWeight *struct {
 		Value string `xml:"value,attr,omitempty"`
-	} `xml:"strokeWeight,omitempty"`
+	} `xml:"strokeWeight,omitempty" v1:"full"`
 }
 
 func (d Detail) String() string {
@@ -85,13 +86,19 @@ func (d Detail) String() string {
 	if d.Chat != nil {
 		s += fmt.Sprintf(", chat={%s}", d.Chat)
 	}
+	if d.Marti != nil {
+		s += fmt.Sprintf(", marti={%s}", d.Marti)
+	}
+	if d.Link != nil {
+		s += fmt.Sprintf(", link={%s}", d.Link)
+	}
 	return strings.TrimLeft(s, " ,")
 }
 
 type Contact struct {
 	Endpoint string `xml:"endpoint,attr,omitempty"`
 	Callsign string `xml:"callsign,attr,omitempty"`
-	Phone    string `xml:"phone,attr,omitempty"`
+	Phone    string `xml:"phone,attr,omitempty" v1:"ok"`
 }
 
 func (c *Contact) String() string {
@@ -115,6 +122,20 @@ type TakVersion struct {
 	Platform string `xml:"platform,attr,omitempty"`
 }
 
+type TakControl struct {
+	TakProtocolSupport *ProtoVersion `xml:"TakProtocolSupport,omitempty"`
+	TakRequest         *ProtoVersion `xml:"TakRequest,omitempty"`
+	TakResponce        *TakResponse  `xml:"TakResponse,omitempty"`
+}
+
+type ProtoVersion struct {
+	Version int8 `xml:"version,attr,omitempty"`
+}
+
+type TakResponse struct {
+	Status bool `xml:"status,attr"`
+}
+
 type Precisionlocation struct {
 	Altsrc      string `xml:"altsrc,attr"`
 	Geopointsrc string `xml:"geopointsrc,attr"`
@@ -135,7 +156,7 @@ func (g *Group) String() string {
 type Status struct {
 	Text      string `xml:",chardata"`
 	Battery   string `xml:"battery,attr,omitempty"`
-	Readiness string `xml:"readiness,attr,omitempty"`
+	Readiness string `xml:"readiness,attr,omitempty" v1:"ok"`
 }
 
 type Usericon struct {
@@ -168,7 +189,6 @@ type Chat struct {
 }
 
 func (c *Chat) String() string {
-
 	return fmt.Sprintf("id=%s, parent=%s, sender=%s, room=%s, owner=%s, grp={%s}", c.Id, c.Parent, c.Sender, c.Room, c.Owner, c.ChatGrp)
 }
 
@@ -254,11 +274,16 @@ func (e *Event) IsContact() bool {
 	return strings.HasPrefix(e.Type, "a-f-") && e.Detail.Contact != nil && e.Detail.Contact.Endpoint != ""
 }
 
-func BasicEvent(typ string, uid string, stale time.Duration) *Event {
+func (e *Event) IsTakControlRequest() bool {
+	return e.Detail.TakControl != nil && e.Detail.TakControl.TakRequest != nil
+}
+
+func VersionMsg(ver int8) *Event {
+	stale := time.Minute
 	return &Event{
 		Version: "2.0",
-		Uid:     uid,
-		Type:    typ,
+		Uid:     "protouid",
+		Type:    "t-x-takp-v",
 		Time:    time.Now().UTC(),
 		Start:   time.Now().UTC(),
 		Stale:   time.Now().Add(stale).UTC(),
@@ -270,42 +295,27 @@ func BasicEvent(typ string, uid string, stale time.Duration) *Event {
 			Ce:  9999999,
 			Le:  9999999,
 		},
+		Detail: Detail{TakControl: &TakControl{TakProtocolSupport: &ProtoVersion{Version: ver}}},
 	}
 }
 
-func BasicDetail(callsign string, team string, role string) *Detail {
-	return &Detail{
-		Uid: &Uid{Droid: callsign},
-		TakVersion: &TakVersion{
-			Os:       "no",
-			Version:  "0.1",
-			Device:   "Cray 2",
-			Platform: "GO-ATAC",
+func ProtoChangeOkMsg() *Event {
+	stale := time.Minute
+	return &Event{
+		Version: "2.0",
+		Uid:     "protouid",
+		Type:    "t-x-takp-r",
+		Time:    time.Now().UTC(),
+		Start:   time.Now().UTC(),
+		Stale:   time.Now().Add(stale).UTC(),
+		How:     "m-g",
+		Point: Point{
+			Lat: 0,
+			Lon: 0,
+			Hae: 0,
+			Ce:  9999999,
+			Le:  9999999,
 		},
-		Contact: &Contact{
-			Endpoint: "*:-1:tcp",
-			Callsign: callsign,
-			Phone:    "",
-		},
-		PrecisionLocation: nil,
-		Group: &Group{
-			Role: role,
-			Name: team,
-		},
-		Status: nil,
-		Track: &Track{
-			Course: 0,
-			Speed:  0,
-		},
+		Detail: Detail{TakControl: &TakControl{TakResponce: &TakResponse{true}}},
 	}
-}
-
-func MakePing(uid string) *Event {
-	return BasicEvent("t-x-c-t", uid+"-ping", time.Second*10)
-}
-
-func MakePong() *Event {
-	ev := BasicEvent("t-x-c-t-r", "takPong", time.Second*20)
-	ev.How = "h-g-i-g-o"
-	return ev
 }

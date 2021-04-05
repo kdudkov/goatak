@@ -5,9 +5,12 @@ import (
 	"net"
 
 	"github.com/kdudkov/goatak/cot"
+	v0 "github.com/kdudkov/goatak/cot/v0"
+	v1 "github.com/kdudkov/goatak/cot/v1"
 )
 
 func (app *App) ListenUDP(addr string) error {
+	app.Logger.Infof("listening UDP at %s", addr)
 	p, err := net.ListenPacket("udp", addr)
 
 	if err != nil {
@@ -24,15 +27,18 @@ func (app *App) ListenUDP(addr string) error {
 			return err
 		}
 
-		evt := &cot.Event{}
+		evt := &v0.Event{}
 		if err := xml.Unmarshal(buf[:n], evt); err != nil {
 			app.Logger.Errorf("decode error: %v", err)
 			continue
 		}
 
-		dat := make([]byte, n)
-		copy(dat, buf[:n])
-		app.ch <- &Msg{event: evt, dat: dat}
+		msg, xd := cot.EventToProto(evt)
+
+		app.ch <- &v1.Msg{
+			TakMessage: msg,
+			Detail:     xd,
+		}
 	}
 
 	return nil

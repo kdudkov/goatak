@@ -2,10 +2,8 @@ package main
 
 import (
 	"context"
-	"encoding/xml"
 	"flag"
 	"fmt"
-	"github.com/spf13/viper"
 	"os"
 	"os/signal"
 	"strings"
@@ -13,23 +11,21 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/kdudkov/goatak/cot"
+	"github.com/spf13/viper"
+
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 
-	"github.com/kdudkov/goatak/cot"
+	"github.com/kdudkov/goatak/cot/v1"
 	"github.com/kdudkov/goatak/model"
 )
 
 var (
-	gitRevision = "unknown"
-	gitCommit   = "unknown"
+	gitRevision            = "unknown"
+	gitCommit              = "unknown"
+	lastSeenOfflineTimeout = time.Minute * 2
 )
-
-type Msg struct {
-	from  string
-	event *cot.Event
-	dat   []byte
-}
 
 type App struct {
 	Logger  *zap.SugaredLogger
@@ -46,7 +42,7 @@ type App struct {
 
 	ctx     context.Context
 	uid     string
-	ch      chan *Msg
+	ch      chan *v1.Msg
 	logging bool
 }
 
@@ -56,7 +52,7 @@ func NewApp(tcpport, udpport, webport int, logger *zap.SugaredLogger) *App {
 		tcpport:  tcpport,
 		udpport:  udpport,
 		webport:  webport,
-		ch:       make(chan *Msg, 20),
+		ch:       make(chan *v1.Msg, 20),
 		handlers: sync.Map{},
 		units:    sync.Map{},
 		uid:      uuid.New().String(),
@@ -151,28 +147,17 @@ func (app *App) GetContact(uid string) *model.Contact {
 	return nil
 }
 
-func (app *App) UpdateContact(uid string, f func(c *model.Contact) bool) bool {
-	// we should never update event
-	if v, ok := app.units.Load(uid); ok {
-		if c, ok := v.(*model.Contact); ok {
-			f(c)
-		}
-	}
-	return false
-}
-
 func (app *App) EventProcessor() {
 	for {
 		msg := <-app.ch
 
-		if msg.event == nil {
+		if msg.TakMessage.CotEvent == nil {
 			continue
 		}
 
 		if app.logging {
-			if f, err := os.OpenFile(msg.event.Type+".log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666); err == nil {
-				f.Write(msg.dat)
-				f.Write([]byte{10})
+			if f, err := os.OpenFile(msg.GetType()+".log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666); err == nil {
+				f.WriteString(msg.TakMessage.String())
 				f.Close()
 			} else {
 				fmt.Println(err)
@@ -180,50 +165,54 @@ func (app *App) EventProcessor() {
 		}
 
 		switch {
-		case msg.event.Type == "t-x-c-t":
+		case msg.GetType() == "t-x-c-t":
 			// ping
-			app.Logger.Debugf("ping from %s", msg.event.Uid)
-			uid := msg.event.Uid
+			app.Logger.Debugf("ping from %s", msg.GetUid())
+			uid := msg.GetUid()
 			if strings.HasSuffix(uid, "-ping") {
 				uid = uid[:len(uid)-5]
 			}
 			if c := app.GetContact(uid); c != nil {
 				c.SetLastSeenNow(nil)
 			}
-			app.SendTo(cot.MakePong(), uid)
-			app.SendMsgToAll(msg.dat, uid)
+			app.SendTo(uid, cot.MakePong())
+			app.SendToAllOther(msg.TakMessage, uid)
 			continue
-		case msg.event.IsChat():
-			app.Logger.Infof("chat %s %s", msg.event.Detail.Chat, msg.event.GetText())
-		case strings.HasPrefix(msg.event.Type, "a-"):
-			app.Logger.Debugf("pos %s (%s) stale %s", msg.event.Uid, msg.event.GetCallsign(), msg.event.Stale.Sub(time.Now()))
-			if msg.event.IsContact() {
-				if c := app.GetContact(msg.event.Uid); c != nil {
-					c.SetLastSeenNow(msg.event)
+		case strings.HasPrefix(msg.GetType(), "a-"):
+			app.Logger.Debugf("pos %s (%s) stale %s",
+				msg.GetUid(),
+				msg.GetCallsign(),
+				msg.GetStale().Sub(time.Now()))
+			if msg.IsContact() {
+				if c := app.GetContact(msg.GetUid()); c != nil {
+					c.SetLastSeenNow(msg.TakMessage)
 				} else {
-					app.AddContact(msg.event.Uid, model.ContactFromEvent(msg.event))
+					app.AddContact(msg.GetUid(), model.ContactFromEvent(msg.TakMessage))
 				}
 			} else {
-				app.AddUnit(msg.event.Uid, model.UnitFromEvent(msg.event))
+				app.AddUnit(msg.GetUid(), model.UnitFromEvent(msg.TakMessage))
 			}
-		case strings.HasPrefix(msg.event.Type, "b-"):
-			app.Logger.Debugf("point %s (%s) stale %s", msg.event.Uid, msg.event.GetCallsign(), msg.event.Stale.Sub(time.Now()))
-			app.AddUnit(msg.event.Uid, model.UnitFromEvent(msg.event))
+		case strings.HasPrefix(msg.GetType(), "b-"):
+			app.Logger.Debugf("point %s (%s) stale %s",
+				msg.GetUid(),
+				msg.GetCallsign(),
+				msg.GetStale().Sub(time.Now()))
+			app.AddUnit(msg.GetUid(), model.UnitFromEvent(msg.TakMessage))
 		default:
-			app.Logger.Debugf("event: %s", msg.event)
+			app.Logger.Debugf("msg: %s", msg)
 		}
 
 		app.route(msg)
 	}
 }
 
-func (app *App) route(msg *Msg) {
-	if len(msg.event.GetCallsignTo()) > 0 {
-		for _, s := range msg.event.GetCallsignTo() {
-			app.SendMsgToCallsign(msg.dat, s)
+func (app *App) route(msg *v1.Msg) {
+	if len(msg.Detail.GetCallsignTo()) > 0 {
+		for _, s := range msg.Detail.GetCallsignTo() {
+			app.SendToCallsign(s, msg.TakMessage)
 		}
 	} else {
-		app.SendMsgToAll(msg.dat, msg.event.Uid)
+		app.SendToAllOther(msg.TakMessage, msg.GetUid())
 	}
 }
 
@@ -252,7 +241,7 @@ func (app *App) cleanOldUnits() {
 				toDelete = append(toDelete, key.(string))
 				app.Logger.Debugf("removing contact %s", key)
 			} else {
-				if val.IsOnline() && val.GetLastSeen().Before(time.Now().Add(-time.Minute*2)) {
+				if val.IsOnline() && val.GetLastSeen().Add(lastSeenOfflineTimeout).Before(time.Now()) {
 					val.SetOffline()
 				}
 			}
@@ -265,18 +254,7 @@ func (app *App) cleanOldUnits() {
 	}
 }
 
-func (app *App) SendToAll(evt *cot.Event, author string) {
-	msg, err := xml.Marshal(evt)
-
-	if err != nil {
-		app.Logger.Errorf("marshalling error: %v", err)
-		return
-	}
-
-	app.SendMsgToAll(msg, author)
-}
-
-func (app *App) SendMsgToAll(msg []byte, author string) {
+func (app *App) SendToAllOther(msg *v1.TakMessage, author string) {
 	app.handlers.Range(func(key, value interface{}) bool {
 		if key.(string) != author {
 			value.(*ClientHandler).AddMsg(msg)
@@ -285,38 +263,16 @@ func (app *App) SendMsgToAll(msg []byte, author string) {
 	})
 }
 
-func (app *App) SendTo(evt *cot.Event, uid string) {
-	msg, err := xml.Marshal(evt)
-
-	if err != nil {
-		app.Logger.Errorf("marshalling error: %v", err)
-		return
-	}
-
-	app.SendMsgTo(msg, uid)
-}
-
-func (app *App) SendToCallsign(evt *cot.Event, callsign string) {
-	msg, err := xml.Marshal(evt)
-
-	if err != nil {
-		app.Logger.Errorf("marshalling error: %v", err)
-		return
-	}
-
-	app.SendMsgToCallsign(msg, callsign)
-}
-
-func (app *App) SendMsgTo(msg []byte, uid string) {
+func (app *App) SendTo(uid string, msg *v1.TakMessage) {
 	if h, ok := app.handlers.Load(uid); ok {
 		h.(*ClientHandler).AddMsg(msg)
 	}
 }
 
-func (app *App) SendMsgToCallsign(msg []byte, callsign string) {
+func (app *App) SendToCallsign(callsign string, msg *v1.TakMessage) {
 	app.handlers.Range(func(key, value interface{}) bool {
 		h := value.(*ClientHandler)
-		if h.Callsign == callsign {
+		if h.GetCallsign() == callsign {
 			h.AddMsg(msg)
 			return false
 		}

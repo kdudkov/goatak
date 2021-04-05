@@ -5,6 +5,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	v1 "github.com/kdudkov/goatak/cot/v1"
 )
 
 type WebUnit struct {
@@ -36,13 +38,13 @@ func (c *Contact) ToWeb() *WebUnit {
 	w := &WebUnit{
 		Uid:      c.uid,
 		Callsign: c.callsign,
-		Time:     c.evt.Time,
+		Time:     v1.TimeFromMillis(c.msg.CotEvent.SendTime),
 		LastSeen: c.lastSeen,
 		Stale:    c.stale,
 		Type:     c.type_,
-		Lat:      c.evt.Point.Lat,
-		Lon:      c.evt.Point.Lon,
-		Hae:      c.evt.Point.Hae,
+		Lat:      c.msg.CotEvent.Lat,
+		Lon:      c.msg.CotEvent.Lon,
+		Hae:      c.msg.CotEvent.Hae,
 		Sidc:     getSIDC(c.type_),
 	}
 
@@ -52,25 +54,16 @@ func (c *Contact) ToWeb() *WebUnit {
 		w.Status = "Offline"
 	}
 
-	if c.evt.Detail.Track != nil {
-		w.Speed = c.evt.Detail.Track.Speed
-		w.Course = c.evt.Detail.Track.Course
-	}
+	w.Speed = c.msg.GetCotEvent().GetDetail().GetTrack().GetSpeed()
+	w.Course = c.msg.GetCotEvent().GetDetail().GetTrack().GetCourse()
+	w.Team = c.msg.GetCotEvent().GetDetail().GetGroup().GetName()
+	w.Role = c.msg.GetCotEvent().GetDetail().GetGroup().GetRole()
 
-	if c.evt.Detail.Remarks != nil {
-		w.Text = c.evt.Detail.Remarks.Text
-	}
+	//if c.evt.Detail.Color != nil {
+	//	w.Color = argb2hex(c.evt.Detail.Color.Value)
+	//}
 
-	if c.evt.Detail.Group != nil {
-		w.Team = c.evt.Detail.Group.Name
-		w.Role = c.evt.Detail.Group.Role
-	}
-
-	if c.evt.Detail.Color != nil {
-		w.Color = argb2hex(c.evt.Detail.Color.Value)
-	}
-
-	if v := c.evt.Detail.TakVersion; v != nil {
+	if v := c.msg.GetCotEvent().GetDetail().GetTakv(); v != nil {
 		w.TakVersion = strings.Trim(fmt.Sprintf("%s %s on %s", v.Platform, v.Version, v.Device), " ")
 	}
 	return w
@@ -80,36 +73,32 @@ func (u *Unit) ToWeb() *WebUnit {
 	w := &WebUnit{
 		Uid:      u.Uid,
 		Callsign: u.Callsign,
-		Time:     u.Evt.Time,
+		Time:     v1.TimeFromMillis(u.msg.CotEvent.SendTime),
 		LastSeen: u.Received,
 		Stale:    u.Stale,
 		Type:     u.Type,
-		Lat:      u.Evt.Point.Lat,
-		Lon:      u.Evt.Point.Lon,
-		Hae:      u.Evt.Point.Hae,
+		Lat:      u.msg.CotEvent.Lat,
+		Lon:      u.msg.CotEvent.Lon,
+		Hae:      u.msg.CotEvent.Hae,
 		Sidc:     getSIDC(u.Type),
 	}
 
-	if u.Evt.Detail.Usericon != nil {
-		w.Icon = u.Evt.Detail.Usericon.Iconsetpath
-	}
+	//if u.Evt.Detail.Usericon != nil {
+	//	w.Icon = u.Evt.Detail.Usericon.Iconsetpath
+	//}
 
-	if u.Evt.Detail.Track != nil {
-		w.Speed = u.Evt.Detail.Track.Speed
-		w.Course = u.Evt.Detail.Track.Course
-	}
+	w.Speed = u.msg.GetCotEvent().GetDetail().GetTrack().GetSpeed()
+	w.Course = u.msg.GetCotEvent().GetDetail().GetTrack().GetCourse()
+	w.Team = u.msg.GetCotEvent().GetDetail().GetGroup().GetName()
+	w.Role = u.msg.GetCotEvent().GetDetail().GetGroup().GetRole()
 
-	if u.Evt.Detail.Remarks != nil {
-		w.Text = u.Evt.Detail.Remarks.Text
-	}
+	//if u.Evt.Detail.Remarks != nil {
+	//	w.Text = u.Evt.Detail.Remarks.Text
+	//}
 
-	if u.Evt.Detail.Group != nil {
-		w.Team = u.Evt.Detail.Group.Name
-		w.Role = u.Evt.Detail.Group.Role
-	}
-	if u.Evt.Detail.Color != nil {
-		w.Color = argb2hex(u.Evt.Detail.Color.Value)
-	}
+	//if u.Evt.Detail.Color != nil {
+	//	w.Color = argb2hex(u.Evt.Detail.Color.Value)
+	//}
 
 	return w
 }

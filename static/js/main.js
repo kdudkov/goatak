@@ -70,11 +70,15 @@ let app = new Vue({
             subdomains: ['mt1', 'mt2', 'mt3'],
             maxZoom: 20
         });
+        let sputnik = L.tileLayer('https://{s}.tilessputnik.ru/{z}/{x}/{y}.png', {
+            maxZoom: 20
+        });
         osm.addTo(this.map);
 
         L.control.scale({metric: true}).addTo(this.map);
         L.control.layers({
             "OSM": osm,
+            "Telesputnik": sputnik,
             "OpenTopoMap": opentopo,
             "Google sat": google
         }, null, {hideSingleBase: true}).addTo(this.map);

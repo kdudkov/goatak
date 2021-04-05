@@ -4,7 +4,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/kdudkov/goatak/cot"
+	v1 "github.com/kdudkov/goatak/cot/v1"
 )
 
 const (
@@ -17,7 +17,7 @@ type Unit struct {
 	Callsign string
 	Stale    time.Time
 	Received time.Time
-	Evt      *cot.Event
+	msg      *v1.TakMessage
 }
 
 type Contact struct {
@@ -26,7 +26,7 @@ type Contact struct {
 	callsign string
 	stale    time.Time
 	lastSeen time.Time
-	evt      *cot.Event
+	msg      *v1.TakMessage
 	online   bool
 	mx       sync.RWMutex
 }
@@ -56,38 +56,38 @@ func (c *Contact) IsOnline() bool {
 	return c.online
 }
 
-func ContactFromEvent(evt *cot.Event) *Contact {
+func ContactFromEvent(msg *v1.TakMessage) *Contact {
 	return &Contact{
-		uid:      evt.Uid,
-		callsign: evt.GetCallsign(),
+		uid:      msg.GetCotEvent().GetUid(),
+		callsign: msg.GetCotEvent().GetDetail().GetContact().GetCallsign(),
 		lastSeen: time.Now(),
-		stale:    evt.Stale,
-		type_:    evt.Type,
-		evt:      evt,
+		stale:    v1.TimeFromMillis(msg.GetCotEvent().GetStaleTime()),
+		type_:    msg.GetCotEvent().GetType(),
+		msg:      msg,
 		online:   true,
 		mx:       sync.RWMutex{},
 	}
 }
 
-func UnitFromEvent(evt *cot.Event) *Unit {
+func UnitFromEvent(msg *v1.TakMessage) *Unit {
 	return &Unit{
-		Uid:      evt.Uid,
-		Callsign: evt.GetCallsign(),
-		Stale:    evt.Stale,
-		Type:     evt.Type,
-		Evt:      evt,
+		Uid:      msg.GetCotEvent().GetUid(),
+		Callsign: msg.GetCotEvent().GetDetail().GetContact().GetCallsign(),
+		Stale:    v1.TimeFromMillis(msg.GetCotEvent().GetStaleTime()),
+		Type:     msg.GetCotEvent().GetType(),
+		msg:      msg,
 		Received: time.Now(),
 	}
 }
 
-func (c *Contact) SetLastSeenNow(evt *cot.Event) {
+func (c *Contact) SetLastSeenNow(msg *v1.TakMessage) {
 	c.mx.Lock()
 	defer c.mx.Unlock()
 
 	c.online = true
 	c.lastSeen = time.Now()
-	if evt != nil {
-		c.evt = evt
+	if msg != nil {
+		c.msg = msg
 	}
 }
 

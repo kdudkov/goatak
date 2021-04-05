@@ -337,7 +337,7 @@ func (app *App) removeByLink(evt *cot.Event) {
 }
 
 func (app *App) MakeMe() *cot.Event {
-	ev := cot.BasicEvent(app.typ, app.uid, time.Hour)
+	ev := cot.BasicMsg(app.typ, app.uid, time.Hour)
 	ev.Detail = *cot.BasicDetail(app.callsign, app.team, app.role)
 	ev.Point.Lat = app.lat
 	ev.Point.Lon = app.lon

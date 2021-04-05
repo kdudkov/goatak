@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="description" content="">
+    <meta name="author" content="">
+    <title>GoATAK server</title>
+
+    <!-- Bootstrap core CSS -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css"
+          integrity="sha384-JcKb8q3iqJ61gNV9KGb8thSsNjpSL0n8PARn9HuZOnIxN0hoP+VmmDGMN5t9UJ0Z" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.6.0/dist/leaflet.css"
+          integrity="sha512-xwE/Az9zrjBIphAcBb3F6JVqxf46+CDLwfLMHloNu6KEQCAWi6HcDUbeOfBIptF7tcCzusKFjFw2yuvEpDL9wQ=="
+          crossorigin=""/>
+    <style>
+        #map {
+            height: 100vh;
+        }
+
+        table.units {
+            font-size: 10pt;
+        }
+
+        div.info {
+            font-size: 11pt;
+        }
+    </style>
+</head>
+<body>
+<div class="container-fluid" id="app">
+    <div class="row">
+        <div id="map" class="col-9">
+        </div>
+        <div class="col-3">
+            <div class="overflow-auto h-50">
+                <div class="alert alert-secondary info" role="alert" v-if="config != null">
+                    GoATAK server ver. {{config.version}}
+                </div>
+                <table class="table table-hover table-sm units">
+                    <tr v-for="u in all_units">
+                        <td>
+                            <img height="24px" src="/static/icons/coord_unlock.png" v-if="locked_unit != u.uid"
+                                 v-on:click="locked_unit=u.uid"/>
+                            <img height="24px" src="/static/icons/coord_lock.png" v-if="locked_unit == u.uid"
+                                 v-on:click="locked_unit=''"/>
+                        </td>
+                        <td v-on:click="map.setView([u.lat, u.lon]); unit=u;">
+                            <img v-bind:src="getImg(u)"/>
+                        </td>
+                        <td v-on:click="map.setView([u.lat, u.lon]); unit=u;">{{u.callsign}}</td>
+                    </tr>
+                </table>
+            </div>
+            <div class="h-50">
+                <div class="alert alert-secondary info" role="alert" v-if="unit != null">
+                    <h5 v-on:click="map.setView([unit.lat, unit.lon])"><img
+                            v-bind:src="milImg(unit)"/> {{unit.callsign}}
+                        <img height="24" src="/static/icons/coord_unlock.png" v-if="locked_unit != unit.uid"
+                             v-on:click="locked_unit=unit.uid"/>
+                        <img height="24" src="/static/icons/coord_lock.png" v-if="locked_unit == unit.uid"
+                             v-on:click="locked_unit=''"/>
+                    </h5>
+                    <span v-if="unit.team != ''">Team: {{unit.team}}, Role: {{unit.role}}<br/></span>
+                    type: {{unit.type}}<br/>
+                    coord: {{unit.lat}}, {{unit.lon}}<br/>
+                    speed: {{sp(unit.speed)}} km/h, hae: {{unit.hae.toFixed(1)}}<br/>
+                    <span v-if="unit.tak_version != ''">tak: {{unit.tak_version}}<br/></span>
+                    time: {{dt(unit.time)}}<br/>
+                    stale: {{dt(unit.stale)}}<br/>
+                    last seen: {{dt(unit.last_seen)}}<br/>
+                    {{unit.text}}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+<script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"
+        integrity="sha384-9/reFTGAW83EW2RDu2S0VKaIzap3H66lZH81PoYlFhbGU+6BZp6G7niu735Sk7lN"
+        crossorigin="anonymous"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"
+        integrity="sha384-B4gt1jrGC7Jh4AgTPSdUtOBvfO8shuf57BaghqFfPlYxofvL8/KUEfYiJOMMV+rV"
+        crossorigin="anonymous"></script>
+<script src="https://unpkg.com/leaflet@1.6.0/dist/leaflet.js"
+        integrity="sha512-gZwIG9x3wUXg2hdXF6+rVkLF/0Vi9U8D2Ntg4Ga5I5BZpVkVxlJWbSQtXPSiUTtC0TjtGOmxa1AJPuV0CPthew=="
+        crossorigin=""></script>
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+<script src="/static/js/milsymbol.js"></script>
+<script src="/static/js/main.js"></script>
+</html>

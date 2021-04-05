@@ -1,4 +1,4 @@
-package cot
+package v0
 
 import (
 	"encoding/xml"
