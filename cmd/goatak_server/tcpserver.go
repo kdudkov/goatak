@@ -10,8 +10,8 @@ import (
 	"time"
 
 	"github.com/golang/protobuf/proto"
-	v0 "github.com/kdudkov/goatak/cot/v0"
-	v1 "github.com/kdudkov/goatak/cot/v1"
+	"github.com/kdudkov/goatak/cotproto"
+	"github.com/kdudkov/goatak/cotxml"
 	"github.com/kdudkov/goatak/model"
 
 	"github.com/kdudkov/goatak/cot"
@@ -71,7 +71,7 @@ func (h *ClientHandler) Start() {
 	go h.handleRead()
 	go h.handleWrite()
 
-	h.AddEvent(v0.VersionMsg(1))
+	h.AddEvent(cotxml.VersionMsg(1))
 }
 
 func (h *ClientHandler) handleRead() {
@@ -85,7 +85,7 @@ func (h *ClientHandler) handleRead() {
 			break
 		}
 
-		var msg *v1.TakMessage
+		var msg *cotproto.TakMessage
 		var err error
 
 		switch h.GetVersion() {
@@ -116,7 +116,7 @@ func (h *ClientHandler) handleRead() {
 	}
 }
 
-func (h *ClientHandler) processXMLRead(er *cot.TagReader) (*v1.TakMessage, error) {
+func (h *ClientHandler) processXMLRead(er *cot.TagReader) (*cotproto.TakMessage, error) {
 	tag, dat, err := er.ReadTag()
 	if err != nil {
 		return nil, err
@@ -130,7 +130,7 @@ func (h *ClientHandler) processXMLRead(er *cot.TagReader) (*v1.TakMessage, error
 		return nil, fmt.Errorf("bad tag: %s", dat)
 	}
 
-	ev := &v0.Event{}
+	ev := &cotxml.Event{}
 	if err := xml.Unmarshal(dat, ev); err != nil {
 		return nil, fmt.Errorf("xml decode error: %v, data: %s", err, string(dat))
 	}
@@ -138,7 +138,7 @@ func (h *ClientHandler) processXMLRead(er *cot.TagReader) (*v1.TakMessage, error
 	if ev.IsTakControlRequest() {
 		ver := ev.Detail.TakControl.TakRequest.Version
 		if ver == 1 {
-			if err := h.AddEvent(v0.ProtoChangeOkMsg()); err == nil {
+			if err := h.AddEvent(cotxml.ProtoChangeOkMsg()); err == nil {
 				h.app.Logger.Infof("client %s switch to v.1", h.uid)
 				h.SetVersion(1)
 				return nil, nil
@@ -152,20 +152,20 @@ func (h *ClientHandler) processXMLRead(er *cot.TagReader) (*v1.TakMessage, error
 	return msg, nil
 }
 
-func (h *ClientHandler) processProtoRead(r *cot.ProtoReader) (*v1.TakMessage, error) {
+func (h *ClientHandler) processProtoRead(r *cot.ProtoReader) (*cotproto.TakMessage, error) {
 	buf, err := r.ReadProtoBuf()
 	if err != nil {
 		return nil, err
 	}
 
-	msg := new(v1.TakMessage)
+	msg := new(cotproto.TakMessage)
 	if err := proto.Unmarshal(buf, msg); err != nil {
 
 		return nil, fmt.Errorf("failed to decode protobuf: %v", err)
 	}
 
 	if msg.GetCotEvent().GetDetail().GetXmlDetail() != "" {
-		h.app.Logger.Debugf("%s", msg.CotEvent.Detail.XmlDetail)
+		h.app.Logger.Debugf("%s %s", msg.CotEvent.Type, msg.CotEvent.Detail.XmlDetail)
 	}
 
 	return msg, nil
@@ -179,7 +179,7 @@ func (h *ClientHandler) GetVersion() int32 {
 	return atomic.LoadInt32(&h.ver)
 }
 
-func (h *ClientHandler) checkFirstMsg(msg *v1.TakMessage) {
+func (h *ClientHandler) checkFirstMsg(msg *cotproto.TakMessage) {
 	if h.GetUid() == "" && msg.GetCotEvent() != nil {
 		h.SetUid(msg.CotEvent.Uid)
 		h.app.AddHandler(msg.CotEvent.Uid, h)
@@ -214,15 +214,15 @@ func (h *ClientHandler) GetCallsign() string {
 	return h.callsign
 }
 
-func (h *ClientHandler) processEvent(msg *v1.TakMessage) {
-	d, err := v1.FromString(msg.GetCotEvent().GetDetail().GetXmlDetail())
+func (h *ClientHandler) processEvent(msg *cotproto.TakMessage) {
+	d, err := cotxml.XMLDetailFromString(msg.GetCotEvent().GetDetail().GetXmlDetail())
 
 	if err != nil {
 		h.app.Logger.Errorf("error decoding details: %v", err)
 		return
 	}
 
-	h.app.ch <- &v1.Msg{
+	h.app.ch <- &cot.Msg{
 		TakMessage: msg,
 		Detail:     d,
 	}
@@ -284,7 +284,7 @@ func (h *ClientHandler) setWriteActivity() {
 	h.lastWrite = time.Now()
 }
 
-func (h *ClientHandler) AddEvent(evt *v0.Event) error {
+func (h *ClientHandler) AddEvent(evt *cotxml.Event) error {
 	if atomic.LoadInt32(&h.active) != 1 {
 		return nil
 	}
@@ -305,7 +305,7 @@ func (h *ClientHandler) AddEvent(evt *v0.Event) error {
 	return fmt.Errorf("client is off")
 }
 
-func (h *ClientHandler) AddMsg(msg *v1.TakMessage) error {
+func (h *ClientHandler) AddMsg(msg *cotproto.TakMessage) error {
 	if atomic.LoadInt32(&h.active) != 1 {
 		return nil
 	}

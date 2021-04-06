@@ -4,7 +4,7 @@
 // 	protoc        v3.15.6
 // source: takv.proto
 
-package v1
+package cotproto
 
 import (
 	proto "github.com/golang/protobuf/proto"

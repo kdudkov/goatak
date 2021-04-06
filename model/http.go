@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	v1 "github.com/kdudkov/goatak/cot/v1"
+	"github.com/kdudkov/goatak/cot"
 )
 
 type WebUnit struct {
@@ -38,7 +38,7 @@ func (c *Contact) ToWeb() *WebUnit {
 	w := &WebUnit{
 		Uid:      c.uid,
 		Callsign: c.callsign,
-		Time:     v1.TimeFromMillis(c.msg.CotEvent.SendTime),
+		Time:     cot.TimeFromMillis(c.msg.CotEvent.SendTime),
 		LastSeen: c.lastSeen,
 		Stale:    c.stale,
 		Type:     c.type_,
@@ -73,7 +73,7 @@ func (u *Unit) ToWeb() *WebUnit {
 	w := &WebUnit{
 		Uid:      u.Uid,
 		Callsign: u.Callsign,
-		Time:     v1.TimeFromMillis(u.msg.CotEvent.SendTime),
+		Time:     cot.TimeFromMillis(u.msg.CotEvent.SendTime),
 		LastSeen: u.Received,
 		Stale:    u.Stale,
 		Type:     u.Type,

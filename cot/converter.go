@@ -1,27 +1,26 @@
 package cot
 
 import (
-	"encoding/xml"
 	"strconv"
 
-	v0 "github.com/kdudkov/goatak/cot/v0"
-	v1 "github.com/kdudkov/goatak/cot/v1"
+	"github.com/kdudkov/goatak/cotproto"
+	"github.com/kdudkov/goatak/cotxml"
 )
 
-func ProtoToEvent(msg *v1.TakMessage) *v0.Event {
+func ProtoToEvent(msg *cotproto.TakMessage) *cotxml.Event {
 	if msg == nil || msg.CotEvent == nil {
 		return nil
 	}
 
-	ev := &v0.Event{
+	ev := &cotxml.Event{
 		Version: "2.0",
 		Type:    msg.CotEvent.Type,
 		Uid:     msg.CotEvent.Uid,
-		Time:    v1.TimeFromMillis(msg.CotEvent.SendTime),
-		Start:   v1.TimeFromMillis(msg.CotEvent.StartTime),
-		Stale:   v1.TimeFromMillis(msg.CotEvent.StaleTime),
+		Time:    TimeFromMillis(msg.CotEvent.SendTime),
+		Start:   TimeFromMillis(msg.CotEvent.StartTime),
+		Stale:   TimeFromMillis(msg.CotEvent.StaleTime),
 		How:     msg.CotEvent.How,
-		Point: v0.Point{
+		Point: cotxml.Point{
 			Lat: msg.CotEvent.Lat,
 			Lon: msg.CotEvent.Lon,
 			Hae: msg.CotEvent.Hae,
@@ -32,27 +31,27 @@ func ProtoToEvent(msg *v1.TakMessage) *v0.Event {
 
 	if d := msg.CotEvent.Detail; d != nil {
 		if d.Contact != nil {
-			ev.Detail.Contact = &v0.Contact{
+			ev.Detail.Contact = &cotxml.Contact{
 				Endpoint: d.Contact.Endpoint,
 				Callsign: d.Contact.Callsign,
 			}
 		}
 
 		if d.Status != nil {
-			ev.Detail.Status = &v0.Status{
+			ev.Detail.Status = &cotxml.Status{
 				Battery: strconv.Itoa(int(d.Status.Battery)),
 			}
 		}
 
 		if d.Track != nil {
-			ev.Detail.Track = &v0.Track{
+			ev.Detail.Track = &cotxml.Track{
 				Course: d.Track.Course,
 				Speed:  d.Track.Speed,
 			}
 		}
 
 		if d.Takv != nil {
-			ev.Detail.TakVersion = &v0.TakVersion{
+			ev.Detail.TakVersion = &cotxml.TakVersion{
 				Os:       d.Takv.Os,
 				Version:  d.Takv.Version,
 				Device:   d.Takv.Device,
@@ -61,23 +60,23 @@ func ProtoToEvent(msg *v1.TakMessage) *v0.Event {
 		}
 
 		if d.Group != nil {
-			ev.Detail.Group = &v0.Group{
+			ev.Detail.Group = &cotxml.Group{
 				Name: d.Group.Name,
 				Role: d.Group.Role,
 			}
 		}
 
 		if d.PrecisionLocation != nil {
-			ev.Detail.PrecisionLocation = &v0.Precisionlocation{
+			ev.Detail.PrecisionLocation = &cotxml.Precisionlocation{
 				Altsrc:      d.PrecisionLocation.Altsrc,
 				Geopointsrc: d.PrecisionLocation.Geopointsrc,
 			}
 		}
 
 		if d.XmlDetail != "" {
-			d2 := &v0.Detail{}
-			if err := xml.Unmarshal([]byte("<detail>"+d.XmlDetail+"</detail>"), d2); err == nil {
-				applyDetails(&ev.Detail, d2)
+			xd, err := cotxml.XMLDetailFromString(d.XmlDetail)
+			if err == nil {
+				applyDetails(&ev.Detail, xd)
 			}
 		}
 	}
@@ -85,28 +84,28 @@ func ProtoToEvent(msg *v1.TakMessage) *v0.Event {
 	return ev
 }
 
-func EventToProto(ev *v0.Event) (*v1.TakMessage, *v1.XMLDetail) {
+func EventToProto(ev *cotxml.Event) (*cotproto.TakMessage, *cotxml.XMLDetail) {
 	if ev == nil {
 		return nil, nil
 	}
 
-	msg := &v1.TakMessage{CotEvent: &v1.CotEvent{
+	msg := &cotproto.TakMessage{CotEvent: &cotproto.CotEvent{
 		Type:      ev.Type,
 		Uid:       ev.Uid,
-		SendTime:  v1.TimeToMillis(ev.Time),
-		StartTime: v1.TimeToMillis(ev.Start),
-		StaleTime: v1.TimeToMillis(ev.Stale),
+		SendTime:  TimeToMillis(ev.Time),
+		StartTime: TimeToMillis(ev.Start),
+		StaleTime: TimeToMillis(ev.Stale),
 		How:       ev.How,
 		Lat:       ev.Point.Lat,
 		Lon:       ev.Point.Lon,
 		Hae:       ev.Point.Hae,
 		Ce:        ev.Point.Ce,
 		Le:        ev.Point.Le,
-		Detail:    &v1.Detail{},
+		Detail:    &cotproto.Detail{},
 	}}
 
 	if c := ev.Detail.TakVersion; c != nil {
-		msg.CotEvent.Detail.Takv = &v1.Takv{
+		msg.CotEvent.Detail.Takv = &cotproto.Takv{
 			Device:   c.Device,
 			Platform: c.Platform,
 			Os:       c.Os,
@@ -115,21 +114,21 @@ func EventToProto(ev *v0.Event) (*v1.TakMessage, *v1.XMLDetail) {
 	}
 
 	if c := ev.Detail.Contact; c != nil {
-		msg.CotEvent.Detail.Contact = &v1.Contact{
+		msg.CotEvent.Detail.Contact = &cotproto.Contact{
 			Endpoint: c.Endpoint,
 			Callsign: c.Callsign,
 		}
 	}
 
 	if c := ev.Detail.PrecisionLocation; c != nil {
-		msg.CotEvent.Detail.PrecisionLocation = &v1.PrecisionLocation{
+		msg.CotEvent.Detail.PrecisionLocation = &cotproto.PrecisionLocation{
 			Geopointsrc: c.Geopointsrc,
 			Altsrc:      c.Altsrc,
 		}
 	}
 
 	if c := ev.Detail.Group; c != nil {
-		msg.CotEvent.Detail.Group = &v1.Group{
+		msg.CotEvent.Detail.Group = &cotproto.Group{
 			Name: c.Name,
 			Role: c.Role,
 		}
@@ -137,36 +136,29 @@ func EventToProto(ev *v0.Event) (*v1.TakMessage, *v1.XMLDetail) {
 
 	if c := ev.Detail.Status; c != nil {
 		if n, err := strconv.Atoi(c.Battery); err == nil {
-			msg.CotEvent.Detail.Status = &v1.Status{Battery: uint32(n)}
+			msg.CotEvent.Detail.Status = &cotproto.Status{Battery: uint32(n)}
 		}
 	}
 
 	if c := ev.Detail.Track; c != nil {
-		msg.CotEvent.Detail.Track = &v1.Track{
+		msg.CotEvent.Detail.Track = &cotproto.Track{
 			Speed:  c.Speed,
 			Course: c.Course,
 		}
 	}
 
 	xd := GetXmlDetails(&ev.Detail)
+	msg.CotEvent.Detail.XmlDetail = xd.String()
 
-	if xd != nil {
-		if b, err := xml.Marshal(xd); err == nil {
-			s := string(b)
-			if len(s) > 17 {
-				msg.CotEvent.Detail.XmlDetail = s[8 : len(s)-9]
-			}
-		}
-	}
 	return msg, xd
 }
 
-func GetXmlDetails(d *v0.Detail) *v1.XMLDetail {
+func GetXmlDetails(d *cotxml.Detail) *cotxml.XMLDetail {
 	if d == nil {
 		return nil
 	}
 
-	d1 := &v1.XMLDetail{
+	d1 := &cotxml.XMLDetail{
 		Uid:          d.Uid,
 		Usericon:     d.Usericon,
 		Chat:         d.Chat,
@@ -180,40 +172,40 @@ func GetXmlDetails(d *v0.Detail) *v1.XMLDetail {
 	}
 
 	if d.Contact != nil && d.Contact.Phone != "" {
-		d1.Contact = &v1.Contact2{Phone: d.Contact.Phone}
+		d1.Contact = &cotxml.Contact2{Phone: d.Contact.Phone}
 	}
 
 	if d.Status != nil && d.Status.Readiness != "" {
-		d1.Status = &v1.Status2{Readiness: d.Status.Readiness}
+		d1.Status = &cotxml.Status2{Readiness: d.Status.Readiness}
 	}
 
 	return d1
 }
 
-func applyDetails(d1, d2 *v0.Detail) {
-	if d2 == nil {
+func applyDetails(d1 *cotxml.Detail, xd *cotxml.XMLDetail) {
+	if xd == nil {
 		return
 	}
 
-	if d2.Contact != nil {
+	if xd.Contact != nil {
 		if d1.Contact == nil {
-			d1.Contact = &v0.Contact{}
+			d1.Contact = &cotxml.Contact{}
 		}
-		d1.Contact.Phone = d2.Contact.Phone
+		d1.Contact.Phone = xd.Contact.Phone
 	}
 
-	if d2.Status != nil {
+	if xd.Status != nil {
 		if d1.Status == nil {
-			d1.Status = &v0.Status{}
+			d1.Status = &cotxml.Status{}
 		}
-		d1.Status.Readiness = d2.Status.Readiness
+		d1.Status.Readiness = xd.Status.Readiness
 	}
 
-	d1.Uid = d2.Uid
-	d1.StrokeWeight = d2.StrokeWeight
-	d1.Color = d2.Color
-	d1.FillColor = d2.FillColor
-	d1.StrokeColor = d2.StrokeColor
-	d1.Marti = d2.Marti
-	d1.Chat = d2.Chat
+	d1.Uid = xd.Uid
+	d1.StrokeWeight = xd.StrokeWeight
+	d1.Color = xd.Color
+	d1.FillColor = xd.FillColor
+	d1.StrokeColor = xd.StrokeColor
+	d1.Marti = xd.Marti
+	d1.Chat = xd.Chat
 }

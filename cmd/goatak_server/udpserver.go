@@ -5,8 +5,7 @@ import (
 	"net"
 
 	"github.com/kdudkov/goatak/cot"
-	v0 "github.com/kdudkov/goatak/cot/v0"
-	v1 "github.com/kdudkov/goatak/cot/v1"
+	"github.com/kdudkov/goatak/cotxml"
 )
 
 func (app *App) ListenUDP(addr string) error {
@@ -27,7 +26,7 @@ func (app *App) ListenUDP(addr string) error {
 			return err
 		}
 
-		evt := &v0.Event{}
+		evt := &cotxml.Event{}
 		if err := xml.Unmarshal(buf[:n], evt); err != nil {
 			app.Logger.Errorf("decode error: %v", err)
 			continue
@@ -35,7 +34,7 @@ func (app *App) ListenUDP(addr string) error {
 
 		msg, xd := cot.EventToProto(evt)
 
-		app.ch <- &v1.Msg{
+		app.ch <- &cot.Msg{
 			TakMessage: msg,
 			Detail:     xd,
 		}

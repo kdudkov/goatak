@@ -17,7 +17,7 @@ import (
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 
-	"github.com/kdudkov/goatak/cot/v1"
+	"github.com/kdudkov/goatak/cotproto"
 	"github.com/kdudkov/goatak/model"
 )
 
@@ -42,7 +42,7 @@ type App struct {
 
 	ctx     context.Context
 	uid     string
-	ch      chan *v1.Msg
+	ch      chan *cot.Msg
 	logging bool
 }
 
@@ -52,7 +52,7 @@ func NewApp(tcpport, udpport, webport int, logger *zap.SugaredLogger) *App {
 		tcpport:  tcpport,
 		udpport:  udpport,
 		webport:  webport,
-		ch:       make(chan *v1.Msg, 20),
+		ch:       make(chan *cot.Msg, 20),
 		handlers: sync.Map{},
 		units:    sync.Map{},
 		uid:      uuid.New().String(),
@@ -206,7 +206,7 @@ func (app *App) EventProcessor() {
 	}
 }
 
-func (app *App) route(msg *v1.Msg) {
+func (app *App) route(msg *cot.Msg) {
 	if len(msg.Detail.GetCallsignTo()) > 0 {
 		for _, s := range msg.Detail.GetCallsignTo() {
 			app.SendToCallsign(s, msg.TakMessage)
@@ -254,7 +254,7 @@ func (app *App) cleanOldUnits() {
 	}
 }
 
-func (app *App) SendToAllOther(msg *v1.TakMessage, author string) {
+func (app *App) SendToAllOther(msg *cotproto.TakMessage, author string) {
 	app.handlers.Range(func(key, value interface{}) bool {
 		if key.(string) != author {
 			value.(*ClientHandler).AddMsg(msg)
@@ -263,13 +263,13 @@ func (app *App) SendToAllOther(msg *v1.TakMessage, author string) {
 	})
 }
 
-func (app *App) SendTo(uid string, msg *v1.TakMessage) {
+func (app *App) SendTo(uid string, msg *cotproto.TakMessage) {
 	if h, ok := app.handlers.Load(uid); ok {
 		h.(*ClientHandler).AddMsg(msg)
 	}
 }
 
-func (app *App) SendToCallsign(callsign string, msg *v1.TakMessage) {
+func (app *App) SendToCallsign(callsign string, msg *cotproto.TakMessage) {
 	app.handlers.Range(func(key, value interface{}) bool {
 		h := value.(*ClientHandler)
 		if h.GetCallsign() == callsign {

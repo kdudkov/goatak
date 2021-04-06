@@ -1,13 +1,16 @@
-package v1
+package cot
 
 import (
 	"strings"
 	"time"
+
+	"github.com/kdudkov/goatak/cotproto"
+	"github.com/kdudkov/goatak/cotxml"
 )
 
 type Msg struct {
-	TakMessage *TakMessage
-	Detail     *XMLDetail
+	TakMessage *cotproto.TakMessage
+	Detail     *cotxml.XMLDetail
 }
 
 func (m *Msg) GetUid() string {
@@ -48,6 +51,14 @@ func (m *Msg) IsContact() bool {
 	}
 
 	return strings.HasPrefix(m.GetType(), "a-f-") && m.TakMessage.GetCotEvent().GetDetail().GetContact().GetEndpoint() != ""
+}
+
+func (m *Msg) IsChat() bool {
+	if m == nil || m.TakMessage == nil {
+		return false
+	}
+
+	return m.GetType() == "b-t-f" && m.Detail != nil && m.Detail.Chat != nil
 }
 
 func TimeFromMillis(ms uint64) time.Time {

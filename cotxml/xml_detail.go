@@ -1,22 +1,20 @@
-package v1
+package cotxml
 
 import (
 	"encoding/xml"
-
-	v0 "github.com/kdudkov/goatak/cot/v0"
 )
 
 type XMLDetail struct {
-	XMLName  xml.Name     `xml:"detail"`
-	Uid      *v0.Uid      `xml:"uid,omitempty" `
-	Contact  *Contact2    `xml:"contact,omitempty"`
-	Status   *Status2     `xml:"status,omitempty"`
-	Usericon *v0.Usericon `xml:"usericon,omitempty"`
-	Track    *Track       `xml:"track,omitempty"`
-	Chat     *v0.Chat     `xml:"__chat,omitempty"`
-	Link     []*v0.Link   `xml:"link,omitempty"`
-	Remarks  *v0.Remarks  `xml:"remarks,omitempty"`
-	Marti    *v0.Marti    `xml:"marti,omitempty"`
+	XMLName  xml.Name  `xml:"detail"`
+	Uid      *Uid      `xml:"uid,omitempty" `
+	Contact  *Contact2 `xml:"contact,omitempty"`
+	Status   *Status2  `xml:"status,omitempty"`
+	Usericon *Usericon `xml:"usericon,omitempty"`
+	Track    *Track    `xml:"track,omitempty"`
+	Chat     *Chat     `xml:"__chat,omitempty"`
+	Link     []*Link   `xml:"link,omitempty"`
+	Remarks  *Remarks  `xml:"remarks,omitempty"`
+	Marti    *Marti    `xml:"marti,omitempty"`
 
 	Color *struct {
 		Value string `xml:"argb,attr,omitempty"`
@@ -51,7 +49,7 @@ func (d *XMLDetail) String() string {
 	return ""
 }
 
-func FromString(s string) (*XMLDetail, error) {
+func XMLDetailFromString(s string) (*XMLDetail, error) {
 	d := &XMLDetail{}
 
 	if s == "" {
@@ -74,4 +72,11 @@ func (d *XMLDetail) GetCallsignTo() []string {
 		return res
 	}
 	return nil
+}
+
+func (d *XMLDetail) GetText() string {
+	if d.Remarks != nil {
+		return d.Remarks.Text
+	}
+	return ""
 }

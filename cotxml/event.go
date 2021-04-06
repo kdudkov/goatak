@@ -1,4 +1,4 @@
-package v0
+package cotxml
 
 import (
 	"encoding/xml"
@@ -203,11 +203,12 @@ func (cg ChatGrp) String() string {
 }
 
 type Link struct {
-	Time     time.Time `xml:"production_time,attr,omitempty"`
-	Relation string    `xml:"relation,attr"`
-	Type     string    `xml:"type,attr"`
-	Uid      string    `xml:"uid,attr"`
-	Point    string    `xml:"point,attr"`
+	Time           time.Time `xml:"production_time,attr,omitempty"`
+	Relation       string    `xml:"relation,attr,omitempty"`
+	Type           string    `xml:"type,attr,omitempty"`
+	ParentCallsign string    `xml:"parent_callsign,attr,omitempty"`
+	Uid            string    `xml:"uid,attr,omitempty"`
+	Point          string    `xml:"point,attr,omitempty"`
 }
 
 func (l Link) String() string {
