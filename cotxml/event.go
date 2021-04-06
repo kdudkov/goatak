@@ -279,7 +279,7 @@ func (e *Event) IsTakControlRequest() bool {
 	return e.Detail.TakControl != nil && e.Detail.TakControl.TakRequest != nil
 }
 
-func VersionMsg(ver int8) *Event {
+func VersionSupportMsg(ver int8) *Event {
 	stale := time.Minute
 	return &Event{
 		Version: "2.0",
@@ -297,6 +297,27 @@ func VersionMsg(ver int8) *Event {
 			Le:  9999999,
 		},
 		Detail: Detail{TakControl: &TakControl{TakProtocolSupport: &ProtoVersion{Version: ver}}},
+	}
+}
+
+func VersionReqMsg(ver int8) *Event {
+	stale := time.Minute
+	return &Event{
+		Version: "2.0",
+		Uid:     "protouid",
+		Type:    "t-x-takp-v",
+		Time:    time.Now().UTC(),
+		Start:   time.Now().UTC(),
+		Stale:   time.Now().Add(stale).UTC(),
+		How:     "m-g",
+		Point: Point{
+			Lat: 0,
+			Lon: 0,
+			Hae: 0,
+			Ce:  9999999,
+			Le:  9999999,
+		},
+		Detail: Detail{TakControl: &TakControl{TakRequest: &ProtoVersion{Version: ver}}},
 	}
 }
 

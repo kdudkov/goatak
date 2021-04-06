@@ -3,9 +3,11 @@ package main
 import (
 	"context"
 	"crypto/md5"
+	"encoding/binary"
 	"encoding/xml"
 	"flag"
 	"fmt"
+	"io"
 	"math/rand"
 	"net"
 	"os"
@@ -16,6 +18,9 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/golang/protobuf/proto"
+	"github.com/kdudkov/goatak/cotproto"
+	"github.com/kdudkov/goatak/cotxml"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
 
@@ -36,6 +41,7 @@ var (
 type App struct {
 	conn      net.Conn
 	addr      string
+	ver       uint32
 	webPort   int
 	Logger    *zap.SugaredLogger
 	ch        chan []byte
@@ -51,7 +57,7 @@ type App struct {
 	lat      float64
 	lon      float64
 	zoom     int8
-	online   int32
+	online   uint32
 }
 
 func NewApp(uid string, callsign string, addr string, webPort int, logger *zap.SugaredLogger) *App {
@@ -67,14 +73,14 @@ func NewApp(uid string, callsign string, addr string, webPort int, logger *zap.S
 
 func (app *App) setOnline(s bool) {
 	if s {
-		atomic.StoreInt32(&app.online, 1)
+		atomic.StoreUint32(&app.online, 1)
 	} else {
-		atomic.StoreInt32(&app.online, 0)
+		atomic.StoreUint32(&app.online, 0)
 	}
 }
 
 func (app *App) isOnline() bool {
-	return atomic.LoadInt32(&app.online) == 1
+	return atomic.LoadUint32(&app.online) == 1
 }
 
 func (app *App) Run(ctx context.Context) {
@@ -96,16 +102,14 @@ func (app *App) Run(ctx context.Context) {
 		}
 
 		app.setOnline(true)
-		app.AddEvent(app.MakeMe())
+		app.AddMsg(app.MakeMe())
 
 		wg := &sync.WaitGroup{}
 		wg.Add(3)
 
-		stopCh := make(chan bool)
-
-		go app.reader(ctx, wg, stopCh)
-		go app.writer(ctx, wg, stopCh)
-		go app.sender(ctx, wg, stopCh)
+		go app.reader(ctx, wg)
+		go app.writer(ctx, wg)
+		go app.sender(ctx, wg)
 		wg.Wait()
 
 		app.Logger.Info("disconnected")
@@ -130,42 +134,118 @@ func (app *App) connect() error {
 	return nil
 }
 
-func (app *App) reader(ctx context.Context, wg *sync.WaitGroup, ch chan bool) {
+func (app *App) reader(ctx context.Context, wg *sync.WaitGroup) {
 	defer wg.Done()
 	n := 0
 	er := cot.NewTagReader(app.conn)
+	pr := cot.NewProtoReader(app.conn)
 	app.Logger.Infof("start reader")
 
 	for ctx.Err() == nil {
 		app.conn.SetReadDeadline(time.Now().Add(time.Second * 120))
-		tag, dat, err := er.ReadTag()
-		if err != nil {
-			app.Logger.Errorf("read error: %v", err)
-			break
+
+		var msg *cotproto.TakMessage
+		var err error
+
+		switch atomic.LoadUint32(&app.ver) {
+		case 0:
+			msg, err = app.processXMLRead(er)
+			if err != nil {
+				if err == io.EOF {
+
+				}
+				app.Logger.Errorf("%v", err)
+				continue
+			}
+
+		case 1:
+			msg, err = app.processProtoRead(pr)
 		}
 
-		if tag == "?xml" {
+		if msg == nil {
 			continue
 		}
-		if tag != "event" {
-			app.Logger.Errorf("bad tag: %s", dat)
-			continue
+
+		d, err := cotxml.XMLDetailFromString(msg.GetCotEvent().GetDetail().GetXmlDetail())
+
+		if err != nil {
+			app.Logger.Errorf("error decoding details: %v", err)
+			return
 		}
-		evt := &cot.Event{}
-		if err := xml.Unmarshal(dat, evt); err != nil {
-			app.Logger.Errorf("decode err: %v", err)
-			break
-		}
-		app.ProcessEvent(evt, dat)
+
+		app.ProcessEvent(&cot.Msg{
+			TakMessage: msg,
+			Detail:     d,
+		})
 		n++
 	}
+
 	app.setOnline(false)
 	app.conn.Close()
-	close(ch)
 	app.Logger.Infof("got %d messages", n)
 }
 
-func (app *App) writer(ctx context.Context, wg *sync.WaitGroup, ch chan bool) {
+func (app *App) processXMLRead(er *cot.TagReader) (*cotproto.TakMessage, error) {
+	tag, dat, err := er.ReadTag()
+	if err != nil {
+		return nil, err
+	}
+
+	if tag == "?xml" {
+		return nil, nil
+	}
+
+	if tag != "event" {
+		return nil, fmt.Errorf("bad tag: %s", dat)
+	}
+
+	ev := &cotxml.Event{}
+	if err := xml.Unmarshal(dat, ev); err != nil {
+		return nil, fmt.Errorf("xml decode error: %v, data: %s", err, string(dat))
+	}
+
+	if ev.Detail.TakControl != nil && ev.Detail.TakControl.TakProtocolSupport != nil {
+		v := ev.Detail.TakControl.TakProtocolSupport.Version
+		app.Logger.Infof("server supports protocol v. %d", v)
+		if v >= 1 {
+			app.AddEvent(cotxml.VersionReqMsg(1))
+		}
+		return nil, nil
+	}
+
+	if ev.Detail.TakControl != nil && ev.Detail.TakControl.TakResponce != nil {
+		ok := ev.Detail.TakControl.TakResponce.Status
+		app.Logger.Infof("server switches to v1: %v", ok)
+		if ok {
+			atomic.StoreUint32(&app.ver, 1)
+		}
+		return nil, nil
+	}
+
+	msg, _ := cot.EventToProto(ev)
+	return msg, nil
+}
+
+func (app *App) processProtoRead(r *cot.ProtoReader) (*cotproto.TakMessage, error) {
+	buf, err := r.ReadProtoBuf()
+	if err != nil {
+		return nil, err
+	}
+
+	msg := new(cotproto.TakMessage)
+	if err := proto.Unmarshal(buf, msg); err != nil {
+
+		return nil, fmt.Errorf("failed to decode protobuf: %v", err)
+	}
+
+	if msg.GetCotEvent().GetDetail().GetXmlDetail() != "" {
+		app.Logger.Debugf("%s %s", msg.CotEvent.Type, msg.CotEvent.Detail.XmlDetail)
+	}
+
+	return msg, nil
+}
+
+func (app *App) writer(ctx context.Context, wg *sync.WaitGroup) {
 	defer wg.Done()
 
 Loop:
@@ -176,10 +256,6 @@ Loop:
 		select {
 		case msg := <-app.ch:
 			app.setWriteActivity()
-			//if _, err := h.conn.Write([]byte("<?xml version=\"1.0\" encoding=\"utf-8\"?>\n")); err != nil {
-			//	h.stop()
-			//	return err
-			//}
 			if len(msg) == 0 {
 				break
 			}
@@ -188,24 +264,22 @@ Loop:
 			}
 		case <-ctx.Done():
 			break Loop
-		case <-ch:
-			break Loop
 		}
 	}
 
 	app.conn.Close()
 }
 
-func (app *App) sender(ctx context.Context, wg *sync.WaitGroup, ch chan bool) {
+func (app *App) sender(ctx context.Context, wg *sync.WaitGroup) {
 	defer wg.Done()
 Loop:
 	for ctx.Err() == nil {
 		select {
-		case <-ch:
+		case <-ctx.Done():
 			break Loop
 		case <-time.Tick(time.Minute):
 			app.Logger.Debugf("sending pos")
-			app.AddEvent(app.MakeMe())
+			app.AddMsg(app.MakeMe())
 		}
 	}
 }
@@ -220,8 +294,11 @@ func (app *App) setWriteActivity() {
 	}
 }
 
-func (app *App) AddEvent(evt *cot.Event) bool {
+func (app *App) AddEvent(evt *cotxml.Event) bool {
 	if !app.isOnline() {
+		return false
+	}
+	if atomic.LoadUint32(&app.ver) != 0 {
 		return false
 	}
 	msg, err := xml.Marshal(evt)
@@ -238,49 +315,90 @@ func (app *App) AddEvent(evt *cot.Event) bool {
 	}
 }
 
-func (app *App) sendPing() {
-	if time.Now().Sub(app.lastWrite) > pingTimeout {
-		app.Logger.Debug("sending ping")
-		app.AddEvent(cot.MakePing(app.uid))
+func (app *App) AddMsg(msg *cotproto.TakMessage) bool {
+	if !app.isOnline() {
+		return false
+	}
+
+	switch atomic.LoadUint32(&app.ver) {
+	case 0:
+		buf, err := xml.Marshal(cot.ProtoToEvent(msg))
+		if err != nil {
+			app.Logger.Errorf("marshal error: %v", err)
+			return false
+		}
+
+		return app.tryAddPacket(buf)
+	case 1:
+		buf1, err := proto.Marshal(msg)
+		if err != nil {
+			app.Logger.Errorf("marshal error: %v", err)
+			return false
+		}
+
+		buf := make([]byte, len(buf1)+5)
+		buf[0] = 0xbf
+		n := binary.PutUvarint(buf[1:], uint64(len(buf1)))
+		copy(buf[n+1:], buf1)
+
+		return app.tryAddPacket(buf[:n+len(buf1)+2])
+	}
+
+	return false
+}
+
+func (app *App) tryAddPacket(msg []byte) bool {
+	select {
+	case app.ch <- msg:
+		return true
+	default:
+		return false
 	}
 }
 
-func (app *App) ProcessEvent(evt *cot.Event, dat []byte) {
+func (app *App) sendPing() {
+	if time.Now().Sub(app.lastWrite) > pingTimeout {
+		app.Logger.Debug("sending ping")
+		app.AddMsg(cot.MakePing(app.uid))
+	}
+}
+
+func (app *App) ProcessEvent(msg *cot.Msg) {
 
 	switch {
-	case evt.Type == "t-x-c-t":
-		app.Logger.Debugf("ping from %s", evt.Uid)
-		if c := app.GetContact(evt.Uid); c != nil {
+	case msg.GetType() == "t-x-c-t":
+		app.Logger.Debugf("ping from %s", msg.GetUid())
+		if c := app.GetContact(msg.GetUid()); c != nil {
 			c.SetLastSeenNow(nil)
 		}
-	case evt.Type == "t-x-c-t-r":
+	case msg.GetType() == "t-x-c-t-r":
 		app.Logger.Debugf("pong")
-	case evt.Type == "t-x-d-d":
-		app.removeByLink(evt)
-	case evt.IsChat():
-		app.Logger.Infof("message from %s chat %s: %s", evt.Detail.Chat.Sender, evt.Detail.Chat.Room, evt.GetText())
-	case strings.HasPrefix(evt.Type, "a-"):
-		if evt.IsContact() {
-			if evt.Uid == app.uid {
+	case msg.GetType() == "t-x-d-d":
+		app.removeByLink(msg)
+	case msg.IsChat():
+		app.Logger.Infof("message from ")
+	case strings.HasPrefix(msg.GetType(), "a-"):
+		if msg.IsContact() {
+			if msg.GetUid() == app.uid {
 				app.Logger.Info("my own info")
 				break
 			}
-			if c := app.GetContact(evt.Uid); c != nil {
-				app.Logger.Infof("update pos %s (%s) %s", evt.Uid, evt.GetCallsign(), evt.Type)
-				c.SetLastSeenNow(evt)
+			if c := app.GetContact(msg.GetUid()); c != nil {
+				app.Logger.Infof("update pos %s (%s) %s", msg.GetUid(), msg.GetCallsign(), msg.GetType())
+				c.SetLastSeenNow(msg.TakMessage)
 			} else {
-				app.Logger.Infof("new contact %s (%s) %s", evt.Uid, evt.GetCallsign(), evt.Type)
-				app.AddContact(evt.Uid, model.ContactFromEvent(evt))
+				app.Logger.Infof("new contact %s (%s) %s", msg.GetUid(), msg.GetCallsign(), msg.GetType())
+				app.AddContact(msg.GetUid(), model.ContactFromEvent(msg.TakMessage))
 			}
 		} else {
-			app.Logger.Infof("new unit %s (%s) %s", evt.Uid, evt.GetCallsign(), evt.Type)
-			app.AddUnit(evt.Uid, model.UnitFromEvent(evt))
+			app.Logger.Infof("new unit %s (%s) %s", msg.GetUid(), msg.GetCallsign(), msg.GetType())
+			app.AddUnit(msg.GetUid(), model.UnitFromEvent(msg.TakMessage))
 		}
-	case strings.HasPrefix(evt.Type, "b-"):
-		app.Logger.Infof("point %s (%s) %s", evt.Uid, evt.GetCallsign(), evt.Type)
-		app.AddUnit(evt.Uid, model.UnitFromEvent(evt))
+	case strings.HasPrefix(msg.GetType(), "b-"):
+		app.Logger.Infof("point %s (%s) %s", msg.GetUid(), msg.GetCallsign(), msg.GetType())
+		app.AddUnit(msg.GetUid(), model.UnitFromEvent(msg.TakMessage))
 	default:
-		app.Logger.Debugf("unknown event: %s", dat)
+		app.Logger.Debugf("unknown event: %s", msg.GetType())
 	}
 }
 
@@ -326,9 +444,9 @@ func (app *App) GetContact(uid string) *model.Contact {
 	return nil
 }
 
-func (app *App) removeByLink(evt *cot.Event) {
-	if len(evt.Detail.Link) > 0 {
-		uid := evt.Detail.Link[0].Uid
+func (app *App) removeByLink(msg *cot.Msg) {
+	if msg.Detail != nil && len(msg.Detail.Link) > 0 {
+		uid := msg.Detail.Link[0].Uid
 		app.Logger.Debugf("remove %s by message", uid)
 		if c := app.GetContact(uid); c != nil {
 			c.SetOffline()
@@ -336,13 +454,26 @@ func (app *App) removeByLink(evt *cot.Event) {
 	}
 }
 
-func (app *App) MakeMe() *cot.Event {
+func (app *App) MakeMe() *cotproto.TakMessage {
 	ev := cot.BasicMsg(app.typ, app.uid, time.Hour)
-	ev.Detail = *cot.BasicDetail(app.callsign, app.team, app.role)
-	ev.Point.Lat = app.lat
-	ev.Point.Lon = app.lon
-	ev.Detail.TakVersion.Platform = "GoATAK web client"
-	ev.Detail.TakVersion.Version = fmt.Sprintf("%s", gitRevision)
+	ev.CotEvent.Lat = app.lat
+	ev.CotEvent.Lon = app.lon
+	ev.CotEvent.Detail = &cotproto.Detail{
+		Contact: &cotproto.Contact{
+			Endpoint: "123",
+			Callsign: app.callsign,
+		},
+		Group: &cotproto.Group{
+			Name: app.team,
+			Role: app.role,
+		},
+		Takv: &cotproto.Takv{
+			Device:   "",
+			Platform: "GoATAK web client",
+			Os:       "",
+			Version:  fmt.Sprintf("%s", gitRevision),
+		},
+	}
 
 	return ev
 }

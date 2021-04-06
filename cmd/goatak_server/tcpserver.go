@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/binary"
 	"encoding/xml"
 	"fmt"
 	"io"
@@ -71,7 +72,7 @@ func (h *ClientHandler) Start() {
 	go h.handleRead()
 	go h.handleWrite()
 
-	h.AddEvent(cotxml.VersionMsg(1))
+	h.AddEvent(cotxml.VersionSupportMsg(1))
 }
 
 func (h *ClientHandler) handleRead() {
@@ -328,9 +329,9 @@ func (h *ClientHandler) AddMsg(msg *cotproto.TakMessage) error {
 
 		buf := make([]byte, len(buf1)+5)
 		buf[0] = 0xbf
-		n := PutUvarint(buf, uint64(len(buf1)), 1)
-		copy(buf[n:], buf1)
-		if h.tryAddPacket(buf[:n+len(buf1)+1]) {
+		n := binary.PutUvarint(buf[1:], uint64(len(buf1)))
+		copy(buf[n+1:], buf1)
+		if h.tryAddPacket(buf[:n+len(buf1)+2]) {
 			return nil
 		}
 	}
@@ -347,15 +348,4 @@ func (h *ClientHandler) tryAddPacket(msg []byte) bool {
 	default:
 	}
 	return true
-}
-
-func PutUvarint(buf []byte, x uint64, idx int) int {
-	i := idx
-	for x >= 0x80 {
-		buf[i] = byte(x) | 0x80
-		x >>= 7
-		i++
-	}
-	buf[i] = byte(x)
-	return i + 1
 }
