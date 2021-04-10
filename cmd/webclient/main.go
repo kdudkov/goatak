@@ -102,14 +102,14 @@ func (app *App) Run(ctx context.Context) {
 		}
 
 		app.setOnline(true)
-		app.AddMsg(app.MakeMe())
 
 		wg := &sync.WaitGroup{}
 		wg.Add(3)
 
-		go app.reader(ctx, wg)
-		go app.writer(ctx, wg)
-		go app.sender(ctx, wg)
+		ctx1, cancel := context.WithCancel(ctx)
+		go app.reader(ctx1, wg, cancel)
+		go app.writer(ctx1, wg)
+		go app.sender(ctx1, wg)
 		wg.Wait()
 
 		app.Logger.Info("disconnected")
@@ -134,13 +134,14 @@ func (app *App) connect() error {
 	return nil
 }
 
-func (app *App) reader(ctx context.Context, wg *sync.WaitGroup) {
+func (app *App) reader(ctx context.Context, wg *sync.WaitGroup, cancel context.CancelFunc) {
 	defer wg.Done()
 	n := 0
 	er := cot.NewTagReader(app.conn)
 	pr := cot.NewProtoReader(app.conn)
 	app.Logger.Infof("start reader")
 
+Loop:
 	for ctx.Err() == nil {
 		app.conn.SetReadDeadline(time.Now().Add(time.Second * 120))
 
@@ -150,16 +151,16 @@ func (app *App) reader(ctx context.Context, wg *sync.WaitGroup) {
 		switch atomic.LoadUint32(&app.ver) {
 		case 0:
 			msg, err = app.processXMLRead(er)
-			if err != nil {
-				if err == io.EOF {
-
-				}
-				app.Logger.Errorf("%v", err)
-				continue
-			}
-
 		case 1:
 			msg, err = app.processProtoRead(pr)
+		}
+
+		if err != nil {
+			if err == io.EOF {
+				break Loop
+			}
+			app.Logger.Errorf("%v", err)
+			break Loop
 		}
 
 		if msg == nil {
@@ -182,6 +183,7 @@ func (app *App) reader(ctx context.Context, wg *sync.WaitGroup) {
 
 	app.setOnline(false)
 	app.conn.Close()
+	cancel()
 	app.Logger.Infof("got %d messages", n)
 }
 
@@ -272,11 +274,12 @@ Loop:
 
 func (app *App) sender(ctx context.Context, wg *sync.WaitGroup) {
 	defer wg.Done()
-Loop:
+	app.AddMsg(app.MakeMe())
+
 	for ctx.Err() == nil {
 		select {
 		case <-ctx.Done():
-			break Loop
+			return
 		case <-time.Tick(time.Minute):
 			app.Logger.Debugf("sending pos")
 			app.AddMsg(app.MakeMe())

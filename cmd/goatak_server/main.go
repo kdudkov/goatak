@@ -178,6 +178,8 @@ func (app *App) EventProcessor() {
 			app.SendTo(uid, cot.MakePong())
 			app.SendToAllOther(msg.TakMessage, uid)
 			continue
+		case msg.IsChat():
+			break
 		case strings.HasPrefix(msg.GetType(), "a-"):
 			app.Logger.Debugf("pos %s (%s) stale %s",
 				msg.GetUid(),
@@ -257,7 +259,9 @@ func (app *App) cleanOldUnits() {
 func (app *App) SendToAllOther(msg *cotproto.TakMessage, author string) {
 	app.handlers.Range(func(key, value interface{}) bool {
 		if key.(string) != author {
-			value.(*ClientHandler).AddMsg(msg)
+			if err := value.(*ClientHandler).AddMsg(msg); err != nil {
+				app.Logger.Errorf("error sending to %s: %v", key, err)
+			}
 		}
 		return true
 	})
@@ -265,7 +269,9 @@ func (app *App) SendToAllOther(msg *cotproto.TakMessage, author string) {
 
 func (app *App) SendTo(uid string, msg *cotproto.TakMessage) {
 	if h, ok := app.handlers.Load(uid); ok {
-		h.(*ClientHandler).AddMsg(msg)
+		if err := h.(*ClientHandler).AddMsg(msg); err != nil {
+			app.Logger.Errorf("error sending to %s: %v", uid, err)
+		}
 	}
 }
 

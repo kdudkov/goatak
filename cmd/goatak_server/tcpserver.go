@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -182,8 +183,12 @@ func (h *ClientHandler) GetVersion() int32 {
 
 func (h *ClientHandler) checkFirstMsg(msg *cotproto.TakMessage) {
 	if h.GetUid() == "" && msg.GetCotEvent() != nil {
-		h.SetUid(msg.CotEvent.Uid)
-		h.app.AddHandler(msg.CotEvent.Uid, h)
+		uid := msg.CotEvent.Uid
+		if strings.HasSuffix(uid, "-ping") {
+			uid = uid[:len(uid)-5]
+		}
+		h.SetUid(uid)
+		h.app.AddHandler(uid, h)
 	}
 	if h.GetCallsign() == "" && msg.GetCotEvent().GetDetail().GetContact() != nil {
 		h.callsign = msg.GetCotEvent().GetDetail().GetContact().Callsign

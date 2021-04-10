@@ -164,8 +164,8 @@ type Usericon struct {
 }
 
 type Track struct {
-	Course float64 `xml:"course,attr"`
-	Speed  float64 `xml:"speed,attr"`
+	Course string `xml:"course,attr"`
+	Speed  string `xml:"speed,attr"`
 }
 
 type Uid struct {

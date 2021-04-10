@@ -1,7 +1,9 @@
 package cot
 
 import (
+	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/kdudkov/goatak/cotproto"
 	"github.com/kdudkov/goatak/cotxml"
@@ -45,8 +47,8 @@ func ProtoToEvent(msg *cotproto.TakMessage) *cotxml.Event {
 
 		if d.Track != nil {
 			ev.Detail.Track = &cotxml.Track{
-				Course: d.Track.Course,
-				Speed:  d.Track.Speed,
+				Course: fmt.Sprintf("%f", d.Track.Course),
+				Speed:  fmt.Sprintf("%f", d.Track.Speed),
 			}
 		}
 
@@ -142,8 +144,8 @@ func EventToProto(ev *cotxml.Event) (*cotproto.TakMessage, *cotxml.XMLDetail) {
 
 	if c := ev.Detail.Track; c != nil {
 		msg.CotEvent.Detail.Track = &cotproto.Track{
-			Speed:  c.Speed,
-			Course: c.Course,
+			Speed:  getFloat(c.Speed),
+			Course: getFloat(c.Course),
 		}
 	}
 
@@ -208,4 +210,12 @@ func applyDetails(d1 *cotxml.Detail, xd *cotxml.XMLDetail) {
 	d1.StrokeColor = xd.StrokeColor
 	d1.Marti = xd.Marti
 	d1.Chat = xd.Chat
+}
+
+func getFloat(s string) float64 {
+	f, err := strconv.ParseFloat(strings.ReplaceAll(s, ",", "."), 64)
+	if err == nil {
+		return f
+	}
+	return 0
 }
