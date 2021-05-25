@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/golang/protobuf/proto"
-	v1 "github.com/kdudkov/goatak/cot/v1"
+	"github.com/kdudkov/goatak/cotproto"
 )
 
 func TestUnmarshal(t *testing.T) {
@@ -16,7 +16,7 @@ func TestUnmarshal(t *testing.T) {
 		t.Errorf("error %v", err)
 	}
 
-	evt := new(v1.TakMessage)
+	evt := new(cotproto.TakMessage)
 	if b[0] == 0xbf {
 		l, n1 := binary.Uvarint(b[1:])
 		fmt.Println(l, n1)
@@ -29,8 +29,8 @@ func TestUnmarshal(t *testing.T) {
 }
 
 func TestMarshal(t *testing.T) {
-	evt := &v1.TakMessage{
-		CotEvent: &v1.CotEvent{
+	evt := &cotproto.TakMessage{
+		CotEvent: &cotproto.CotEvent{
 			Type:      "aaaaa",
 			Access:    "",
 			Qos:       "",

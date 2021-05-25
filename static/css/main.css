@@ -1,0 +1,11 @@
+#map {
+    height: 100vh;
+}
+
+table.units {
+    font-size: 10pt;
+}
+
+div.info {
+    font-size: 11pt;
+}
