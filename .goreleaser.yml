@@ -47,8 +47,6 @@ archives:
   - format: zip
     name_template: '{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}'
     files:
-      - static/*
-      - static/**/*
       - goatak_*.yml
 release:
 # If you want to manually examine the release before its live, uncomment this line:
