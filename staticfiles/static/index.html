@@ -5,13 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <meta name="description" content="">
     <meta name="author" content="">
-    <title>Web ATAK client</title>
+    <title>Web ATAK server</title>
 
-    <link rel="stylesheet" href="/static/css/bootstrap.min.css">
-    <link rel="stylesheet" href="/static/css/main.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.1/dist/css/bootstrap.min.css" rel="stylesheet"
+          integrity="sha384-+0n0xVW2eSR5OomGNYDnhzAbDsOXxcvSN1TPprVMTNDbiYZCxYbOOl7+AMvyTG2x" crossorigin="anonymous">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.6.0/dist/leaflet.css"
           integrity="sha512-xwE/Az9zrjBIphAcBb3F6JVqxf46+CDLwfLMHloNu6KEQCAWi6HcDUbeOfBIptF7tcCzusKFjFw2yuvEpDL9wQ=="
           crossorigin=""/>
+    <link rel="stylesheet" href="/static/css/main.css">
 </head>
 <body>
 <div class="container-fluid" id="app">
@@ -35,14 +36,14 @@
                             <img v-bind:src="getImg(u)"/>
                         </td>
                         <td v-on:click="map.setView([u.lat, u.lon]); unit=u;">{{u.callsign}}<span
-                                    v-if="u.status == 'Offline'"> off</span></td>
+                                v-if="u.status == 'Offline'"> off</span></td>
                     </tr>
                 </table>
             </div>
             <div class="h-50">
                 <div class="alert alert-secondary info" role="alert" v-if="unit != null">
                     <h5 v-on:click="map.setView([unit.lat, unit.lon])"><img
-                                v-bind:src="milImg(unit)"/> {{unit.callsign}}
+                            v-bind:src="milImg(unit)"/> {{unit.callsign}}
                         <img height="24" src="/static/icons/coord_unlock.png" v-if="locked_unit != unit.uid"
                              v-on:click="locked_unit=unit.uid"/>
                         <img height="24" src="/static/icons/coord_lock.png" v-if="locked_unit == unit.uid"
@@ -64,11 +65,13 @@
     </div>
 </div>
 </body>
-<script src="/static/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.1/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-gtEjrD/SeCtmISkJkNUaaKMoLD0//ElJ19smozuHV6z3Iehds+3Ulb9Bn9Plx0x4"
+        crossorigin="anonymous"></script>
 <script src="https://unpkg.com/leaflet@1.6.0/dist/leaflet.js"
         integrity="sha512-gZwIG9x3wUXg2hdXF6+rVkLF/0Vi9U8D2Ntg4Ga5I5BZpVkVxlJWbSQtXPSiUTtC0TjtGOmxa1AJPuV0CPthew=="
         crossorigin=""></script>
-<script src="/static/js/vue.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/vue@2"></script>
 <script src="/static/js/milsymbol.js"></script>
 <script src="/static/js/main.js"></script>
 </html>

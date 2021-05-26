@@ -2,6 +2,8 @@ package main
 
 import (
 	"github.com/aofei/air"
+	"github.com/kdudkov/goatak/staticfiles"
+
 	"runtime/pprof"
 
 	"github.com/kdudkov/goatak/model"
@@ -11,8 +13,9 @@ func NewHttp(app *App, address string) *air.Air {
 	srv := air.New()
 	srv.Address = address
 
-	srv.FILE("/", "static/index_cl.html")
-	srv.FILES("/static", "static")
+	staticfiles.EmbedFile(srv, "/", "static/index_cl.html")
+
+	staticfiles.EmbedFiles(srv, "/static")
 
 	srv.GET("/units", getUnitsHandler(app))
 	srv.GET("/config", getConfigHandler(app))
