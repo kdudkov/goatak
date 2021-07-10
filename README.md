@@ -22,4 +22,5 @@ binary builds can be downloaded from [actions](https://github.com/kdudkov/goatak
 * [Leaflet](https://leafletjs.com/)
 * [Milsymbol](https://github.com/spatialillusions/milsymbol)
 
+[![CI](https://github.com/kdudkov/goatak/actions/workflows/main.yml/badge.svg?branch=master)](https://github.com/kdudkov/goatak/actions/workflows/main.yml)
 [By me a beer 🍺](https://buymeacoffee.com/kdudkov)
