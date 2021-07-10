@@ -6,7 +6,7 @@ This is Golang implementation of ATAK server/CoT router aimed to test some ideas
 
 binary builds can be downloaded from [actions](https://github.com/kdudkov/goatak/actions?query=is%3Acompleted+workflow%3ACI)
 
-## GoATAK server features:
+## GoATAK server features
 * TCP and UDP listener
 * simple web interface
 * initial data package support
@@ -18,6 +18,8 @@ binary builds can be downloaded from [actions](https://github.com/kdudkov/goatak
 1. run `goatak_client`
 1. open [http://localhost:8088](http://localhost:8088) in your browser
 
-## Libraries used:
+## Libraries used
 * [Leaflet](https://leafletjs.com/)
 * [Milsymbol](https://github.com/spatialillusions/milsymbol)
+
+[By me a beer 🍺](https://buymeacoffee.com/kdudkov)
