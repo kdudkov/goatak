@@ -7,3 +7,6 @@ me:
   lat: 35.462939
   lon: -97.537283
   zoom: 5
+
+cert_file: server.pem
+key_file: server.key

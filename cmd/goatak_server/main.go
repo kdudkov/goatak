@@ -32,6 +32,10 @@ type App struct {
 	tcpport int
 	udpport int
 	webport int
+	sslport int
+
+	certFile string
+	keyFile  string
 
 	lat  float64
 	lon  float64
@@ -59,6 +63,22 @@ func NewApp(tcpport, udpport, webport int, logger *zap.SugaredLogger) *App {
 	}
 }
 
+func NewAppSsl(tcpport, udpport, webport, sslport int, certFile, keyFile string, logger *zap.SugaredLogger) *App {
+	return &App{
+		Logger:   logger,
+		tcpport:  tcpport,
+		udpport:  udpport,
+		webport:  webport,
+		sslport:  sslport,
+		keyFile:  keyFile,
+		certFile: certFile,
+		ch:       make(chan *cot.Msg, 20),
+		handlers: sync.Map{},
+		units:    sync.Map{},
+		uid:      uuid.New().String(),
+	}
+}
+
 func (app *App) Run() {
 	var cancel context.CancelFunc
 
@@ -75,6 +95,14 @@ func (app *App) Run() {
 			panic(err)
 		}
 	}()
+
+	if app.keyFile != "" && app.certFile != "" {
+		go func() {
+			if err := app.ListenSSl(app.certFile, app.keyFile, fmt.Sprintf(":%d", app.sslport)); err != nil {
+				panic(err)
+			}
+		}()
+	}
 
 	go func() {
 		if err := NewHttp(app, fmt.Sprintf(":%d", app.webport)).Serve(); err != nil {
@@ -297,6 +325,7 @@ func main() {
 	viper.SetDefault("web_port", 8080)
 	viper.SetDefault("tcp_port", 8999)
 	viper.SetDefault("udp_port", 8999)
+	viper.SetDefault("ssl_port", 8089)
 
 	viper.SetDefault("me.lat", 35.462939)
 	viper.SetDefault("me.lon", -97.537283)
@@ -313,12 +342,16 @@ func main() {
 	logger, _ := cfg.Build()
 	defer logger.Sync()
 
-	app := NewApp(
+	app := NewAppSsl(
 		viper.GetInt("tcp_port"),
 		viper.GetInt("udp_port"),
 		viper.GetInt("web_port"),
+		viper.GetInt("ssl_port"),
+		viper.GetString("cert_file"),
+		viper.GetString("key_file"),
 		logger.Sugar(),
 	)
+
 	app.logging = *logging
 	app.lat = viper.GetFloat64("me.lat")
 	app.lon = viper.GetFloat64("me.lon")

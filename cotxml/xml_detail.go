@@ -18,16 +18,16 @@ type XMLDetail struct {
 
 	Color *struct {
 		Value string `xml:"argb,attr,omitempty"`
-	} `xml:"color,omitempty" v1:"full"`
+	} `xml:"color,omitempty"`
 	StrokeColor *struct {
 		Value string `xml:"value,attr,omitempty"`
-	} `xml:"strokeColor,omitempty" v1:"full"`
+	} `xml:"strokeColor,omitempty"`
 	FillColor *struct {
 		Value string `xml:"value,attr,omitempty"`
-	} `xml:"fillColor,omitempty" v1:"full"`
+	} `xml:"fillColor,omitempty"`
 	StrokeWeight *struct {
 		Value string `xml:"value,attr,omitempty"`
-	} `xml:"strokeWeight,omitempty" v1:"full"`
+	} `xml:"strokeWeight,omitempty"`
 }
 type Contact2 struct {
 	Phone string `xml:"phone,attr,omitempty"`

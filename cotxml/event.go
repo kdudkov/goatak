@@ -38,31 +38,31 @@ type Point struct {
 }
 
 type Detail struct {
-	Uid               *Uid               `xml:"uid,omitempty" v1:"full"`
+	Uid               *Uid               `xml:"uid,omitempty"`
 	TakVersion        *TakVersion        `xml:"takv,omitempty"`
 	TakControl        *TakControl        `xml:"TakControl,omitempty"`
-	Contact           *Contact           `xml:"contact,omitempty" v1:"partial"`
+	Contact           *Contact           `xml:"contact,omitempty"`
 	PrecisionLocation *Precisionlocation `xml:"precisionlocation,omitempty"`
 	Group             *Group             `xml:"__group,omitempty"`
-	Status            *Status            `xml:"status,omitempty" v1:"partial"`
-	Usericon          *Usericon          `xml:"usericon,omitempty" v1:"full"`
+	Status            *Status            `xml:"status,omitempty"`
+	Usericon          *Usericon          `xml:"usericon,omitempty"`
 	Track             *Track             `xml:"track,omitempty"`
-	Chat              *Chat              `xml:"__chat,omitempty" v1:"full"`
-	Link              []*Link            `xml:"link,omitempty" v1:"full"`
-	Remarks           *Remarks           `xml:"remarks,omitempty" v1:"full"`
-	Marti             *Marti             `xml:"marti,omitempty" v1:"full"`
+	Chat              *Chat              `xml:"__chat,omitempty"`
+	Link              []*Link            `xml:"link,omitempty"`
+	Remarks           *Remarks           `xml:"remarks,omitempty"`
+	Marti             *Marti             `xml:"marti,omitempty"`
 	Color             *struct {
 		Value string `xml:"argb,attr,omitempty"`
-	} `xml:"color,omitempty" v1:"full"`
+	} `xml:"color,omitempty"`
 	StrokeColor *struct {
 		Value string `xml:"value,attr,omitempty"`
-	} `xml:"strokeColor,omitempty" v1:"full"`
+	} `xml:"strokeColor,omitempty"`
 	FillColor *struct {
 		Value string `xml:"value,attr,omitempty"`
-	} `xml:"fillColor,omitempty" v1:"full"`
+	} `xml:"fillColor,omitempty"`
 	StrokeWeight *struct {
 		Value string `xml:"value,attr,omitempty"`
-	} `xml:"strokeWeight,omitempty" v1:"full"`
+	} `xml:"strokeWeight,omitempty"`
 }
 
 func (d Detail) String() string {
@@ -98,7 +98,7 @@ func (d Detail) String() string {
 type Contact struct {
 	Endpoint string `xml:"endpoint,attr,omitempty"`
 	Callsign string `xml:"callsign,attr,omitempty"`
-	Phone    string `xml:"phone,attr,omitempty" v1:"ok"`
+	Phone    string `xml:"phone,attr,omitempty"`
 }
 
 func (c *Contact) String() string {
@@ -156,7 +156,7 @@ func (g *Group) String() string {
 type Status struct {
 	Text      string `xml:",chardata"`
 	Battery   string `xml:"battery,attr,omitempty"`
-	Readiness string `xml:"readiness,attr,omitempty" v1:"ok"`
+	Readiness string `xml:"readiness,attr,omitempty"`
 }
 
 type Usericon struct {

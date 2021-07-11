@@ -4,7 +4,7 @@ import (
 	"encoding/xml"
 	"testing"
 
-	"github.com/kdudkov/goatak/cot"
+	"github.com/kdudkov/goatak/cotxml"
 )
 
 func TestParseEvent(t *testing.T) {
@@ -23,8 +23,7 @@ func TestParseEvent(t *testing.T) {
 </event>
 `
 
-	e := &cot.Event{}
+	e := &cotxml.Event{}
 
 	_ = xml.Unmarshal([]byte(evt), e)
-
 }
