@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -14,42 +13,27 @@ import (
 	"github.com/google/uuid"
 )
 
-type PackageInfo struct {
-	UID                string    `json:"UID"`
-	SubmissionDateTime time.Time `json:"SubmissionDateTime"`
-	Keywords           []string  `json:"Keywords"`
-	MIMEType           string    `json:"MIMEType"`
-	Size               int64     `json:"Size"`
-	SubmissionUser     string    `json:"SubmissionUser"`
-	PrimaryKey         int       `json:"PrimaryKey"`
-	Hash               string    `json:"Hash"`
-	CreatorUID         string    `json:"CreatorUid"`
-	Name               string    `json:"Name"`
-	Tool               string    `json:"Tool"`
-}
-
 func addMartiEndpoints(app *App, a *air.Air) {
-	a.GET("/Marti/api/version", getVersionHandler())
-	a.GET("/Marti/api/clientEndPoints", getVersionHandler())
-	a.GET("/Marti/api/version/config", getVersionConfigHandler())
+	a.GET("/Marti/api/version", getVersionHandler(app))
+	a.GET("/Marti/api/version/config", getVersionConfigHandler(app))
+	a.GET("/Marti/api/clientEndPoints", getVersionHandler(app))
+	a.GET("/Marti/api/sync/metadata/:hash/tool", getMetadataGetHandler(app))
+	a.PUT("/Marti/api/sync/metadata/:hash/tool", getMetadataPutHandler(app))
 
+	a.GET("/Marti/sync/content", getMetadataGetHandler(app))
 	a.GET("/Marti/sync/search", getSearchHandler(app))
 	a.GET("/Marti/sync/missionquery", getMissionQueryHandler(app))
 	a.POST("/Marti/sync/missionupload", getMissionUploadHandler(app))
-
-	a.GET("/Marti/sync/content", getMetadataGetHandler(app))
-
-	a.GET("/Marti/api/sync/metadata/:hash/tool", getMetadataGetHandler(app))
-	a.PUT("/Marti/api/sync/metadata/:hash/tool", getMetadataPutHandler(app))
 }
 
-func getVersionHandler() func(req *air.Request, res *air.Response) error {
+func getVersionHandler(app *App) func(req *air.Request, res *air.Response) error {
 	return func(req *air.Request, res *air.Response) error {
+		app.Logger.Infof("%s %s", req.Method, req.Path)
 		return res.WriteString(fmt.Sprintf("GoATAK server %s", gitRevision))
 	}
 }
 
-func getVersionConfigHandler() func(req *air.Request, res *air.Response) error {
+func getVersionConfigHandler(app *App) func(req *air.Request, res *air.Response) error {
 	d := make(map[string]interface{}, 0)
 	r := make(map[string]interface{}, 0)
 	//r["version"] = "3"
@@ -60,6 +44,7 @@ func getVersionConfigHandler() func(req *air.Request, res *air.Response) error {
 	d["version"] = gitRevision
 	d["hostname"] = "0.0.0.0"
 	return func(req *air.Request, res *air.Response) error {
+		app.Logger.Infof("%s %s", req.Method, req.Path)
 		return res.WriteJSON(r)
 	}
 }
@@ -86,13 +71,12 @@ func getMissionQueryHandler(app *App) func(req *air.Request, res *air.Response) 
 			res.Status = http.StatusNotAcceptable
 			return res.WriteString("no hash")
 		}
-		dir := filepath.Join(baseDir, hash)
-		if !exists(dir) {
+		if _, ok := app.packageManager.Get(hash); ok {
+			return res.WriteString(fmt.Sprintf("/Marti/api/sync/metadata/%s/tool", hash))
+		} else {
 			res.Status = http.StatusNotFound
 			return res.WriteString("not found")
 		}
-
-		return res.WriteString(fmt.Sprintf("/Marti/api/sync/metadata/%s/tool", hash))
 	}
 }
 
@@ -113,7 +97,6 @@ func getMissionUploadHandler(app *App) func(req *air.Request, res *air.Response)
 			return res.WriteString("no filename")
 		}
 
-		dir := filepath.Join(baseDir, hash)
 		info := &PackageInfo{
 			PrimaryKey:         1,
 			UID:                uuid.New().String(),
@@ -127,7 +110,7 @@ func getMissionUploadHandler(app *App) func(req *air.Request, res *air.Response)
 		}
 
 		if f, fh, err := req.HTTPRequest().FormFile("assetfile"); err == nil {
-			n, err := saveFile(dir, fh.Filename, f)
+			n, err := app.packageManager.SaveFile(hash, fh.Filename, f)
 			if err != nil {
 				return err
 			}
@@ -135,15 +118,26 @@ func getMissionUploadHandler(app *App) func(req *air.Request, res *air.Response)
 			info.Size = n
 			info.MIMEType = fh.Header.Get("Content-type")
 
-			if err := saveInfo(hash, info); err != nil {
-				app.Logger.Errorf("%v", err)
-			}
+			app.packageManager.Put(hash, info)
 
 			app.Logger.Infof("save packege %s %s", fname, hash)
 			return res.WriteString(fmt.Sprintf("/Marti/api/sync/metadata/%s/tool", hash))
 		} else {
 			return err
 		}
+	}
+}
+
+func getContentGetHandler(app *App) func(req *air.Request, res *air.Response) error {
+	return func(req *air.Request, res *air.Response) error {
+		app.Logger.Infof("%s %s", req.Method, req.Path)
+		uid := getStringParam(req, "uid")
+		if uid == "" {
+			res.Status = http.StatusNotAcceptable
+			return res.WriteString("no uid")
+		}
+
+		return nil
 	}
 }
 
@@ -157,26 +151,14 @@ func getMetadataGetHandler(app *App) func(req *air.Request, res *air.Response) e
 			return res.WriteString("no hash")
 		}
 
-		dir := filepath.Join(baseDir, hash)
-
-		if !exists(dir) {
+		if pi, ok := app.packageManager.Get(hash); ok {
+			res.Header.Set("Content-type", pi.MIMEType)
+			return res.WriteFile(app.packageManager.GetFile(hash))
+		} else {
+			app.Logger.Infof("not found - %s", hash)
 			res.Status = http.StatusNotFound
 			return res.WriteString("not found")
 		}
-
-		if files, err := ioutil.ReadDir(filepath.Join(dir)); err == nil {
-			for _, f := range files {
-				if f.IsDir() || f.Name() == infoFileName {
-					continue
-				}
-				app.Logger.Infof("get file %s", f.Name())
-				return res.WriteFile(filepath.Join(baseDir, hash, f.Name()))
-			}
-		}
-
-		app.Logger.Infof("not found - %s", hash)
-		res.Status = http.StatusNotFound
-		return res.WriteString("not found")
 	}
 }
 
@@ -191,6 +173,11 @@ func getMetadataPutHandler(app *App) func(req *air.Request, res *air.Response) e
 		}
 
 		s, _ := ioutil.ReadAll(req.Body)
+
+		if pi, ok := app.packageManager.Get(hash); ok {
+			pi.Tool = string(s)
+			app.packageManager.Put(hash, pi)
+		}
 		app.Logger.Infof("body: %s", s)
 
 		return nil
@@ -202,36 +189,24 @@ func getSearchHandler(app *App) func(req *air.Request, res *air.Response) error 
 		app.Logger.Infof("%s %s", req.Method, req.Path)
 		kw := getStringParam(req, "keywords")
 
-		//tool := req.Param("tool").Value().String()
+		//tool := getStringParam(req, "tool")
 
 		result := make(map[string]interface{}, 0)
 		packages := make([]*PackageInfo, 0)
 
-		files, err := ioutil.ReadDir(baseDir)
-		if err != nil {
-			return err
-		}
-
-		for _, f := range files {
-			if !f.IsDir() {
-				continue
-			}
-			if pi, err := loadInfo(f.Name()); err == nil {
-				if kw != "" {
-					for _, s := range pi.Keywords {
-						if s == kw {
-							packages = append(packages, pi)
-							break
-						}
+		app.packageManager.Range(func(key string, pi *PackageInfo) bool {
+			if kw != "" {
+				for _, s := range pi.Keywords {
+					if s == kw {
+						packages = append(packages, pi)
+						break
 					}
-				} else {
-					packages = append(packages, pi)
 				}
-
 			} else {
-				app.Logger.Errorf("error :%v", err)
+				packages = append(packages, pi)
 			}
-		}
+			return true
+		})
 
 		result["results"] = packages
 		result["resultCount"] = len(packages)
@@ -275,44 +250,4 @@ func exists(path string) bool {
 		return os.IsExist(err)
 	}
 	return true
-}
-
-func saveInfo(hash string, finfo *PackageInfo) error {
-	fn, err := os.Create(filepath.Join(baseDir, hash, infoFileName))
-	if err != nil {
-		return err
-	}
-	defer fn.Close()
-
-	enc := json.NewEncoder(fn)
-
-	return enc.Encode(finfo)
-}
-
-func loadInfo(hash string) (*PackageInfo, error) {
-	fname := filepath.Join(baseDir, hash, infoFileName)
-
-	if !exists(fname) {
-		return nil, fmt.Errorf("info file %s does not exists", fname)
-	}
-
-	pi := new(PackageInfo)
-
-	f, err := os.Open(fname)
-	if err != nil {
-		return nil, err
-	}
-	defer f.Close()
-
-	dec := json.NewDecoder(f)
-	err = dec.Decode(pi)
-
-	if err != nil {
-		return pi, err
-	}
-	if pi.Tool == "" {
-		pi.Tool = "public"
-	}
-
-	return pi, nil
 }

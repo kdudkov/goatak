@@ -15,11 +15,6 @@ import (
 	"github.com/kdudkov/goatak/staticfiles"
 )
 
-const (
-	baseDir      = "./data"
-	infoFileName = "info.json"
-)
-
 type HttpServer struct {
 	app *App
 	air *air.Air

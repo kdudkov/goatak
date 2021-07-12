@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"log"
 	"os"
 	"os/signal"
 	"strings"
@@ -28,11 +29,12 @@ var (
 )
 
 type App struct {
-	Logger  *zap.SugaredLogger
-	tcpport int
-	udpport int
-	webport int
-	sslport int
+	Logger         *zap.SugaredLogger
+	packageManager *PackageManager
+	tcpport        int
+	udpport        int
+	webport        int
+	sslport        int
 
 	certFile string
 	keyFile  string
@@ -52,34 +54,40 @@ type App struct {
 
 func NewApp(tcpport, udpport, webport int, logger *zap.SugaredLogger) *App {
 	return &App{
-		Logger:   logger,
-		tcpport:  tcpport,
-		udpport:  udpport,
-		webport:  webport,
-		ch:       make(chan *cot.Msg, 20),
-		handlers: sync.Map{},
-		units:    sync.Map{},
-		uid:      uuid.New().String(),
+		Logger:         logger,
+		packageManager: NewPackageManager(logger),
+		tcpport:        tcpport,
+		udpport:        udpport,
+		webport:        webport,
+		ch:             make(chan *cot.Msg, 20),
+		handlers:       sync.Map{},
+		units:          sync.Map{},
+		uid:            uuid.New().String(),
 	}
 }
 
 func NewAppSsl(tcpport, udpport, webport, sslport int, certFile, keyFile string, logger *zap.SugaredLogger) *App {
 	return &App{
-		Logger:   logger,
-		tcpport:  tcpport,
-		udpport:  udpport,
-		webport:  webport,
-		sslport:  sslport,
-		keyFile:  keyFile,
-		certFile: certFile,
-		ch:       make(chan *cot.Msg, 20),
-		handlers: sync.Map{},
-		units:    sync.Map{},
-		uid:      uuid.New().String(),
+		Logger:         logger,
+		packageManager: NewPackageManager(logger),
+		tcpport:        tcpport,
+		udpport:        udpport,
+		webport:        webport,
+		sslport:        sslport,
+		keyFile:        keyFile,
+		certFile:       certFile,
+		ch:             make(chan *cot.Msg, 20),
+		handlers:       sync.Map{},
+		units:          sync.Map{},
+		uid:            uuid.New().String(),
 	}
 }
 
 func (app *App) Run() {
+	if err := app.packageManager.Init(); err != nil {
+		log.Fatal(err)
+	}
+
 	var cancel context.CancelFunc
 
 	app.ctx, cancel = context.WithCancel(context.Background())
