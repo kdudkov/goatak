@@ -28,54 +28,39 @@ var (
 	lastSeenOfflineTimeout = time.Minute * 2
 )
 
+type AppConfig struct {
+	tcpPort int
+	udpPort int
+	webPort int
+	apiPort int
+	sslPort int
+
+	logging  bool
+	certFile string
+	keyFile  string
+}
+
 type App struct {
 	Logger         *zap.SugaredLogger
 	packageManager *PackageManager
-	tcpport        int
-	udpport        int
-	webport        int
-	sslport        int
-
-	certFile string
-	keyFile  string
-
-	lat  float64
-	lon  float64
-	zoom int8
+	config         *AppConfig
+	lat            float64
+	lon            float64
+	zoom           int8
 
 	handlers sync.Map
 	units    sync.Map
 
-	ctx     context.Context
-	uid     string
-	ch      chan *cot.Msg
-	logging bool
+	ctx context.Context
+	uid string
+	ch  chan *cot.Msg
 }
 
-func NewApp(tcpport, udpport, webport int, logger *zap.SugaredLogger) *App {
+func NewApp(config *AppConfig, logger *zap.SugaredLogger) *App {
 	return &App{
 		Logger:         logger,
+		config:         config,
 		packageManager: NewPackageManager(logger),
-		tcpport:        tcpport,
-		udpport:        udpport,
-		webport:        webport,
-		ch:             make(chan *cot.Msg, 20),
-		handlers:       sync.Map{},
-		units:          sync.Map{},
-		uid:            uuid.New().String(),
-	}
-}
-
-func NewAppSsl(tcpport, udpport, webport, sslport int, certFile, keyFile string, logger *zap.SugaredLogger) *App {
-	return &App{
-		Logger:         logger,
-		packageManager: NewPackageManager(logger),
-		tcpport:        tcpport,
-		udpport:        udpport,
-		webport:        webport,
-		sslport:        sslport,
-		keyFile:        keyFile,
-		certFile:       certFile,
 		ch:             make(chan *cot.Msg, 20),
 		handlers:       sync.Map{},
 		units:          sync.Map{},
@@ -93,30 +78,29 @@ func (app *App) Run() {
 	app.ctx, cancel = context.WithCancel(context.Background())
 
 	go func() {
-		if err := app.ListenUDP(fmt.Sprintf(":%d", app.udpport)); err != nil {
+		if err := app.ListenUDP(fmt.Sprintf(":%d", app.config.udpPort)); err != nil {
 			panic(err)
 		}
 	}()
 
 	go func() {
-		if err := app.ListenTCP(fmt.Sprintf(":%d", app.tcpport)); err != nil {
+		if err := app.ListenTCP(fmt.Sprintf(":%d", app.config.tcpPort)); err != nil {
 			panic(err)
 		}
 	}()
 
-	if app.keyFile != "" && app.certFile != "" {
+	if app.config.keyFile != "" && app.config.certFile != "" {
 		go func() {
-			if err := app.ListenSSl(app.certFile, app.keyFile, fmt.Sprintf(":%d", app.sslport)); err != nil {
+			if err := app.ListenSSl(app.config.certFile, app.config.keyFile, fmt.Sprintf(":%d", app.config.sslPort)); err != nil {
 				panic(err)
 			}
 		}()
 	}
 
-	go func() {
-		if err := NewHttp(app, fmt.Sprintf(":%d", app.webport)).Serve(); err != nil {
-			panic(err)
-		}
-	}()
+	NewHttp(app,
+		fmt.Sprintf(":%d", app.config.webPort),
+		fmt.Sprintf(":%d", app.config.apiPort),
+	).Start()
 
 	go app.EventProcessor()
 	go app.cleaner()
@@ -191,7 +175,7 @@ func (app *App) EventProcessor() {
 			continue
 		}
 
-		if app.logging {
+		if app.config.logging {
 			if f, err := os.OpenFile(msg.GetType()+".log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666); err == nil {
 				f.WriteString(msg.TakMessage.String())
 				f.Close()
@@ -334,6 +318,7 @@ func main() {
 	viper.SetDefault("tcp_port", 8999)
 	viper.SetDefault("udp_port", 8999)
 	viper.SetDefault("ssl_port", 8089)
+	viper.SetDefault("api_port", 8443)
 
 	viper.SetDefault("me.lat", 35.462939)
 	viper.SetDefault("me.lon", -97.537283)
@@ -350,17 +335,19 @@ func main() {
 	logger, _ := cfg.Build()
 	defer logger.Sync()
 
-	app := NewAppSsl(
-		viper.GetInt("tcp_port"),
-		viper.GetInt("udp_port"),
-		viper.GetInt("web_port"),
-		viper.GetInt("ssl_port"),
-		viper.GetString("cert_file"),
-		viper.GetString("key_file"),
-		logger.Sugar(),
-	)
+	config := &AppConfig{
+		tcpPort:  viper.GetInt("tcp_port"),
+		udpPort:  viper.GetInt("udp_port"),
+		webPort:  viper.GetInt("web_port"),
+		apiPort:  viper.GetInt("api_port"),
+		sslPort:  viper.GetInt("ssl_port"),
+		logging:  *logging,
+		certFile: viper.GetString("cert_file"),
+		keyFile:  viper.GetString("key_file"),
+	}
 
-	app.logging = *logging
+	app := NewApp(config, logger.Sugar())
+
 	app.lat = viper.GetFloat64("me.lat")
 	app.lon = viper.GetFloat64("me.lon")
 	app.zoom = int8(viper.GetInt("me.zoom"))

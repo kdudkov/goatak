@@ -18,9 +18,10 @@ import (
 type HttpServer struct {
 	app *App
 	air *air.Air
+	api *air.Air
 }
 
-func NewHttp(app *App, address string) *HttpServer {
+func NewHttp(app *App, address string, apiAddress string) *HttpServer {
 	a := air.New()
 	a.Address = address
 
@@ -34,22 +35,41 @@ func NewHttp(app *App, address string) *HttpServer {
 
 	a.GET("/stack", getStackHandler())
 
-	addMartiEndpoints(app, a)
-
-	a.NotFoundHandler = getNotFoundHandler(app)
-
 	a.RendererTemplateLeftDelim = "[["
 	a.RendererTemplateRightDelim = "]]"
+
+	api := air.New()
+	api.Address = apiAddress
+
+	if app.config.keyFile != "" && app.config.certFile != "" {
+		api.TLSCertFile = app.config.certFile
+		api.TLSKeyFile = app.config.keyFile
+	}
+
+	addMartiEndpoints(app, api)
+
+	api.NotFoundHandler = getNotFoundHandler(app)
 
 	return &HttpServer{
 		app: app,
 		air: a,
+		api: api,
 	}
 }
 
-func (h *HttpServer) Serve() error {
-	h.app.Logger.Infof("listening http at %s", h.air.Address)
-	return h.air.Serve()
+func (h *HttpServer) Start() {
+	go func() {
+		h.app.Logger.Infof("listening http at %s", h.air.Address)
+		if err := h.air.Serve(); err != nil {
+			h.app.Logger.Panicf(err.Error())
+		}
+	}()
+	go func() {
+		h.app.Logger.Infof("listening api calls at %s", h.api.Address)
+		if err := h.api.Serve(); err != nil {
+			h.app.Logger.Panicf(err.Error())
+		}
+	}()
 }
 
 func getNotFoundHandler(app *App) func(req *air.Request, res *air.Response) error {
