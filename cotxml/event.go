@@ -300,6 +300,24 @@ func VersionSupportMsg(ver int8) *Event {
 	}
 }
 
+func BasicMsg(typ string, uid string, stale time.Duration) *Event {
+	return &Event{
+		Version: "2.0",
+		Uid:     uid,
+		Type:    typ,
+		Time:    time.Now().UTC(),
+		Start:   time.Now().UTC(),
+		Stale:   time.Now().Add(stale).UTC(),
+		Point: Point{
+			Lat: 0,
+			Lon: 0,
+			Hae: 0,
+			Ce:  9999999,
+			Le:  9999999,
+		},
+	}
+}
+
 func VersionReqMsg(ver int8) *Event {
 	stale := time.Minute
 	return &Event{
