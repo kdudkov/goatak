@@ -10,7 +10,7 @@ LDFLAGS=-ldflags "-s -X main.gitRevision=$(GIT_REVISION) -X main.gitCommit=$(GIT
 
 .PHONY: clean
 clean:
-	rm bin/* || true
+	rm -rf dist/* || true
 
 .PHONY: dep
 dep:

@@ -15,20 +15,24 @@ const colors = new Map([
     ['Brown', 'brown'],
 ]);
 
+function getMarker(item) {
+    return r.Icon()
+}
+
 function getIcon(item, withText) {
     if (item.team !== "") {
         return {uri: toUri(roleCircle(24, colors.get(item.team), '#000', item.role)), x: 12, y: 12};
     }
     if (item.icon.startsWith("COT_MAPPING_SPOTMAP/")) {
-        return {uri: toUri(circle(16, item.color === '' ? 'green' : item.color, '#000', null)), x: 5, y: 5}
+        return {uri: toUri(circle(10, item.color === '' ? 'green' : item.color, '#000', null)), x: 5, y: 5}
     }
-    return getMilIcon(24, item, withText);
+    return getMilIcon(item, withText);
 }
 
-function getMilIcon(size, item, withText) {
-    let opts = {size: size};
+function getMilIcon(item, withText) {
+    let opts = {size: 24};
     if (withText) {
-        opts['uniqueDesignation'] = item.callsign;
+        //opts['uniqueDesignation'] = item.callsign;
     }
     if (withText && item.speed > 0) {
         opts['speed'] = (item.speed * 3.6).toFixed(1) + " km/h";
@@ -43,13 +47,56 @@ let app = new Vue({
     el: '#app',
     data: {
         units: new Map(),
-        alert: null,
+        markers: new Map(),
+        map: null,
         ts: 0,
+        locked_unit: '',
+        unit: null,
+        config: null,
     },
 
     mounted() {
+        this.map = L.map('map');
+        let osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+            maxZoom: 19
+        });
+        let topoAttribution = 'Kartendaten: &copy; <a href="https://openstreetmap.org/copyright">OpenStreetMap</a>-Mitwirkende, <a href="http://viewfinderpanoramas.org">SRTM</a> | Kartendarstellung: &copy; <a href="https://opentopomap.org">OpenTopoMap</a>';
+        let opentopo = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+            attribution: topoAttribution,
+            maxZoom: 17
+        });
+        let google = L.tileLayer('http://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}&s=Galileo', {
+            subdomains: ['mt1', 'mt2', 'mt3'],
+            maxZoom: 20
+        });
+        let sputnik = L.tileLayer('https://{s}.tilessputnik.ru/{z}/{x}/{y}.png', {
+            maxZoom: 20
+        });
+        osm.addTo(this.map);
+
+        L.control.scale({metric: true}).addTo(this.map);
+        L.control.layers({
+            "OSM": osm,
+            "Telesputnik": sputnik,
+            "OpenTopoMap": opentopo,
+            "Google sat": google
+        }, null, {hideSingleBase: true}).addTo(this.map);
+
         this.renew();
         this.timer = setInterval(this.renew, 3000);
+
+        let vm = this;
+        fetch('/config')
+            .then(function (response) {
+                return response.json()
+            })
+            .then(function (data) {
+                vm.config = data;
+                if (vm.map != null) {
+                    vm.map.setView([data.lat, data.lon], data.zoom);
+                }
+            });
     },
     computed: {
         all_units: function () {
@@ -63,6 +110,7 @@ let app = new Vue({
             return this.ts && arr;
         }
     },
+
     methods: {
         renew: function () {
             let vm = this;
@@ -73,13 +121,57 @@ let app = new Vue({
                     return response.json()
                 })
                 .then(function (data) {
+                    let keys = new Set();
+
                     data.units.forEach(function (i) {
                         units.set(i.uid, i);
+                        vm.updateMarker(i);
+                        keys.add(i.uid);
+                        if (vm.unit != null && vm.unit.uid === i.uid) {
+                            vm.unit = i;
+                        }
+                    });
+
+                    vm.units.forEach(function (v, k) {
+                        if (!keys.has(k)) {
+                            vm.removeUnit(k);
+                        }
                     });
                     vm.ts += 1;
                 });
         },
+        updateMarker: function (item) {
+            if (this.markers.has(item.uid)) {
+                let p = this.markers.get(item.uid);
+                p.setLatLng([item.lat, item.lon], {title: item.callsign});
+                let icon = getIcon(item, true);
+                p.setIcon(L.icon({
+                    iconUrl: icon.uri,
+                    iconAnchor: new L.Point(icon.x, icon.y)
+                }));
 
+                // p.bindPopup(popup(item));
+                if (this.locked_unit === item.uid) {
+                    this.map.setView([item.lat, item.lon]);
+                }
+                p.on('click', function (e) {
+                    app.setUnit(item.uid);
+                });
+            } else {
+                p = L.marker([item.lat, item.lon]);
+                let icon = getIcon(item, true);
+                p.setIcon(L.icon({
+                    iconUrl: icon.uri,
+                    iconAnchor: new L.Point(icon.x, icon.y)
+                }));
+                this.markers.set(item.uid, p);
+                p.addTo(this.map);
+                // p.bindPopup(popup(item));
+                p.on('click', function (e) {
+                    app.setUnit(item.uid);
+                });
+            }
+        },
         removeUnit: function (uid) {
             if (this.markers.has(uid)) {
                 p = this.markers.get(uid);

@@ -18,6 +18,7 @@ func NewHttp(app *App, address string) *air.Air {
 	staticfiles.EmbedFiles(srv, "/static")
 
 	srv.GET("/units", getUnitsHandler(app))
+	srv.GET("/points", getPointsHandler(app))
 	srv.GET("/config", getConfigHandler(app))
 
 	srv.GET("/stack", getStackHandler())
@@ -43,6 +44,14 @@ func getUnitsHandler(app *App) func(req *air.Request, res *air.Response) error {
 
 		r := make(map[string]interface{}, 0)
 		r["units"] = units
+
+		return res.WriteJSON(r)
+	}
+}
+
+func getPointsHandler(app *App) func(req *air.Request, res *air.Response) error {
+	return func(req *air.Request, res *air.Response) error {
+		r := make([]*model.WebUnit, 0)
 
 		return res.WriteJSON(r)
 	}

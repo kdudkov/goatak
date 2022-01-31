@@ -3,11 +3,7 @@ package main
 import (
 	"embed"
 	"errors"
-	"fmt"
-	"io/fs"
-	"mime"
 	"net/http"
-	"path/filepath"
 	"runtime/pprof"
 
 	"github.com/aofei/air"
@@ -15,23 +11,32 @@ import (
 	"github.com/kdudkov/goatak/staticfiles"
 )
 
+//go:embed templates
+var templates embed.FS
+
 type HttpServer struct {
-	app *App
-	air *air.Air
-	api *air.Air
+	app      *App
+	air      *air.Air
+	api      *air.Air
+	renderer *Renderer
 }
 
 func NewHttp(app *App, address string, apiAddress string) *HttpServer {
 	a := air.New()
 	a.Address = address
 
-	staticfiles.EmbedFile(a, "/", "static/index.html")
-	staticfiles.EmbedFile(a, "/map", "static/map.html")
-
 	staticfiles.EmbedFiles(a, "/static")
 
+	renderer := new(Renderer)
+	renderer.LeftDelimeter = "[["
+	renderer.RightDelimeter = "]]"
+	renderer.Load(templates, "templates")
+
+	a.GET("/", getIndexHandler(app, renderer))
+	a.GET("/map", getMapHandler(app, renderer))
 	a.GET("/config", getConfigHandler(app))
 	a.GET("/units", getUnitsHandler(app))
+	a.GET("/points", getPointsHandler(app))
 
 	a.GET("/stack", getStackHandler())
 
@@ -51,9 +56,10 @@ func NewHttp(app *App, address string, apiAddress string) *HttpServer {
 	api.NotFoundHandler = getNotFoundHandler(app)
 
 	return &HttpServer{
-		app: app,
-		air: a,
-		api: api,
+		app:      app,
+		air:      a,
+		api:      api,
+		renderer: renderer,
 	}
 }
 
@@ -70,6 +76,32 @@ func (h *HttpServer) Start() {
 			h.app.Logger.Panicf(err.Error())
 		}
 	}()
+}
+
+func getIndexHandler(_ *App, r *Renderer) func(req *air.Request, res *air.Response) error {
+	return func(req *air.Request, res *air.Response) error {
+		data := map[string]interface{}{
+			"js": []string{"main.js"},
+		}
+		s, err := r.Render(data, "index.html", "header.html")
+		if err != nil {
+			return err
+		}
+		return res.WriteHTML(s)
+	}
+}
+
+func getMapHandler(_ *App, r *Renderer) func(req *air.Request, res *air.Response) error {
+	return func(req *air.Request, res *air.Response) error {
+		data := map[string]interface{}{
+			"js": []string{"map.js"},
+		}
+		s, err := r.Render(data, "map.html", "header.html")
+		if err != nil {
+			return err
+		}
+		return res.WriteHTML(s)
+	}
 }
 
 func getNotFoundHandler(app *App) func(req *air.Request, res *air.Response) error {
@@ -112,36 +144,29 @@ func getUnitsHandler(app *App) func(req *air.Request, res *air.Response) error {
 	}
 }
 
-func getStackHandler() func(req *air.Request, res *air.Response) error {
+func getPointsHandler(app *App) func(req *air.Request, res *air.Response) error {
 	return func(req *air.Request, res *air.Response) error {
-		return pprof.Lookup("goroutine").WriteTo(res.Body, 1)
+		units := make([]*model.WebUnit, 0)
+
+		app.units.Range(func(key, value interface{}) bool {
+			switch v := value.(type) {
+			case *model.Unit:
+				units = append(units, v.ToWeb())
+			case *model.Contact:
+				units = append(units, v.ToWeb())
+			}
+			return true
+		})
+
+		r := make(map[string]interface{}, 0)
+		r["units"] = units
+
+		return res.WriteJSON(r)
 	}
 }
 
-func getStaticHandler(efs embed.FS) func(req *air.Request, res *air.Response) error {
-	hfs := http.FS(efs)
-	fsh := http.FileServer(http.FS(efs))
-
+func getStackHandler() func(req *air.Request, res *air.Response) error {
 	return func(req *air.Request, res *air.Response) error {
-		fsh.ServeHTTP(res.HTTPResponseWriter(), req.HTTPRequest())
-		path := req.Param("*").Value().String()
-		fmt.Println(path)
-		path = filepath.FromSlash("/" + path)
-		path = filepath.Clean(path)
-
-		f, err := hfs.Open(path)
-		if err != nil {
-			if _, ok := err.(*fs.PathError); ok {
-				res.Status = http.StatusNotFound
-				return fmt.Errorf("%s is not found", path)
-			}
-			return err
-		}
-
-		if res.Header.Get("Content-Type") == "" {
-			res.Header.Set("Content-Type", mime.TypeByExtension(filepath.Ext(path)))
-		}
-
-		return res.Write(f)
+		return pprof.Lookup("goroutine").WriteTo(res.Body, 1)
 	}
 }

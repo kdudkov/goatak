@@ -279,27 +279,6 @@ func (e *Event) IsTakControlRequest() bool {
 	return e.Detail.TakControl != nil && e.Detail.TakControl.TakRequest != nil
 }
 
-func VersionSupportMsg(ver int8) *Event {
-	stale := time.Minute
-	return &Event{
-		Version: "2.0",
-		Uid:     "protouid",
-		Type:    "t-x-takp-v",
-		Time:    time.Now().UTC(),
-		Start:   time.Now().UTC(),
-		Stale:   time.Now().Add(stale).UTC(),
-		How:     "m-g",
-		Point: Point{
-			Lat: 0,
-			Lon: 0,
-			Hae: 0,
-			Ce:  9999999,
-			Le:  9999999,
-		},
-		Detail: Detail{TakControl: &TakControl{TakProtocolSupport: &ProtoVersion{Version: ver}}},
-	}
-}
-
 func BasicMsg(typ string, uid string, stale time.Duration) *Event {
 	return &Event{
 		Version: "2.0",
@@ -318,44 +297,23 @@ func BasicMsg(typ string, uid string, stale time.Duration) *Event {
 	}
 }
 
+func VersionSupportMsg(ver int8) *Event {
+	ev := BasicMsg("t-x-takp-v", "protouid", time.Minute)
+	ev.How = "m-g"
+	ev.Detail = Detail{TakControl: &TakControl{TakProtocolSupport: &ProtoVersion{Version: ver}}}
+	return ev
+}
+
 func VersionReqMsg(ver int8) *Event {
-	stale := time.Minute
-	return &Event{
-		Version: "2.0",
-		Uid:     "protouid",
-		Type:    "t-x-takp-v",
-		Time:    time.Now().UTC(),
-		Start:   time.Now().UTC(),
-		Stale:   time.Now().Add(stale).UTC(),
-		How:     "m-g",
-		Point: Point{
-			Lat: 0,
-			Lon: 0,
-			Hae: 0,
-			Ce:  9999999,
-			Le:  9999999,
-		},
-		Detail: Detail{TakControl: &TakControl{TakRequest: &ProtoVersion{Version: ver}}},
-	}
+	ev := BasicMsg("t-x-takp-v", "protouid", time.Minute)
+	ev.How = "m-g"
+	ev.Detail = Detail{TakControl: &TakControl{TakRequest: &ProtoVersion{Version: ver}}}
+	return ev
 }
 
 func ProtoChangeOkMsg() *Event {
-	stale := time.Minute
-	return &Event{
-		Version: "2.0",
-		Uid:     "protouid",
-		Type:    "t-x-takp-r",
-		Time:    time.Now().UTC(),
-		Start:   time.Now().UTC(),
-		Stale:   time.Now().Add(stale).UTC(),
-		How:     "m-g",
-		Point: Point{
-			Lat: 0,
-			Lon: 0,
-			Hae: 0,
-			Ce:  9999999,
-			Le:  9999999,
-		},
-		Detail: Detail{TakControl: &TakControl{TakResponce: &TakResponse{true}}},
-	}
+	ev := BasicMsg("t-x-takp-r", "protouid", time.Minute)
+	ev.How = "m-g"
+	ev.Detail = Detail{TakControl: &TakControl{TakResponce: &TakResponse{true}}}
+	return ev
 }

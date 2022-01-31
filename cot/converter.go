@@ -75,18 +75,18 @@ func ProtoToEvent(msg *cotproto.TakMessage) *cotxml.Event {
 			}
 		}
 
-		if d.XmlDetail != "" {
-			xd, err := cotxml.XMLDetailFromString(d.XmlDetail)
-			if err == nil {
-				applyDetails(&ev.Detail, xd)
-			}
-		}
+		//if d.XmlDetail != "" {
+		//	xd, err := cotxml.XMLDetailFromString(d.XmlDetail)
+		//	if err == nil {
+		//		applyDetails(&ev.Detail, xd)
+		//	}
+		//}
 	}
 
 	return ev
 }
 
-func EventToProto(ev *cotxml.Event) (*cotproto.TakMessage, *cotxml.XMLDetail) {
+func EventToProto(ev *cotxml.Event) (*cotproto.TakMessage, *XMLDetails) {
 	if ev == nil {
 		return nil, nil
 	}
@@ -150,66 +150,15 @@ func EventToProto(ev *cotxml.Event) (*cotproto.TakMessage, *cotxml.XMLDetail) {
 	}
 
 	xd := GetXmlDetails(&ev.Detail)
-	msg.CotEvent.Detail.XmlDetail = xd.String()
-
 	return msg, xd
 }
 
-func GetXmlDetails(d *cotxml.Detail) *cotxml.XMLDetail {
+func GetXmlDetails(d *cotxml.Detail) *XMLDetails {
 	if d == nil {
 		return nil
 	}
 
-	d1 := &cotxml.XMLDetail{
-		Uid:          d.Uid,
-		Usericon:     d.Usericon,
-		Chat:         d.Chat,
-		Link:         d.Link,
-		Remarks:      d.Remarks,
-		Marti:        d.Marti,
-		Color:        d.Color,
-		StrokeColor:  d.StrokeColor,
-		FillColor:    d.FillColor,
-		StrokeWeight: d.StrokeWeight,
-	}
-
-	if d.Contact != nil && d.Contact.Phone != "" {
-		d1.Contact = &cotxml.Contact2{Phone: d.Contact.Phone}
-	}
-
-	if d.Status != nil && d.Status.Readiness != "" {
-		d1.Status = &cotxml.Status2{Readiness: d.Status.Readiness}
-	}
-
-	return d1
-}
-
-func applyDetails(d1 *cotxml.Detail, xd *cotxml.XMLDetail) {
-	if xd == nil {
-		return
-	}
-
-	if xd.Contact != nil {
-		if d1.Contact == nil {
-			d1.Contact = &cotxml.Contact{}
-		}
-		d1.Contact.Phone = xd.Contact.Phone
-	}
-
-	if xd.Status != nil {
-		if d1.Status == nil {
-			d1.Status = &cotxml.Status{}
-		}
-		d1.Status.Readiness = xd.Status.Readiness
-	}
-
-	d1.Uid = xd.Uid
-	d1.StrokeWeight = xd.StrokeWeight
-	d1.Color = xd.Color
-	d1.FillColor = xd.FillColor
-	d1.StrokeColor = xd.StrokeColor
-	d1.Marti = xd.Marti
-	d1.Chat = xd.Chat
+	return nil
 }
 
 func getFloat(s string) float64 {

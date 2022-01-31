@@ -48,6 +48,7 @@ type App struct {
 	lastWrite time.Time
 	pingTimer *time.Timer
 	units     sync.Map
+	points    sync.Map
 
 	callsign string
 	uid      string
@@ -68,6 +69,7 @@ func NewApp(uid string, callsign string, addr string, webPort int, logger *zap.S
 		addr:     addr,
 		webPort:  webPort,
 		units:    sync.Map{},
+		points:   sync.Map{},
 	}
 }
 
@@ -399,7 +401,7 @@ func (app *App) ProcessEvent(msg *cot.Msg) {
 		}
 	case strings.HasPrefix(msg.GetType(), "b-"):
 		app.Logger.Infof("point %s (%s) %s", msg.GetUid(), msg.GetCallsign(), msg.GetType())
-		app.AddUnit(msg.GetUid(), model.UnitFromEvent(msg.TakMessage))
+		app.AddPoint(msg.GetUid(), model.UnitFromEvent(msg.TakMessage))
 	default:
 		app.Logger.Debugf("unknown event: %s", msg.GetType())
 	}
@@ -410,6 +412,13 @@ func (app *App) AddUnit(uid string, u *model.Unit) {
 		return
 	}
 	app.units.Store(uid, u)
+}
+
+func (app *App) AddPoint(uid string, u *model.Unit) {
+	if u == nil {
+		return
+	}
+	app.points.Store(uid, u)
 }
 
 func (app *App) GetUnit(uid string) *model.Unit {

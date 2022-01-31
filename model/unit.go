@@ -13,11 +13,11 @@ const (
 )
 
 type Unit struct {
-	Uid      string
-	Type     string
-	Callsign string
-	Stale    time.Time
-	Received time.Time
+	uid      string
+	type_    string
+	callsign string
+	stale    time.Time
+	received time.Time
 	msg      *cotproto.TakMessage
 }
 
@@ -32,8 +32,17 @@ type Contact struct {
 	mx       sync.RWMutex
 }
 
+type Point struct {
+	uid      string
+	type_    string
+	name     string
+	stale    time.Time
+	received time.Time
+	msg      *cotproto.TakMessage
+}
+
 func (u *Unit) IsOld() bool {
-	return u.Stale.Before(time.Now())
+	return u.stale.Before(time.Now())
 }
 
 func (c *Contact) IsOld() bool {
@@ -41,6 +50,20 @@ func (c *Contact) IsOld() bool {
 	defer c.mx.RUnlock()
 
 	return (!c.online) && c.lastSeen.Add(staleContactDelete).Before(time.Now())
+}
+
+func (c *Contact) GetUID() string {
+	c.mx.RLock()
+	defer c.mx.RUnlock()
+
+	return c.uid
+}
+
+func (c *Contact) GetCallsign() string {
+	c.mx.RLock()
+	defer c.mx.RUnlock()
+
+	return c.callsign
 }
 
 func (c *Contact) GetLastSeen() time.Time {
@@ -72,12 +95,23 @@ func ContactFromEvent(msg *cotproto.TakMessage) *Contact {
 
 func UnitFromEvent(msg *cotproto.TakMessage) *Unit {
 	return &Unit{
-		Uid:      msg.GetCotEvent().GetUid(),
-		Callsign: msg.GetCotEvent().GetDetail().GetContact().GetCallsign(),
-		Stale:    cot.TimeFromMillis(msg.GetCotEvent().GetStaleTime()),
-		Type:     msg.GetCotEvent().GetType(),
+		uid:      msg.GetCotEvent().GetUid(),
+		callsign: msg.GetCotEvent().GetDetail().GetContact().GetCallsign(),
+		stale:    cot.TimeFromMillis(msg.GetCotEvent().GetStaleTime()),
+		type_:    msg.GetCotEvent().GetType(),
 		msg:      msg,
-		Received: time.Now(),
+		received: time.Now(),
+	}
+}
+
+func PointFromEvent(msg *cotproto.TakMessage) *Point {
+	return &Point{
+		uid:      msg.GetCotEvent().GetUid(),
+		name:     msg.GetCotEvent().GetDetail().GetContact().GetCallsign(),
+		stale:    cot.TimeFromMillis(msg.GetCotEvent().GetStaleTime()),
+		type_:    msg.GetCotEvent().GetType(),
+		msg:      msg,
+		received: time.Now(),
 	}
 }
 

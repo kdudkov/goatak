@@ -1,16 +1,16 @@
 package cot
 
 import (
+	"fmt"
 	"strings"
 	"time"
 
 	"github.com/kdudkov/goatak/cotproto"
-	"github.com/kdudkov/goatak/cotxml"
 )
 
 type Msg struct {
 	TakMessage *cotproto.TakMessage
-	Detail     *cotxml.XMLDetail
+	Detail     *XMLDetails
 }
 
 func (m *Msg) GetUid() string {
@@ -30,6 +30,14 @@ func (m *Msg) GetType() string {
 }
 
 func (m *Msg) GetCallsign() string {
+	if m == nil || m.TakMessage == nil {
+		return ""
+	}
+
+	return m.TakMessage.GetCotEvent().GetDetail().GetContact().GetCallsign()
+}
+
+func (m *Msg) GetCallsignTo() string {
 	if m == nil || m.TakMessage == nil {
 		return ""
 	}
@@ -58,7 +66,21 @@ func (m *Msg) IsChat() bool {
 		return false
 	}
 
-	return m.GetType() == "b-t-f" && m.Detail != nil && m.Detail.Chat != nil
+	return m.GetType() == "b-t-f" && m.Detail != nil && m.Detail.hasChild("__chat")
+}
+
+func (m *Msg) PrintChat() string {
+	chat := m.Detail.getFirstChild("__chat")
+	if chat == nil {
+		return ""
+	}
+
+	to := strings.Join(m.Detail.GetDest(), ",")
+	from := chat.GetAttr("senderCallsign")
+	chatroom := chat.GetAttr("chatroom")
+	text, _ := m.Detail.getChildValue("remarks")
+
+	return fmt.Sprintf("%s -> %s in chat %s: \"%s\"", from, to, chatroom, text)
 }
 
 func TimeFromMillis(ms uint64) time.Time {
@@ -76,5 +98,5 @@ func TimeToMillis(t time.Time) uint64 {
 //  <__chat parent="RootContactGroup" groupOwner="false" chatroom="All Chat Rooms" id="All Chat Rooms" senderCallsign="Kott">
 //  <chatgrp uid0="ANDROID-dc4a1fb7ad4180be" uid1="All Chat Rooms" id="All Chat Rooms"/></__chat><link uid="ANDROID-dc4a1fb7ad4180be" type="a-f-G-U-C" relation="p-p"/><remarks source="BAO.F.ATAK.ANDROID-dc4a1fb7ad4180be" to="All Chat Rooms" time="2021-04-10T16:43:05.294Z">Roger</remarks><__serverdestination destinations="192.168.0.15:4242:tcp:ANDROID-dc4a1fb7ad4180be"/>
 // red
-// <__chat parent="TeamGroups" groupOwner="false" chatroom="Red" id="Red" senderCallsign="Kott">
-// <chatgrp uid0="ANDROID-dc4a1fb7ad4180be" uid1="ANDROID-05740daaf44f01" id="Red"/></__chat><link uid="ANDROID-dc4a1fb7ad4180be" type="a-f-G-U-C" relation="p-p"/><remarks source="BAO.F.ATAK.ANDROID-dc4a1fb7ad4180be" time="2021-04-10T16:44:29.371Z">at VDO</remarks><__serverdestination destinations="192.168.0.15:4242:tcp:ANDROID-dc4a1fb7ad4180be"/><marti><dest callsign="Cl1"/></marti>
+// <__chat parent="TeamGroups" groupOwner="false" chatroom="Red" id="Red" senderCallsign="Kott"><chatgrp uid0="ANDROID-dc4a1fb7ad4180be" uid1="ANDROID-05740daaf44f01" id="Red"/></__chat>
+// <link uid="ANDROID-dc4a1fb7ad4180be" type="a-f-G-U-C" relation="p-p"/><remarks source="BAO.F.ATAK.ANDROID-dc4a1fb7ad4180be" time="2021-04-10T16:44:29.371Z">at VDO</remarks><__serverdestination destinations="192.168.0.15:4242:tcp:ANDROID-dc4a1fb7ad4180be"/><marti><dest callsign="Cl1"/></marti>

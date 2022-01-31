@@ -1,11 +1,15 @@
+@import url('https://fonts.googleapis.com/css2?family=Roboto&display=swap');
+
 #map {
     height: 100vh;
 }
 
 table.units {
+    font-family: 'Roboto', sans-serif;
     font-size: 10pt;
 }
 
 div.info {
+    font-family: 'Roboto', sans-serif;
     font-size: 11pt;
 }

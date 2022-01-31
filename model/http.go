@@ -23,10 +23,7 @@ type WebUnit struct {
 	Hae        float64   `json:"hae"`
 	Speed      float64   `json:"speed"`
 	Course     float64   `json:"course"`
-	Icon       string    `json:"icon"`
 	Sidc       string    `json:"sidc"`
-	Text       string    `json:"text"`
-	Color      string    `json:"color"`
 	TakVersion string    `json:"tak_version"`
 	Status     string    `json:"status"`
 }
@@ -59,10 +56,6 @@ func (c *Contact) ToWeb() *WebUnit {
 	w.Team = c.msg.GetCotEvent().GetDetail().GetGroup().GetName()
 	w.Role = c.msg.GetCotEvent().GetDetail().GetGroup().GetRole()
 
-	//if c.evt.Detail.Color != nil {
-	//	w.Color = argb2hex(c.evt.Detail.Color.Value)
-	//}
-
 	if v := c.msg.GetCotEvent().GetDetail().GetTakv(); v != nil {
 		w.TakVersion = strings.Trim(fmt.Sprintf("%s %s on %s", v.Platform, v.Version, v.Device), " ")
 	}
@@ -71,34 +64,22 @@ func (c *Contact) ToWeb() *WebUnit {
 
 func (u *Unit) ToWeb() *WebUnit {
 	w := &WebUnit{
-		Uid:      u.Uid,
-		Callsign: u.Callsign,
+		Uid:      u.uid,
+		Callsign: u.callsign,
 		Time:     cot.TimeFromMillis(u.msg.CotEvent.SendTime),
-		LastSeen: u.Received,
-		Stale:    u.Stale,
-		Type:     u.Type,
+		LastSeen: u.received,
+		Stale:    u.stale,
+		Type:     u.type_,
 		Lat:      u.msg.CotEvent.Lat,
 		Lon:      u.msg.CotEvent.Lon,
 		Hae:      u.msg.CotEvent.Hae,
-		Sidc:     getSIDC(u.Type),
+		Sidc:     getSIDC(u.type_),
 	}
-
-	//if u.Evt.Detail.Usericon != nil {
-	//	w.Icon = u.Evt.Detail.Usericon.Iconsetpath
-	//}
 
 	w.Speed = u.msg.GetCotEvent().GetDetail().GetTrack().GetSpeed()
 	w.Course = u.msg.GetCotEvent().GetDetail().GetTrack().GetCourse()
 	w.Team = u.msg.GetCotEvent().GetDetail().GetGroup().GetName()
 	w.Role = u.msg.GetCotEvent().GetDetail().GetGroup().GetRole()
-
-	//if u.Evt.Detail.Remarks != nil {
-	//	w.Text = u.Evt.Detail.Remarks.Text
-	//}
-
-	//if u.Evt.Detail.Color != nil {
-	//	w.Color = argb2hex(u.Evt.Detail.Color.Value)
-	//}
 
 	return w
 }

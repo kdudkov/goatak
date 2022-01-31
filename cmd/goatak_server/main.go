@@ -50,6 +50,7 @@ type App struct {
 
 	handlers sync.Map
 	units    sync.Map
+	points   sync.Map
 
 	ctx context.Context
 	uid string
@@ -64,6 +65,7 @@ func NewApp(config *AppConfig, logger *zap.SugaredLogger) *App {
 		ch:             make(chan *cot.Msg, 20),
 		handlers:       sync.Map{},
 		units:          sync.Map{},
+		points:         sync.Map{},
 		uid:            uuid.New().String(),
 	}
 }
@@ -142,7 +144,7 @@ func (app *App) GetUnit(uid string) *model.Unit {
 	return nil
 }
 
-func (app *App) Remove(uid string) {
+func (app *App) RemoveUnit(uid string) {
 	if _, ok := app.units.Load(uid); ok {
 		app.units.Delete(uid)
 	}
@@ -154,6 +156,9 @@ func (app *App) AddContact(uid string, u *model.Contact) {
 	}
 	app.Logger.Infof("contact added %s", uid)
 	app.units.Store(uid, u)
+
+	callsing := u.GetCallsign()
+	app.SendToCallsign(callsing, cot.MakeChatMessage(callsing, "Welcome"))
 }
 
 func (app *App) GetContact(uid string) *model.Contact {
@@ -165,6 +170,13 @@ func (app *App) GetContact(uid string) *model.Contact {
 		}
 	}
 	return nil
+}
+
+func (app *App) AddPoint(uid string, p *model.Point) {
+	if p == nil {
+		return
+	}
+	app.points.Store(uid, p)
 }
 
 func (app *App) EventProcessor() {
@@ -199,7 +211,7 @@ func (app *App) EventProcessor() {
 			app.SendToAllOther(msg.TakMessage, uid)
 			continue
 		case msg.IsChat():
-			break
+			app.Logger.Infof(msg.GetType(), msg.PrintChat())
 		case strings.HasPrefix(msg.GetType(), "a-"):
 			app.Logger.Debugf("pos %s (%s) stale %s",
 				msg.GetUid(),
@@ -214,12 +226,15 @@ func (app *App) EventProcessor() {
 			} else {
 				app.AddUnit(msg.GetUid(), model.UnitFromEvent(msg.TakMessage))
 			}
+			// b-m-p-s-p-i digital pointer
+			// b-m-p-s-m point
+			// b-m-r route
 		case strings.HasPrefix(msg.GetType(), "b-"):
 			app.Logger.Debugf("point %s (%s) stale %s",
 				msg.GetUid(),
 				msg.GetCallsign(),
 				msg.GetStale().Sub(time.Now()))
-			app.AddUnit(msg.GetUid(), model.UnitFromEvent(msg.TakMessage))
+			app.AddPoint(msg.GetUid(), model.PointFromEvent(msg.TakMessage))
 		default:
 			app.Logger.Debugf("msg: %s", msg)
 		}
@@ -229,8 +244,8 @@ func (app *App) EventProcessor() {
 }
 
 func (app *App) route(msg *cot.Msg) {
-	if len(msg.Detail.GetCallsignTo()) > 0 {
-		for _, s := range msg.Detail.GetCallsignTo() {
+	if len(msg.Detail.GetDest()) > 0 {
+		for _, s := range msg.Detail.GetDest() {
 			app.SendToCallsign(s, msg.TakMessage)
 		}
 	} else {

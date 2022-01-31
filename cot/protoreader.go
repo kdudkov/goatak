@@ -21,7 +21,6 @@ func NewProtoReader(r io.Reader) *ProtoReader {
 func (er *ProtoReader) ReadProtoBuf() ([]byte, error) {
 	// start magic number
 	for {
-
 		b, err := er.r.ReadByte()
 		if err != nil {
 			return nil, err
