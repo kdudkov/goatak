@@ -1,5 +1,6 @@
 syntax = "proto3";
-option go_package = "github.com/kdudkov/goatak/cot/v1";
+option optimize_for = LITE_RUNTIME;
+option go_package = "github.com/kdudkov/goatak/cotproto";
 
 // TAK Protocol control message
 // This specifies to a recipient what versions
@@ -13,5 +14,10 @@ message TakControl {
     // Highest TAK protocol version supported
     // If not filled in (reads as 0), version 1 is assumed
     uint32 maxProtoVersion = 2;
+
+    // UID of the sending contact. May be omitted if
+    // this message is paired in a TakMessage with a CotEvent
+    // and the CotEvent contains this information
+    string contactUid = 3;
 }
 

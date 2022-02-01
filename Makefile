@@ -18,7 +18,7 @@ dep:
 
 .PHONY: protoc
 protoc:
-	protoc -I=./protobuf --go_out=./cot/v1 --go_opt=module=github.com/kdudkov/goatak/cot/v1 ./protobuf/*.proto
+	protoc -I=./protobuf --go_out=./cotproto --go_opt=module=github.com/kdudkov/goatak/cotproto ./protobuf/*.proto
 
 .PHONY: checkdep
 checkdep:

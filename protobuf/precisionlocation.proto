@@ -1,11 +1,12 @@
 syntax = "proto3";
-option go_package = "github.com/kdudkov/goatak/cot/v1";
+option optimize_for = LITE_RUNTIME;
+option go_package = "github.com/kdudkov/goatak/cotproto";
 
 // All items are required unless otherwise noted!
 // "required" means if they are missing on send, the conversion
 // to the message format will be rejected and fall back to opaque
 // XML representation
 message PrecisionLocation {
-    string geopointsrc = 1; // geopointsrc=
-    string altsrc = 2; // altsrc=
+     string geopointsrc = 1;        // geopointsrc=
+     string altsrc = 2;             // altsrc=
 }

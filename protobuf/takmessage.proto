@@ -1,5 +1,6 @@
 syntax = "proto3";
-option go_package = "github.com/kdudkov/goatak/cot/v1";
+option optimize_for = LITE_RUNTIME;
+option go_package = "github.com/kdudkov/goatak/cotproto";
 
 import "cotevent.proto";
 import "takcontrol.proto";

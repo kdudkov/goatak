@@ -1,5 +1,5 @@
 syntax = "proto3";
-option go_package = "github.com/kdudkov/goatak/cot/v1";
+option go_package = "github.com/kdudkov/goatak/cotproto";
 
 // All items are required unless otherwise noted!
 // "required" means if they are missing on send, the conversion
