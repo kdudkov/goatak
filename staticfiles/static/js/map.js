@@ -183,6 +183,12 @@ let app = new Vue({
                 this.unit = null;
             }
         },
+        setCurrentUnit: function (u) {
+            this.unit = u;
+            if (u.lat !== 0 || u.lon !== 0) {
+                this.map.setView([u.lat, u.lon]);
+            }
+        },
         setUnit: function (uid) {
             if (this.units.has(uid)) {
                 this.unit = this.units.get(uid);

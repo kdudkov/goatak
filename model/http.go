@@ -117,9 +117,16 @@ func getSIDC(fn string) string {
 		return ""
 	}
 
-	sidc := "S" + string(fn[2]) + string(fn[4]) + "-"
-	if len(fn) > 6 {
-		sidc += strings.ReplaceAll(fn[6:], "-", "")
+	tokens := strings.Split(fn, "-")
+
+	sidc := "S" + tokens[1] + tokens[2] + "-"
+	if len(tokens) > 3 {
+		for _, c := range tokens[3:] {
+			if len(c) > 1 {
+				break
+			}
+			sidc += c
+		}
 	}
 
 	if len(sidc) < 10 {

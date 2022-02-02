@@ -1,12 +1,13 @@
 #!/bin/bash
 
-server_url=192.168.0.10
+server_host=192.168.0.10
+server_port=
 server_name=test_server
-user=kott
-storepass=111111
+user=user
+storepass=atakatak
 
 if [[ ! -e server.key ]]; then
-openssl req -x509 -sha256 -nodes -newkey rsa:2048 -days 1024 -out server.pem -keyout server.key -subj "/CN=${server_url}/C=RU/ST=SPb/L=SPb/O=${server_name}"
+openssl req -x509 -sha256 -nodes -newkey rsa:2048 -days 1024 -out server.pem -keyout server.key -subj "/CN=${server_host}/C=RU/ST=SPb/L=SPb/O=${server_host}"
 fi
 
 openssl req -x509 -sha256 -nodes -newkey rsa:2048 -days 1024 -out client.pem -keyout client.key -subj "/CN=${user}/C=RU/ST=SPb/L=SPb/O=${user}"

@@ -7,7 +7,6 @@ import (
 	"encoding/xml"
 	"flag"
 	"fmt"
-	"io"
 	"math/rand"
 	"net"
 	"os"
@@ -19,13 +18,12 @@ import (
 	"time"
 
 	"github.com/golang/protobuf/proto"
+	"github.com/kdudkov/goatak/cot"
 	"github.com/kdudkov/goatak/cotproto"
 	"github.com/kdudkov/goatak/cotxml"
+	"github.com/kdudkov/goatak/model"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
-
-	"github.com/kdudkov/goatak/cot"
-	"github.com/kdudkov/goatak/model"
 )
 
 const (
@@ -49,6 +47,7 @@ type App struct {
 	pingTimer *time.Timer
 	units     sync.Map
 	points    sync.Map
+	tls       bool
 
 	callsign string
 	uid      string
@@ -61,12 +60,34 @@ type App struct {
 	online   uint32
 }
 
-func NewApp(uid string, callsign string, addr string, webPort int, logger *zap.SugaredLogger) *App {
+func NewApp(uid string, callsign string, connectStr string, webPort int, logger *zap.SugaredLogger) *App {
+	parts := strings.Split(connectStr, ":")
+
+	if len(parts) != 3 {
+		logger.Errorf("invalid connect string: %s", connectStr)
+		return nil
+	}
+
+	var tlsConn bool
+
+	switch parts[2] {
+	case "tcp":
+		tlsConn = false
+		break
+	case "ssl":
+		tlsConn = true
+		break
+	default:
+		logger.Errorf("invalid connect string: %s", connectStr)
+		return nil
+	}
+
 	return &App{
 		Logger:   logger,
 		callsign: callsign,
 		uid:      uid,
-		addr:     addr,
+		addr:     fmt.Sprintf("%s:%s", parts[0], parts[1]),
+		tls:      tlsConn,
 		webPort:  webPort,
 		units:    sync.Map{},
 		points:   sync.Map{},
@@ -97,8 +118,8 @@ func (app *App) Run(ctx context.Context) {
 	app.ch = make(chan []byte, 20)
 
 	for ctx.Err() == nil {
-		app.Logger.Infof("connecting to %s...", app.addr)
 		if err := app.connect(); err != nil {
+			app.Logger.Errorf("connect error: %s", err)
 			time.Sleep(time.Second * 5)
 			continue
 		}
@@ -125,67 +146,6 @@ func makeUid(callsign string) string {
 	uid = uid[len(uid)-14:]
 
 	return "ANDROID-" + uid
-}
-
-func (app *App) connect() error {
-	var err error
-	if app.conn, err = net.Dial("tcp", app.addr); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (app *App) reader(ctx context.Context, wg *sync.WaitGroup, cancel context.CancelFunc) {
-	defer wg.Done()
-	n := 0
-	er := cot.NewTagReader(app.conn)
-	pr := cot.NewProtoReader(app.conn)
-	app.Logger.Infof("start reader")
-
-Loop:
-	for ctx.Err() == nil {
-		app.conn.SetReadDeadline(time.Now().Add(time.Second * 120))
-
-		var msg *cotproto.TakMessage
-		var d *cot.XMLDetails
-		var err error
-
-		switch atomic.LoadUint32(&app.ver) {
-		case 0:
-			msg, d, err = app.processXMLRead(er)
-		case 1:
-			msg, d, err = app.processProtoRead(pr)
-		}
-
-		if err != nil {
-			if err == io.EOF {
-				break Loop
-			}
-			app.Logger.Errorf("%v", err)
-			break Loop
-		}
-
-		if msg == nil {
-			continue
-		}
-
-		if err != nil {
-			app.Logger.Errorf("error decoding details: %v", err)
-			return
-		}
-
-		app.ProcessEvent(&cot.Msg{
-			TakMessage: msg,
-			Detail:     d,
-		})
-		n++
-	}
-
-	app.setOnline(false)
-	app.conn.Close()
-	cancel()
-	app.Logger.Infof("got %d messages", n)
 }
 
 func (app *App) processXMLRead(er *cot.TagReader) (*cotproto.TakMessage, *cot.XMLDetails, error) {
@@ -248,31 +208,6 @@ func (app *App) processProtoRead(r *cot.ProtoReader) (*cotproto.TakMessage, *cot
 	d, _ := cot.DetailsFromString(msg.GetCotEvent().GetDetail().GetXmlDetail())
 
 	return msg, d, nil
-}
-
-func (app *App) writer(ctx context.Context, wg *sync.WaitGroup) {
-	defer wg.Done()
-
-Loop:
-	for {
-		if !app.isOnline() {
-			break
-		}
-		select {
-		case msg := <-app.ch:
-			app.setWriteActivity()
-			if len(msg) == 0 {
-				break
-			}
-			if _, err := app.conn.Write(msg); err != nil {
-				break Loop
-			}
-		case <-ctx.Done():
-			break Loop
-		}
-	}
-
-	app.conn.Close()
 }
 
 func (app *App) sender(ctx context.Context, wg *sync.WaitGroup) {
@@ -509,7 +444,7 @@ func main() {
 
 	viper.SetConfigFile(*conf)
 
-	viper.SetDefault("server_address", "127.0.0.1:8089")
+	viper.SetDefault("server_address", "127.0.0.1:8089:tcp")
 	viper.SetDefault("web_port", 8080)
 	viper.SetDefault("me.callsign", RandString(10))
 	viper.SetDefault("me.lat", 35.462939)
