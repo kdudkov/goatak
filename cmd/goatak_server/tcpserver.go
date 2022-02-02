@@ -52,23 +52,3 @@ func (app *App) ListenSSl(certFile, keyFile, addr string) (err error) {
 		NewClientHandler(conn, app).Start()
 	}
 }
-
-func (app *App) ListenCert(addr string) (err error) {
-	app.Logger.Infof("listening TCP cert at %s", addr)
-
-	listener, err := tls.Listen("tcp4", addr, &tls.Config{})
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer listener.Close()
-
-	for {
-		conn, err := listener.Accept()
-		if err != nil {
-			app.Logger.Errorf("Unable to accept connections: %#v", err)
-			return err
-		}
-
-		NewClientHandler(conn, app).Start()
-	}
-}

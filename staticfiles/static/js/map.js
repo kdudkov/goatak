@@ -28,7 +28,7 @@ function getIcon(item, withText) {
 function getMilIcon(item, withText) {
     let opts = {size: 24};
     if (withText) {
-        opts['uniqueDesignation'] = item.callsign;
+        // opts['uniqueDesignation'] = item.callsign;
         if (item.speed > 0) {
             opts['speed'] = (item.speed * 3.6).toFixed(1) + " km/h";
             opts['direction'] = item.course;

@@ -91,12 +91,6 @@ func (app *App) Run() {
 		}
 	}()
 
-	go func() {
-		if err := app.ListenCert(":8446"); err != nil {
-			panic(err)
-		}
-	}()
-
 	if app.config.keyFile != "" && app.config.certFile != "" {
 		go func() {
 			if err := app.ListenSSl(app.config.certFile, app.config.keyFile, fmt.Sprintf(":%d", app.config.sslPort)); err != nil {
@@ -186,9 +180,7 @@ func (app *App) AddPoint(uid string, p *model.Point) {
 }
 
 func (app *App) EventProcessor() {
-	for {
-		msg := <-app.ch
-
+	for msg := range app.ch {
 		if msg.TakMessage.CotEvent == nil {
 			continue
 		}

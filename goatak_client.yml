@@ -1,5 +1,5 @@
 ---
-server_address: discordtakserver.mooo.com:48088
+server_address: 204.48.30.216:8087:tcp
 web_port: 8088
 me:
   callsign: Team safehouse
@@ -9,3 +9,5 @@ me:
   role: HQ
   lat: 35.462939
   lon: -97.537283
+ssl:
+  cert: discordts_01.p12
