@@ -1,0 +1,51 @@
+<div class="container-fluid" id="app">
+    <div class="row">
+        <div id="map" class="col-9" style="height: 100vh;">
+        </div>
+        <div class="col-3">
+            <div class="overflow-auto h-50">
+                <div class="alert alert-secondary info" role="alert" v-if="config != null">
+                    WebTAK client ver. {{config.version}}
+                </div>
+                <table class="table table-hover table-sm units">
+                    <tr v-for="u in all_units">
+                        <td>
+                            <img height="24px" src="/static/icons/coord_unlock.png" v-if="locked_unit != u.uid"
+                                 v-on:click="locked_unit=u.uid"/>
+                            <img height="24px" src="/static/icons/coord_lock.png" v-if="locked_unit == u.uid"
+                                 v-on:click="locked_unit=''"/>
+                        </td>
+                        <td v-on:click="map.setView([u.lat, u.lon]); unit=u;">
+                            <img v-bind:src="getImg(u)"/>
+                        </td>
+                        <td v-on:click="map.setView([u.lat, u.lon]); unit=u;"><span
+                                v-if="u.lat ===0 && u.lot ===0">* </span>{{u.callsign}}<span v-if="u.status != ''"> ({{u.status}})</span>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+            <div class="h-50">
+                <div class="alert alert-secondary info" role="alert" v-if="unit != null">
+                    <h5 v-on:click="map.setView([unit.lat, unit.lon])"><img
+                            v-bind:src="milImg(unit)"/> {{unit.callsign}} <span v-if="unit.status != ''"> ({{unit.status}})</span>
+                        <img height="24" src="/static/icons/coord_unlock.png" v-if="locked_unit != unit.uid"
+                             v-on:click="locked_unit=unit.uid"/>
+                        <img height="24" src="/static/icons/coord_lock.png" v-if="locked_unit == unit.uid"
+                             v-on:click="locked_unit=''"/>
+                    </h5>
+                    uid: {{unit.uid}}<br/>
+                    <span v-if="unit.team != ''">Team: {{unit.team}}, Role: {{unit.role}}<br/></span>
+                    type: {{unit.type}} {{unit.sidc}}<br/>
+                    coord: {{unit.lat}}, {{unit.lon}}<br/>
+                    speed: {{sp(unit.speed)}} km/h, hae: {{unit.hae.toFixed(1)}}<br/>
+                    <span v-if="unit.tak_version != ''">tak: {{unit.tak_version}}<br/></span>
+                    time: {{dt(unit.time)}}<br/>
+                    stale: {{dt(unit.stale)}}<br/>
+                    last seen: {{dt(unit.last_seen)}}<br/>
+                    {{unit.text}}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+

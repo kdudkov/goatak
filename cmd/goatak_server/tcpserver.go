@@ -27,7 +27,7 @@ func (app *App) ListenTCP(addr string) (err error) {
 }
 
 func (app *App) ListenSSl(certFile, keyFile, addr string) (err error) {
-	app.Logger.Infof("listening TCP ssl at %s", addr)
+	app.Logger.Infof("listening TCP SSL at %s", addr)
 
 	cert, err := tls.LoadX509KeyPair(certFile, keyFile)
 	if err != nil {
@@ -37,6 +37,26 @@ func (app *App) ListenSSl(certFile, keyFile, addr string) (err error) {
 	tlsCfg := &tls.Config{Certificates: []tls.Certificate{cert}}
 
 	listener, err := tls.Listen("tcp4", addr, tlsCfg)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer listener.Close()
+
+	for {
+		conn, err := listener.Accept()
+		if err != nil {
+			app.Logger.Errorf("Unable to accept connections: %#v", err)
+			return err
+		}
+
+		NewClientHandler(conn, app).Start()
+	}
+}
+
+func (app *App) ListenCert(addr string) (err error) {
+	app.Logger.Infof("listening TCP cert at %s", addr)
+
+	listener, err := tls.Listen("tcp4", addr, &tls.Config{})
 	if err != nil {
 		log.Fatal(err)
 	}

@@ -91,6 +91,12 @@ func (app *App) Run() {
 		}
 	}()
 
+	go func() {
+		if err := app.ListenCert(":8446"); err != nil {
+			panic(err)
+		}
+	}()
+
 	if app.config.keyFile != "" && app.config.certFile != "" {
 		go func() {
 			if err := app.ListenSSl(app.config.certFile, app.config.keyFile, fmt.Sprintf(":%d", app.config.sslPort)); err != nil {
@@ -158,7 +164,7 @@ func (app *App) AddContact(uid string, u *model.Contact) {
 	app.units.Store(uid, u)
 
 	callsing := u.GetCallsign()
-	app.SendToCallsign(callsing, cot.MakeChatMessage(callsing, "Welcome"))
+	app.SendToCallsign(callsing, cot.MakeChatMessage(u.GetUID(), callsing, "Welcome"))
 }
 
 func (app *App) GetContact(uid string) *model.Contact {
@@ -211,11 +217,12 @@ func (app *App) EventProcessor() {
 			app.SendToAllOther(msg.TakMessage, uid)
 			continue
 		case msg.IsChat():
-			app.Logger.Infof(msg.GetType(), msg.PrintChat())
+			app.Logger.Infof(msg.PrintChat())
 		case strings.HasPrefix(msg.GetType(), "a-"):
-			app.Logger.Debugf("pos %s (%s) stale %s",
+			app.Logger.Debugf("pos %s (%s) %s stale %s",
 				msg.GetUid(),
 				msg.GetCallsign(),
+				msg.GetType(),
 				msg.GetStale().Sub(time.Now()))
 			if msg.IsContact() {
 				if c := app.GetContact(msg.GetUid()); c != nil {

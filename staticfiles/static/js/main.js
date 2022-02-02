@@ -19,7 +19,10 @@ function getIcon(item, withText) {
     if (item.team !== "") {
         return {uri: toUri(roleCircle(24, colors.get(item.team), '#000', item.role)), x: 12, y: 12};
     }
-    if (item.icon.startsWith("COT_MAPPING_SPOTMAP/")) {
+    if (item.icon !== undefined && item.icon.startsWith("COT_MAPPING_SPOTMAP/")) {
+        return {uri: toUri(circle(16, item.color === '' ? 'green' : item.color, '#000', null)), x: 5, y: 5}
+    }
+    if (item.icon !== undefined) {
         return {uri: toUri(circle(16, item.color === '' ? 'green' : item.color, '#000', null)), x: 5, y: 5}
     }
     return getMilIcon(24, item, withText);
@@ -43,6 +46,7 @@ let app = new Vue({
     el: '#app',
     data: {
         units: new Map(),
+        points: new Map(),
         alert: null,
         ts: 0,
     },
@@ -61,12 +65,24 @@ let app = new Vue({
                 return 0;
             });
             return this.ts && arr;
-        }
+        },
+        all_points: function () {
+            let arr = Array.from(this.points.values());
+            arr.sort(function (a, b) {
+                var ua = a.callsign.toLowerCase(), ub = b.callsign.toLowerCase();
+                if (ua < ub) return -1;
+                if (ua > ub) return 1;
+                return 0;
+            });
+            return this.ts && arr;
+        },
+
     },
     methods: {
         renew: function () {
             let vm = this;
             let units = vm.units;
+            let points = vm.points;
 
             fetch('/units')
                 .then(function (response) {
@@ -76,17 +92,14 @@ let app = new Vue({
                     data.units.forEach(function (i) {
                         units.set(i.uid, i);
                     });
+                    data.points.forEach(function (i) {
+                        points.set(i.uid, i);
+                    });
                     vm.ts += 1;
                 });
         },
 
         removeUnit: function (uid) {
-            if (this.markers.has(uid)) {
-                p = this.markers.get(uid);
-                this.map.removeLayer(p);
-                p.remove();
-                this.markers.delete(uid);
-            }
             this.units.delete(uid);
             if (this.unit != null && this.unit.uid === uid) {
                 this.unit = null;

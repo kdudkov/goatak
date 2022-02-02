@@ -15,15 +15,11 @@ const colors = new Map([
     ['Brown', 'brown'],
 ]);
 
-function getMarker(item) {
-    return r.Icon()
-}
-
 function getIcon(item, withText) {
     if (item.team !== "") {
         return {uri: toUri(roleCircle(24, colors.get(item.team), '#000', item.role)), x: 12, y: 12};
     }
-    if (item.icon.startsWith("COT_MAPPING_SPOTMAP/")) {
+    if (item.icon !== undefined && item.icon.startsWith("COT_MAPPING_SPOTMAP/")) {
         return {uri: toUri(circle(10, item.color === '' ? 'green' : item.color, '#000', null)), x: 5, y: 5}
     }
     return getMilIcon(item, withText);
@@ -32,11 +28,11 @@ function getIcon(item, withText) {
 function getMilIcon(item, withText) {
     let opts = {size: 24};
     if (withText) {
-        //opts['uniqueDesignation'] = item.callsign;
-    }
-    if (withText && item.speed > 0) {
-        opts['speed'] = (item.speed * 3.6).toFixed(1) + " km/h";
-        opts['direction'] = item.course;
+        opts['uniqueDesignation'] = item.callsign;
+        if (item.speed > 0) {
+            opts['speed'] = (item.speed * 3.6).toFixed(1) + " km/h";
+            opts['direction'] = item.course;
+        }
     }
 
     let symb = new ms.Symbol(item.sidc, opts);
@@ -141,6 +137,9 @@ let app = new Vue({
                 });
         },
         updateMarker: function (item) {
+            if (item.lon === 0 && item.lat === 0) {
+                return
+            }
             if (this.markers.has(item.uid)) {
                 let p = this.markers.get(item.uid);
                 p.setLatLng([item.lat, item.lon], {title: item.callsign});

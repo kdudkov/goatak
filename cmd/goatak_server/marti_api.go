@@ -11,12 +11,13 @@ import (
 
 	"github.com/aofei/air"
 	"github.com/google/uuid"
+	"github.com/kdudkov/goatak/model"
 )
 
 func addMartiEndpoints(app *App, a *air.Air) {
 	a.GET("/Marti/api/version", getVersionHandler(app))
 	a.GET("/Marti/api/version/config", getVersionConfigHandler(app))
-	a.GET("/Marti/api/clientEndPoints", getVersionHandler(app))
+	a.GET("/Marti/api/clientEndPoints", getEndpointsHandler(app))
 	a.GET("/Marti/api/sync/metadata/:hash/tool", getMetadataGetHandler(app))
 	a.PUT("/Marti/api/sync/metadata/:hash/tool", getMetadataPutHandler(app))
 
@@ -34,32 +35,50 @@ func getVersionHandler(app *App) func(req *air.Request, res *air.Response) error
 }
 
 func getVersionConfigHandler(app *App) func(req *air.Request, res *air.Response) error {
-	d := make(map[string]interface{}, 0)
-	r := make(map[string]interface{}, 0)
-	//r["version"] = "3"
-	r["type"] = "ServerConfig"
-	r["nodeId"] = "1"
-	r["data"] = d
-	d["api"] = "3"
-	d["version"] = gitRevision
-	d["hostname"] = "0.0.0.0"
+	result := make(map[string]interface{}, 0)
+	data := make(map[string]interface{}, 0)
+	result["version"] = "2"
+	result["type"] = "ServerConfig"
+	result["nodeId"] = "1"
+	data["api"] = "2"
+	data["version"] = gitRevision + ":" + gitCommit
+	data["hostname"] = "0.0.0.0"
+	result["data"] = data
 	return func(req *air.Request, res *air.Response) error {
 		app.Logger.Infof("%s %s", req.Method, req.Path)
-		return res.WriteJSON(r)
+		return res.WriteJSON(result)
 	}
 }
 
 func getEndpointsHandler(app *App) func(req *air.Request, res *air.Response) error {
 	return func(req *air.Request, res *air.Response) error {
 		app.Logger.Infof("%s %s", req.Method, req.Path)
-		d := make(map[string]interface{}, 0)
-		r := make(map[string]interface{}, 0)
-		r["version"] = "3"
-		r["type"] = "com.bbn.marti.remote.ClientEndpoint"
-		r["nodeId"] = "1"
-		r["data"] = d
+		result := make(map[string]interface{}, 0)
+		data := make([]map[string]interface{}, 0)
+		result["Matcher"] = "com.bbn.marti.remote.ClientEndpoint"
+		result["BaseUrl"] = ""
+		result["ServerConnectString"] = ""
+		result["NotificationId"] = ""
+		result["type"] = "com.bbn.marti.remote.ClientEndpoint"
 
-		return res.WriteJSON(r)
+		app.units.Range(func(key, value interface{}) bool {
+			if c, ok := value.(*model.Contact); ok {
+				info := make(map[string]interface{}, 0)
+				info["uid"] = c.GetUID()
+				info["callsign"] = c.GetCallsign()
+				info["lastEventTime"] = c.GetLastSeen()
+				if c.IsOnline() {
+					info["lastStatus"] = "Connected"
+				} else {
+					info["lastStatus"] = "Disconnected"
+				}
+				data = append(data, info)
+			}
+
+			return true
+		})
+		result["data"] = data
+		return res.WriteJSON(result)
 	}
 }
 

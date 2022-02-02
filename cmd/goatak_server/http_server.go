@@ -18,7 +18,7 @@ type HttpServer struct {
 	app      *App
 	air      *air.Air
 	api      *air.Air
-	renderer *Renderer
+	renderer *staticfiles.Renderer
 }
 
 func NewHttp(app *App, address string, apiAddress string) *HttpServer {
@@ -27,7 +27,7 @@ func NewHttp(app *App, address string, apiAddress string) *HttpServer {
 
 	staticfiles.EmbedFiles(a, "/static")
 
-	renderer := new(Renderer)
+	renderer := new(staticfiles.Renderer)
 	renderer.LeftDelimeter = "[["
 	renderer.RightDelimeter = "]]"
 	renderer.Load(templates, "templates")
@@ -36,7 +36,6 @@ func NewHttp(app *App, address string, apiAddress string) *HttpServer {
 	a.GET("/map", getMapHandler(app, renderer))
 	a.GET("/config", getConfigHandler(app))
 	a.GET("/units", getUnitsHandler(app))
-	a.GET("/points", getPointsHandler(app))
 
 	a.GET("/stack", getStackHandler())
 
@@ -50,7 +49,6 @@ func NewHttp(app *App, address string, apiAddress string) *HttpServer {
 		api.TLSCertFile = app.config.certFile
 		api.TLSKeyFile = app.config.keyFile
 	}
-
 	addMartiEndpoints(app, api)
 
 	api.NotFoundHandler = getNotFoundHandler(app)
@@ -78,7 +76,7 @@ func (h *HttpServer) Start() {
 	}()
 }
 
-func getIndexHandler(_ *App, r *Renderer) func(req *air.Request, res *air.Response) error {
+func getIndexHandler(app *App, r *staticfiles.Renderer) func(req *air.Request, res *air.Response) error {
 	return func(req *air.Request, res *air.Response) error {
 		data := map[string]interface{}{
 			"js": []string{"main.js"},
@@ -91,7 +89,7 @@ func getIndexHandler(_ *App, r *Renderer) func(req *air.Request, res *air.Respon
 	}
 }
 
-func getMapHandler(_ *App, r *Renderer) func(req *air.Request, res *air.Response) error {
+func getMapHandler(_ *App, r *staticfiles.Renderer) func(req *air.Request, res *air.Response) error {
 	return func(req *air.Request, res *air.Response) error {
 		data := map[string]interface{}{
 			"js": []string{"map.js"},
@@ -125,41 +123,9 @@ func getConfigHandler(app *App) func(req *air.Request, res *air.Response) error 
 
 func getUnitsHandler(app *App) func(req *air.Request, res *air.Response) error {
 	return func(req *air.Request, res *air.Response) error {
-		units := make([]*model.WebUnit, 0)
-
-		app.units.Range(func(key, value interface{}) bool {
-			switch v := value.(type) {
-			case *model.Unit:
-				units = append(units, v.ToWeb())
-			case *model.Contact:
-				units = append(units, v.ToWeb())
-			}
-			return true
-		})
-
 		r := make(map[string]interface{}, 0)
-		r["units"] = units
-
-		return res.WriteJSON(r)
-	}
-}
-
-func getPointsHandler(app *App) func(req *air.Request, res *air.Response) error {
-	return func(req *air.Request, res *air.Response) error {
-		units := make([]*model.WebUnit, 0)
-
-		app.units.Range(func(key, value interface{}) bool {
-			switch v := value.(type) {
-			case *model.Unit:
-				units = append(units, v.ToWeb())
-			case *model.Contact:
-				units = append(units, v.ToWeb())
-			}
-			return true
-		})
-
-		r := make(map[string]interface{}, 0)
-		r["units"] = units
+		r["units"] = getUnits(app)
+		r["points"] = getPoints(app)
 
 		return res.WriteJSON(r)
 	}
@@ -169,4 +135,31 @@ func getStackHandler() func(req *air.Request, res *air.Response) error {
 	return func(req *air.Request, res *air.Response) error {
 		return pprof.Lookup("goroutine").WriteTo(res.Body, 1)
 	}
+}
+
+func getUnits(app *App) []*model.WebUnit {
+	units := make([]*model.WebUnit, 0)
+
+	app.units.Range(func(key, value interface{}) bool {
+		switch v := value.(type) {
+		case *model.Unit:
+			units = append(units, v.ToWeb())
+		case *model.Contact:
+			units = append(units, v.ToWeb())
+		}
+		return true
+	})
+
+	return units
+}
+
+func getPoints(app *App) []*model.WebPoint {
+	points := make([]*model.WebPoint, 0)
+
+	app.points.Range(func(key, value interface{}) bool {
+		points = append(points, (value.(*model.Point)).ToWeb())
+		return true
+	})
+
+	return points
 }

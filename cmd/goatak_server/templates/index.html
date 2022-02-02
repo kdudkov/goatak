@@ -1,0 +1,30 @@
+<div class="container-fluid" id="app">
+    <div class="row">
+        <div class="col-6">
+            <h5>Units</h5>
+            <div class="overflow-auto">
+                <div class="alert alert-secondary info" role="alert" v-if="alert != null">
+                    {{alert}}
+                </div>
+                <div>
+                    <table class="table table-hover table-sm units">
+                        <tr v-for="u in all_units">
+                            <td><img v-bind:src="getImg(u)"/></td>
+                            <td>{{u.callsign}}<span v-if="u.status != ''"> ({{u.status}})</span></td>
+                            <td>last seen: {{dt(u.last_seen)}}</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div class="col-6">
+            <table class="table table-hover table-sm">
+                <tr v-for="p in all_points">
+                    <td><img v-bind:src="getImg(p)"/></td>
+                    <td>{{p.name}}</td>
+                    <td>received: {{dt(p.received)}}</td>
+                </tr>
+            </table>
+        </div>
+    </div>
+</div>

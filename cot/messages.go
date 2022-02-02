@@ -50,19 +50,18 @@ func MakeOfflineMsg(uid string, typ string) *cotproto.TakMessage {
 }
 
 // direct
-//  <__chat parent="RootContactGroup" groupOwner="false" chatroom="Cl1" id="ANDROID-05740daaf44f01" senderCallsign="Kott">
-//  <chatgrp uid0="ANDROID-dc4a1fb7ad4180be" uid1="ANDROID-05740daaf44f01" id="ANDROID-05740daaf44f01"/></__chat><link uid="ANDROID-dc4a1fb7ad4180be" type="a-f-G-U-C" relation="p-p"/><remarks source="BAO.F.ATAK.ANDROID-dc4a1fb7ad4180be" to="ANDROID-05740daaf44f01" time="2021-04-10T16:40:57.445Z">Roger</remarks>
+// <__chat parent="RootContactGroup" groupOwner="false" chatroom="Cl1" id="ANDROID-05740daaf44f01" senderCallsign="Kott"><chatgrp uid0="ANDROID-dc4a1fb7ad4180be" uid1="ANDROID-05740daaf44f01" id="ANDROID-05740daaf44f01"/></__chat>
+// <link uid="ANDROID-dc4a1fb7ad4180be" type="a-f-G-U-C" relation="p-p"/><remarks source="BAO.F.ATAK.ANDROID-dc4a1fb7ad4180be" to="ANDROID-05740daaf44f01" time="2021-04-10T16:40:57.445Z">Roger</remarks>
 // <__serverdestination destinations="192.168.0.15:4242:tcp:ANDROID-dc4a1fb7ad4180be"/><marti><dest callsign="Cl1"/></marti>
-func MakeChatMessage(callsign string, text string) *cotproto.TakMessage {
+func MakeChatMessage(uid string, callsign string, text string) *cotproto.TakMessage {
 	msg := BasicMsg("b-t-f", "server", time.Second*10)
 	xd := NewXmlDetails()
-	xd.node.AddChild("__chat", map[string]string{"parent": "RootContactGroup", "groupOwner": "false", "chatroom": callsign, "senderCallsign": "Op"})
-	//chat.AddChild("chatgrp")
+	chat := xd.node.AddChild("__chat", map[string]string{"parent": "RootContactGroup", "groupOwner": "false", "chatroom": callsign, "senderCallsign": "Op", "id": uid})
+	chat.AddChild("chatgrp", map[string]string{"uid0": "serverop", "uid1": uid, "id": uid})
 	xd.node.AddChildWithContext("remarks", nil, text)
 	marti := xd.node.AddChild("marti", nil)
 	marti.AddChild("dest", map[string]string{"callsign": callsign})
 	fmt.Println(xd.AsXMLString())
 	msg.CotEvent.Detail = &cotproto.Detail{XmlDetail: xd.AsXMLString()}
 	return msg
-
 }

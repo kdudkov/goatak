@@ -20,7 +20,7 @@ type Node struct {
 
 func NewXmlDetails() *XMLDetails {
 	return &XMLDetails{node: &Node{
-		XMLName: xml.Name{Local: "details"},
+		XMLName: xml.Name{Local: "detail"},
 		Attrs:   nil,
 		Content: "",
 		Nodes:   nil,
@@ -28,7 +28,15 @@ func NewXmlDetails() *XMLDetails {
 }
 func DetailsFromString(s string) (*XMLDetails, error) {
 	x := &XMLDetails{node: new(Node)}
-	buf := bytes.NewBuffer([]byte("<details>" + s + "</details>"))
+	var b []byte
+
+	if strings.HasPrefix(s, "<Detail>") || strings.HasPrefix(s, "<detail>") {
+		b = []byte(s)
+	} else {
+		b = []byte("<detail>" + s + "</detail>")
+	}
+
+	buf := bytes.NewBuffer(b)
 	err := xml.NewDecoder(buf).Decode(x.node)
 	return x, err
 }
@@ -37,7 +45,7 @@ func (x *XMLDetails) AsXMLString() string {
 	b := bytes.Buffer{}
 	xml.NewEncoder(&b).Encode(x.node)
 	s := b.String()
-	return s[len("<details>") : len(s)-len("</details>")]
+	return s[len("<detail>") : len(s)-len("</detail>")]
 }
 
 func (x *XMLDetails) String() string {
@@ -55,7 +63,7 @@ func (x *XMLDetails) String() string {
 func (x *XMLDetails) GetDest() []string {
 	r := make([]string, 0)
 
-	marti := x.getFirstChild("marti")
+	marti := x.GetFirstChild("marti")
 	if marti == nil {
 		return r
 	}
@@ -71,7 +79,29 @@ func (x *XMLDetails) GetDest() []string {
 	return r
 }
 
-func (x *XMLDetails) getFirstChild(name string) *Node {
+func (x *XMLDetails) RemoveTags(tags ...string) {
+	if x == nil {
+		return
+	}
+
+	newNodes := make([]*Node, 0)
+	for _, x := range x.node.Nodes {
+		found := false
+		for _, t := range tags {
+			if t == x.XMLName.Local {
+				found = true
+				break
+			}
+		}
+		if !found {
+			newNodes = append(newNodes, x)
+		}
+	}
+
+	x.node.Nodes = newNodes
+}
+
+func (x *XMLDetails) GetFirstChild(name string) *Node {
 	node := x.node
 
 	for _, s := range strings.Split(name, "/") {
@@ -91,8 +121,8 @@ func (x *XMLDetails) getFirstChild(name string) *Node {
 	return node
 }
 
-func (x *XMLDetails) hasChild(name string) bool {
-	return x.getFirstChild(name) != nil
+func (x *XMLDetails) HasChild(name string) bool {
+	return x.GetFirstChild(name) != nil
 }
 
 func (x *XMLDetails) getChildValue(name string) (string, bool) {

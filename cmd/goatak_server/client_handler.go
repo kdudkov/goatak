@@ -69,13 +69,14 @@ func (h *ClientHandler) handleRead() {
 		}
 
 		var msg *cotproto.TakMessage
+		var d *cot.XMLDetails
 		var err error
 
 		switch h.GetVersion() {
 		case 0:
-			msg, err = h.processXMLRead(er)
+			msg, d, err = h.processXMLRead(er)
 		case 1:
-			msg, err = h.processProtoRead(pr)
+			msg, d, err = h.processProtoRead(pr)
 		}
 
 		if err != nil {
@@ -91,8 +92,6 @@ func (h *ClientHandler) handleRead() {
 		}
 
 		h.checkFirstMsg(msg)
-
-		d, err := cot.DetailsFromString(msg.GetCotEvent().GetDetail().GetXmlDetail())
 
 		if err != nil {
 			h.app.Logger.Errorf("error decoding details: %v", err)
@@ -112,23 +111,23 @@ func (h *ClientHandler) handleRead() {
 	}
 }
 
-func (h *ClientHandler) processXMLRead(er *cot.TagReader) (*cotproto.TakMessage, error) {
+func (h *ClientHandler) processXMLRead(er *cot.TagReader) (*cotproto.TakMessage, *cot.XMLDetails, error) {
 	tag, dat, err := er.ReadTag()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	if tag == "?xml" {
-		return nil, nil
+		return nil, nil, nil
 	}
 
 	if tag != "event" {
-		return nil, fmt.Errorf("bad tag: %s", dat)
+		return nil, nil, fmt.Errorf("bad tag: %s", dat)
 	}
 
 	ev := &cotxml.Event{}
 	if err := xml.Unmarshal(dat, ev); err != nil {
-		return nil, fmt.Errorf("xml decode error: %v, data: %s", err, string(dat))
+		return nil, nil, fmt.Errorf("xml decode error: %v, data: %s", err, string(dat))
 	}
 
 	if ev.IsTakControlRequest() {
@@ -137,29 +136,33 @@ func (h *ClientHandler) processXMLRead(er *cot.TagReader) (*cotproto.TakMessage,
 			if err := h.AddEvent(cotxml.ProtoChangeOkMsg()); err == nil {
 				h.app.Logger.Infof("client %s switch to v.1", h.uid)
 				h.SetVersion(1)
-				return nil, nil
+				return nil, nil, nil
 			} else {
-				return nil, fmt.Errorf("error on send ok: %v", err)
+				return nil, nil, fmt.Errorf("error on send ok: %v", err)
 			}
 		}
 	}
 
-	msg, _ := cot.EventToProto(ev)
-	return msg, nil
+	msg, d := cot.EventToProto(ev)
+
+	return msg, d, nil
 }
 
-func (h *ClientHandler) processProtoRead(r *cot.ProtoReader) (*cotproto.TakMessage, error) {
+func (h *ClientHandler) processProtoRead(r *cot.ProtoReader) (*cotproto.TakMessage, *cot.XMLDetails, error) {
 	buf, err := r.ReadProtoBuf()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	msg := new(cotproto.TakMessage)
 	if err := proto.Unmarshal(buf, msg); err != nil {
-		return nil, fmt.Errorf("failed to decode protobuf: %v", err)
+		return nil, nil, fmt.Errorf("failed to decode protobuf: %v", err)
 	}
 
-	return msg, nil
+	var d *cot.XMLDetails
+	d, err = cot.DetailsFromString(msg.GetCotEvent().GetDetail().GetXmlDetail())
+
+	return msg, d, err
 }
 
 func (h *ClientHandler) SetVersion(n int32) {

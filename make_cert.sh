@@ -10,7 +10,6 @@ openssl req -x509 -sha256 -nodes -newkey rsa:2048 -days 1024 -out server.pem -ke
 fi
 
 openssl req -x509 -sha256 -nodes -newkey rsa:2048 -days 1024 -out client.pem -keyout client.key -subj "/CN=${user}/C=RU/ST=SPb/L=SPb/O=${user}"
-
 openssl pkcs12 -export -name client-cert -in client.pem -inkey client.key -out client.p12 -passout pass:${storepass}
 
 [[ -e truststore.p12 ]] && rm truststore.p12

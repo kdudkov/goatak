@@ -1,6 +1,8 @@
 package cot
 
 import (
+	"bytes"
+	"encoding/xml"
 	"fmt"
 	"strconv"
 	"strings"
@@ -106,26 +108,10 @@ func EventToProto(ev *cotxml.Event) (*cotproto.TakMessage, *XMLDetails) {
 		Detail:    &cotproto.Detail{},
 	}}
 
-	if c := ev.Detail.TakVersion; c != nil {
-		msg.CotEvent.Detail.Takv = &cotproto.Takv{
-			Device:   c.Device,
-			Platform: c.Platform,
-			Os:       c.Os,
-			Version:  c.Version,
-		}
-	}
-
 	if c := ev.Detail.Contact; c != nil {
 		msg.CotEvent.Detail.Contact = &cotproto.Contact{
 			Endpoint: c.Endpoint,
 			Callsign: c.Callsign,
-		}
-	}
-
-	if c := ev.Detail.PrecisionLocation; c != nil {
-		msg.CotEvent.Detail.PrecisionLocation = &cotproto.PrecisionLocation{
-			Geopointsrc: c.Geopointsrc,
-			Altsrc:      c.Altsrc,
 		}
 	}
 
@@ -136,9 +122,25 @@ func EventToProto(ev *cotxml.Event) (*cotproto.TakMessage, *XMLDetails) {
 		}
 	}
 
+	if c := ev.Detail.PrecisionLocation; c != nil {
+		msg.CotEvent.Detail.PrecisionLocation = &cotproto.PrecisionLocation{
+			Geopointsrc: c.Geopointsrc,
+			Altsrc:      c.Altsrc,
+		}
+	}
+
 	if c := ev.Detail.Status; c != nil {
 		if n, err := strconv.Atoi(c.Battery); err == nil {
 			msg.CotEvent.Detail.Status = &cotproto.Status{Battery: uint32(n)}
+		}
+	}
+
+	if c := ev.Detail.TakVersion; c != nil {
+		msg.CotEvent.Detail.Takv = &cotproto.Takv{
+			Device:   c.Device,
+			Platform: c.Platform,
+			Os:       c.Os,
+			Version:  c.Version,
 		}
 	}
 
@@ -149,16 +151,26 @@ func EventToProto(ev *cotxml.Event) (*cotproto.TakMessage, *XMLDetails) {
 		}
 	}
 
-	xd := GetXmlDetails(&ev.Detail)
+	xd, _ := GetXmlDetails(&ev.Detail)
 	return msg, xd
 }
 
-func GetXmlDetails(d *cotxml.Detail) *XMLDetails {
+func GetXmlDetails(d *cotxml.Detail) (*XMLDetails, error) {
 	if d == nil {
-		return nil
+		return nil, nil
 	}
 
-	return nil
+	b := bytes.Buffer{}
+	if err := xml.NewEncoder(&b).Encode(d); err != nil {
+		return nil, err
+	}
+
+	details, err := DetailsFromString(b.String())
+	if err != nil {
+		return nil, err
+	}
+	details.RemoveTags("contact", "__group", "precisionlocation", "status", "takv", "track")
+	return details, nil
 }
 
 func getFloat(s string) float64 {

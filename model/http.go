@@ -28,6 +28,20 @@ type WebUnit struct {
 	Status     string    `json:"status"`
 }
 
+type WebPoint struct {
+	Uid      string    `json:"uid"`
+	Name     string    `json:"name"`
+	Stale    time.Time `json:"stale"`
+	Received time.Time `json:"rtale"`
+	Type     string    `json:"type"`
+	Lat      float64   `json:"lat"`
+	Lon      float64   `json:"lon"`
+	Hae      float64   `json:"hae"`
+	Speed    float64   `json:"speed"`
+	Course   float64   `json:"course"`
+	Icon     string    `json:"icon"`
+}
+
 func (c *Contact) ToWeb() *WebUnit {
 	c.mx.RLock()
 	defer c.mx.RUnlock()
@@ -42,6 +56,10 @@ func (c *Contact) ToWeb() *WebUnit {
 		Lat:      c.msg.CotEvent.Lat,
 		Lon:      c.msg.CotEvent.Lon,
 		Hae:      c.msg.CotEvent.Hae,
+		Speed:    c.msg.GetCotEvent().GetDetail().GetTrack().GetSpeed(),
+		Course:   c.msg.GetCotEvent().GetDetail().GetTrack().GetCourse(),
+		Team:     c.msg.GetCotEvent().GetDetail().GetGroup().GetName(),
+		Role:     c.msg.GetCotEvent().GetDetail().GetGroup().GetRole(),
 		Sidc:     getSIDC(c.type_),
 	}
 
@@ -50,11 +68,6 @@ func (c *Contact) ToWeb() *WebUnit {
 	} else {
 		w.Status = "Offline"
 	}
-
-	w.Speed = c.msg.GetCotEvent().GetDetail().GetTrack().GetSpeed()
-	w.Course = c.msg.GetCotEvent().GetDetail().GetTrack().GetCourse()
-	w.Team = c.msg.GetCotEvent().GetDetail().GetGroup().GetName()
-	w.Role = c.msg.GetCotEvent().GetDetail().GetGroup().GetRole()
 
 	if v := c.msg.GetCotEvent().GetDetail().GetTakv(); v != nil {
 		w.TakVersion = strings.Trim(fmt.Sprintf("%s %s on %s", v.Platform, v.Version, v.Device), " ")
@@ -73,13 +86,28 @@ func (u *Unit) ToWeb() *WebUnit {
 		Lat:      u.msg.CotEvent.Lat,
 		Lon:      u.msg.CotEvent.Lon,
 		Hae:      u.msg.CotEvent.Hae,
+		Speed:    u.msg.GetCotEvent().GetDetail().GetTrack().GetSpeed(),
+		Course:   u.msg.GetCotEvent().GetDetail().GetTrack().GetCourse(),
+		Team:     u.msg.GetCotEvent().GetDetail().GetGroup().GetName(),
+		Role:     u.msg.GetCotEvent().GetDetail().GetGroup().GetRole(),
 		Sidc:     getSIDC(u.type_),
 	}
+	return w
+}
 
-	w.Speed = u.msg.GetCotEvent().GetDetail().GetTrack().GetSpeed()
-	w.Course = u.msg.GetCotEvent().GetDetail().GetTrack().GetCourse()
-	w.Team = u.msg.GetCotEvent().GetDetail().GetGroup().GetName()
-	w.Role = u.msg.GetCotEvent().GetDetail().GetGroup().GetRole()
+func (p *Point) ToWeb() *WebPoint {
+	w := &WebPoint{
+		Uid:      p.uid,
+		Name:     p.name,
+		Stale:    p.stale,
+		Received: p.received,
+		Type:     p.type_,
+		Lat:      p.msg.CotEvent.Lat,
+		Lon:      p.msg.CotEvent.Lon,
+		Hae:      p.msg.CotEvent.Hae,
+		Speed:    p.msg.GetCotEvent().GetDetail().GetTrack().GetSpeed(),
+		Course:   p.msg.GetCotEvent().GetDetail().GetTrack().GetCourse(),
+	}
 
 	return w
 }

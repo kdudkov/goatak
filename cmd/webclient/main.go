@@ -148,13 +148,14 @@ Loop:
 		app.conn.SetReadDeadline(time.Now().Add(time.Second * 120))
 
 		var msg *cotproto.TakMessage
+		var d *cot.XMLDetails
 		var err error
 
 		switch atomic.LoadUint32(&app.ver) {
 		case 0:
-			msg, err = app.processXMLRead(er)
+			msg, d, err = app.processXMLRead(er)
 		case 1:
-			msg, err = app.processProtoRead(pr)
+			msg, d, err = app.processProtoRead(pr)
 		}
 
 		if err != nil {
@@ -168,8 +169,6 @@ Loop:
 		if msg == nil {
 			continue
 		}
-
-		d, err := cotxml.XMLDetailFromString(msg.GetCotEvent().GetDetail().GetXmlDetail())
 
 		if err != nil {
 			app.Logger.Errorf("error decoding details: %v", err)
@@ -189,23 +188,23 @@ Loop:
 	app.Logger.Infof("got %d messages", n)
 }
 
-func (app *App) processXMLRead(er *cot.TagReader) (*cotproto.TakMessage, error) {
+func (app *App) processXMLRead(er *cot.TagReader) (*cotproto.TakMessage, *cot.XMLDetails, error) {
 	tag, dat, err := er.ReadTag()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	if tag == "?xml" {
-		return nil, nil
+		return nil, nil, nil
 	}
 
 	if tag != "event" {
-		return nil, fmt.Errorf("bad tag: %s", dat)
+		return nil, nil, fmt.Errorf("bad tag: %s", dat)
 	}
 
 	ev := &cotxml.Event{}
 	if err := xml.Unmarshal(dat, ev); err != nil {
-		return nil, fmt.Errorf("xml decode error: %v, data: %s", err, string(dat))
+		return nil, nil, fmt.Errorf("xml decode error: %v, data: %s", err, string(dat))
 	}
 
 	if ev.Detail.TakControl != nil && ev.Detail.TakControl.TakProtocolSupport != nil {
@@ -214,7 +213,7 @@ func (app *App) processXMLRead(er *cot.TagReader) (*cotproto.TakMessage, error) 
 		if v >= 1 {
 			app.AddEvent(cotxml.VersionReqMsg(1))
 		}
-		return nil, nil
+		return nil, nil, nil
 	}
 
 	if ev.Detail.TakControl != nil && ev.Detail.TakControl.TakResponce != nil {
@@ -223,30 +222,32 @@ func (app *App) processXMLRead(er *cot.TagReader) (*cotproto.TakMessage, error) 
 		if ok {
 			atomic.StoreUint32(&app.ver, 1)
 		}
-		return nil, nil
+		return nil, nil, nil
 	}
 
-	msg, _ := cot.EventToProto(ev)
-	return msg, nil
+	msg, d := cot.EventToProto(ev)
+	return msg, d, nil
 }
 
-func (app *App) processProtoRead(r *cot.ProtoReader) (*cotproto.TakMessage, error) {
+func (app *App) processProtoRead(r *cot.ProtoReader) (*cotproto.TakMessage, *cot.XMLDetails, error) {
 	buf, err := r.ReadProtoBuf()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	msg := new(cotproto.TakMessage)
 	if err := proto.Unmarshal(buf, msg); err != nil {
 
-		return nil, fmt.Errorf("failed to decode protobuf: %v", err)
+		return nil, nil, fmt.Errorf("failed to decode protobuf: %v", err)
 	}
 
 	if msg.GetCotEvent().GetDetail().GetXmlDetail() != "" {
 		app.Logger.Debugf("%s %s", msg.CotEvent.Type, msg.CotEvent.Detail.XmlDetail)
 	}
 
-	return msg, nil
+	d, _ := cot.DetailsFromString(msg.GetCotEvent().GetDetail().GetXmlDetail())
+
+	return msg, d, nil
 }
 
 func (app *App) writer(ctx context.Context, wg *sync.WaitGroup) {
@@ -381,7 +382,7 @@ func (app *App) ProcessEvent(msg *cot.Msg) {
 	case msg.GetType() == "t-x-d-d":
 		app.removeByLink(msg)
 	case msg.IsChat():
-		app.Logger.Infof("message from ")
+		app.Logger.Infof(msg.PrintChat())
 	case strings.HasPrefix(msg.GetType(), "a-"):
 		if msg.IsContact() {
 			if msg.GetUid() == app.uid {
@@ -401,7 +402,7 @@ func (app *App) ProcessEvent(msg *cot.Msg) {
 		}
 	case strings.HasPrefix(msg.GetType(), "b-"):
 		app.Logger.Infof("point %s (%s) %s", msg.GetUid(), msg.GetCallsign(), msg.GetType())
-		app.AddPoint(msg.GetUid(), model.UnitFromEvent(msg.TakMessage))
+		app.AddPoint(msg.GetUid(), model.PointFromEvent(msg.TakMessage))
 	default:
 		app.Logger.Debugf("unknown event: %s", msg.GetType())
 	}
@@ -414,7 +415,7 @@ func (app *App) AddUnit(uid string, u *model.Unit) {
 	app.units.Store(uid, u)
 }
 
-func (app *App) AddPoint(uid string, u *model.Unit) {
+func (app *App) AddPoint(uid string, u *model.Point) {
 	if u == nil {
 		return
 	}
@@ -457,8 +458,12 @@ func (app *App) GetContact(uid string) *model.Contact {
 }
 
 func (app *App) removeByLink(msg *cot.Msg) {
-	if msg.Detail != nil && len(msg.Detail.Link) > 0 {
-		uid := msg.Detail.Link[0].Uid
+	if msg.Detail != nil && msg.Detail.HasChild("link") {
+		uid := msg.Detail.GetFirstChild("link").GetAttr("uid")
+		if uid == "" {
+			app.Logger.Errorf("invalid remove message: %s", msg.Detail)
+			return
+		}
 		app.Logger.Debugf("remove %s by message", uid)
 		if c := app.GetContact(uid); c != nil {
 			c.SetOffline()
