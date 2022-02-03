@@ -40,7 +40,7 @@ func (app *App) getTlsConfig() *tls.Config {
 		app.Logger.Fatal(err)
 	}
 
-	key, cert, _, err := pkcs12.DecodeChain(p12Data, "atakatak")
+	key, cert, _, err := pkcs12.DecodeChain(p12Data, viper.GetString("ssl.password"))
 	if err != nil {
 		app.Logger.Fatal(err)
 	}

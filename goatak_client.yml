@@ -1,13 +1,11 @@
 ---
 server_address: 204.48.30.216:8087:tcp
-web_port: 8088
+web_port: 8080
 me:
-  callsign: Team safehouse
-  uid: 555-1231344jhk1j231
+  callsign: TestUser
+  uid: auto
   type: a-f-G-U-C
-  team: Blue
-  role: HQ
-  lat: 35.462939
-  lon: -97.537283
-ssl:
-  cert: discordts_01.p12
+  team: Yellow
+  role: Team Member
+  lat: 0
+  lon: 0

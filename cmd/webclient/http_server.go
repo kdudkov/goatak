@@ -60,7 +60,7 @@ func getUnitsHandler(app *App) func(req *air.Request, res *air.Response) error {
 
 func getConfigHandler(app *App) func(req *air.Request, res *air.Response) error {
 	m := make(map[string]interface{}, 0)
-	m["version"] = gitBranch + ":" + gitRevision
+	m["version"] = gitRevision + ":" + gitCommit
 	m["lat"] = app.lat
 	m["lon"] = app.lon
 	m["zoom"] = app.zoom

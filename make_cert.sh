@@ -5,16 +5,18 @@ server_ip=192.168.0.10
 server_host=host.com
 server_port=58088
 user=user
+storepass=zzzzzz
 
 if [[ ! -e ca.key ]]; then
 openssl req -x509 -sha256 -nodes -newkey rsa:2048 -days 1825 -out ca.pem -keyout ca.key -subj "/CN=${server_ip}/C=US/ST=CA/O=${server_name}"
 fi
 
-rm -f *.p12
 openssl req -x509 -sha256 -nodes -newkey rsa:2048 -days 1825 -out client.pem -keyout client.key -subj "/CN=${user}"
 
+# make client .p12
 openssl pkcs12 -export -name client-cert -in client.pem -inkey client.key -out ${server_name}.p12 -passout pass:${storepass}
 
+# make truststore.p12
 keytool -import -alias server-cert -file ca.pem -keystore truststore.p12 -storepass ${storepass} -trustcacerts -noprompt -storetype pkcs12
 keytool -import -alias client-cert -file client.pem -keystore truststore.p12 -storepass ${storepass} -trustcacerts -noprompt -storetype pkcs12
 
@@ -23,8 +25,8 @@ uuid=$(uuidgen)
 mkdir -p /tmp/cert/$uuid
 mkdir -p /tmp/cert/MANIFEST
 
-cp truststore.p12 /tmp/cert/$uuid/
-cp ${server_name}.p12 /tmp/cert/$uuid/
+mv truststore.p12 /tmp/cert/$uuid/
+mv ${server_name}.p12 /tmp/cert/$uuid/
 
 cat > /tmp/cert/${uuid}/${server_name}.pref <<-EOF
 <preferences>

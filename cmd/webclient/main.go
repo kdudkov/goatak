@@ -33,7 +33,7 @@ const (
 
 var (
 	gitRevision = "unknown"
-	gitBranch   = "unknown"
+	gitCommit   = "unknown"
 )
 
 type App struct {
@@ -453,6 +453,7 @@ func main() {
 	viper.SetDefault("me.type", "a-f-G-U-C")
 	viper.SetDefault("me.team", "Blue")
 	viper.SetDefault("me.role", "HQ")
+	viper.SetDefault("ssl.password", "atakatak")
 
 	err := viper.ReadInConfig()
 	if err != nil {
