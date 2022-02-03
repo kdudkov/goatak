@@ -42,6 +42,12 @@ type WebPoint struct {
 	Icon     string    `json:"icon"`
 }
 
+type DigitalPointer struct {
+	Lat  float64 `json:"lat"`
+	Lon  float64 `json:"lon"`
+	Name string  `json:"name"`
+}
+
 func (c *Contact) ToWeb() *WebUnit {
 	c.mx.RLock()
 	defer c.mx.RUnlock()

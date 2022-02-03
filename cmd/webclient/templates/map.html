@@ -4,45 +4,65 @@
         </div>
         <div class="col-3">
             <div class="overflow-auto h-75">
-                <div class="alert alert-secondary info" role="alert" v-if="config != null">
-                    WebTAK client ver. {{config.version}}
+                <h5>WebTAK client <span v-if="config != null">ver.{{config.version}}</span></h5>
+                <div class="card">
+                    <div class="card-header">Units</div>
+                    <div class="card-body">
+                        <table class="table table-hover table-sm units">
+                            <tr v-for="u in all_units">
+                                <td>
+                                    <img height="24px" src="/static/icons/coord_unlock.png"
+                                         v-if="locked_unit != u.uid"
+                                         v-on:click="locked_unit=u.uid"/>
+                                    <img height="24px" src="/static/icons/coord_lock.png"
+                                         v-if="locked_unit == u.uid"
+                                         v-on:click="locked_unit=''"/>
+                                </td>
+                                <td v-on:click="setCurrentUnit(u)">
+                                    <img v-bind:src="getImg(u)"/>
+                                </td>
+                                <td v-on:click="setCurrentUnit(u)"><span
+                                        v-if="u.lat ===0 && u.lon ===0">* </span>{{u.callsign}}<span
+                                        v-if="u.status != ''"> ({{u.status}})</span>
+                                </td>
+                            </tr>
+                        </table>
+                    </div>
                 </div>
-                <table class="table table-hover table-sm units">
-                    <tr v-for="u in all_units">
-                        <td>
-                            <img height="24px" src="/static/icons/coord_unlock.png" v-if="locked_unit != u.uid"
-                                 v-on:click="locked_unit=u.uid"/>
-                            <img height="24px" src="/static/icons/coord_lock.png" v-if="locked_unit == u.uid"
-                                 v-on:click="locked_unit=''"/>
-                        </td>
-                        <td v-on:click="setCurrentUnit(u)">
-                            <img v-bind:src="getImg(u)"/>
-                        </td>
-                        <td v-on:click="setCurrentUnit(u)"><span
-                                v-if="u.lat ===0 && u.lon ===0">* </span>{{u.callsign}}<span v-if="u.status != ''"> ({{u.status}})</span>
-                        </td>
-                    </tr>
-                </table>
+                <br/>
+                <div class="card">
+                    <div class="card-header">Tools</div>
+                    <div class="card-body">
+                        <div v-if="dp != null">
+                            DP coords: {{dp.getLatLng().lat.toFixed(5)}}, {{dp.getLatLng().lng.toFixed(5)}} <span
+                                v-on:click="removeDp()">remove</span>
+                        </div>
+                    </div>
+                </div>
             </div>
+
             <div class="h-25">
-                <div class="alert alert-secondary info р-100" role="alert" v-if="unit != null">
-                    <h5 v-on:click="if (unit.lat !==0 || unit.lon !== 0) {map.setView([unit.lat, unit.lon])}"><img
-                            v-bind:src="milImg(unit)"/> {{unit.callsign}} <span v-if="unit.status != ''"> ({{unit.status}})</span>
-                        <img height="24" src="/static/icons/coord_unlock.png" v-if="locked_unit != unit.uid"
-                             v-on:click="locked_unit=unit.uid"/>
-                        <img height="24" src="/static/icons/coord_lock.png" v-if="locked_unit == unit.uid"
-                             v-on:click="locked_unit=''"/>
-                    </h5>
-                    uid: {{unit.uid}}<br/>
-                    <span v-if="unit.team != ''">Team: {{unit.team}}, Role: {{unit.role}}<br/></span>
-                    type: {{unit.type}} {{unit.sidc}}<br/>
-                    coord: {{unit.lat}}, {{unit.lon}}<br/>
-                    speed: {{sp(unit.speed)}} km/h, hae: {{unit.hae.toFixed(1)}}<br/>
-                    <span v-if="unit.tak_version != ''">tak: {{unit.tak_version}}<br/></span>
-                    time: {{dt(unit.time)}}<br/>
-                    stale: {{dt(unit.stale)}}<br/>
-                    last seen: {{dt(unit.last_seen)}}<br/>
-                    {{unit.text}}
+                <div class="card p-100" v-if="unit != null">
+                    <div class="card-header">
+                        <h5 v-on:click="mapToUnit(unit)">
+                            <img v-bind:src="milImg(unit)"/> {{unit.callsign}} <span v-if="unit.status != ''"> ({{unit.status}})</span>
+                            <img height="24" src="/static/icons/coord_unlock.png" v-if="locked_unit != unit.uid"
+                                 v-on:click="locked_unit=unit.uid"/>
+                            <img height="24" src="/static/icons/coord_lock.png" v-if="locked_unit == unit.uid"
+                                 v-on:click="locked_unit=''"/>
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <b>UID:</b> {{unit.uid}}<br/>
+                        <span v-if="unit.team != ''"><b>Team:</b> {{unit.team}}, <b>Role:</b> {{unit.role}}<br/></span>
+                        <b>Type:</b> {{unit.type}} <b>SIDC:</b> {{unit.sidc}}<br/>
+                        <b>coords:</b> {{unit.lat.toFixed(5)}},{{unit.lon.toFixed(5)}}<br/>
+                        <b>speed:</b> {{sp(unit.speed)}} km/h, <b>hae:</b> {{unit.hae.toFixed(1)}}<br/>
+                        <span v-if="unit.tak_version != ''"><b>ver:</b> {{unit.tak_version}}<br/></span>
+                        <b>time:</b> {{dt(unit.time)}} <b>stale:</b> {{dt(unit.stale)}}<br/>
+                        <b>last seen</b>: {{dt(unit.last_seen)}}<br/>
+                        {{unit.text}}
+                    </div>
                 </div>
             </div>
         </div>

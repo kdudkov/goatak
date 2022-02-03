@@ -49,6 +49,7 @@ let app = new Vue({
         locked_unit: '',
         unit: null,
         config: null,
+        dp: null,
     },
 
     mounted() {
@@ -81,6 +82,16 @@ let app = new Vue({
 
         this.renew();
         this.timer = setInterval(this.renew, 3000);
+
+        var app = this;
+
+        this.map.on('click', function (e) {
+            if (app.dp == null) {
+                app.dp = new L.marker(e.latlng).addTo(app.map);
+            } else {
+                app.dp.setLatLng(e.latlng);
+            }
+        });
 
         let vm = this;
         fetch('/config')
@@ -135,6 +146,17 @@ let app = new Vue({
                     });
                     vm.ts += 1;
                 });
+
+            if (this.dp != null) {
+                var p = this.dp.getLatLng();
+
+                const requestOptions = {
+                    method: "POST",
+                    headers: {"Content-Type": "application/json"},
+                    body: JSON.stringify({lat: p.lat, lon: p.lng, name: "DP1"})
+                };
+                fetch("/dp", requestOptions);
+            }
         },
         updateMarker: function (item) {
             if (item.lon === 0 && item.lat === 0) {
@@ -185,6 +207,12 @@ let app = new Vue({
         },
         setCurrentUnit: function (u) {
             this.unit = u;
+            this.mapToUnit(u);
+        },
+        mapToUnit: function (u) {
+            if (u == null) {
+                return;
+            }
             if (u.lat !== 0 || u.lon !== 0) {
                 this.map.setView([u.lat, u.lon]);
             }
@@ -207,6 +235,13 @@ let app = new Vue({
         },
         sp: function (v) {
             return (v * 3.6).toFixed(1);
+        },
+        removeDp: function () {
+            if (this.dp != null) {
+                this.map.removeLayer(this.dp);
+                this.dp.remove();
+                this.dp = null;
+            }
         }
     },
 });

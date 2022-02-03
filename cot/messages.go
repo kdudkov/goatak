@@ -49,6 +49,21 @@ func MakeOfflineMsg(uid string, typ string) *cotproto.TakMessage {
 	return msg
 }
 
+func MakeDpMsg(uid string, typ string, name string, lat float64, lon float64) *cotproto.TakMessage {
+	msg := BasicMsg("b-m-p-s-p-i", uid+".SPI1", time.Second*20)
+	msg.CotEvent.How = "h-e"
+	msg.CotEvent.Lat = lat
+	msg.CotEvent.Lon = lon
+	xd := NewXmlDetails()
+	xd.node.AddChild("precisionlocation", map[string]string{"altsrc": "DTED0"})
+	xd.node.AddChild("link", map[string]string{"uid": uid, "type": typ, "relation": "p-p"})
+	msg.CotEvent.Detail = &cotproto.Detail{
+		XmlDetail: xd.AsXMLString(),
+		Contact:   &cotproto.Contact{Callsign: name},
+	}
+	return msg
+}
+
 // direct
 // <__chat parent="RootContactGroup" groupOwner="false" chatroom="Cl1" id="ANDROID-05740daaf44f01" senderCallsign="Kott"><chatgrp uid0="ANDROID-dc4a1fb7ad4180be" uid1="ANDROID-05740daaf44f01" id="ANDROID-05740daaf44f01"/></__chat>
 // <link uid="ANDROID-dc4a1fb7ad4180be" type="a-f-G-U-C" relation="p-p"/><remarks source="BAO.F.ATAK.ANDROID-dc4a1fb7ad4180be" to="ANDROID-05740daaf44f01" time="2021-04-10T16:40:57.445Z">Roger</remarks>

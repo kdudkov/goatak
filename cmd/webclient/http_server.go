@@ -2,8 +2,10 @@ package main
 
 import (
 	"embed"
+	"encoding/json"
 
 	"github.com/aofei/air"
+	"github.com/kdudkov/goatak/cot"
 	"github.com/kdudkov/goatak/staticfiles"
 
 	"runtime/pprof"
@@ -27,6 +29,7 @@ func NewHttp(app *App, address string) *air.Air {
 	srv.GET("/", getIndexHandler(app, renderer))
 	srv.GET("/units", getUnitsHandler(app))
 	srv.GET("/config", getConfigHandler(app))
+	srv.POST("/dp", getDpHandler(app))
 
 	srv.GET("/stack", getStackHandler())
 
@@ -70,6 +73,23 @@ func getConfigHandler(app *App) func(req *air.Request, res *air.Response) error 
 	m["role"] = app.role
 	return func(req *air.Request, res *air.Response) error {
 		return res.WriteJSON(m)
+	}
+}
+
+func getDpHandler(app *App) func(req *air.Request, res *air.Response) error {
+	return func(req *air.Request, res *air.Response) error {
+		dp := new(model.DigitalPointer)
+		if req.Body == nil {
+			return nil
+		}
+
+		if err := json.NewDecoder(req.Body).Decode(dp); err != nil {
+			return err
+		}
+
+		msg := cot.MakeDpMsg(app.uid, app.typ, app.callsign+"."+dp.Name, dp.Lat, dp.Lon)
+		app.AddMsg(msg)
+		return res.WriteString("Ok")
 	}
 }
 
