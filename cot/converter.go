@@ -34,6 +34,12 @@ func ProtoToEvent(msg *cotproto.TakMessage) *cotxml.Event {
 	}
 
 	if d := msg.CotEvent.Detail; d != nil {
+		if d.XmlDetail != "" {
+			b := bytes.Buffer{}
+			b.WriteString("<detail>" + d.XmlDetail + "</detail>")
+			xml.NewDecoder(&b).Decode(&ev.Detail)
+		}
+
 		if d.Contact != nil {
 			ev.Detail.Contact = &cotxml.Contact{
 				Endpoint: d.Contact.Endpoint,
@@ -76,13 +82,6 @@ func ProtoToEvent(msg *cotproto.TakMessage) *cotxml.Event {
 				Geopointsrc: d.PrecisionLocation.Geopointsrc,
 			}
 		}
-
-		//if d.XmlDetail != "" {
-		//	xd, err := cotxml.XMLDetailFromString(d.XmlDetail)
-		//	if err == nil {
-		//		applyDetails(&ev.Detail, xd)
-		//	}
-		//}
 	}
 
 	return ev
@@ -152,6 +151,7 @@ func EventToProto(ev *cotxml.Event) (*cotproto.TakMessage, *XMLDetails) {
 	}
 
 	xd, _ := GetXmlDetails(&ev.Detail)
+	msg.CotEvent.Detail.XmlDetail = xd.AsXMLString()
 	return msg, xd
 }
 

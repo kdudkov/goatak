@@ -158,7 +158,19 @@ func (app *App) AddContact(uid string, u *model.Contact) {
 	app.units.Store(uid, u)
 
 	callsing := u.GetCallsign()
-	app.SendToCallsign(callsing, cot.MakeChatMessage(u.GetUID(), callsing, "Welcome"))
+	app.SendTo(uid, cot.MakeChatMessage(u.GetUID(), callsing, "Welcome"))
+
+	app.units.Range(func(key, value interface{}) bool {
+		switch v := value.(type) {
+		case *model.Unit:
+			app.SendTo(uid, v.GetMsg())
+		case *model.Contact:
+			if v.GetUID() != uid {
+				app.SendTo(uid, v.GetMsg())
+			}
+		}
+		return true
+	})
 }
 
 func (app *App) GetContact(uid string) *model.Contact {

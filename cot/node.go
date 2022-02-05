@@ -97,7 +97,7 @@ func (x *XMLDetails) RemoveTags(tags ...string) {
 			newNodes = append(newNodes, x)
 		}
 	}
-
+	x.node.Content = ""
 	x.node.Nodes = newNodes
 }
 

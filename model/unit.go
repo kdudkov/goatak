@@ -41,6 +41,16 @@ type Point struct {
 	msg      *cotproto.TakMessage
 }
 
+func (u *Unit) GetMsg() *cotproto.TakMessage {
+	return u.msg
+}
+
+func (c *Contact) GetMsg() *cotproto.TakMessage {
+	c.mx.RLock()
+	defer c.mx.RUnlock()
+	return c.msg
+}
+
 func (u *Unit) IsOld() bool {
 	return u.stale.Before(time.Now())
 }

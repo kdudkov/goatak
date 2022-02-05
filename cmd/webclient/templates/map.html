@@ -1,36 +1,35 @@
 <div class="container-fluid" id="app">
-    <div class="row">
-        <div id="map" class="col-9" style="height: 100vh;">
+    <div class="row vh-100 mh-100">
+        <div id="map" class="col-9">
         </div>
         <div class="col-3">
-            <div class="overflow-auto h-75">
+            <div class="h-50">
                 <h5>WebTAK client <span v-if="config != null">ver.{{config.version}}</span></h5>
-                <div class="card">
-                    <div class="card-header">Units</div>
-                    <div class="card-body">
-                        <table class="table table-hover table-sm units">
-                            <tr v-for="u in all_units">
-                                <td>
-                                    <img height="24px" src="/static/icons/coord_unlock.png"
-                                         v-if="locked_unit != u.uid"
-                                         v-on:click="locked_unit=u.uid"/>
-                                    <img height="24px" src="/static/icons/coord_lock.png"
-                                         v-if="locked_unit == u.uid"
-                                         v-on:click="locked_unit=''"/>
-                                </td>
-                                <td v-on:click="setCurrentUnit(u)">
-                                    <img v-bind:src="getImg(u)"/>
-                                </td>
-                                <td v-on:click="setCurrentUnit(u)"><span
-                                        v-if="u.lat ===0 && u.lon ===0">* </span>{{u.callsign}}<span
-                                        v-if="u.status != ''"> ({{u.status}})</span>
-                                </td>
-                            </tr>
-                        </table>
-                    </div>
+                <div>Units</div>
+                <div class="h-100 overflow-auto">
+                    <table class="table table-hover table-sm units">
+                        <tr v-for="u in all_units">
+                            <td>
+                                <img height="24px" src="/static/icons/coord_unlock.png"
+                                     v-if="locked_unit != u.uid"
+                                     v-on:click="locked_unit=u.uid"/>
+                                <img height="24px" src="/static/icons/coord_lock.png"
+                                     v-if="locked_unit == u.uid"
+                                     v-on:click="locked_unit=''"/>
+                            </td>
+                            <td v-on:click="setCurrentUnit(u)">
+                                <img v-bind:src="getImg(u)"/>
+                            </td>
+                            <td v-on:click="setCurrentUnit(u)"><span
+                                    v-if="u.lat ===0 && u.lon ===0">* </span>{{u.callsign}}<span
+                                    v-if="u.status != ''"> ({{u.status}})</span>
+                            </td>
+                        </tr>
+                    </table>
                 </div>
-                <br/>
-                <div class="card">
+            </div>
+            <div class="h-50">
+                <div class="card mb-1">
                     <div class="card-header">Tools</div>
                     <div class="card-body">
                         <div v-if="dp != null">
@@ -39,10 +38,7 @@
                         </div>
                     </div>
                 </div>
-            </div>
-
-            <div class="h-25">
-                <div class="card p-100" v-if="unit != null">
+                <div class="card" v-if="unit != null">
                     <div class="card-header">
                         <h5 v-on:click="mapToUnit(unit)">
                             <img v-bind:src="milImg(unit)"/> {{unit.callsign}} <span v-if="unit.status != ''"> ({{unit.status}})</span>

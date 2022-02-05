@@ -46,7 +46,7 @@ func TestConvert(t *testing.T) {
 	msg1, _ := EventToProto(evt)
 
 	if !reflect.DeepEqual(msg.CotEvent, msg1.CotEvent) {
-		//t.Fail()
+		t.Fail()
 	}
 
 }
