@@ -107,7 +107,21 @@ let app = new Vue({
     },
     computed: {
         all_units: function () {
-            let arr = Array.from(this.units.values());
+            let arr = Array.from(this.units.values()).filter(function (u) {
+                return u.status !== ""
+            });
+            arr.sort(function (a, b) {
+                var ua = a.callsign.toLowerCase(), ub = b.callsign.toLowerCase();
+                if (ua < ub) return -1;
+                if (ua > ub) return 1;
+                return 0;
+            });
+            return this.ts && arr;
+        },
+        all_points: function () {
+            let arr = Array.from(this.units.values()).filter(function (u) {
+                return u.status === ""
+            });
             arr.sort(function (a, b) {
                 var ua = a.callsign.toLowerCase(), ub = b.callsign.toLowerCase();
                 if (ua < ub) return -1;
@@ -234,11 +248,21 @@ let app = new Vue({
         },
         unitsLen: function () {
             let online = 0;
+            let total = 0;
             this.units.forEach(function (u) {
                 if (u.status === "Online") online += 1;
+                if (u.status !== "") total += 1;
             })
 
-            return online + "/" + this.units.size;
+            return online + "/" + total;
+        },
+        pointsLen: function () {
+            let total = 0;
+            this.units.forEach(function (u) {
+                if (u.status === "") total += 1;
+            })
+
+            return total;
         }
     },
 });
