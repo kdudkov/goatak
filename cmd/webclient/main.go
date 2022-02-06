@@ -27,8 +27,9 @@ import (
 )
 
 const (
-	pingTimeout = time.Second * 15
-	alfaNum     = "abcdefghijklmnopqrstuvwxyz012346789"
+	pingTimeout            = time.Second * 15
+	lastSeenOfflineTimeout = time.Minute * 10
+	alfaNum                = "abcdefghijklmnopqrstuvwxyz012346789"
 )
 
 var (
@@ -115,6 +116,8 @@ func (app *App) Run(ctx context.Context) {
 			panic(err)
 		}
 	}()
+
+	go app.cleaner()
 
 	app.ch = make(chan []byte, 20)
 
@@ -439,6 +442,44 @@ func RandString(strlen int) string {
 		result[i] = alfaNum[rand.Intn(len(alfaNum))]
 	}
 	return string(result)
+}
+
+func (app *App) cleaner() {
+	for {
+		select {
+		case <-time.Tick(time.Minute):
+			app.cleanOldUnits()
+		}
+	}
+}
+
+func (app *App) cleanOldUnits() {
+	toDelete := make([]string, 0)
+
+	app.units.Range(func(key, value interface{}) bool {
+		switch val := value.(type) {
+		case *model.Unit:
+			if val.IsOld() {
+				toDelete = append(toDelete, key.(string))
+				app.Logger.Debugf("removing %s", key)
+			}
+
+		case *model.Contact:
+			if val.IsOld() {
+				toDelete = append(toDelete, key.(string))
+				app.Logger.Debugf("removing contact %s", key)
+			} else {
+				if val.IsOnline() && val.GetLastSeen().Add(lastSeenOfflineTimeout).Before(time.Now()) {
+					val.SetOffline()
+				}
+			}
+		}
+		return true
+	})
+
+	for _, uid := range toDelete {
+		app.units.Delete(uid)
+	}
 }
 
 func main() {

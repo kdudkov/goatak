@@ -246,7 +246,7 @@ let app = new Vue({
                 this.dp = null;
             }
         },
-        unitsLen: function () {
+        unitsNum: function () {
             let online = 0;
             let total = 0;
             this.units.forEach(function (u) {
@@ -256,13 +256,17 @@ let app = new Vue({
 
             return online + "/" + total;
         },
-        pointsLen: function () {
+        pointsNum: function () {
             let total = 0;
             this.units.forEach(function (u) {
                 if (u.status === "") total += 1;
             })
 
             return total;
+        },
+        msgNum: function () {
+            if (this.messages == null) return 0;
+            return this.messages.length;
         }
     },
 });

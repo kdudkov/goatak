@@ -8,11 +8,12 @@
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" id="navbarDarkDropdownMenuLink" role="button"
                            data-bs-toggle="dropdown" aria-expanded="false">
-                            Units <span class="badge rounded-pill bg-success">{{unitsLen()}}</span>
+                            Units <span class="badge rounded-pill bg-success">{{unitsNum()}}</span>
                         </a>
                         <ul class="dropdown-menu dropdown-menu-dark" aria-labelledby="navbarDarkDropdownMenuLink">
                             <li v-for="u in all_units">
                                 <a class="dropdown-item" href="#" v-on:click="setCurrentUnit(u.uid)">
+                                    <img v-bind:src="getImg(u)"/>
                                     <span v-if="u.lat ===0 && u.lon ===0">* </span>{{u.callsign}}<span
                                         v-if="u.status != ''"> ({{u.status}})</span>
                                 </a>
@@ -22,7 +23,7 @@
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" id="navbarDarkDropdownMenuLink2" role="button"
                            data-bs-toggle="dropdown" aria-expanded="false">
-                            Points <span class="badge rounded-pill bg-success">{{pointsLen()}}</span>
+                            Points <span class="badge rounded-pill bg-success">{{pointsNum()}}</span>
                         </a>
                         <ul class="dropdown-menu dropdown-menu-dark" aria-labelledby="navbarDarkDropdownMenuLink2">
                             <li v-for="u in all_points">
@@ -31,6 +32,10 @@
                                 </a>
                             </li>
                         </ul>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#">Chat <span
+                                class="badge rounded-pill bg-success">{{msgNum()}}</span></a>
                     </li>
                 </ul>
             </div>
