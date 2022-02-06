@@ -1,34 +1,38 @@
-<div class="container-fluid" id="app">
-    <div class="row vh-100 mh-100">
-        <div id="map" class="col-9">
-        </div>
-        <div class="col-3">
-            <div class="h-50">
-                <h5>WebTAK client <span v-if="config != null">ver.{{config.version}}</span></h5>
-                <div>Units</div>
-                <div class="h-100 overflow-auto">
-                    <table class="table table-hover table-sm units">
-                        <tr v-for="u in all_units">
-                            <td>
-                                <img height="24px" src="/static/icons/coord_unlock.png"
-                                     v-if="locked_unit != u.uid"
-                                     v-on:click="locked_unit=u.uid"/>
-                                <img height="24px" src="/static/icons/coord_lock.png"
-                                     v-if="locked_unit == u.uid"
-                                     v-on:click="locked_unit=''"/>
-                            </td>
-                            <td v-on:click="setCurrentUnit(u)">
-                                <img v-bind:src="getImg(u)"/>
-                            </td>
-                            <td v-on:click="setCurrentUnit(u)"><span
-                                    v-if="u.lat ===0 && u.lon ===0">* </span>{{u.callsign}}<span
-                                    v-if="u.status != ''"> ({{u.status}})</span>
-                            </td>
-                        </tr>
-                    </table>
-                </div>
+<div id="app">
+    <nav class="navbar navbar-expand-md navbar-dark fixed-top bg-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">ATAK client <span v-if="config != null">v.{{config.version}}</span></a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse"
+                    aria-controls="navbarCollapse" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+
+            <div class="collapse navbar-collapse" id="navbarCollapse">
+                <ul class="navbar-nav me-auto mb-2 mb-md-0">
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="navbarDarkDropdownMenuLink" role="button"
+                           data-bs-toggle="dropdown" aria-expanded="false">
+                            Units <span class="badge rounded-pill bg-success">{{unitsLen()}}</span>
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-dark" aria-labelledby="navbarDarkDropdownMenuLink">
+                            <li v-for="u in all_units">
+                                <a class="dropdown-item" href="#" v-on:click="setCurrentUnit(u.uid)">
+                                    <span v-if="u.lat ===0 && u.lon ===0">* </span>{{u.callsign}}<span
+                                        v-if="u.status != ''"> ({{u.status}})</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+                </ul>
             </div>
-            <div class="h-50">
+        </div>
+    </nav>
+
+    <div class="container-fluid vh-100 mh-100" style="padding-top: 4rem;">
+        <div class="row h-100">
+            <div id="map" class="col-9 h-100">
+            </div>
+            <div class="col-3">
                 <div class="card mb-1">
                     <div class="card-header">Tools</div>
                     <div class="card-body">
@@ -64,4 +68,3 @@
         </div>
     </div>
 </div>
-

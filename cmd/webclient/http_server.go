@@ -56,7 +56,7 @@ func getUnitsHandler(app *App) func(req *air.Request, res *air.Response) error {
 		r := make(map[string]interface{}, 0)
 		r["units"] = getUnits(app)
 		r["points"] = getPoints(app)
-
+		r["messages"] = app.messages
 		return res.WriteJSON(r)
 	}
 }

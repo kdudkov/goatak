@@ -47,6 +47,7 @@ type App struct {
 	pingTimer *time.Timer
 	units     sync.Map
 	points    sync.Map
+	messages  []*model.ChatMessage
 	tls       bool
 
 	callsign string
@@ -317,7 +318,9 @@ func (app *App) ProcessEvent(msg *cot.Msg) {
 	case msg.GetType() == "t-x-d-d":
 		app.removeByLink(msg)
 	case msg.IsChat():
-		app.Logger.Infof(msg.PrintChat())
+		if c := model.MsgToChat(msg); c != nil {
+			app.messages = append(app.messages, c)
+		}
 	case strings.HasPrefix(msg.GetType(), "a-"):
 		if msg.IsContact() {
 			if msg.GetUid() == app.uid {
@@ -326,18 +329,18 @@ func (app *App) ProcessEvent(msg *cot.Msg) {
 			}
 			if c := app.GetContact(msg.GetUid()); c != nil {
 				app.Logger.Infof("update pos %s (%s) %s", msg.GetUid(), msg.GetCallsign(), msg.GetType())
-				c.SetLastSeenNow(msg.TakMessage)
+				c.SetLastSeenNow(msg)
 			} else {
 				app.Logger.Infof("new contact %s (%s) %s", msg.GetUid(), msg.GetCallsign(), msg.GetType())
-				app.AddContact(msg.GetUid(), model.ContactFromEvent(msg.TakMessage))
+				app.AddContact(msg.GetUid(), model.ContactFromEvent(msg))
 			}
 		} else {
 			app.Logger.Infof("new unit %s (%s) %s", msg.GetUid(), msg.GetCallsign(), msg.GetType())
-			app.AddUnit(msg.GetUid(), model.UnitFromEvent(msg.TakMessage))
+			app.AddUnit(msg.GetUid(), model.UnitFromEvent(msg))
 		}
 	case strings.HasPrefix(msg.GetType(), "b-"):
 		app.Logger.Infof("point %s (%s) %s", msg.GetUid(), msg.GetCallsign(), msg.GetType())
-		app.AddPoint(msg.GetUid(), model.PointFromEvent(msg.TakMessage))
+		app.AddPoint(msg.GetUid(), model.PointFromEvent(msg))
 	default:
 		app.Logger.Debugf("unknown event: %s", msg.GetType())
 	}

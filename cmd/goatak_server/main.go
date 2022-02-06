@@ -51,6 +51,7 @@ type App struct {
 	handlers sync.Map
 	units    sync.Map
 	points   sync.Map
+	messages []*model.ChatMessage
 
 	ctx context.Context
 	uid string
@@ -163,10 +164,10 @@ func (app *App) AddContact(uid string, u *model.Contact) {
 	app.units.Range(func(key, value interface{}) bool {
 		switch v := value.(type) {
 		case *model.Unit:
-			app.SendTo(uid, v.GetMsg())
+			app.SendTo(uid, v.GetMsg().TakMessage)
 		case *model.Contact:
 			if v.GetUID() != uid {
-				app.SendTo(uid, v.GetMsg())
+				app.SendTo(uid, v.GetMsg().TakMessage)
 			}
 		}
 		return true
@@ -221,7 +222,9 @@ func (app *App) EventProcessor() {
 			app.SendToAllOther(msg.TakMessage, uid)
 			continue
 		case msg.IsChat():
-			app.Logger.Infof(msg.PrintChat())
+			if c := model.MsgToChat(msg); c != nil {
+				app.messages = append(app.messages, c)
+			}
 		case strings.HasPrefix(msg.GetType(), "a-"):
 			app.Logger.Debugf("pos %s (%s) %s stale %s",
 				msg.GetUid(),
@@ -230,12 +233,12 @@ func (app *App) EventProcessor() {
 				msg.GetStale().Sub(time.Now()))
 			if msg.IsContact() {
 				if c := app.GetContact(msg.GetUid()); c != nil {
-					c.SetLastSeenNow(msg.TakMessage)
+					c.SetLastSeenNow(msg)
 				} else {
-					app.AddContact(msg.GetUid(), model.ContactFromEvent(msg.TakMessage))
+					app.AddContact(msg.GetUid(), model.ContactFromEvent(msg))
 				}
 			} else {
-				app.AddUnit(msg.GetUid(), model.UnitFromEvent(msg.TakMessage))
+				app.AddUnit(msg.GetUid(), model.UnitFromEvent(msg))
 			}
 			// b-m-p-s-p-i digital pointer
 			// b-m-p-s-m point
@@ -245,7 +248,7 @@ func (app *App) EventProcessor() {
 				msg.GetUid(),
 				msg.GetCallsign(),
 				msg.GetStale().Sub(time.Now()))
-			app.AddPoint(msg.GetUid(), model.PointFromEvent(msg.TakMessage))
+			app.AddPoint(msg.GetUid(), model.PointFromEvent(msg))
 		default:
 			app.Logger.Debugf("msg: %s", msg)
 		}

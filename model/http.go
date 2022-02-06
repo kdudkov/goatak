@@ -26,6 +26,7 @@ type WebUnit struct {
 	Sidc       string    `json:"sidc"`
 	TakVersion string    `json:"tak_version"`
 	Status     string    `json:"status"`
+	Text       string    `json:"text"`
 }
 
 type WebPoint struct {
@@ -40,6 +41,7 @@ type WebPoint struct {
 	Speed    float64   `json:"speed"`
 	Course   float64   `json:"course"`
 	Icon     string    `json:"icon"`
+	Text     string    `json:"text"`
 }
 
 type DigitalPointer struct {
@@ -52,20 +54,22 @@ func (c *Contact) ToWeb() *WebUnit {
 	c.mx.RLock()
 	defer c.mx.RUnlock()
 
+	evt := c.msg.TakMessage.CotEvent
+
 	w := &WebUnit{
 		Uid:      c.uid,
 		Callsign: c.callsign,
-		Time:     cot.TimeFromMillis(c.msg.CotEvent.SendTime),
+		Time:     cot.TimeFromMillis(evt.SendTime),
 		LastSeen: c.lastSeen,
 		Stale:    c.stale,
 		Type:     c.type_,
-		Lat:      c.msg.CotEvent.Lat,
-		Lon:      c.msg.CotEvent.Lon,
-		Hae:      c.msg.CotEvent.Hae,
-		Speed:    c.msg.GetCotEvent().GetDetail().GetTrack().GetSpeed(),
-		Course:   c.msg.GetCotEvent().GetDetail().GetTrack().GetCourse(),
-		Team:     c.msg.GetCotEvent().GetDetail().GetGroup().GetName(),
-		Role:     c.msg.GetCotEvent().GetDetail().GetGroup().GetRole(),
+		Lat:      evt.Lat,
+		Lon:      evt.Lon,
+		Hae:      evt.Hae,
+		Speed:    evt.GetDetail().GetTrack().GetSpeed(),
+		Course:   evt.GetDetail().GetTrack().GetCourse(),
+		Team:     evt.GetDetail().GetGroup().GetName(),
+		Role:     evt.GetDetail().GetGroup().GetRole(),
 		Sidc:     getSIDC(c.type_),
 	}
 
@@ -75,46 +79,53 @@ func (c *Contact) ToWeb() *WebUnit {
 		w.Status = "Offline"
 	}
 
-	if v := c.msg.GetCotEvent().GetDetail().GetTakv(); v != nil {
+	if v := evt.GetDetail().GetTakv(); v != nil {
 		w.TakVersion = strings.Trim(fmt.Sprintf("%s %s on %s", v.Platform, v.Version, v.Device), " ")
 	}
+
+	w.Text, _ = c.msg.Detail.GetChildValue("remarks")
 	return w
 }
 
 func (u *Unit) ToWeb() *WebUnit {
+	evt := u.msg.TakMessage.CotEvent
+
 	w := &WebUnit{
 		Uid:      u.uid,
 		Callsign: u.callsign,
-		Time:     cot.TimeFromMillis(u.msg.CotEvent.SendTime),
+		Time:     cot.TimeFromMillis(evt.SendTime),
 		LastSeen: u.received,
 		Stale:    u.stale,
 		Type:     u.type_,
-		Lat:      u.msg.CotEvent.Lat,
-		Lon:      u.msg.CotEvent.Lon,
-		Hae:      u.msg.CotEvent.Hae,
-		Speed:    u.msg.GetCotEvent().GetDetail().GetTrack().GetSpeed(),
-		Course:   u.msg.GetCotEvent().GetDetail().GetTrack().GetCourse(),
-		Team:     u.msg.GetCotEvent().GetDetail().GetGroup().GetName(),
-		Role:     u.msg.GetCotEvent().GetDetail().GetGroup().GetRole(),
+		Lat:      evt.Lat,
+		Lon:      evt.Lon,
+		Hae:      evt.Hae,
+		Speed:    evt.GetDetail().GetTrack().GetSpeed(),
+		Course:   evt.GetDetail().GetTrack().GetCourse(),
+		Team:     evt.GetDetail().GetGroup().GetName(),
+		Role:     evt.GetDetail().GetGroup().GetRole(),
 		Sidc:     getSIDC(u.type_),
 	}
+	w.Text, _ = u.msg.Detail.GetChildValue("remarks")
 	return w
 }
 
 func (p *Point) ToWeb() *WebPoint {
+	evt := p.msg.TakMessage.GetCotEvent()
+
 	w := &WebPoint{
 		Uid:      p.uid,
 		Name:     p.name,
 		Stale:    p.stale,
 		Received: p.received,
 		Type:     p.type_,
-		Lat:      p.msg.CotEvent.Lat,
-		Lon:      p.msg.CotEvent.Lon,
-		Hae:      p.msg.CotEvent.Hae,
-		Speed:    p.msg.GetCotEvent().GetDetail().GetTrack().GetSpeed(),
-		Course:   p.msg.GetCotEvent().GetDetail().GetTrack().GetCourse(),
+		Lat:      evt.Lat,
+		Lon:      evt.Lon,
+		Hae:      evt.Hae,
+		Speed:    evt.GetDetail().GetTrack().GetSpeed(),
+		Course:   evt.GetDetail().GetTrack().GetCourse(),
 	}
-
+	w.Text, _ = p.msg.Detail.GetChildValue("remarks")
 	return w
 }
 

@@ -162,36 +162,28 @@ let app = new Vue({
             if (item.lon === 0 && item.lat === 0) {
                 return
             }
+            let marker;
             if (this.markers.has(item.uid)) {
-                let p = this.markers.get(item.uid);
-                p.setLatLng([item.lat, item.lon], {title: item.callsign});
-                let icon = getIcon(item, true);
-                p.setIcon(L.icon({
-                    iconUrl: icon.uri,
-                    iconAnchor: new L.Point(icon.x, icon.y)
-                }));
-
-                // p.bindPopup(popup(item));
-                if (this.locked_unit === item.uid) {
-                    this.map.setView([item.lat, item.lon]);
-                }
-                p.on('click', function (e) {
-                    app.setUnit(item.uid);
-                });
+                marker = this.markers.get(item.uid);
             } else {
-                p = L.marker([item.lat, item.lon]);
-                let icon = getIcon(item, true);
-                p.setIcon(L.icon({
-                    iconUrl: icon.uri,
-                    iconAnchor: new L.Point(icon.x, icon.y)
-                }));
-                this.markers.set(item.uid, p);
-                p.addTo(this.map);
-                // p.bindPopup(popup(item));
-                p.on('click', function (e) {
-                    app.setUnit(item.uid);
+                marker = L.marker([item.lat, item.lon]);
+                this.markers.set(item.uid, marker);
+                marker.on('click', function (e) {
+                    app.setCurrentUnit(item.uid);
                 });
+                let icon = getIcon(item, true);
+                marker.setIcon(L.icon({
+                    iconUrl: icon.uri,
+                    iconAnchor: new L.Point(icon.x, icon.y),
+                }));
+                marker.addTo(this.map);
             }
+            marker.setLatLng([item.lat, item.lon]);
+            marker.bindTooltip(popup(item));
+            if (this.locked_unit === item.uid) {
+                this.map.setView([item.lat, item.lon]);
+            }
+
         },
         removeUnit: function (uid) {
             if (this.markers.has(uid)) {
@@ -205,9 +197,11 @@ let app = new Vue({
                 this.unit = null;
             }
         },
-        setCurrentUnit: function (u) {
-            this.unit = u;
-            this.mapToUnit(u);
+        setCurrentUnit: function (uid) {
+            if (this.units.has(uid)) {
+                this.unit = this.units.get(uid);
+                this.mapToUnit(this.unit);
+            }
         },
         mapToUnit: function (u) {
             if (u == null) {
@@ -215,11 +209,6 @@ let app = new Vue({
             }
             if (u.lat !== 0 || u.lon !== 0) {
                 this.map.setView([u.lat, u.lon]);
-            }
-        },
-        setUnit: function (uid) {
-            if (this.units.has(uid)) {
-                this.unit = this.units.get(uid);
             }
         },
         getImg: function (item) {
@@ -242,15 +231,22 @@ let app = new Vue({
                 this.dp.remove();
                 this.dp = null;
             }
+        },
+        unitsLen: function () {
+            let online = 0;
+            this.units.forEach(function (u) {
+                if (u.status === "Online") online += 1;
+            })
+
+            return online + "/" + this.units.size;
         }
     },
 });
 
 function popup(item) {
-    let v = '<h5>' + item.callsign + '</h5>';
-    v += 'Team: ' + item.team + '<br/>';
-    v += 'Role: ' + item.role + '<br/>';
-    v += 'Speed: ' + item.speed + '<br/>';
+    let v = '<b>' + item.callsign + '</b><br/>';
+    if (item.team !== "") v += item.team + ' ' + item.role + '<br/>';
+    if (item.speed !== "") v += 'Speed: ' + item.speed.toFixed(0) + '<br/>';
     v += item.text;
     return v;
 }

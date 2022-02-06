@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/kdudkov/goatak/cot"
-	"github.com/kdudkov/goatak/cotproto"
 )
 
 const (
@@ -18,7 +17,7 @@ type Unit struct {
 	callsign string
 	stale    time.Time
 	received time.Time
-	msg      *cotproto.TakMessage
+	msg      *cot.Msg
 }
 
 type Contact struct {
@@ -27,7 +26,7 @@ type Contact struct {
 	callsign string
 	stale    time.Time
 	lastSeen time.Time
-	msg      *cotproto.TakMessage
+	msg      *cot.Msg
 	online   bool
 	mx       sync.RWMutex
 }
@@ -38,14 +37,14 @@ type Point struct {
 	name     string
 	stale    time.Time
 	received time.Time
-	msg      *cotproto.TakMessage
+	msg      *cot.Msg
 }
 
-func (u *Unit) GetMsg() *cotproto.TakMessage {
+func (u *Unit) GetMsg() *cot.Msg {
 	return u.msg
 }
 
-func (c *Contact) GetMsg() *cotproto.TakMessage {
+func (c *Contact) GetMsg() *cot.Msg {
 	c.mx.RLock()
 	defer c.mx.RUnlock()
 	return c.msg
@@ -90,42 +89,42 @@ func (c *Contact) IsOnline() bool {
 	return c.online
 }
 
-func ContactFromEvent(msg *cotproto.TakMessage) *Contact {
+func ContactFromEvent(msg *cot.Msg) *Contact {
 	return &Contact{
-		uid:      msg.GetCotEvent().GetUid(),
-		callsign: msg.GetCotEvent().GetDetail().GetContact().GetCallsign(),
+		uid:      msg.TakMessage.GetCotEvent().GetUid(),
+		callsign: msg.TakMessage.GetCotEvent().GetDetail().GetContact().GetCallsign(),
 		lastSeen: time.Now(),
-		stale:    cot.TimeFromMillis(msg.GetCotEvent().GetStaleTime()),
-		type_:    msg.GetCotEvent().GetType(),
+		stale:    cot.TimeFromMillis(msg.TakMessage.GetCotEvent().GetStaleTime()),
+		type_:    msg.TakMessage.GetCotEvent().GetType(),
 		msg:      msg,
 		online:   true,
 		mx:       sync.RWMutex{},
 	}
 }
 
-func UnitFromEvent(msg *cotproto.TakMessage) *Unit {
+func UnitFromEvent(msg *cot.Msg) *Unit {
 	return &Unit{
-		uid:      msg.GetCotEvent().GetUid(),
-		callsign: msg.GetCotEvent().GetDetail().GetContact().GetCallsign(),
-		stale:    cot.TimeFromMillis(msg.GetCotEvent().GetStaleTime()),
-		type_:    msg.GetCotEvent().GetType(),
+		uid:      msg.TakMessage.GetCotEvent().GetUid(),
+		callsign: msg.TakMessage.GetCotEvent().GetDetail().GetContact().GetCallsign(),
+		stale:    cot.TimeFromMillis(msg.TakMessage.GetCotEvent().GetStaleTime()),
+		type_:    msg.TakMessage.GetCotEvent().GetType(),
 		msg:      msg,
 		received: time.Now(),
 	}
 }
 
-func PointFromEvent(msg *cotproto.TakMessage) *Point {
+func PointFromEvent(msg *cot.Msg) *Point {
 	return &Point{
-		uid:      msg.GetCotEvent().GetUid(),
-		name:     msg.GetCotEvent().GetDetail().GetContact().GetCallsign(),
-		stale:    cot.TimeFromMillis(msg.GetCotEvent().GetStaleTime()),
-		type_:    msg.GetCotEvent().GetType(),
+		uid:      msg.TakMessage.GetCotEvent().GetUid(),
+		name:     msg.TakMessage.GetCotEvent().GetDetail().GetContact().GetCallsign(),
+		stale:    cot.TimeFromMillis(msg.TakMessage.GetCotEvent().GetStaleTime()),
+		type_:    msg.TakMessage.GetCotEvent().GetType(),
 		msg:      msg,
 		received: time.Now(),
 	}
 }
 
-func (c *Contact) SetLastSeenNow(msg *cotproto.TakMessage) {
+func (c *Contact) SetLastSeenNow(msg *cot.Msg) {
 	c.mx.Lock()
 	defer c.mx.Unlock()
 

@@ -91,7 +91,12 @@ func (h *ClientHandler) handleRead() {
 			continue
 		}
 
-		h.checkFirstMsg(msg)
+		cotmsg := &cot.Msg{
+			TakMessage: msg,
+			Detail:     d,
+		}
+
+		h.checkFirstMsg(cotmsg)
 
 		if err != nil {
 			h.app.Logger.Errorf("error decoding details: %v", err)
@@ -100,10 +105,7 @@ func (h *ClientHandler) handleRead() {
 
 		h.app.Logger.Debugf("details: %s", msg.GetCotEvent().GetDetail().GetXmlDetail())
 
-		h.app.ch <- &cot.Msg{
-			TakMessage: msg,
-			Detail:     d,
-		}
+		h.app.ch <- cotmsg
 	}
 
 	if h.closeTimer != nil {
@@ -173,18 +175,18 @@ func (h *ClientHandler) GetVersion() int32 {
 	return atomic.LoadInt32(&h.ver)
 }
 
-func (h *ClientHandler) checkFirstMsg(msg *cotproto.TakMessage) {
-	if h.GetUid() == "" && msg.GetCotEvent() != nil {
-		uid := msg.CotEvent.Uid
+func (h *ClientHandler) checkFirstMsg(msg *cot.Msg) {
+	if h.GetUid() == "" && msg.TakMessage.GetCotEvent() != nil {
+		uid := msg.TakMessage.CotEvent.Uid
 		if strings.HasSuffix(uid, "-ping") {
 			uid = uid[:len(uid)-5]
 		}
 		h.SetUid(uid)
 		h.app.AddHandler(uid, h)
 	}
-	if h.GetCallsign() == "" && msg.GetCotEvent().GetDetail().GetContact() != nil {
-		h.callsign = msg.GetCotEvent().GetDetail().GetContact().Callsign
-		h.app.AddContact(msg.CotEvent.Uid, model.ContactFromEvent(msg))
+	if h.GetCallsign() == "" && msg.TakMessage.GetCotEvent().GetDetail().GetContact() != nil {
+		h.callsign = msg.TakMessage.GetCotEvent().GetDetail().GetContact().Callsign
+		h.app.AddContact(msg.TakMessage.CotEvent.Uid, model.ContactFromEvent(msg))
 	}
 }
 

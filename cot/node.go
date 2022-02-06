@@ -121,11 +121,20 @@ func (x *XMLDetails) GetFirstChild(name string) *Node {
 	return node
 }
 
+func (n *Node) GetFirstChild(name string) *Node {
+	for _, n := range n.Nodes {
+		if n.XMLName.Local == name {
+			return n
+		}
+	}
+	return nil
+}
+
 func (x *XMLDetails) HasChild(name string) bool {
 	return x.GetFirstChild(name) != nil
 }
 
-func (x *XMLDetails) getChildValue(name string) (string, bool) {
+func (x *XMLDetails) GetChildValue(name string) (string, bool) {
 	for _, n := range x.node.Nodes {
 		if n.XMLName.Local == name {
 			return n.Content, true
