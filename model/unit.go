@@ -8,7 +8,7 @@ import (
 )
 
 const (
-	staleContactDelete = time.Hour * 24
+	staleContactDelete = time.Minute * 30
 )
 
 type Unit struct {

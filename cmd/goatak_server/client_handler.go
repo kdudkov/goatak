@@ -92,6 +92,7 @@ func (h *ClientHandler) handleRead() {
 		}
 
 		cotmsg := &cot.Msg{
+			From:       h.uid,
 			TakMessage: msg,
 			Detail:     d,
 		}

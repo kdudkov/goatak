@@ -9,6 +9,7 @@ import (
 )
 
 type Msg struct {
+	From       string
 	TakMessage *cotproto.TakMessage
 	Detail     *XMLDetails
 }

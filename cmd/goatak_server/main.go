@@ -263,7 +263,7 @@ func (app *App) route(msg *cot.Msg) {
 			app.SendToCallsign(s, msg.TakMessage)
 		}
 	} else {
-		app.SendToAllOther(msg.TakMessage, msg.GetUid())
+		app.SendToAllOther(msg.TakMessage, msg.From)
 	}
 }
 
@@ -347,7 +347,7 @@ func main() {
 	viper.SetDefault("tcp_port", 8999)
 	viper.SetDefault("udp_port", 8999)
 	viper.SetDefault("ssl_port", 8089)
-	viper.SetDefault("api_port", 8443)
+	viper.SetDefault("api_port", 8889)
 
 	viper.SetDefault("me.lat", 35.462939)
 	viper.SetDefault("me.lon", -97.537283)

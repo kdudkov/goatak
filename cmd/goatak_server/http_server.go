@@ -45,10 +45,10 @@ func NewHttp(app *App, address string, apiAddress string) *HttpServer {
 	api := air.New()
 	api.Address = apiAddress
 
-	if app.config.keyFile != "" && app.config.certFile != "" {
-		api.TLSCertFile = app.config.certFile
-		api.TLSKeyFile = app.config.keyFile
-	}
+	//if app.config.keyFile != "" && app.config.certFile != "" {
+	//	api.TLSCertFile = app.config.certFile
+	//	api.TLSKeyFile = app.config.keyFile
+	//}
 	addMartiEndpoints(app, api)
 
 	api.NotFoundHandler = getNotFoundHandler(app)
