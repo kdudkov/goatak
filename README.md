@@ -32,6 +32,27 @@ from [actions](https://github.com/kdudkov/goatak/actions?query=is%3Acompleted+wo
 
 You can use as many config files as you want and run with specific config with `webclient -config <your_config.yml>`
 
+### Web client config examples
+
+simple config to connect to [Argustak](https://argustak.com/) cloud based TAK server:
+
+```yaml
+---
+server_address: argustak.com:4444:ssl
+web_port: 8080
+me:
+   callsign: username
+   uid: auto
+   type: a-f-G-U-C
+   team: Blue
+   role: Team Member
+   lat: 0
+   lon: 0
+ssl:
+   cert: username.p12
+   password: password
+```
+
 ## Libraries used
 
 * [Leaflet](https://leafletjs.com/)

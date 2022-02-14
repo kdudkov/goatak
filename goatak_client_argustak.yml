@@ -1,0 +1,14 @@
+---
+server_address: argustak.com:4444:ssl
+web_port: 8080
+me:
+  callsign: username
+  uid: auto
+  type: a-f-G-U-C
+  team: Blue
+  role: Team Member
+  lat: 0
+  lon: 0
+ssl:
+  cert: username.p12
+  password: password
