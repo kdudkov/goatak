@@ -14,6 +14,9 @@ import (
 	"github.com/kdudkov/goatak/model"
 )
 
+// /Marti/api/device/profile/connection?syncSecago=1644830591&clientUid=ANDROID-xxx
+//
+
 func addMartiEndpoints(app *App, a *air.Air) {
 	a.GET("/Marti/api/version", getVersionHandler(app))
 	a.GET("/Marti/api/version/config", getVersionConfigHandler(app))
@@ -25,6 +28,8 @@ func addMartiEndpoints(app *App, a *air.Air) {
 	a.GET("/Marti/sync/search", getSearchHandler(app))
 	a.GET("/Marti/sync/missionquery", getMissionQueryHandler(app))
 	a.POST("/Marti/sync/missionupload", getMissionUploadHandler(app))
+
+	a.GET("/Marti/api/tls/config", getTlsConfigHandler(app))
 }
 
 func getVersionHandler(app *App) func(req *air.Request, res *air.Response) error {
@@ -230,6 +235,13 @@ func getSearchHandler(app *App) func(req *air.Request, res *air.Response) error 
 		result["results"] = packages
 		result["resultCount"] = len(packages)
 		return res.WriteJSON(result)
+	}
+}
+
+func getTlsConfigHandler(app *App) func(req *air.Request, res *air.Response) error {
+	return func(req *air.Request, res *air.Response) error {
+
+		return nil
 	}
 }
 

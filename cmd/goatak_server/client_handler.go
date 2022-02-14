@@ -50,7 +50,6 @@ func NewClientHandler(conn net.Conn, app *App) *ClientHandler {
 }
 
 func (h *ClientHandler) Start() {
-	h.app.Logger.Infof("ssl client")
 	go h.handleRead()
 	go h.handleWrite()
 

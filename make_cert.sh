@@ -1,52 +1,55 @@
 #!/bin/bash
 
 server_name=test_server
-server_ip=192.168.0.10
-server_host=host.com
+server_host=127.0.0.1
 server_port=58088
-user=user
-storepass=zzzzzz
+user=$1
+storepass=111111
+user_p12=${server_name}_${user}.p12
 
 if [[ ! -e ca.key ]]; then
-	rm -f ca.pem
-	openssl req -x509 -sha256 -nodes -newkey rsa:2048 -days 1024 -out ca.pem -keyout ca.key -subj "/CN=${server_host}/C=US/ST=CA/O=${server_name}"
+  echo "No server cert found!"
+  exit 1
 fi
 
-rm -f *.p12
-rm -f client.key client.pem client.csr
+# make client cert
+openssl req -sha256 -nodes -newkey rsa:2048 -out client.csr -keyout client.key -subj "/CN=${user}/O=${user}"
+openssl x509 -req -in client.csr -CA ca.pem -CAkey ca.key -CAcreateserial -out client.pem -days 1024
 
-openssl req -x509 -sha256 -nodes -newkey rsa:2048 -days 1024 -out client.pem -keyout client.key -subj "/CN=${user}/O=${user}"
-keytool -import -alias client-cert -file client.pem -keystore ${server_name}.p12 -storepass ${storepass} -trustcacerts -noprompt -storetype pkcs12
+# make client .p12
+openssl pkcs12 -export -name client-cert -in client.pem -inkey client.key -out "${user_p12}" -passout pass:${storepass}
 
-keytool -import -alias server-cert -file ca.pem -keystore truststore.p12 -storepass ${storepass} -noprompt -storetype pkcs12
+# make server .p12
+openssl pkcs12 -export -nokeys -name server-cert -in ca.pem -out truststore.p12 -passout pass:${storepass}
 
-folder=5c2bfcae3d98c9f4d262172df99ebac5
 
-mkdir -p /tmp/cert/${folder}
-mkdir -p /tmp/cert/MANIFEST
+dir=$(mktemp -d /tmp/cert-XXXXXX)
 
-cp truststore.p12 /tmp/cert/${folder}/
-cp ${server_name}.p12 /tmp/cert/${folder}/
+mkdir -p "${dir}/MANIFEST"
 
-cat > /tmp/cert/${folder}/${server_name}.pref <<-EOF
+cp truststore.p12 "${dir}/"
+cp "${user_p12}" "${dir}/"
+
+cat > "${dir}/${server_name}.pref" <<-EOF
 <preferences>
   <preference version="1" name="cot_streams">
     <entry key="count" class="class java.lang.Integer">1</entry>
-    <entry key="description0" class="class java.lang.String">SSL connection to ${server_host}</entry>
     <entry key="enabled0" class="class java.lang.Boolean">true</entry>
     <entry key="connectString0" class="class java.lang.String">${server_host}:${server_port}:ssl</entry>
-</preference>
+    <entry key="useAuth0" class="class java.lang.Boolean">false</entry>
+    <entry key="description0" class="class java.lang.String">SSL connection to ${server_host}</entry>
+  </preference>
   <preference version="1" name="com.atakmap.app_preferences">
-    <entry key="displayServerConnectionWidget" class="class java.lang.Boolean">true</entry>
-    <entry key="caLocation" class="class java.lang.String">/storage/emulated/0/atak/cert/truststore.p12</entry>
-    <entry key="caPassword" class="class java.lang.String">${storepass}</entry>
-    <entry key="certificateLocation" class="class java.lang.String">/storage/emulated/0/atak/cert/${server_name}.p12</entry>
     <entry key="clientPassword" class="class java.lang.String">${storepass}</entry>
+    <entry key="caPassword" class="class java.lang.String">${storepass}</entry>
+    <entry key="caLocation" class="class java.lang.String">/storage/emulated/0/atak/cert/truststore.p12</entry>
+    <entry key="certificateLocation" class="class java.lang.String">/storage/emulated/0/atak/cert/${user_p12}</entry>
+    <entry key="displayServerConnectionWidget" class="class java.lang.Boolean">true</entry>
   </preference>
 </preferences>
 EOF
 
-cat > /tmp/cert/MANIFEST/manifest.xml <<-EOF
+cat > "${dir}/MANIFEST/manifest.xml" <<-EOF
 <MissionPackageManifest version="2">
   <Configuration>
     <Parameter name="uid" value="${server_name}_config"/>
@@ -54,16 +57,16 @@ cat > /tmp/cert/MANIFEST/manifest.xml <<-EOF
     <Parameter name="onReceiveDelete" value="true"/>
   </Configuration>
   <Contents>
-    <Content ignore="false" zipEntry="${folder}/${server_name}.pref"/>
-    <Content ignore="false" zipEntry="${folder}/truststore.p12"/>
-    <Content ignore="false" zipEntry="${folder}/${server_name}.p12"/>
+    <Content ignore="false" zipEntry="${server_name}.pref"/>
+    <Content ignore="false" zipEntry="truststore.p12"/>
+    <Content ignore="false" zipEntry="${user_p12}"/>
   </Contents>
 </MissionPackageManifest>
 EOF
 
-cd /tmp/cert
+cd "$dir" || exit
 
-zip -r "${server_name}.zip" ./*
+zip -r "${server_name}_${user}.zip" ./*
 cd -
-mv "/tmp/cert/${server_name}.zip" ./
-rm -rf /tmp/cert
+mv "${dir}/${server_name}_${user}.zip" ./
+rm -rf "$dir"
