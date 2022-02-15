@@ -46,7 +46,7 @@ func getVersionConfigHandler(app *App) func(req *air.Request, res *air.Response)
 	result["type"] = "ServerConfig"
 	result["nodeId"] = "1"
 	data["api"] = "2"
-	data["version"] = gitRevision + ":" + gitCommit
+	data["version"] = gitRevision + ":" + gitBranch
 	data["hostname"] = "0.0.0.0"
 	result["data"] = data
 	return func(req *air.Request, res *air.Response) error {

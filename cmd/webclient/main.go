@@ -34,7 +34,7 @@ const (
 
 var (
 	gitRevision = "unknown"
-	gitCommit   = "unknown"
+	gitBranch   = "unknown"
 )
 
 type App struct {

@@ -24,7 +24,7 @@ import (
 
 var (
 	gitRevision            = "unknown"
-	gitCommit              = "unknown"
+	gitBranch              = "unknown"
 	lastSeenOfflineTimeout = time.Minute * 2
 )
 
@@ -336,7 +336,7 @@ func (app *App) SendToCallsign(callsign string, msg *cotproto.TakMessage) {
 }
 
 func main() {
-	fmt.Printf("version %s %s\n", gitRevision, gitCommit)
+	fmt.Printf("version %s %s\n", gitRevision, gitBranch)
 	var logging = flag.Bool("logging", false, "save all events to files")
 	var conf = flag.String("config", "goatak_server.yml", "name of config file")
 	flag.Parse()
