@@ -103,8 +103,6 @@ func (h *ClientHandler) handleRead() {
 			continue
 		}
 
-		h.app.Logger.Debugf("details: %s", msg.GetCotEvent().GetDetail().GetXmlDetail())
-
 		h.app.ch <- cotmsg
 	}
 

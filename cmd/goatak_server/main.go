@@ -207,6 +207,10 @@ func (app *App) EventProcessor() {
 			}
 		}
 
+		if msg.TakMessage.GetCotEvent().GetDetail().GetXmlDetail() != "" {
+			app.Logger.Debugf("details: %s", msg.TakMessage.GetCotEvent().GetDetail().GetXmlDetail())
+		}
+
 		switch {
 		case msg.GetType() == "t-x-c-t":
 			// ping
@@ -219,10 +223,10 @@ func (app *App) EventProcessor() {
 				c.SetLastSeenNow(nil)
 			}
 			app.SendTo(uid, cot.MakePong())
-			app.SendToAllOther(msg.TakMessage, uid)
-			continue
+			break
 		case msg.IsChat():
 			if c := model.MsgToChat(msg); c != nil {
+				app.Logger.Infof("Chat %s (%s) -> %s (%s) \"%s\"", c.From, c.FromUid, c.To, c.ToUid, c.Text)
 				app.messages = append(app.messages, c)
 			}
 		case strings.HasPrefix(msg.GetType(), "a-"):
@@ -235,6 +239,7 @@ func (app *App) EventProcessor() {
 				if c := app.GetContact(msg.GetUid()); c != nil {
 					c.SetLastSeenNow(msg)
 				} else {
+					app.Logger.Infof("new contact: uid %s, callsign %s", msg.GetUid(), msg.GetCallsign())
 					app.AddContact(msg.GetUid(), model.ContactFromEvent(msg))
 				}
 			} else {
@@ -250,7 +255,7 @@ func (app *App) EventProcessor() {
 				msg.GetStale().Sub(time.Now()))
 			app.AddPoint(msg.GetUid(), model.PointFromEvent(msg))
 		default:
-			app.Logger.Debugf("msg: %s", msg)
+			app.Logger.Warnf("msg: %s", msg)
 		}
 
 		app.route(msg)
@@ -338,6 +343,7 @@ func (app *App) SendToCallsign(callsign string, msg *cotproto.TakMessage) {
 func main() {
 	fmt.Printf("version %s %s\n", gitRevision, gitBranch)
 	var logging = flag.Bool("logging", false, "save all events to files")
+	var debug = flag.Bool("debug", false, "debug node")
 	var conf = flag.String("config", "goatak_server.yml", "name of config file")
 	flag.Parse()
 
@@ -360,7 +366,13 @@ func main() {
 
 	flag.Parse()
 
-	cfg := zap.NewDevelopmentConfig()
+	var cfg zap.Config
+	if *debug {
+		cfg = zap.NewDevelopmentConfig()
+	} else {
+		cfg = zap.NewProductionConfig()
+	}
+
 	logger, _ := cfg.Build()
 	defer logger.Sync()
 
