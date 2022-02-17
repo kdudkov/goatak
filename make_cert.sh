@@ -7,20 +7,20 @@ user=$1
 storepass=111111
 user_p12=${server_name}_${user}.p12
 
-if [[ ! -e ca.key ]]; then
+if [[ ! -e cacert.key ]]; then
   echo "No server cert found!"
   exit 1
 fi
 
 # make client cert
 openssl req -sha256 -nodes -newkey rsa:2048 -out client.csr -keyout client.key -subj "/CN=${user}/O=${user}"
-openssl x509 -req -in client.csr -CA ca.pem -CAkey ca.key -CAcreateserial -out client.pem -days 1024
+openssl x509 -req -in client.csr -CA cacert.pem -CAkey cacert.key -CAcreateserial -out client.pem -days 1024
 
 # make client .p12
 openssl pkcs12 -export -name client-cert -in client.pem -inkey client.key -out "${user_p12}" -passout pass:${storepass}
 
 # make server .p12
-openssl pkcs12 -export -nokeys -name server-cert -in ca.pem -out truststore.p12 -passout pass:${storepass}
+openssl pkcs12 -export -nokeys -name cacert -in cacert.pem -out truststore.p12 -passout pass:${storepass}
 
 
 dir=$(mktemp -d /tmp/cert-XXXXXX)
@@ -28,7 +28,7 @@ dir=$(mktemp -d /tmp/cert-XXXXXX)
 mkdir -p "${dir}/MANIFEST"
 
 cp truststore.p12 "${dir}/"
-cp "${user_p12}" "${dir}/"
+mv "${user_p12}" "${dir}/"
 
 cat > "${dir}/${server_name}.pref" <<-EOF
 <preferences>
@@ -70,3 +70,7 @@ zip -r "${server_name}_${user}.zip" ./*
 cd -
 mv "${dir}/${server_name}_${user}.zip" ./
 rm -rf "$dir"
+
+rm client.csr
+rm client.pem
+rm client.key

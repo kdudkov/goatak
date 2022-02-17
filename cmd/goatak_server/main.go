@@ -38,6 +38,7 @@ type AppConfig struct {
 	logging  bool
 	certFile string
 	keyFile  string
+	caFile   string
 }
 
 type App struct {
@@ -94,7 +95,7 @@ func (app *App) Run() {
 
 	if app.config.keyFile != "" && app.config.certFile != "" {
 		go func() {
-			if err := app.ListenSSl(app.config.certFile, app.config.keyFile, fmt.Sprintf(":%d", app.config.sslPort)); err != nil {
+			if err := app.ListenSSl(app.config.certFile, app.config.keyFile, app.config.caFile, fmt.Sprintf(":%d", app.config.sslPort)); err != nil {
 				panic(err)
 			}
 		}()
@@ -383,8 +384,9 @@ func main() {
 		apiPort:  viper.GetInt("api_port"),
 		sslPort:  viper.GetInt("ssl_port"),
 		logging:  *logging,
-		certFile: viper.GetString("cert_file"),
-		keyFile:  viper.GetString("key_file"),
+		certFile: viper.GetString("ssl.cert"),
+		keyFile:  viper.GetString("ssl.key"),
+		caFile:   viper.GetString("ssl.ca"),
 	}
 
 	app := NewApp(config, logger.Sugar())

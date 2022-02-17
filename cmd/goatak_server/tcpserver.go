@@ -28,10 +28,10 @@ func (app *App) ListenTCP(addr string) (err error) {
 	}
 }
 
-func (app *App) ListenSSl(certFile, keyFile, addr string) error {
+func (app *App) ListenSSl(certFile, keyFile, caFile, addr string) error {
 	app.Logger.Infof("listening TCP SSL at %s", addr)
 
-	caCertPEM, err := ioutil.ReadFile(certFile)
+	caCertPEM, err := ioutil.ReadFile(caFile)
 	if err != nil {
 		return err
 	}

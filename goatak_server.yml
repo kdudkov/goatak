@@ -8,5 +8,7 @@ me:
   lon: -97.537283
   zoom: 5
 
-cert_file: server.pem
-key_file: server.key
+ssl:
+  ca: cacert.pem
+  cert: server.pem
+  key: server.key
