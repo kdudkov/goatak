@@ -55,7 +55,6 @@ func getUnitsHandler(app *App) func(req *air.Request, res *air.Response) error {
 	return func(req *air.Request, res *air.Response) error {
 		r := make(map[string]interface{}, 0)
 		r["units"] = getUnits(app)
-		r["points"] = getPoints(app)
 		r["messages"] = app.messages
 		return res.WriteJSON(r)
 	}
@@ -108,20 +107,11 @@ func getUnits(app *App) []*model.WebUnit {
 			units = append(units, v.ToWeb())
 		case *model.Contact:
 			units = append(units, v.ToWeb())
+		case *model.Point:
+			units = append(units, v.ToWeb())
 		}
 		return true
 	})
 
 	return units
-}
-
-func getPoints(app *App) []*model.WebPoint {
-	points := make([]*model.WebPoint, 0)
-
-	app.points.Range(func(key, value interface{}) bool {
-		points = append(points, (value.(*model.Point)).ToWeb())
-		return true
-	})
-
-	return points
 }

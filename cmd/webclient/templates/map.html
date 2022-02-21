@@ -1,17 +1,17 @@
 <div id="app">
     <nav class="navbar navbar-expand-md navbar-dark fixed-top bg-dark">
         <div class="container-fluid">
-            <a class="navbar-brand" href="#">ATAK client <span v-if="config != null">v.{{config.version}}</span></a>
+            <a class="navbar-brand" href="#">GoATAK client <span v-if="config != null">v.{{config.version}}</span></a>
 
             <div class="collapse navbar-collapse" id="navbarCollapse">
                 <ul class="navbar-nav me-auto mb-2 mb-md-0">
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" id="navbarDarkDropdownMenuLink" role="button"
                            data-bs-toggle="dropdown" aria-expanded="false">
-                            Units <span class="badge rounded-pill bg-success">{{unitsNum()}}</span>
+                            Contacts <span class="badge rounded-pill bg-success">{{contactsNum()}}</span>
                         </a>
                         <ul class="dropdown-menu dropdown-menu-dark" aria-labelledby="navbarDarkDropdownMenuLink">
-                            <li v-for="u in all_units">
+                            <li v-for="u in byCategory('contact')">
                                 <a class="dropdown-item" href="#" v-on:click="setCurrentUnit(u.uid)">
                                     <img v-bind:src="getImg(u)"/>
                                     <span v-if="u.lat ===0 && u.lon ===0">* </span>{{u.callsign}}<span
@@ -23,10 +23,23 @@
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" id="navbarDarkDropdownMenuLink2" role="button"
                            data-bs-toggle="dropdown" aria-expanded="false">
-                            Points <span class="badge rounded-pill bg-success">{{pointsNum()}}</span>
+                            Units <span class="badge rounded-pill bg-success">{{countByCategory('unit')}}</span>
                         </a>
                         <ul class="dropdown-menu dropdown-menu-dark" aria-labelledby="navbarDarkDropdownMenuLink2">
-                            <li v-for="u in all_points">
+                            <li v-for="u in byCategory('unit')">
+                                <a class="dropdown-item" href="#" v-on:click="setCurrentUnit(u.uid)">
+                                    <span v-if="u.lat ===0 && u.lon ===0">* </span>{{u.callsign}}
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="navbarDarkDropdownMenuLink3" role="button"
+                           data-bs-toggle="dropdown" aria-expanded="false">
+                            Points <span class="badge rounded-pill bg-success">{{countByCategory('point')}}</span>
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-dark" aria-labelledby="navbarDarkDropdownMenuLink3">
+                            <li v-for="u in byCategory('point')">
                                 <a class="dropdown-item" href="#" v-on:click="setCurrentUnit(u.uid)">
                                     <span v-if="u.lat ===0 && u.lon ===0">* </span>{{u.callsign}}
                                 </a>
@@ -44,38 +57,91 @@
 
     <div class="container-fluid vh-100 mh-100" style="padding-top: 4rem;">
         <div class="row h-100">
-            <div id="map" class="col-9 h-100">
+            <div id="map" class="col-9 h-100" style="cursor:crosshair;">
             </div>
             <div class="col-3">
                 <div class="card mb-1">
                     <div class="card-header">Tools</div>
                     <div class="card-body">
-                        <div v-if="dp != null">
-                            DP coords: {{dp.getLatLng().lat.toFixed(5)}}, {{dp.getLatLng().lng.toFixed(5)}} <span
-                                v-on:click="removeDp()">remove</span>
+                        <div class="btn-group" role="group" aria-label="Tools">
+                            <input type="radio" class="btn-check" name="btnradio" id="select" autocomplete="off"
+                                   checked>
+                            <label class="btn btn-outline-primary btn-sm" for="select">Select</label>
+
+                            <input type="radio" class="btn-check" name="btnradio" id="redx" autocomplete="off">
+                            <label class="btn btn-outline-primary btn-sm" for="redx">Red-x</label>
+
+                            <input type="radio" class="btn-check" name="btnradio" id="dp1" autocomplete="off">
+                            <label class="btn btn-outline-primary btn-sm" for="dp1">DP</label>
+
+                            <input type="radio" class="btn-check" name="btnradio" id="point" autocomplete="off">
+                            <label class="btn btn-outline-primary btn-sm" for="point">Point drop</label>
+                        </div>
+                        <div v-if="getTool('redx') != null" class="mt-1">
+                            <span class="badge bg-danger">RedX</span>: {{printCoordsll(getTool('redx').getLatLng())}}
+                            <span class="badge rounded-pill bg-success" style="cursor:default;"
+                                  v-on:click="map.setView(getTool('redx').getLatLng())"><i class="bi bi-geo"></i></span>
+                            <span class="badge rounded-pill bg-danger" style="cursor:default;"
+                                  v-on:click="removeTool('redx')">X</span>
+                        </div>
+                        <div v-if="getTool('dp1') != null" class="mt-1">
+                            <span class="badge bg-success">DP1</span>: {{printCoordsll(getTool('dp1').getLatLng())}}
+                            <span class="badge rounded-pill bg-success" style="cursor:default;"
+                                  v-on:click="map.setView(getTool('dp1').getLatLng())"><i class="bi bi-geo"></i></span>
+                            <span class="badge rounded-pill bg-danger" style="cursor:default;"
+                                  v-on:click="removeTool('dp1')">X</span>
+                        </div>
+                        <div v-if="coords != null" class="mt-1">
+                            <span class="badge bg-secondary">cursor</span>: {{printCoordsll(coords)}} <span
+                                v-if="getTool('redx') != null">{{ dist(coords,getTool('redx').getLatLng()) }} from RedX</span>
                         </div>
                     </div>
                 </div>
-                <div class="card" v-if="unit != null">
+                <div class="card"
+                     v-if="current_unit != null && (current_unit.category === 'unit' || current_unit.category === 'contact')">
                     <div class="card-header">
-                        <h5 v-on:click="mapToUnit(unit)">
-                            <img v-bind:src="milImg(unit)"/> {{unit.callsign}} <span v-if="unit.status != ''"> ({{unit.status}})</span>
-                            <img height="24" src="/static/icons/coord_unlock.png" v-if="locked_unit != unit.uid"
-                                 v-on:click="locked_unit=unit.uid"/>
-                            <img height="24" src="/static/icons/coord_lock.png" v-if="locked_unit == unit.uid"
-                                 v-on:click="locked_unit=''"/>
+                        <h5 v-on:click="mapToUnit(current_unit)">
+                            <img v-bind:src="milImg(current_unit)"/> {{current_unit.callsign}} <span
+                                v-if="ne(current_unit.status)"> ({{current_unit.status}})</span>
+                            <img height="24" src="/static/icons/coord_unlock.png"
+                                 v-if="locked_unit_uid != current_unit.uid"
+                                 v-on:click="locked_unit_uid=current_unit.uid"/>
+                            <img height="24" src="/static/icons/coord_lock.png"
+                                 v-if="locked_unit_uid == current_unit.uid"
+                                 v-on:click="locked_unit_uid=''"/>
                         </h5>
                     </div>
                     <div class="card-body">
-                        <b>UID:</b> {{unit.uid}}<br/>
-                        <span v-if="unit.team != ''"><b>Team:</b> {{unit.team}}, <b>Role:</b> {{unit.role}}<br/></span>
-                        <b>Type:</b> {{unit.type}} <b>SIDC:</b> {{unit.sidc}}<br/>
-                        <b>coords:</b> {{unit.lat.toFixed(5)}},{{unit.lon.toFixed(5)}}<br/>
-                        <b>speed:</b> {{sp(unit.speed)}} km/h, <b>hae:</b> {{unit.hae.toFixed(1)}}<br/>
-                        <span v-if="unit.tak_version != ''"><b>ver:</b> {{unit.tak_version}}<br/></span>
-                        <b>time:</b> {{dt(unit.time)}} <b>stale:</b> {{dt(unit.stale)}}<br/>
-                        <b>last seen</b>: {{dt(unit.last_seen)}}<br/>
-                        {{unit.text}}
+                        <b>UID:</b> {{current_unit.uid}}<br/>
+                        <span v-if="coords != null"></span>
+                        <span v-if="ne(current_unit.team)"><b>Team:</b> {{current_unit.team}}, <b>Role:</b> {{current_unit.role}}<br/></span>
+                        <b>Type:</b> {{current_unit.type}} <b>SIDC:</b> {{current_unit.sidc}}<br/>
+                        <b>coords:</b> {{printCoords(current_unit.lat, current_unit.lon)}}
+                        <span class="badge rounded-pill bg-success" style="cursor:default;"
+                              v-on:click="map.setView([current_unit.lat, current_unit.lon])"><i
+                                class="bi bi-geo"></i></span><br/>
+                        <b>speed:</b> {{sp(current_unit.speed)}} km/h, <b>hae:</b> {{current_unit.hae.toFixed(1)}}<br/>
+                        <span v-if="ne(current_unit.tak_version)"><b>ver:</b> {{current_unit.tak_version}}<br/></span>
+                        <b>time:</b> {{dt(current_unit.start_time)}} <b>stale:</b> {{dt(current_unit.stale_time)}}<br/>
+                        <b>last seen</b>: {{dt(current_unit.last_seen)}}<br/>
+                        {{current_unit.text}}
+                    </div>
+                </div>
+                <div class="card" v-if="current_unit != null && current_unit.category === 'point'">
+                    <div class="card-header">
+                        <h5 v-on:click="mapToUnit(current_unit)">
+                            {{current_unit.callsign}}
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <b>UID:</b> {{current_unit.uid}}<br/>
+                        <span v-if="coords != null"></span>
+                        <b>Type:</b> {{current_unit.type}} <b>SIDC:</b> {{current_unit.sidc}}<br/>
+                        <b>coords:</b> {{printCoords(current_unit.lat, current_unit.lon)}}
+                        <span class="badge rounded-pill bg-success" style="cursor:default;"
+                              v-on:click="map.setView([current_unit.lat, current_unit.lon])"><i
+                                class="bi bi-geo"></i></span><br/>
+                        {{current_unit.text}}
                     </div>
                 </div>
             </div>

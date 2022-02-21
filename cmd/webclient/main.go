@@ -47,7 +47,6 @@ type App struct {
 	lastWrite time.Time
 	pingTimer *time.Timer
 	units     sync.Map
-	points    sync.Map
 	messages  []*model.ChatMessage
 	tls       bool
 
@@ -92,7 +91,6 @@ func NewApp(uid string, callsign string, connectStr string, webPort int, logger 
 		tls:      tlsConn,
 		webPort:  webPort,
 		units:    sync.Map{},
-		points:   sync.Map{},
 	}
 }
 
@@ -360,7 +358,7 @@ func (app *App) AddPoint(uid string, u *model.Point) {
 	if u == nil {
 		return
 	}
-	app.points.Store(uid, u)
+	app.units.Store(uid, u)
 }
 
 func (app *App) GetUnit(uid string) *model.Unit {

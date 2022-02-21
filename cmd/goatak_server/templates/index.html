@@ -11,9 +11,9 @@
                     <div class="card-header">Units</div>
                     <div class="card-body">
                         <table class="table table-hover table-sm units">
-                            <tr v-for="u in all_units">
+                            <tr v-for="u in by_category('contacts')>
                                 <td>
-                                    <img height="24px" src="/static/icons/coord_unlock.png"
+                                    <img height=" 24px" src="/static/icons/coord_unlock.png"
                                          v-if="locked_unit != u.uid"
                                          v-on:click="locked_unit=u.uid"/>
                                     <img height="24px" src="/static/icons/coord_lock.png"

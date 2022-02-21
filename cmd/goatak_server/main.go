@@ -51,7 +51,6 @@ type App struct {
 
 	handlers sync.Map
 	units    sync.Map
-	points   sync.Map
 	messages []*model.ChatMessage
 
 	ctx context.Context
@@ -67,7 +66,6 @@ func NewApp(config *AppConfig, logger *zap.SugaredLogger) *App {
 		ch:             make(chan *cot.Msg, 20),
 		handlers:       sync.Map{},
 		units:          sync.Map{},
-		points:         sync.Map{},
 		uid:            uuid.New().String(),
 	}
 }
@@ -190,7 +188,7 @@ func (app *App) AddPoint(uid string, p *model.Point) {
 	if p == nil {
 		return
 	}
-	app.points.Store(uid, p)
+	app.units.Store(uid, p)
 }
 
 func (app *App) EventProcessor() {

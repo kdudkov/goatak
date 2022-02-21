@@ -15,12 +15,19 @@ const colors = new Map([
     ['Brown', 'brown'],
 ]);
 
+function ne(s) {
+    return s !== undefined && s !== null && s !== "";
+}
+
 function getIcon(item, withText) {
-    if (item.team !== "") {
+    if (item.category === "contact") {
         return {uri: toUri(roleCircle(24, colors.get(item.team), '#000', item.role)), x: 12, y: 12};
     }
-    if (item.icon !== undefined && item.icon.startsWith("COT_MAPPING_SPOTMAP/")) {
-        return {uri: toUri(circle(10, item.color === '' ? 'green' : item.color, '#000', null)), x: 5, y: 5}
+    if (ne(item.icon) && item.icon.startsWith("COT_MAPPING_SPOTMAP/")) {
+        return {uri: toUri(circle(16, ne(item.color) ? item.color : 'green', '#000', null)), x: 8, y: 8}
+    }
+    if (item.category === "point") {
+        return {uri: toUri(circle(16, ne(item.color) ? item.color : 'green', '#000', null)), x: 8, y: 8}
     }
     return getMilIcon(item, withText);
 }
@@ -46,10 +53,12 @@ let app = new Vue({
         markers: new Map(),
         map: null,
         ts: 0,
-        locked_unit: '',
-        unit: null,
+        locked_unit_uid: '',
+        current_unit: null,
         config: null,
-        dp: null,
+        tools: new Map(),
+        coords: null,
+        point_num: 1,
     },
 
     mounted() {
@@ -83,15 +92,8 @@ let app = new Vue({
         this.renew();
         this.timer = setInterval(this.renew, 3000);
 
-        var app = this;
-
-        this.map.on('click', function (e) {
-            if (app.dp == null) {
-                app.dp = new L.marker(e.latlng).addTo(app.map);
-            } else {
-                app.dp.setLatLng(e.latlng);
-            }
-        });
+        this.map.on('click', this.mapClick);
+        this.map.on('mousemove', this.mouseMove);
 
         let vm = this;
         fetch('/config')
@@ -105,33 +107,7 @@ let app = new Vue({
                 }
             });
     },
-    computed: {
-        all_units: function () {
-            let arr = Array.from(this.units.values()).filter(function (u) {
-                return u.status !== ""
-            });
-            arr.sort(function (a, b) {
-                var ua = a.callsign.toLowerCase(), ub = b.callsign.toLowerCase();
-                if (ua < ub) return -1;
-                if (ua > ub) return 1;
-                return 0;
-            });
-            return this.ts && arr;
-        },
-        all_points: function () {
-            let arr = Array.from(this.units.values()).filter(function (u) {
-                return u.status === ""
-            });
-            arr.sort(function (a, b) {
-                var ua = a.callsign.toLowerCase(), ub = b.callsign.toLowerCase();
-                if (ua < ub) return -1;
-                if (ua > ub) return 1;
-                return 0;
-            });
-            return this.ts && arr;
-        }
-    },
-
+    computed: {},
     methods: {
         renew: function () {
             let vm = this;
@@ -146,23 +122,23 @@ let app = new Vue({
 
                     data.units.forEach(function (i) {
                         units.set(i.uid, i);
-                        vm.updateMarker(i);
+                        vm.updateMarker(i, false);
                         keys.add(i.uid);
-                        if (vm.unit != null && vm.unit.uid === i.uid) {
-                            vm.unit = i;
+                        if (vm.current_unit != null && vm.current_unit.uid === i.uid) {
+                            vm.current_unit = i;
                         }
                     });
 
                     vm.units.forEach(function (v, k) {
-                        if (!keys.has(k)) {
+                        if (v.my === undefined && !keys.has(k)) {
                             vm.removeUnit(k);
                         }
                     });
                     vm.ts += 1;
                 });
 
-            if (this.dp != null) {
-                var p = this.dp.getLatLng();
+            if (this.getTool("dp1") != null) {
+                let p = this.getTool("dp1").getLatLng();
 
                 const requestOptions = {
                     method: "POST",
@@ -172,7 +148,7 @@ let app = new Vue({
                 fetch("/dp", requestOptions);
             }
         },
-        updateMarker: function (item) {
+        updateMarker: function (item, draggable) {
             if (item.lon === 0 && item.lat === 0) {
                 return
             }
@@ -180,10 +156,14 @@ let app = new Vue({
             if (this.markers.has(item.uid)) {
                 marker = this.markers.get(item.uid);
             } else {
-                marker = L.marker([item.lat, item.lon]);
+                marker = L.marker([item.lat, item.lon], {draggable: draggable});
                 this.markers.set(item.uid, marker);
                 marker.on('click', function (e) {
                     app.setCurrentUnit(item.uid);
+                });
+                marker.on('dragend', function (e) {
+                    item.lat = marker.getLatLng().lat;
+                    item.lon = marker.getLatLng().lng;
                 });
                 let icon = getIcon(item, true);
                 marker.setIcon(L.icon({
@@ -194,10 +174,9 @@ let app = new Vue({
             }
             marker.setLatLng([item.lat, item.lon]);
             marker.bindTooltip(popup(item));
-            if (this.locked_unit === item.uid) {
+            if (this.locked_unit_uid === item.uid) {
                 this.map.setView([item.lat, item.lon]);
             }
-
         },
         removeUnit: function (uid) {
             if (this.markers.has(uid)) {
@@ -207,15 +186,27 @@ let app = new Vue({
                 this.markers.delete(uid);
             }
             this.units.delete(uid);
-            if (this.unit != null && this.unit.uid === uid) {
-                this.unit = null;
+            if (this.current_unit != null && this.current_unit.uid === uid) {
+                this.current_unit = null;
             }
         },
         setCurrentUnit: function (uid) {
             if (this.units.has(uid)) {
-                this.unit = this.units.get(uid);
+                this.current_unit = this.units.get(uid);
                 this.mapToUnit(this.unit);
             }
+        },
+        byCategory: function (s) {
+            let arr = Array.from(this.units.values()).filter(function (u) {
+                return u.category === s
+            });
+            arr.sort(function (a, b) {
+                let ua = a.callsign.toLowerCase(), ub = b.callsign.toLowerCase();
+                if (ua < ub) return -1;
+                if (ua > ub) return 1;
+                return 0;
+            });
+            return this.ts && arr;
         },
         mapToUnit: function (u) {
             if (u == null) {
@@ -239,27 +230,97 @@ let app = new Vue({
         sp: function (v) {
             return (v * 3.6).toFixed(1);
         },
-        removeDp: function () {
-            if (this.dp != null) {
-                this.map.removeLayer(this.dp);
-                this.dp.remove();
-                this.dp = null;
+        mapClick: function (e) {
+            if (document.getElementById("redx").checked === true) {
+                this.addOrMove("redx", e.latlng, "/static/icons/x.png")
+                return;
+            }
+            if (document.getElementById("dp1").checked === true) {
+                this.addOrMove("dp1", e.latlng, "/static/icons/spoi_icon.png")
+                return;
+            }
+            if (document.getElementById("point").checked === true) {
+                let uid = uuidv4();
+                let u = {
+                    uid: uid,
+                    category: "point",
+                    callsign: "point-" + this.point_num++,
+                    stale: null,
+                    received: null,
+                    type: "b-m-p-s-m",
+                    lat: e.latlng.lat,
+                    lon: e.latlng.lng,
+                    hae: 0,
+                    speed: 0,
+                    course: 0,
+                    status: "",
+                    text: "",
+                    my: true,
+                }
+                console.log(u);
+                this.units.set(uid, u);
+                this.updateMarker(u, true);
+                this.current_unit = u;
             }
         },
-        unitsNum: function () {
+        mouseMove: function (e) {
+            this.coords = e.latlng;
+        },
+        removeTool: function (name) {
+            if (this.tools.has(name)) {
+                p = this.tools.get(name);
+                this.map.removeLayer(p);
+                p.remove();
+                this.tools.delete(name);
+                this.ts++;
+            }
+        },
+        getTool: function (name) {
+            if (this.ts > 5) {
+            }
+            return this.tools.get(name);
+        },
+        addOrMove(name, coord, icon) {
+            if (this.tools.has(name)) {
+                this.tools.get(name).setLatLng(coord);
+            } else {
+                let p = new L.marker(coord).addTo(this.map);
+                if (ne(icon)) {
+                    p.setIcon(L.icon({
+                        iconUrl: icon,
+                        iconSize: [20, 20],
+                        iconAnchor: new L.Point(10, 10),
+                    }));
+                }
+                this.tools.set(name, p);
+            }
+            this.ts++;
+        },
+        printCoordsll: function (latlng) {
+            return this.printCoords(latlng.lat, latlng.lng);
+        },
+        printCoords: function (lat, lng) {
+            return lat.toFixed(6) + "," + lng.toFixed(6);
+        },
+        dist: function (ll1, ll2) {
+            return this.map.distance(ll1, ll2).toFixed(0) + "m";
+        },
+        contactsNum: function () {
             let online = 0;
             let total = 0;
             this.units.forEach(function (u) {
-                if (u.status === "Online") online += 1;
-                if (u.status !== "") total += 1;
+                if (u.category === "contact") {
+                    if (u.status === "Online") online += 1;
+                    if (u.status !== "") total += 1;
+                }
             })
 
             return online + "/" + total;
         },
-        pointsNum: function () {
+        countByCategory: function (s) {
             let total = 0;
             this.units.forEach(function (u) {
-                if (u.status === "") total += 1;
+                if (u.category === s) total += 1;
             })
 
             return total;
@@ -267,14 +328,17 @@ let app = new Vue({
         msgNum: function () {
             if (this.messages == null) return 0;
             return this.messages.length;
+        },
+        ne: function (s) {
+            return s !== undefined && s !== null && s !== "";
         }
     },
 });
 
 function popup(item) {
     let v = '<b>' + item.callsign + '</b><br/>';
-    if (item.team !== "") v += item.team + ' ' + item.role + '<br/>';
-    if (item.speed !== "") v += 'Speed: ' + item.speed.toFixed(0) + '<br/>';
+    if (ne(item.team)) v += item.team + ' ' + item.role + '<br/>';
+    if (ne(item.speed)) v += 'Speed: ' + item.speed.toFixed(0) + '<br/>';
     v += item.text;
     return v;
 }
@@ -316,4 +380,10 @@ function roleCircle(size, color, bg, role) {
 
 function toUri(s) {
     return encodeURI("data:image/svg+xml," + s).replaceAll("#", "%23");
+}
+
+function uuidv4() {
+    return ([1e7] + -1e3 + -4e3 + -8e3 + -1e11).replace(/[018]/g, c =>
+        (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
+    );
 }

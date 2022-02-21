@@ -7,6 +7,7 @@ import (
 	"io"
 	"io/ioutil"
 	"net"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -25,12 +26,27 @@ func (app *App) connect() error {
 		if app.conn, err = tls.Dial("tcp", app.addr, app.getTlsConfig()); err != nil {
 			return err
 		}
+		c := app.conn.(*tls.Conn)
+
+		if err := c.Handshake(); err != nil {
+			return err
+		}
+		cs := c.ConnectionState()
+
+		app.Logger.Infof("Handshake complete: %t", cs.HandshakeComplete)
+		app.Logger.Infof("version: %d", cs.Version)
+		for i, cert := range cs.PeerCertificates {
+			app.Logger.Infof("cert #%d subject: %s", i, cert.Subject.String())
+			app.Logger.Infof("cert #%d issuer: %s", i, cert.Issuer.String())
+			app.Logger.Infof("cert #%d dns_names: %s", i, strings.Join(cert.DNSNames, ","))
+		}
 	} else {
 		app.Logger.Infof("connecting to %s...", app.addr)
 		if app.conn, err = net.Dial("tcp", app.addr); err != nil {
 			return err
 		}
 	}
+	app.Logger.Infof("connected")
 	return nil
 }
 
