@@ -1,25 +1,28 @@
-# GoATAK - free ATAK/CivTAK server & web client
+# GoATAK - free ATAK/CivTAK server & web-based client
 
 Is is early alfa now. If you need production ready ATAK server - take a look
-at [FreeTakServer](https://github.com/FreeTAKTeam/FreeTakServer).
+at [FreeTakServer](https://github.com/FreeTAKTeam/FreeTakServer) or [Taky](https://github.com/tkuester/taky).
 
 This is Golang implementation of ATAK server/CoT router aimed to test some ideas about CoT message routing.
 
 binary builds can be downloaded
 from [actions](https://github.com/kdudkov/goatak/actions?query=is%3Acompleted+workflow%3ACI)
 
+![Alt text](client.png?raw=true "Title")
+
+## Web-based client features
+
+* v1 (XML) and v2 (protobuf) CoT protocol support
+* SSL connection support, tested with [FreeTakServer](https://github.com/FreeTAKTeam/FreeTakServer)
+  and [Argustak](https://argustak.com/)
+* web-ui, ideal for big screen situation awareness center usage
+* unit track - your target unit is always in the center of map
+* RedX tool - to measure distance and bearing
+* Digital Pointer - send DP position to all other contacts
+
 ## GoATAK server features
 
-* v1 (XML) and v2 (protobuf) CoT protocol support
-* TCP, SSL and UDP (broadcast) listener
-* simple web dashboard
-* data package support
-* easy to start - just edit config and run binary
-
-## Web client features
-
-* v1 (XML) and v2 (protobuf) CoT protocol support
-* SSL connection support
+* same features as client, but... with embedded server!
 
 ## Web client setup
 
