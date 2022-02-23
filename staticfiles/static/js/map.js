@@ -305,6 +305,26 @@ let app = new Vue({
         dist: function (ll1, ll2) {
             return this.map.distance(ll1, ll2).toFixed(0) + "m";
         },
+        latlng: function (lat, lon) {
+            return L.latLng(lat, lon);
+        },
+        distBea: function (p1, p2) {
+            let toRadian = Math.PI / 180;
+            // haversine formula
+            // bearing
+            let y = Math.sin((p2.lng - p1.lng) * toRadian) * Math.cos(p2.lat * toRadian);
+            let x = Math.cos(p1.lat * toRadian) * Math.sin(p2.lat * toRadian) - Math.sin(p1.lat * toRadian) * Math.cos(p2.lat * toRadian) * Math.cos((p2.lng - p1.lng) * toRadian);
+            let brng = Math.atan2(y, x) * 180 / Math.PI;
+            brng += brng < 0 ? 360 : 0;
+            // distance
+            let R = 6371000; // meters
+            let deltaF = (p2.lat - p1.lat) * toRadian;
+            let deltaL = (p2.lng - p1.lng) * toRadian;
+            let a = Math.sin(deltaF / 2) * Math.sin(deltaF / 2) + Math.cos(p1.lat * toRadian) * Math.cos(p2.lat * toRadian) * Math.sin(deltaL / 2) * Math.sin(deltaL / 2);
+            let c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+            let distance = R * c;
+            return (distance < 10000 ? distance.toFixed(0) + "m " : (distance / 1000).toFixed(1) + "km ") + brng.toFixed(1) + "°T";
+        },
         contactsNum: function () {
             let online = 0;
             let total = 0;

@@ -93,7 +93,7 @@
                         </div>
                         <div v-if="coords != null" class="mt-1">
                             <span class="badge bg-secondary">cursor</span>: {{printCoordsll(coords)}} <span
-                                v-if="getTool('redx') != null">{{ dist(coords,getTool('redx').getLatLng()) }} from RedX</span>
+                                v-if="getTool('redx') != null">({{ distBea(getTool('redx').getLatLng(), coords) }} from RedX)</span>
                         </div>
                     </div>
                 </div>
@@ -119,7 +119,9 @@
                         <b>coords:</b> {{printCoords(current_unit.lat, current_unit.lon)}}
                         <span class="badge rounded-pill bg-success" style="cursor:default;"
                               v-on:click="map.setView([current_unit.lat, current_unit.lon])"><i
-                                class="bi bi-geo"></i></span><br/>
+                                class="bi bi-geo"></i></span>
+                        <span v-if="coords != null">({{ distBea(latlng(current_unit.lat, current_unit.lon), coords) }} to cursor)</span>
+                        <br/>
                         <b>speed:</b> {{sp(current_unit.speed)}} km/h, <b>hae:</b> {{current_unit.hae.toFixed(1)}}<br/>
                         <span v-if="ne(current_unit.tak_version)"><b>ver:</b> {{current_unit.tak_version}}<br/></span>
                         <b>time:</b> {{dt(current_unit.start_time)}} <b>stale:</b> {{dt(current_unit.stale_time)}}<br/>
@@ -140,7 +142,9 @@
                         <b>coords:</b> {{printCoords(current_unit.lat, current_unit.lon)}}
                         <span class="badge rounded-pill bg-success" style="cursor:default;"
                               v-on:click="map.setView([current_unit.lat, current_unit.lon])"><i
-                                class="bi bi-geo"></i></span><br/>
+                                class="bi bi-geo"></i></span>
+                        <span v-if="coords != null">({{ distBea(latlng(current_unit.lat, current_unit.lon), coords) }} to cursor)</span>
+                        <br/>
                         {{current_unit.text}}
                     </div>
                 </div>
