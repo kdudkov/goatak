@@ -121,8 +121,9 @@ let app = new Vue({
                     let keys = new Set();
 
                     data.units.forEach(function (i) {
+                        let oldUnit = units.get(i.uid);
                         units.set(i.uid, i);
-                        vm.updateMarker(i, false);
+                        vm.updateMarker(i, false, oldUnit != null && oldUnit.sidc !== i.sidc);
                         keys.add(i.uid);
                         if (vm.current_unit != null && vm.current_unit.uid === i.uid) {
                             vm.current_unit = i;
@@ -148,23 +149,32 @@ let app = new Vue({
                 fetch("/dp", requestOptions);
             }
         },
-        updateMarker: function (item, draggable) {
+        updateMarker: function (item, draggable, updateIcon) {
             if (item.lon === 0 && item.lat === 0) {
                 return
             }
             let marker;
             if (this.markers.has(item.uid)) {
                 marker = this.markers.get(item.uid);
+                if (updateIcon) {
+                    let icon = getIcon(item, true);
+                    marker.setIcon(L.icon({
+                        iconUrl: icon.uri,
+                        iconAnchor: new L.Point(icon.x, icon.y),
+                    }));
+                }
             } else {
                 marker = L.marker([item.lat, item.lon], {draggable: draggable});
                 this.markers.set(item.uid, marker);
                 marker.on('click', function (e) {
                     app.setCurrentUnit(item.uid);
                 });
-                marker.on('dragend', function (e) {
-                    item.lat = marker.getLatLng().lat;
-                    item.lon = marker.getLatLng().lng;
-                });
+                if (draggable) {
+                    marker.on('dragend', function (e) {
+                        item.lat = marker.getLatLng().lat;
+                        item.lon = marker.getLatLng().lng;
+                    });
+                }
                 let icon = getIcon(item, true);
                 marker.setIcon(L.icon({
                     iconUrl: icon.uri,
@@ -259,7 +269,7 @@ let app = new Vue({
                 }
                 console.log(u);
                 this.units.set(uid, u);
-                this.updateMarker(u, true);
+                this.updateMarker(u, true, false);
                 this.current_unit = u;
             }
         },
@@ -301,9 +311,6 @@ let app = new Vue({
         },
         printCoords: function (lat, lng) {
             return lat.toFixed(6) + "," + lng.toFixed(6);
-        },
-        dist: function (ll1, ll2) {
-            return this.map.distance(ll1, ll2).toFixed(0) + "m";
         },
         latlng: function (lat, lon) {
             return L.latLng(lat, lon);
