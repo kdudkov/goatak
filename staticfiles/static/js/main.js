@@ -46,7 +46,6 @@ let app = new Vue({
     el: '#app',
     data: {
         units: new Map(),
-        points: new Map(),
         alert: null,
         ts: 0,
     },
@@ -56,49 +55,36 @@ let app = new Vue({
         this.timer = setInterval(this.renew, 3000);
     },
     computed: {
-        all_units: function () {
-            let arr = Array.from(this.units.values());
-            arr.sort(function (a, b) {
-                var ua = a.callsign.toLowerCase(), ub = b.callsign.toLowerCase();
-                if (ua < ub) return -1;
-                if (ua > ub) return 1;
-                return 0;
-            });
-            return this.ts && arr;
-        },
-        all_points: function () {
-            let arr = Array.from(this.points.values());
-            arr.sort(function (a, b) {
-                var ua = a.callsign.toLowerCase(), ub = b.callsign.toLowerCase();
-                if (ua < ub) return -1;
-                if (ua > ub) return 1;
-                return 0;
-            });
-            return this.ts && arr;
-        },
-
     },
     methods: {
         renew: function () {
             let vm = this;
             let units = vm.units;
-            let points = vm.points;
 
             fetch('/units')
                 .then(function (response) {
                     return response.json()
                 })
                 .then(function (data) {
+                    units.clear();
                     data.units.forEach(function (i) {
                         units.set(i.uid, i);
-                    });
-                    data.points.forEach(function (i) {
-                        points.set(i.uid, i);
                     });
                     vm.ts += 1;
                 });
         },
-
+        byCategory: function (s) {
+            let arr = Array.from(this.units.values()).filter(function (u) {
+                return u.category === s
+            });
+            arr.sort(function (a, b) {
+                let ua = a.callsign.toLowerCase(), ub = b.callsign.toLowerCase();
+                if (ua < ub) return -1;
+                if (ua > ub) return 1;
+                return 0;
+            });
+            return this.ts && arr;
+        },
         removeUnit: function (uid) {
             this.units.delete(uid);
             if (this.unit != null && this.unit.uid === uid) {
@@ -115,6 +101,9 @@ let app = new Vue({
         },
         milImg: function (item) {
             return getMilIcon(item, false).uri;
+        },
+        printCoords: function (lat, lng) {
+            return lat.toFixed(6) + "," + lng.toFixed(6);
         },
         dt: function (str) {
             let d = new Date(Date.parse(str));

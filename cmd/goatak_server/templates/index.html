@@ -1,32 +1,41 @@
 
 <div class="container-fluid" id="app">
+    <h5>ATAK Server</h5>
+    <a href="/map">Map</a>
     <div class="row">
         <div class="col-6">
-            <h5>ATAK Server</h5>
+
             <div class="overflow-auto">
                 <div class="alert alert-secondary info" role="alert" v-if="alert != null">
                     {{alert}}
                 </div>
-                <div class="card mb2">
+                <div class="card mb-2">
+                    <div class="card-header">Contacts</div>
+                    <div class="card-body">
+                        <table class="table table-hover table-sm units">
+                            <tr v-for="u in byCategory('contact')">
+                                <td>
+                                    <img v-bind:src="getImg(u)"/>
+                                </td>
+                                <td>{{u.callsign}}</td>
+                                <td>{{u.status}}</td>
+                                <td>{{printCoords(u.lat, u.lon)}}</td>
+                                <td>{{u.tak_version}}</td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+                <div class="card mb-2">
                     <div class="card-header">Units</div>
                     <div class="card-body">
                         <table class="table table-hover table-sm units">
-                            <tr v-for="u in by_category('contacts')>
+                            <tr v-for="u in byCategory('unit')">
                                 <td>
-                                    <img height=" 24px" src="/static/icons/coord_unlock.png"
-                                         v-if="locked_unit != u.uid"
-                                         v-on:click="locked_unit=u.uid"/>
-                                    <img height="24px" src="/static/icons/coord_lock.png"
-                                         v-if="locked_unit == u.uid"
-                                         v-on:click="locked_unit=''"/>
-                                </td>
-                                <td v-on:click="setCurrentUnit(u)">
                                     <img v-bind:src="getImg(u)"/>
                                 </td>
-                                <td v-on:click="setCurrentUnit(u)"><span
-                                        v-if="u.lat ===0 && u.lon ===0">* </span>{{u.callsign}}<span
-                                        v-if="u.status != ''"> ({{u.status}})</span>
-                                </td>
+                                <td>{{u.callsign}}</td>
+                                <td>{{printCoords(u.lat, u.lon)}}</td>
+                                <td>{{dt(u.stale_time)}}</td>
                             </tr>
                         </table>
                     </div>
@@ -34,13 +43,21 @@
             </div>
         </div>
         <div class="col-6">
-            <table class="table table-hover table-sm">
-                <tr v-for="p in all_points">
-                    <td><img v-bind:src="getImg(p)"/></td>
-                    <td>{{p.name}}</td>
-                    <td>received: {{dt(p.received)}}</td>
-                </tr>
-            </table>
+            <div class="card mb-2">
+                <div class="card-header">Points</div>
+                <div class="card-body">
+                    <table class="table table-hover table-sm units">
+                        <tr v-for="u in byCategory('point')">
+                            <td><img v-bind:src="getImg(u)"/></td>
+                            <td>{{u.callsign}}</td>
+                            <td>{{printCoords(u.lat, u.lon)}}</td>
+                            <td>{{dt(u.send_time)}}</td>
+                            <td>{{dt(u.stale_time)}}</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+
         </div>
     </div>
 </div>

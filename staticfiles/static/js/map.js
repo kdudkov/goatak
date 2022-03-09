@@ -40,6 +40,9 @@ function getMilIcon(item, withText) {
             opts['speed'] = (item.speed * 3.6).toFixed(1) + " km/h";
             opts['direction'] = item.course;
         }
+        if (item.sidc.charAt(2) === 'A') {
+            opts['altitudeDepth'] = item.hae.toFixed(0) + " m";
+        }
     }
 
     let symb = new ms.Symbol(item.sidc, opts);
@@ -365,7 +368,10 @@ let app = new Vue({
 function popup(item) {
     let v = '<b>' + item.callsign + '</b><br/>';
     if (ne(item.team)) v += item.team + ' ' + item.role + '<br/>';
-    if (ne(item.speed)) v += 'Speed: ' + item.speed.toFixed(0) + '<br/>';
+    if (ne(item.speed) && item.speed > 0) v += 'Speed: ' + item.speed.toFixed(0) + ' m/s<br/>';
+    if (item.sidc.charAt(2) === 'A') {
+        v += "hae: " + item.hae.toFixed(0) + " m<br/>";
+    }
     v += item.text;
     return v;
 }
