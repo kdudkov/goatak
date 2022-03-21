@@ -24,7 +24,7 @@ func (app *App) ListenTCP(addr string) (err error) {
 			return err
 		}
 		app.Logger.Infof("TCP connection")
-		NewClientHandler(conn, app).Start()
+		NewClientHandler(app, conn, "").Start()
 	}
 }
 
@@ -77,7 +77,7 @@ func (app *App) ListenSSl(certFile, keyFile, caFile, addr string) error {
 		user := getUser(c1)
 
 		app.Logger.Infof("user: %s", user)
-		NewClientHandler(c1, app).Start()
+		NewSSLClientHandler(app, conn, user).Start()
 	}
 }
 

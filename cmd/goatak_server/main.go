@@ -184,6 +184,29 @@ func (app *App) GetContact(uid string) *model.Contact {
 	return nil
 }
 
+func (app *App) ProcessContact(msg *cot.Msg) {
+	if c := app.GetContact(msg.GetUid()); c != nil {
+		app.Logger.Infof("update contact %s (%s) %s", msg.GetUid(), msg.GetCallsign(), msg.GetType())
+		c.Update(msg)
+	} else {
+		app.Logger.Infof("new contact %s (%s) %s", msg.GetUid(), msg.GetCallsign(), msg.GetType())
+		if msg.GetUid() == app.uid {
+			return
+		}
+		app.units.Store(msg.GetUid(), model.ContactFromMsg(msg))
+	}
+}
+
+func (app *App) ProcessUnit(msg *cot.Msg) {
+	if u := app.GetUnit(msg.GetUid()); u != nil {
+		app.Logger.Infof("update unit %s (%s) %s", msg.GetUid(), msg.GetCallsign(), msg.GetType())
+		u.Update(msg)
+	} else {
+		app.Logger.Infof("new unit %s (%s) %s", msg.GetUid(), msg.GetCallsign(), msg.GetType())
+		app.units.Store(msg.GetUid(), model.UnitFromMsg(msg))
+	}
+}
+
 func (app *App) AddPoint(uid string, p *model.Point) {
 	if p == nil {
 		return
@@ -219,7 +242,7 @@ func (app *App) EventProcessor() {
 				uid = uid[:len(uid)-5]
 			}
 			if c := app.GetContact(uid); c != nil {
-				c.SetLastSeenNow(nil)
+				c.Update(nil)
 			}
 			app.SendTo(uid, cot.MakePong())
 			break
@@ -235,14 +258,9 @@ func (app *App) EventProcessor() {
 				msg.GetType(),
 				msg.GetStale().Sub(time.Now()))
 			if msg.IsContact() {
-				if c := app.GetContact(msg.GetUid()); c != nil {
-					c.SetLastSeenNow(msg)
-				} else {
-					app.Logger.Infof("new contact: uid %s, callsign %s", msg.GetUid(), msg.GetCallsign())
-					app.AddContact(msg.GetUid(), model.ContactFromEvent(msg))
-				}
+				app.ProcessContact(msg)
 			} else {
-				app.AddUnit(msg.GetUid(), model.UnitFromEvent(msg))
+				app.ProcessUnit(msg)
 			}
 			// b-m-p-s-p-i digital pointer
 			// b-m-p-s-m point

@@ -83,6 +83,30 @@ func (m *Msg) PrintChat() string {
 	return fmt.Sprintf("%s -> %s: \"%s\"", from, to, text)
 }
 
+func (m *Msg) GetLatLon() (float64, float64) {
+	if m == nil {
+		return 0, 0
+	}
+
+	return m.TakMessage.GetCotEvent().GetLat(), m.TakMessage.GetCotEvent().GetLon()
+}
+
+func (m *Msg) GetLat() float64 {
+	if m == nil {
+		return 0
+	}
+
+	return m.TakMessage.GetCotEvent().GetLat()
+}
+
+func (m *Msg) GetLon() float64 {
+	if m == nil {
+		return 0
+	}
+
+	return m.TakMessage.GetCotEvent().GetLon()
+}
+
 func TimeFromMillis(ms uint64) time.Time {
 	return time.Unix(0, 1000000*int64(ms))
 }

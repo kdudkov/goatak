@@ -46,6 +46,7 @@ let app = new Vue({
     el: '#app',
     data: {
         units: new Map(),
+        connections: new Map(),
         alert: null,
         ts: 0,
     },
@@ -55,11 +56,15 @@ let app = new Vue({
         this.timer = setInterval(this.renew, 3000);
     },
     computed: {
+        all_conns: function () {
+            return this.ts && this.connections.values();
+        },
     },
     methods: {
         renew: function () {
             let vm = this;
             let units = vm.units;
+            let conns = vm.connections;
 
             fetch('/units')
                 .then(function (response) {
@@ -69,6 +74,17 @@ let app = new Vue({
                     units.clear();
                     data.units.forEach(function (i) {
                         units.set(i.uid, i);
+                    });
+                    vm.ts += 1;
+                });
+            fetch('/connections')
+                .then(function (response) {
+                    return response.json()
+                })
+                .then(function (data) {
+                    conns.clear();
+                    data.forEach(function (i) {
+                        conns.set(i.uid, i);
                     });
                     vm.ts += 1;
                 });

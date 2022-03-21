@@ -4,10 +4,28 @@
     <a href="/map">Map</a>
     <div class="row">
         <div class="col-6">
-
             <div class="overflow-auto">
                 <div class="alert alert-secondary info" role="alert" v-if="alert != null">
                     {{alert}}
+                </div>
+                <div class="card mb-2">
+                    <div class="card-header">Connections</div>
+                    <div class="card-body">
+                        <table class="table table-hover table-sm units">
+                            <tr>
+                                <th>UID</th>
+                                <th>username</th>
+                                <th>SSL</th>
+                                <th>ver.</th>
+                            </tr>
+                            <tr v-for="c in all_conns">
+                                <td>{{c.uid}}</td>
+                                <td>{{c.user}}</td>
+                                <td>{{c.ssl}}</td>
+                                <td>{{c.ver}}</td>
+                            </tr>
+                        </table>
+                    </div>
                 </div>
                 <div class="card mb-2">
                     <div class="card-header">Contacts</div>
@@ -25,24 +43,24 @@
                         </table>
                     </div>
                 </div>
-                <div class="card mb-2">
-                    <div class="card-header">Units</div>
-                    <div class="card-body">
-                        <table class="table table-hover table-sm units">
-                            <tr v-for="u in byCategory('unit')">
-                                <td>
-                                    <img v-bind:src="getImg(u)"/>
-                                </td>
-                                <td>{{u.callsign}}</td>
-                                <td>{{printCoords(u.lat, u.lon)}}</td>
-                                <td>{{dt(u.stale_time)}}</td>
-                            </tr>
-                        </table>
-                    </div>
-                </div>
             </div>
         </div>
         <div class="col-6">
+            <div class="card mb-2">
+                <div class="card-header">Units</div>
+                <div class="card-body">
+                    <table class="table table-hover table-sm units">
+                        <tr v-for="u in byCategory('unit')">
+                            <td>
+                                <img v-bind:src="getImg(u)"/>
+                            </td>
+                            <td>{{u.callsign}}</td>
+                            <td>{{printCoords(u.lat, u.lon)}}</td>
+                            <td>{{dt(u.stale_time)}}</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
             <div class="card mb-2">
                 <div class="card-header">Points</div>
                 <div class="card-body">

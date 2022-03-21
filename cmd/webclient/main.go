@@ -307,12 +307,11 @@ func (app *App) sendPing() {
 }
 
 func (app *App) ProcessEvent(msg *cot.Msg) {
-
 	switch {
 	case msg.GetType() == "t-x-c-t":
 		app.Logger.Debugf("ping from %s", msg.GetUid())
 		if c := app.GetContact(msg.GetUid()); c != nil {
-			c.SetLastSeenNow(nil)
+			c.Update(nil)
 		}
 	case msg.GetType() == "t-x-c-t-r":
 		app.Logger.Debugf("pong")
@@ -328,17 +327,11 @@ func (app *App) ProcessEvent(msg *cot.Msg) {
 				app.Logger.Info("my own info")
 				break
 			}
-			if c := app.GetContact(msg.GetUid()); c != nil {
-				app.Logger.Infof("update pos %s (%s) %s", msg.GetUid(), msg.GetCallsign(), msg.GetType())
-				c.SetLastSeenNow(msg)
-			} else {
-				app.Logger.Infof("new contact %s (%s) %s", msg.GetUid(), msg.GetCallsign(), msg.GetType())
-				app.AddContact(msg.GetUid(), model.ContactFromEvent(msg))
-			}
+			app.ProcessContact(msg)
 		} else {
-			app.Logger.Infof("new unit %s (%s) %s", msg.GetUid(), msg.GetCallsign(), msg.GetType())
-			app.AddUnit(msg.GetUid(), model.UnitFromEvent(msg))
+			app.ProcessUnit(msg)
 		}
+		return
 	case strings.HasPrefix(msg.GetType(), "b-"):
 		app.Logger.Infof("point %s (%s) %s", msg.GetUid(), msg.GetCallsign(), msg.GetType())
 		app.AddPoint(msg.GetUid(), model.PointFromEvent(msg))
@@ -347,11 +340,27 @@ func (app *App) ProcessEvent(msg *cot.Msg) {
 	}
 }
 
-func (app *App) AddUnit(uid string, u *model.Unit) {
-	if u == nil {
-		return
+func (app *App) ProcessContact(msg *cot.Msg) {
+	if c := app.GetContact(msg.GetUid()); c != nil {
+		app.Logger.Infof("update contact %s (%s) %s", msg.GetUid(), msg.GetCallsign(), msg.GetType())
+		c.Update(msg)
+	} else {
+		app.Logger.Infof("new contact %s (%s) %s", msg.GetUid(), msg.GetCallsign(), msg.GetType())
+		if msg.GetUid() == app.uid {
+			return
+		}
+		app.units.Store(msg.GetUid(), model.ContactFromMsg(msg))
 	}
-	app.units.Store(uid, u)
+}
+
+func (app *App) ProcessUnit(msg *cot.Msg) {
+	if u := app.GetUnit(msg.GetUid()); u != nil {
+		app.Logger.Infof("update unit %s (%s) %s", msg.GetUid(), msg.GetCallsign(), msg.GetType())
+		u.Update(msg)
+	} else {
+		app.Logger.Infof("new unit %s (%s) %s", msg.GetUid(), msg.GetCallsign(), msg.GetType())
+		app.units.Store(msg.GetUid(), model.UnitFromMsg(msg))
+	}
 }
 
 func (app *App) AddPoint(uid string, u *model.Point) {
@@ -359,17 +368,6 @@ func (app *App) AddPoint(uid string, u *model.Point) {
 		return
 	}
 	app.units.Store(uid, u)
-}
-
-func (app *App) GetUnit(uid string) *model.Unit {
-	if v, ok := app.units.Load(uid); ok {
-		if unit, ok := v.(*model.Unit); ok {
-			return unit
-		} else {
-			app.Logger.Errorf("invalid object for uid %s: %v", uid, v)
-		}
-	}
-	return nil
 }
 
 func (app *App) Remove(uid string) {
@@ -390,7 +388,18 @@ func (app *App) GetContact(uid string) *model.Contact {
 		if contact, ok := v.(*model.Contact); ok {
 			return contact
 		} else {
-			app.Logger.Errorf("invalid object for uid %s: %v", uid, v)
+			app.Logger.Warnf("invalid object for uid %s: %s", uid, v)
+		}
+	}
+	return nil
+}
+
+func (app *App) GetUnit(uid string) *model.Unit {
+	if v, ok := app.units.Load(uid); ok {
+		if contact, ok := v.(*model.Unit); ok {
+			return contact
+		} else {
+			app.Logger.Warnf("invalid unit for uid %s: %s", uid, v)
 		}
 	}
 	return nil
@@ -399,13 +408,22 @@ func (app *App) GetContact(uid string) *model.Contact {
 func (app *App) removeByLink(msg *cot.Msg) {
 	if msg.Detail != nil && msg.Detail.HasChild("link") {
 		uid := msg.Detail.GetFirstChild("link").GetAttr("uid")
+		typ := msg.Detail.GetFirstChild("link").GetAttr("type")
 		if uid == "" {
 			app.Logger.Errorf("invalid remove message: %s", msg.Detail)
 			return
 		}
-		app.Logger.Debugf("remove %s by message", uid)
-		if c := app.GetContact(uid); c != nil {
-			c.SetOffline()
+		if v, ok := app.units.Load(uid); ok {
+			switch vv := v.(type) {
+			case *model.Contact:
+				app.Logger.Debugf("remove %s by message", uid)
+				vv.SetOffline()
+				return
+			case *model.Unit, *model.Point:
+				app.Logger.Debugf("remove unit/point %s type %s by message", uid, typ)
+				//app.units.Delete(uid)
+				return
+			}
 		}
 	}
 }

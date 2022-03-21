@@ -43,27 +43,8 @@ func (c *Contact) ToWeb() *WebUnit {
 	c.mx.RLock()
 	defer c.mx.RUnlock()
 
-	evt := c.msg.TakMessage.CotEvent
-
-	w := &WebUnit{
-		Uid:       c.uid,
-		Callsign:  c.callsign,
-		Category:  "contact",
-		Time:      cot.TimeFromMillis(evt.SendTime),
-		LastSeen:  c.lastSeen,
-		StaleTime: c.staleTime,
-		StartTime: c.startTime,
-		SendTime:  c.sendTime,
-		Type:      c.type_,
-		Lat:       evt.Lat,
-		Lon:       evt.Lon,
-		Hae:       evt.Hae,
-		Speed:     evt.GetDetail().GetTrack().GetSpeed(),
-		Course:    evt.GetDetail().GetTrack().GetCourse(),
-		Team:      evt.GetDetail().GetGroup().GetName(),
-		Role:      evt.GetDetail().GetGroup().GetRole(),
-		Sidc:      getSIDC(c.type_),
-	}
+	w := c.Item.ToWeb()
+	w.Category = "contact"
 
 	if c.online {
 		w.Status = "Online"
@@ -71,27 +52,38 @@ func (c *Contact) ToWeb() *WebUnit {
 		w.Status = "Offline"
 	}
 
-	if v := evt.GetDetail().GetTakv(); v != nil {
+	if v := c.msg.TakMessage.GetCotEvent().GetDetail().GetTakv(); v != nil {
 		w.TakVersion = strings.Trim(fmt.Sprintf("%s %s on %s", v.Platform, v.Version, v.Device), " ")
 	}
 
-	w.Text, _ = c.msg.Detail.GetChildValue("remarks")
 	return w
 }
 
 func (u *Unit) ToWeb() *WebUnit {
-	evt := u.msg.TakMessage.CotEvent
+	w := u.Item.ToWeb()
+	w.Category = "unit"
+	return w
+}
+
+func (p *Point) ToWeb() *WebUnit {
+	w := p.Item.ToWeb()
+	w.Category = "point"
+
+	return w
+}
+
+func (i Item) ToWeb() *WebUnit {
+	evt := i.msg.TakMessage.CotEvent
 
 	w := &WebUnit{
-		Uid:       u.uid,
-		Callsign:  u.callsign,
-		Category:  "unit",
+		Uid:       i.uid,
+		Callsign:  i.callsign,
 		Time:      cot.TimeFromMillis(evt.SendTime),
-		LastSeen:  u.received,
-		StaleTime: u.staleTime,
-		StartTime: u.startTime,
-		SendTime:  u.sendTime,
-		Type:      u.type_,
+		LastSeen:  i.received,
+		StaleTime: i.staleTime,
+		StartTime: i.startTime,
+		SendTime:  i.sendTime,
+		Type:      i.type_,
 		Lat:       evt.Lat,
 		Lon:       evt.Lon,
 		Hae:       evt.Hae,
@@ -99,30 +91,10 @@ func (u *Unit) ToWeb() *WebUnit {
 		Course:    evt.GetDetail().GetTrack().GetCourse(),
 		Team:      evt.GetDetail().GetGroup().GetName(),
 		Role:      evt.GetDetail().GetGroup().GetRole(),
-		Sidc:      getSIDC(u.type_),
+		Sidc:      getSIDC(i.type_),
 	}
-	w.Text, _ = u.msg.Detail.GetChildValue("remarks")
-	return w
-}
 
-func (p *Point) ToWeb() *WebUnit {
-	evt := p.msg.TakMessage.GetCotEvent()
-
-	w := &WebUnit{
-		Uid:       p.uid,
-		Callsign:  p.callsign,
-		Category:  "point",
-		StaleTime: p.staleTime,
-		StartTime: p.startTime,
-		SendTime:  p.sendTime,
-		Type:      p.type_,
-		Lat:       evt.Lat,
-		Lon:       evt.Lon,
-		Hae:       evt.Hae,
-		Speed:     evt.GetDetail().GetTrack().GetSpeed(),
-		Course:    evt.GetDetail().GetTrack().GetCourse(),
-	}
-	w.Text, _ = p.msg.Detail.GetChildValue("remarks")
+	w.Text, _ = i.msg.Detail.GetChildValue("remarks")
 	return w
 }
 

@@ -33,16 +33,35 @@ type ClientHandler struct {
 	app          *App
 	sendChan     chan []byte
 	active       int32
+	ssl          bool
+	user         string
 	mx           sync.RWMutex
 }
 
-func NewClientHandler(conn net.Conn, app *App) *ClientHandler {
+func NewClientHandler(app *App, conn net.Conn, user string) *ClientHandler {
 	c := &ClientHandler{
 		conn:     conn,
 		app:      app,
 		ver:      0,
 		sendChan: make(chan []byte, 10),
 		active:   1,
+		ssl:      false,
+		user:     user,
+		mx:       sync.RWMutex{},
+	}
+
+	return c
+}
+
+func NewSSLClientHandler(app *App, conn net.Conn, user string) *ClientHandler {
+	c := &ClientHandler{
+		conn:     conn,
+		app:      app,
+		ver:      0,
+		sendChan: make(chan []byte, 10),
+		active:   1,
+		ssl:      true,
+		user:     user,
 		mx:       sync.RWMutex{},
 	}
 
@@ -184,7 +203,7 @@ func (h *ClientHandler) checkFirstMsg(msg *cot.Msg) {
 	}
 	if h.GetCallsign() == "" && msg.TakMessage.GetCotEvent().GetDetail().GetContact() != nil {
 		h.callsign = msg.TakMessage.GetCotEvent().GetDetail().GetContact().Callsign
-		h.app.AddContact(msg.TakMessage.CotEvent.Uid, model.ContactFromEvent(msg))
+		h.app.AddContact(msg.TakMessage.CotEvent.Uid, model.ContactFromMsg(msg))
 	}
 }
 

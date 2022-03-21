@@ -14,6 +14,13 @@ import (
 //go:embed templates
 var templates embed.FS
 
+type Connection struct {
+	Uid  string `json:"uid"`
+	User string `json:"user"`
+	Ssl  bool   `json:"ssl"`
+	Ver  int32  `json:"ver"`
+}
+
 type HttpServer struct {
 	app      *App
 	air      *air.Air
@@ -36,6 +43,7 @@ func NewHttp(app *App, address string, apiAddress string) *HttpServer {
 	a.GET("/map", getMapHandler(app, renderer))
 	a.GET("/config", getConfigHandler(app))
 	a.GET("/units", getUnitsHandler(app))
+	a.GET("/connections", getConnHandler(app))
 
 	a.GET("/stack", getStackHandler())
 
@@ -153,4 +161,25 @@ func getUnits(app *App) []*model.WebUnit {
 	})
 
 	return units
+}
+
+func getConnHandler(app *App) func(req *air.Request, res *air.Response) error {
+	return func(req *air.Request, res *air.Response) error {
+		conn := make([]*Connection, 0)
+
+		app.handlers.Range(func(key, value interface{}) bool {
+			if v, ok := value.(*ClientHandler); ok {
+				c := &Connection{
+					Uid:  v.uid,
+					User: v.user,
+					Ssl:  v.ssl,
+					Ver:  v.ver,
+				}
+				conn = append(conn, c)
+			}
+			return true
+		})
+
+		return res.WriteJSON(conn)
+	}
 }

@@ -1,6 +1,7 @@
 package model
 
 import (
+	"fmt"
 	"sync"
 	"time"
 
@@ -11,7 +12,14 @@ const (
 	staleContactDelete = time.Minute * 30
 )
 
-type Unit struct {
+type Pos struct {
+	time  time.Time
+	lat   float64
+	lon   float64
+	speed float64
+}
+
+type Item struct {
 	uid       string
 	type_     string
 	callsign  string
@@ -22,30 +30,40 @@ type Unit struct {
 	msg       *cot.Msg
 }
 
+type Unit struct {
+	Item
+	mx    sync.RWMutex
+	track []*Pos
+}
+
 type Contact struct {
-	uid       string
-	type_     string
-	callsign  string
-	staleTime time.Time
-	startTime time.Time
-	sendTime  time.Time
-	lastSeen  time.Time
-	msg       *cot.Msg
-	online    bool
-	mx        sync.RWMutex
+	Item
+	online   bool
+	lastSeen time.Time
+	mx       sync.RWMutex
+	track    []*Pos
 }
 
 type Point struct {
-	uid            string
-	type_          string
-	callsign       string
-	staleTime      time.Time
-	startTime      time.Time
-	sendTime       time.Time
-	received       time.Time
-	msg            *cot.Msg
+	Item
 	authorCallsign string
 	authorUid      string
+}
+
+func (c *Contact) String() string {
+	c.mx.RLock()
+	defer c.mx.RUnlock()
+	return fmt.Sprintf("contact: %s %s %s", c.uid, c.type_, c.callsign)
+}
+
+func (u *Unit) String() string {
+	u.mx.RLock()
+	defer u.mx.RUnlock()
+	return fmt.Sprintf("unit: %s %s %s", u.uid, u.type_, u.callsign)
+}
+
+func (p *Point) String() string {
+	return fmt.Sprintf("point: %s %s %s", p.uid, p.type_, p.callsign)
 }
 
 func (u *Unit) GetMsg() *cot.Msg {
@@ -97,55 +115,98 @@ func (c *Contact) IsOnline() bool {
 	return c.online
 }
 
-func ContactFromEvent(msg *cot.Msg) *Contact {
+func ContactFromMsg(msg *cot.Msg) *Contact {
+	pos := &Pos{
+		time:  cot.TimeFromMillis(msg.TakMessage.GetCotEvent().GetSendTime()),
+		lat:   msg.TakMessage.GetCotEvent().GetLat(),
+		lon:   msg.TakMessage.GetCotEvent().GetLon(),
+		speed: msg.TakMessage.GetCotEvent().GetDetail().GetTrack().GetSpeed(),
+	}
+
 	return &Contact{
-		uid:       msg.TakMessage.GetCotEvent().GetUid(),
-		callsign:  msg.TakMessage.GetCotEvent().GetDetail().GetContact().GetCallsign(),
-		lastSeen:  time.Now(),
-		staleTime: cot.TimeFromMillis(msg.TakMessage.GetCotEvent().GetStaleTime()),
-		startTime: cot.TimeFromMillis(msg.TakMessage.GetCotEvent().GetStartTime()),
-		sendTime:  cot.TimeFromMillis(msg.TakMessage.GetCotEvent().GetSendTime()),
-		type_:     msg.TakMessage.GetCotEvent().GetType(),
-		msg:       msg,
-		online:    true,
-		mx:        sync.RWMutex{},
+		Item:     ItemFromMsg(msg),
+		online:   true,
+		lastSeen: time.Now(),
+		mx:       sync.RWMutex{},
+		track:    []*Pos{pos},
 	}
 }
 
-func UnitFromEvent(msg *cot.Msg) *Unit {
+func UnitFromMsg(msg *cot.Msg) *Unit {
+	pos := &Pos{
+		time:  cot.TimeFromMillis(msg.TakMessage.GetCotEvent().GetSendTime()),
+		lat:   msg.TakMessage.GetCotEvent().GetLat(),
+		lon:   msg.TakMessage.GetCotEvent().GetLon(),
+		speed: msg.TakMessage.GetCotEvent().GetDetail().GetTrack().GetSpeed(),
+	}
+
 	return &Unit{
-		uid:       msg.TakMessage.GetCotEvent().GetUid(),
-		callsign:  msg.TakMessage.GetCotEvent().GetDetail().GetContact().GetCallsign(),
-		staleTime: cot.TimeFromMillis(msg.TakMessage.GetCotEvent().GetStaleTime()),
-		startTime: cot.TimeFromMillis(msg.TakMessage.GetCotEvent().GetStartTime()),
-		sendTime:  cot.TimeFromMillis(msg.TakMessage.GetCotEvent().GetSendTime()),
-		type_:     msg.TakMessage.GetCotEvent().GetType(),
-		msg:       msg,
-		received:  time.Now(),
+		Item:  ItemFromMsg(msg),
+		mx:    sync.RWMutex{},
+		track: []*Pos{pos},
 	}
 }
 
 func PointFromEvent(msg *cot.Msg) *Point {
 	return &Point{
+		Item: ItemFromMsg(msg),
+	}
+}
+
+func ItemFromMsg(msg *cot.Msg) Item {
+	return Item{
 		uid:       msg.TakMessage.GetCotEvent().GetUid(),
+		type_:     msg.TakMessage.GetCotEvent().GetType(),
 		callsign:  msg.TakMessage.GetCotEvent().GetDetail().GetContact().GetCallsign(),
 		staleTime: cot.TimeFromMillis(msg.TakMessage.GetCotEvent().GetStaleTime()),
 		startTime: cot.TimeFromMillis(msg.TakMessage.GetCotEvent().GetStartTime()),
 		sendTime:  cot.TimeFromMillis(msg.TakMessage.GetCotEvent().GetSendTime()),
-		type_:     msg.TakMessage.GetCotEvent().GetType(),
 		msg:       msg,
 		received:  time.Now(),
 	}
 }
 
-func (c *Contact) SetLastSeenNow(msg *cot.Msg) {
+func (i *Item) GetLanLon() (float64, float64) {
+	return i.msg.TakMessage.GetCotEvent().GetLat(), i.msg.TakMessage.GetCotEvent().GetLon()
+}
+
+func (c *Contact) Update(msg *cot.Msg) {
 	c.mx.Lock()
 	defer c.mx.Unlock()
 
 	c.online = true
 	c.lastSeen = time.Now()
 	if msg != nil {
+		pos := getPos(c.msg, msg)
 		c.msg = msg
+
+		if pos != nil {
+			c.track = append(c.track, pos)
+
+			if len(c.track) > 5000 {
+				c.track = c.track[len(c.track)-5000:]
+			}
+		}
+	}
+}
+
+func (u *Unit) Update(msg *cot.Msg) {
+	u.mx.Lock()
+	defer u.mx.Unlock()
+
+	u.Item = ItemFromMsg(msg)
+
+	if msg != nil {
+		pos := getPos(u.msg, msg)
+		u.msg = msg
+
+		if pos != nil {
+			u.track = append(u.track, pos)
+
+			if len(u.track) > 5000 {
+				u.track = u.track[len(u.track)-5000:]
+			}
+		}
 	}
 }
 
@@ -154,4 +215,35 @@ func (c *Contact) SetOffline() {
 	defer c.mx.Unlock()
 
 	c.online = false
+}
+
+func getPos(msg1, msg2 *cot.Msg) *Pos {
+	if msg1 == nil || msg2 == nil {
+		return nil
+	}
+
+	lat1, lon1 := msg1.GetLatLon()
+
+	if lat1 == 0 && lon1 == 0 {
+		return nil
+	}
+
+	lat2, lon2 := msg2.GetLatLon()
+
+	if lat2 == 0 && lon2 == 0 {
+		return nil
+	}
+
+	dist, _ := DistBea(lat1, lon1, lat2, lon2)
+
+	if dist > 25 {
+		return &Pos{
+			time:  cot.TimeFromMillis(msg2.TakMessage.GetCotEvent().GetSendTime()),
+			lat:   lat2,
+			lon:   lon2,
+			speed: msg2.TakMessage.GetCotEvent().GetDetail().GetTrack().GetSpeed(),
+		}
+	}
+
+	return nil
 }
