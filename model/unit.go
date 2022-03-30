@@ -32,8 +32,10 @@ type Item struct {
 
 type Unit struct {
 	Item
-	mx    sync.RWMutex
-	track []*Pos
+	parentCallsign string
+	parentUid      string
+	mx             sync.RWMutex
+	track          []*Pos
 }
 
 type Contact struct {
@@ -46,8 +48,8 @@ type Contact struct {
 
 type Point struct {
 	Item
-	authorCallsign string
-	authorUid      string
+	parentCallsign string
+	parentUid      string
 }
 
 func (c *Contact) String() string {
@@ -140,17 +142,32 @@ func UnitFromMsg(msg *cot.Msg) *Unit {
 		speed: msg.TakMessage.GetCotEvent().GetDetail().GetTrack().GetSpeed(),
 	}
 
-	return &Unit{
+	u := &Unit{
 		Item:  ItemFromMsg(msg),
 		mx:    sync.RWMutex{},
 		track: []*Pos{pos},
 	}
+
+	link := msg.Detail.GetFirstChild("link")
+	if link.GetAttr("relation") == "p-p" {
+		u.parentCallsign = link.GetAttr("parent_callsign")
+		u.parentUid = link.GetAttr("uid")
+	}
+	return u
 }
 
 func PointFromEvent(msg *cot.Msg) *Point {
-	return &Point{
+	p := &Point{
 		Item: ItemFromMsg(msg),
 	}
+
+	link := msg.Detail.GetFirstChild("link")
+	if link.GetAttr("relation") == "p-p" {
+		p.parentCallsign = link.GetAttr("parent_callsign")
+		p.parentUid = link.GetAttr("uid")
+	}
+
+	return p
 }
 
 func ItemFromMsg(msg *cot.Msg) Item {
@@ -199,6 +216,12 @@ func (u *Unit) Update(msg *cot.Msg) {
 	if msg != nil {
 		pos := getPos(u.msg, msg)
 		u.msg = msg
+
+		link := msg.Detail.GetFirstChild("link")
+		if link.GetAttr("relation") == "p-p" {
+			u.parentCallsign = link.GetAttr("parent_callsign")
+			u.parentUid = link.GetAttr("uid")
+		}
 
 		if pos != nil {
 			u.track = append(u.track, pos)

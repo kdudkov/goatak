@@ -10,27 +10,29 @@ import (
 )
 
 type WebUnit struct {
-	Uid        string    `json:"uid"`
-	Callsign   string    `json:"callsign"`
-	Category   string    `json:"category"`
-	Team       string    `json:"team"`
-	Role       string    `json:"role"`
-	Time       time.Time `json:"time"`
-	LastSeen   time.Time `json:"last_seen"`
-	StaleTime  time.Time `json:"stale_time"`
-	StartTime  time.Time `json:"start_time"`
-	SendTime   time.Time `json:"send_time"`
-	Type       string    `json:"type"`
-	Lat        float64   `json:"lat"`
-	Lon        float64   `json:"lon"`
-	Hae        float64   `json:"hae"`
-	Speed      float64   `json:"speed"`
-	Course     float64   `json:"course"`
-	Sidc       string    `json:"sidc"`
-	TakVersion string    `json:"tak_version"`
-	Status     string    `json:"status"`
-	Text       string    `json:"text"`
-	Color      string    `json:"color"`
+	Uid            string    `json:"uid"`
+	Callsign       string    `json:"callsign"`
+	Category       string    `json:"category"`
+	Team           string    `json:"team"`
+	Role           string    `json:"role"`
+	Time           time.Time `json:"time"`
+	LastSeen       time.Time `json:"last_seen"`
+	StaleTime      time.Time `json:"stale_time"`
+	StartTime      time.Time `json:"start_time"`
+	SendTime       time.Time `json:"send_time"`
+	Type           string    `json:"type"`
+	Lat            float64   `json:"lat"`
+	Lon            float64   `json:"lon"`
+	Hae            float64   `json:"hae"`
+	Speed          float64   `json:"speed"`
+	Course         float64   `json:"course"`
+	Sidc           string    `json:"sidc"`
+	TakVersion     string    `json:"tak_version"`
+	Status         string    `json:"status"`
+	Text           string    `json:"text"`
+	Color          string    `json:"color"`
+	ParentCallsign string    `json:"parent_callsign"`
+	ParentUid      string    `json:"parent_uid"`
 }
 
 type DigitalPointer struct {
@@ -62,13 +64,16 @@ func (c *Contact) ToWeb() *WebUnit {
 func (u *Unit) ToWeb() *WebUnit {
 	w := u.Item.ToWeb()
 	w.Category = "unit"
+	w.ParentUid = u.parentUid
+	w.ParentCallsign = u.parentCallsign
 	return w
 }
 
 func (p *Point) ToWeb() *WebUnit {
 	w := p.Item.ToWeb()
 	w.Category = "point"
-
+	w.ParentUid = p.parentUid
+	w.ParentCallsign = p.parentCallsign
 	return w
 }
 
