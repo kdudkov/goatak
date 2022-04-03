@@ -30,6 +30,7 @@ func NewHttp(app *App, address string) *air.Air {
 	srv.GET("/units", getUnitsHandler(app))
 	srv.GET("/config", getConfigHandler(app))
 	srv.POST("/dp", getDpHandler(app))
+	srv.POST("/pos", getPosHandler(app))
 
 	srv.GET("/stack", getStackHandler())
 
@@ -61,16 +62,19 @@ func getUnitsHandler(app *App) func(req *air.Request, res *air.Response) error {
 }
 
 func getConfigHandler(app *App) func(req *air.Request, res *air.Response) error {
-	m := make(map[string]interface{}, 0)
-	m["version"] = gitRevision
-	m["lat"] = app.lat
-	m["lon"] = app.lon
-	m["zoom"] = app.zoom
-	m["myuid"] = app.uid
-	m["callsign"] = app.callsign
-	m["team"] = app.team
-	m["role"] = app.role
 	return func(req *air.Request, res *air.Response) error {
+		m := make(map[string]interface{}, 0)
+		m["version"] = gitRevision
+		m["uid"] = app.uid
+		lat, lon := app.pos.Get()
+		m["lat"] = lat
+		m["lon"] = lon
+		m["zoom"] = app.zoom
+		m["myuid"] = app.uid
+		m["callsign"] = app.callsign
+		m["team"] = app.team
+		m["role"] = app.role
+
 		return res.WriteJSON(m)
 	}
 }
@@ -88,6 +92,28 @@ func getDpHandler(app *App) func(req *air.Request, res *air.Response) error {
 
 		msg := cot.MakeDpMsg(app.uid, app.typ, app.callsign+"."+dp.Name, dp.Lat, dp.Lon)
 		app.AddMsg(msg)
+		return res.WriteString("Ok")
+	}
+}
+
+func getPosHandler(app *App) func(req *air.Request, res *air.Response) error {
+	return func(req *air.Request, res *air.Response) error {
+		pos := make(map[string]float64)
+		if req.Body == nil {
+			return nil
+		}
+
+		if err := json.NewDecoder(req.Body).Decode(&pos); err != nil {
+			return err
+		}
+
+		lat, latOk := pos["lat"]
+		lon, lonOk := pos["lon"]
+
+		if latOk && lonOk {
+			app.Logger.Infof("new my coords: %.5f,%.5f", lat, lon)
+			app.pos.Set(lat, lon)
+		}
 		return res.WriteString("Ok")
 	}
 }

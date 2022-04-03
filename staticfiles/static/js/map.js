@@ -60,6 +60,7 @@ let app = new Vue({
         current_unit: null,
         config: null,
         tools: new Map(),
+        me: null,
         coords: null,
         point_num: 1,
     },
@@ -108,6 +109,11 @@ let app = new Vue({
                 if (vm.map != null) {
                     vm.map.setView([data.lat, data.lon], data.zoom);
                 }
+
+                if (ne(data.callsign)) {
+                    vm.me = L.marker([data.lat, data.lon]);
+                    vm.me.addTo(vm.map);
+                }
             });
     },
     computed: {},
@@ -139,6 +145,17 @@ let app = new Vue({
                         }
                     });
                     vm.ts += 1;
+                });
+
+            fetch('/config')
+                .then(function (response) {
+                    return response.json()
+                })
+                .then(function (data) {
+                    vm.config = data;
+                    if (ne(vm.me)) {
+                        vm.me.setLatLng([data.lat, data.lon]);
+                    }
                 });
 
             if (this.getTool("dp1") != null) {
@@ -274,6 +291,17 @@ let app = new Vue({
                 this.units.set(uid, u);
                 this.updateMarker(u, true, false);
                 this.current_unit = u;
+            }
+            if (document.getElementById("me").checked === true) {
+                this.config.lat = e.latlng.lat;
+                this.config.lon = e.latlng.lng;
+
+                const requestOptions = {
+                    method: "POST",
+                    headers: {"Content-Type": "application/json"},
+                    body: JSON.stringify({lat: e.latlng.lat, lon: e.latlng.lng})
+                };
+                fetch("/pos", requestOptions);
             }
         },
         mouseMove: function (e) {

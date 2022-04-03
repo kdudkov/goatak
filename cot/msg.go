@@ -107,6 +107,14 @@ func (m *Msg) GetLon() float64 {
 	return m.TakMessage.GetCotEvent().GetLon()
 }
 
+func (m *Msg) GetParent() (string, string) {
+	link := m.Detail.GetFirstChild("link")
+	if link.GetAttr("relation") == "p-p" {
+		return link.GetAttr("uid"), link.GetAttr("parent_callsign")
+	}
+	return "", ""
+}
+
 func TimeFromMillis(ms uint64) time.Time {
 	return time.Unix(0, 1000000*int64(ms))
 }

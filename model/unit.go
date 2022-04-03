@@ -2,6 +2,7 @@ package model
 
 import (
 	"fmt"
+	"strconv"
 	"sync"
 	"time"
 
@@ -50,6 +51,7 @@ type Point struct {
 	Item
 	parentCallsign string
 	parentUid      string
+	color          int32
 }
 
 func (c *Contact) String() string {
@@ -148,11 +150,8 @@ func UnitFromMsg(msg *cot.Msg) *Unit {
 		track: []*Pos{pos},
 	}
 
-	link := msg.Detail.GetFirstChild("link")
-	if link.GetAttr("relation") == "p-p" {
-		u.parentCallsign = link.GetAttr("parent_callsign")
-		u.parentUid = link.GetAttr("uid")
-	}
+	u.parentUid, u.parentCallsign = msg.GetParent()
+
 	return u
 }
 
@@ -161,10 +160,12 @@ func PointFromEvent(msg *cot.Msg) *Point {
 		Item: ItemFromMsg(msg),
 	}
 
-	link := msg.Detail.GetFirstChild("link")
-	if link.GetAttr("relation") == "p-p" {
-		p.parentCallsign = link.GetAttr("parent_callsign")
-		p.parentUid = link.GetAttr("uid")
+	p.parentUid, p.parentCallsign = msg.GetParent()
+
+	if c := msg.Detail.GetFirstChild("color"); c != nil {
+		if col, err := strconv.Atoi(c.GetAttr("argb")); err == nil {
+			p.color = int32(col)
+		}
 	}
 
 	return p

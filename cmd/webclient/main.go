@@ -11,6 +11,7 @@ import (
 	"net"
 	"os"
 	"os/signal"
+	"runtime"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -37,6 +38,12 @@ var (
 	gitBranch   = "unknown"
 )
 
+type Pos struct {
+	lat float64
+	lon float64
+	mx  sync.RWMutex
+}
+
 type App struct {
 	conn      net.Conn
 	addr      string
@@ -54,9 +61,12 @@ type App struct {
 	uid      string
 	typ      string
 	team     string
+	device   string
+	version  string
+	platform string
+	os       string
 	role     string
-	lat      float64
-	lon      float64
+	pos      *Pos
 	zoom     int8
 	online   uint32
 }
@@ -333,8 +343,15 @@ func (app *App) ProcessEvent(msg *cot.Msg) {
 		}
 		return
 	case strings.HasPrefix(msg.GetType(), "b-"):
-		app.Logger.Infof("point %s (%s) %s", msg.GetUid(), msg.GetCallsign(), msg.GetType())
-		app.AddPoint(msg.GetUid(), model.PointFromEvent(msg))
+		if uid, _ := msg.GetParent(); uid != app.uid {
+			app.Logger.Infof("point %s (%s) %s", msg.GetUid(), msg.GetCallsign(), msg.GetType())
+			app.AddPoint(msg.GetUid(), model.PointFromEvent(msg))
+		} else {
+			app.Logger.Infof("my own point %s (%s) %s", msg.GetUid(), msg.GetCallsign(), msg.GetType())
+		}
+	case msg.GetType() == "tak registration":
+		app.Logger.Infof("registration %s %s", msg.GetUid(), msg.GetCallsign())
+		return
 	default:
 		app.Logger.Debugf("unknown event: %s", msg.GetType())
 	}
@@ -430,8 +447,9 @@ func (app *App) removeByLink(msg *cot.Msg) {
 
 func (app *App) MakeMe() *cotproto.TakMessage {
 	ev := cot.BasicMsg(app.typ, app.uid, time.Hour)
-	ev.CotEvent.Lat = app.lat
-	ev.CotEvent.Lon = app.lon
+	lat, lon := app.pos.Get()
+	ev.CotEvent.Lat = lat
+	ev.CotEvent.Lon = lon
 	ev.CotEvent.Detail = &cotproto.Detail{
 		Contact: &cotproto.Contact{
 			Endpoint: "123",
@@ -442,10 +460,10 @@ func (app *App) MakeMe() *cotproto.TakMessage {
 			Role: app.role,
 		},
 		Takv: &cotproto.Takv{
-			Device:   "",
-			Platform: "GoATAK web client",
-			Os:       "",
-			Version:  fmt.Sprintf("%s", gitRevision),
+			Device:   app.device,
+			Platform: app.platform,
+			Os:       app.os,
+			Version:  app.version,
 		},
 	}
 
@@ -498,6 +516,29 @@ func (app *App) cleanOldUnits() {
 	}
 }
 
+func NewPos(lat, lon float64) *Pos {
+	return &Pos{lon: lon, lat: lat, mx: sync.RWMutex{}}
+}
+
+func (p *Pos) Set(lat, lon float64) {
+	if p == nil {
+		return
+	}
+	p.mx.Lock()
+	defer p.mx.Unlock()
+	p.lat = lat
+	p.lon = lon
+}
+
+func (p *Pos) Get() (float64, float64) {
+	if p == nil {
+		return 0, 0
+	}
+	p.mx.RLock()
+	defer p.mx.RUnlock()
+	return p.lat, p.lon
+}
+
 func main() {
 	var conf = flag.String("config", "goatak_client.yml", "name of config file")
 	flag.Parse()
@@ -513,6 +554,9 @@ func main() {
 	viper.SetDefault("me.type", "a-f-G-U-C")
 	viper.SetDefault("me.team", "Blue")
 	viper.SetDefault("me.role", "HQ")
+	viper.SetDefault("me.platform", "GoATAK_client")
+	viper.SetDefault("me.version", fmt.Sprintf("%s:%s", gitBranch, gitRevision))
+	viper.SetDefault("me.os", runtime.GOOS)
 	viper.SetDefault("ssl.password", "atakatak")
 
 	err := viper.ReadInConfig()
@@ -538,12 +582,16 @@ func main() {
 		logger.Sugar(),
 	)
 
-	app.lat = viper.GetFloat64("me.lat")
-	app.lon = viper.GetFloat64("me.lon")
+	app.pos = NewPos(viper.GetFloat64("me.lat"), viper.GetFloat64("me.lon"))
 	app.zoom = int8(viper.GetInt("me.zoom"))
 	app.typ = viper.GetString("me.type")
 	app.team = viper.GetString("me.team")
 	app.role = viper.GetString("me.role")
+
+	app.device = viper.GetString("me.device")
+	app.version = viper.GetString("me.version")
+	app.platform = viper.GetString("me.platform")
+	app.os = viper.GetString("me.os")
 
 	app.Logger.Infof("callsign: %s", app.callsign)
 	app.Logger.Infof("uid: %s", app.uid)

@@ -60,6 +60,22 @@
             <div id="map" class="col-9 h-100" style="cursor:crosshair;">
             </div>
             <div class="col-3">
+                <div class="card mb-1" v-if="config != null && ne(config.callsign)">
+                    <div class="card-header">Me ({{config.callsign}})</div>
+                    <div class="card-body">
+                        <b>UID:</b> {{config.uid}}<br/>
+                        <div v-if="ne(config.team)"><b>Team:</b> {{config.team}}, <b>Role:</b>
+                            {{config.role}}
+                        </div>
+                        <div>
+                            <b>coords:</b> {{printCoords(config.lat, config.lon)}}
+                            <span class="badge rounded-pill bg-success" style="cursor:default;"
+                                  v-on:click="map.setView([config.lat, config.lon])"><i
+                                    class="bi bi-geo"></i></span>
+                            <span v-if="coords != null">({{ distBea(latlng(config.lat, config.lon), coords) }} to cursor)</span>
+                        </div>
+                    </div>
+                </div>
                 <div class="card mb-1">
                     <div class="card-header">Tools</div>
                     <div class="card-body">
@@ -76,6 +92,12 @@
 
                             <input type="radio" class="btn-check" name="btnradio" id="point" autocomplete="off">
                             <label class="btn btn-outline-primary btn-sm" for="point">Point drop</label>
+
+                            <input v-if="config != null && ne(config.callsign)" type="radio" class="btn-check"
+                                   name="btnradio" id="me"
+                                   autocomplete="off">
+                            <label v-if="config != null && ne(config.callsign)" class="btn btn-outline-primary btn-sm"
+                                   for="me">Me</label>
                         </div>
                         <div v-if="getTool('redx') != null" class="mt-1">
                             <span class="badge bg-danger">RedX</span>: {{printCoordsll(getTool('redx').getLatLng())}}
