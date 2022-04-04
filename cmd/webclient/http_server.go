@@ -114,6 +114,8 @@ func getPosHandler(app *App) func(req *air.Request, res *air.Response) error {
 			app.Logger.Infof("new my coords: %.5f,%.5f", lat, lon)
 			app.pos.Set(lat, lon)
 		}
+
+		app.AddMsg(app.MakeMe())
 		return res.WriteString("Ok")
 	}
 }
