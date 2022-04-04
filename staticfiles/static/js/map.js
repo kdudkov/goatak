@@ -39,15 +39,7 @@ function getIcon(item, withText) {
         return {uri: "/static/icons/sensor_location.png", x: 16, y: 16}
     }
     if (item.type === "b-m-p-s-p-i") {
-        switch (item.callsign.charAt(item.callsign.length - 1)) {
-            case "1":
-                return {uri: "/static/icons/spi1_icon.png", x: 16, y: 16}
-            case "2":
-                return {uri: "/static/icons/spi2_icon.png", x: 16, y: 16}
-            case "3":
-                return {uri: "/static/icons/spi3_icon.png", x: 16, y: 16}
-        }
-        return {uri: "/static/icons/spoi_icon.png", x: 16, y: 16}
+        return {uri: "/static/icons/b-m-p-s-p-i.png", x: 16, y: 16}
     }
     if (item.type === "b-m-p-a") {
         return {uri: "/static/icons/aimpoint.png", x: 16, y: 16}
@@ -80,6 +72,7 @@ let app = new Vue({
     data: {
         units: new Map(),
         markers: new Map(),
+        messages: [],
         map: null,
         ts: 0,
         locked_unit_uid: '',
@@ -174,6 +167,8 @@ let app = new Vue({
                             vm.removeUnit(k);
                         }
                     });
+
+                    vm.messages = data.messages;
                     vm.ts += 1;
                 });
 

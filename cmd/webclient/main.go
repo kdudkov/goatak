@@ -329,6 +329,7 @@ func (app *App) ProcessEvent(msg *cot.Msg) {
 		app.removeByLink(msg)
 	case msg.IsChat():
 		if c := model.MsgToChat(msg); c != nil {
+			app.Logger.Infof("Chat %s (%s) -> %s (%s) \"%s\"", c.From, c.FromUid, c.To, c.ToUid, c.Text)
 			app.messages = append(app.messages, c)
 		}
 	case strings.HasPrefix(msg.GetType(), "a-"):
