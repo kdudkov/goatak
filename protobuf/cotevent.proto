@@ -22,7 +22,7 @@ message CotEvent {
     string qos = 3;                // optional
     string opex = 4;               // optional
 
-    string uid = 5;                // <event uid="x">
+    string UID = 5;                // <event UID="x">
     uint64 sendTime = 6;           // <event time="x"> converted to timeMs
     uint64 startTime = 7;          // <event start="x"> converted to timeMs
     uint64 staleTime = 8;          // <event stale="x"> converted to timeMs

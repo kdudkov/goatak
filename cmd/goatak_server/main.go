@@ -99,7 +99,7 @@ func (app *App) Run() {
 		}()
 	}
 
-	NewHttp(app,
+	NewHTTP(app,
 		fmt.Sprintf(":%d", app.config.webPort),
 		fmt.Sprintf(":%d", app.config.apiPort),
 	).Start()
@@ -138,7 +138,7 @@ func (app *App) GetUnit(uid string) *model.Unit {
 		if unit, ok := v.(*model.Unit); ok {
 			return unit
 		} else {
-			app.Logger.Errorf("invalid object for uid %s: %v", uid, v)
+			app.Logger.Errorf("invalid object for UID %s: %v", uid, v)
 		}
 	}
 	return nil
@@ -178,32 +178,32 @@ func (app *App) GetContact(uid string) *model.Contact {
 		if contact, ok := v.(*model.Contact); ok {
 			return contact
 		} else {
-			app.Logger.Errorf("invalid object for uid %s: %v", uid, v)
+			app.Logger.Errorf("invalid object for UID %s: %v", uid, v)
 		}
 	}
 	return nil
 }
 
 func (app *App) ProcessContact(msg *cot.Msg) {
-	if c := app.GetContact(msg.GetUid()); c != nil {
-		app.Logger.Infof("update contact %s (%s) %s", msg.GetUid(), msg.GetCallsign(), msg.GetType())
+	if c := app.GetContact(msg.GetUID()); c != nil {
+		app.Logger.Infof("update contact %s (%s) %s", msg.GetUID(), msg.GetCallsign(), msg.GetType())
 		c.Update(msg)
 	} else {
-		app.Logger.Infof("new contact %s (%s) %s", msg.GetUid(), msg.GetCallsign(), msg.GetType())
-		if msg.GetUid() == app.uid {
+		app.Logger.Infof("new contact %s (%s) %s", msg.GetUID(), msg.GetCallsign(), msg.GetType())
+		if msg.GetUID() == app.uid {
 			return
 		}
-		app.units.Store(msg.GetUid(), model.ContactFromMsg(msg))
+		app.units.Store(msg.GetUID(), model.ContactFromMsg(msg))
 	}
 }
 
 func (app *App) ProcessUnit(msg *cot.Msg) {
-	if u := app.GetUnit(msg.GetUid()); u != nil {
-		app.Logger.Infof("update unit %s (%s) %s", msg.GetUid(), msg.GetCallsign(), msg.GetType())
+	if u := app.GetUnit(msg.GetUID()); u != nil {
+		app.Logger.Infof("update unit %s (%s) %s", msg.GetUID(), msg.GetCallsign(), msg.GetType())
 		u.Update(msg)
 	} else {
-		app.Logger.Infof("new unit %s (%s) %s", msg.GetUid(), msg.GetCallsign(), msg.GetType())
-		app.units.Store(msg.GetUid(), model.UnitFromMsg(msg))
+		app.Logger.Infof("new unit %s (%s) %s", msg.GetUID(), msg.GetCallsign(), msg.GetType())
+		app.units.Store(msg.GetUID(), model.UnitFromMsg(msg))
 	}
 }
 
@@ -236,8 +236,8 @@ func (app *App) EventProcessor() {
 		switch {
 		case msg.GetType() == "t-x-c-t":
 			// ping
-			app.Logger.Debugf("ping from %s", msg.GetUid())
-			uid := msg.GetUid()
+			app.Logger.Debugf("ping from %s", msg.GetUID())
+			uid := msg.GetUID()
 			if strings.HasSuffix(uid, "-ping") {
 				uid = uid[:len(uid)-5]
 			}
@@ -248,12 +248,12 @@ func (app *App) EventProcessor() {
 			break
 		case msg.IsChat():
 			if c := model.MsgToChat(msg); c != nil {
-				app.Logger.Infof("Chat %s (%s) -> %s (%s) \"%s\"", c.From, c.FromUid, c.To, c.ToUid, c.Text)
+				app.Logger.Infof("Chat %s (%s) -> %s (%s) \"%s\"", c.From, c.FromUID, c.To, c.ToUID, c.Text)
 				app.messages = append(app.messages, c)
 			}
 		case strings.HasPrefix(msg.GetType(), "a-"):
 			app.Logger.Debugf("pos %s (%s) %s stale %s",
-				msg.GetUid(),
+				msg.GetUID(),
 				msg.GetCallsign(),
 				msg.GetType(),
 				msg.GetStale().Sub(time.Now()))
@@ -267,10 +267,10 @@ func (app *App) EventProcessor() {
 			// b-m-r route
 		case strings.HasPrefix(msg.GetType(), "b-"):
 			app.Logger.Debugf("point %s (%s) stale %s",
-				msg.GetUid(),
+				msg.GetUID(),
 				msg.GetCallsign(),
 				msg.GetStale().Sub(time.Now()))
-			app.AddPoint(msg.GetUid(), model.PointFromEvent(msg))
+			app.AddPoint(msg.GetUID(), model.PointFromEvent(msg))
 		default:
 			app.Logger.Warnf("msg: %s", msg)
 		}
@@ -378,7 +378,7 @@ func main() {
 
 	err := viper.ReadInConfig()
 	if err != nil {
-		panic(fmt.Errorf("Fatal error config file: %s \n", err))
+		panic(fmt.Errorf("fatal error config file: %s", err))
 	}
 
 	flag.Parse()

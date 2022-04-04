@@ -43,7 +43,7 @@ type CotEvent struct {
 	Access    string `protobuf:"bytes,2,opt,name=access,proto3" json:"access,omitempty"`        // optional
 	Qos       string `protobuf:"bytes,3,opt,name=qos,proto3" json:"qos,omitempty"`              // optional
 	Opex      string `protobuf:"bytes,4,opt,name=opex,proto3" json:"opex,omitempty"`            // optional
-	Uid       string `protobuf:"bytes,5,opt,name=uid,proto3" json:"uid,omitempty"`              // <event uid="x">
+	UID       string `protobuf:"bytes,5,opt,name=uid,proto3" json:"uid,omitempty"`              // <event uid="x">
 	SendTime  uint64 `protobuf:"varint,6,opt,name=sendTime,proto3" json:"sendTime,omitempty"`   // <event time="x"> converted to timeMs
 	StartTime uint64 `protobuf:"varint,7,opt,name=startTime,proto3" json:"startTime,omitempty"` // <event start="x"> converted to timeMs
 	StaleTime uint64 `protobuf:"varint,8,opt,name=staleTime,proto3" json:"staleTime,omitempty"` // <event stale="x"> converted to timeMs
@@ -122,7 +122,7 @@ func (x *CotEvent) GetOpex() string {
 
 func (x *CotEvent) GetUid() string {
 	if x != nil {
-		return x.Uid
+		return x.UID
 	}
 	return ""
 }

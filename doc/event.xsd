@@ -88,7 +88,7 @@ MITRE Case #11-3895 (Event-PUBLIC.xsd)
                         9 - highest (most significant) priority
                         0 - lowest (least significant) priority
 
-                        A "overtaking" value indicates how two events for the same uid are
+                        A "overtaking" value indicates how two events for the same UID are
                         reconciled when they "catch up" to one another.  The more recent
                         event (by timestamp) may supersede the older event (deleting the
                         old event) when it catches it, or it may follow the old event so
@@ -152,10 +152,10 @@ MITRE Case #11-3895 (Event-PUBLIC.xsd)
                     </xs:documentation>
                 </xs:annotation>
             </xs:attribute>
-            <xs:attribute name="uid" type="xs:string" use="required">
+            <xs:attribute name="UID" type="xs:string" use="required">
                 <xs:annotation>
                     <xs:documentation>
-                        The "uid" attribute is a globally unique name for this specific piece of information.
+                        The "UID" attribute is a globally unique name for this specific piece of information.
                         Several "events" may be associated with one UID, but in that case, the latest (ordered by timestamp),
                         overwrites all previous events for that UID.
                     </xs:documentation>

@@ -15,9 +15,8 @@ type TagReader struct {
 func NewTagReader(r io.Reader) *TagReader {
 	if rb, ok := r.(io.ByteReader); ok {
 		return &TagReader{r: rb}
-	} else {
-		return &TagReader{r: bufio.NewReader(r)}
 	}
+	return &TagReader{r: bufio.NewReader(r)}
 }
 
 func (er *TagReader) ReadTag() (string, []byte, error) {

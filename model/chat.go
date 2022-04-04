@@ -11,8 +11,8 @@ type ChatMessage struct {
 	From    string    `json:"from"`
 	To      string    `json:"to"`
 	Text    string    `json:"text"`
-	FromUid string    `json:"from_Uid"`
-	ToUid   string    `json:"to_uid"`
+	FromUID string    `json:"from_Uid"`
+	ToUID   string    `json:"to_uid"`
 }
 
 // direct
@@ -47,8 +47,8 @@ func MsgToChat(m *cot.Msg) *ChatMessage {
 	}
 
 	if cg := chat.GetFirstChild("chatgrp"); cg != nil {
-		c.FromUid = cg.GetAttr("uid0")
-		c.ToUid = cg.GetAttr("uid1")
+		c.FromUID = cg.GetAttr("uid0")
+		c.ToUID = cg.GetAttr("uid1")
 	}
 	c.Text, _ = m.Detail.GetChildValue("remarks")
 

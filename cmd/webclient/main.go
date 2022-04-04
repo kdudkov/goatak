@@ -18,13 +18,13 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/golang/protobuf/proto"
 	"github.com/kdudkov/goatak/cot"
 	"github.com/kdudkov/goatak/cotproto"
 	"github.com/kdudkov/goatak/cotxml"
 	"github.com/kdudkov/goatak/model"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
+	"google.golang.org/protobuf/proto"
 )
 
 const (
@@ -84,10 +84,8 @@ func NewApp(uid string, callsign string, connectStr string, webPort int, logger 
 	switch parts[2] {
 	case "tcp":
 		tlsConn = false
-		break
 	case "ssl":
 		tlsConn = true
-		break
 	default:
 		logger.Errorf("invalid connect string: %s", connectStr)
 		return nil
@@ -151,7 +149,7 @@ func (app *App) Run(ctx context.Context) {
 	}
 }
 
-func makeUid(callsign string) string {
+func makeUID(callsign string) string {
 	h := md5.New()
 	h.Write([]byte(callsign))
 	uid := fmt.Sprintf("%x", h.Sum(nil))
@@ -309,7 +307,7 @@ func (app *App) tryAddPacket(msg []byte) bool {
 }
 
 func (app *App) sendPing() {
-	if time.Now().Sub(app.lastWrite) > pingTimeout {
+	if time.Since(app.lastWrite) > pingTimeout {
 		app.Logger.Debug("sending ping")
 		app.AddMsg(cot.MakePing(app.uid))
 	}
@@ -318,8 +316,8 @@ func (app *App) sendPing() {
 func (app *App) ProcessEvent(msg *cot.Msg) {
 	switch {
 	case msg.GetType() == "t-x-c-t":
-		app.Logger.Debugf("ping from %s", msg.GetUid())
-		if c := app.GetContact(msg.GetUid()); c != nil {
+		app.Logger.Debugf("ping from %s", msg.GetUID())
+		if c := app.GetContact(msg.GetUID()); c != nil {
 			c.Update(nil)
 		}
 	case msg.GetType() == "t-x-c-t-r":
@@ -332,7 +330,7 @@ func (app *App) ProcessEvent(msg *cot.Msg) {
 		}
 	case strings.HasPrefix(msg.GetType(), "a-"):
 		if msg.IsContact() {
-			if msg.GetUid() == app.uid {
+			if msg.GetUID() == app.uid {
 				app.Logger.Info("my own info")
 				break
 			}
@@ -343,13 +341,13 @@ func (app *App) ProcessEvent(msg *cot.Msg) {
 		return
 	case strings.HasPrefix(msg.GetType(), "b-"):
 		if uid, _ := msg.GetParent(); uid != app.uid {
-			app.Logger.Infof("point %s (%s) %s", msg.GetUid(), msg.GetCallsign(), msg.GetType())
-			app.AddPoint(msg.GetUid(), model.PointFromEvent(msg))
+			app.Logger.Infof("point %s (%s) %s", msg.GetUID(), msg.GetCallsign(), msg.GetType())
+			app.AddPoint(msg.GetUID(), model.PointFromEvent(msg))
 		} else {
-			app.Logger.Infof("my own point %s (%s) %s", msg.GetUid(), msg.GetCallsign(), msg.GetType())
+			app.Logger.Infof("my own point %s (%s) %s", msg.GetUID(), msg.GetCallsign(), msg.GetType())
 		}
 	case msg.GetType() == "tak registration":
-		app.Logger.Infof("registration %s %s", msg.GetUid(), msg.GetCallsign())
+		app.Logger.Infof("registration %s %s", msg.GetUID(), msg.GetCallsign())
 		return
 	default:
 		app.Logger.Debugf("unknown event: %s", msg.GetType())
@@ -357,25 +355,25 @@ func (app *App) ProcessEvent(msg *cot.Msg) {
 }
 
 func (app *App) ProcessContact(msg *cot.Msg) {
-	if c := app.GetContact(msg.GetUid()); c != nil {
-		app.Logger.Infof("update contact %s (%s) %s", msg.GetUid(), msg.GetCallsign(), msg.GetType())
+	if c := app.GetContact(msg.GetUID()); c != nil {
+		app.Logger.Infof("update contact %s (%s) %s", msg.GetUID(), msg.GetCallsign(), msg.GetType())
 		c.Update(msg)
 	} else {
-		app.Logger.Infof("new contact %s (%s) %s", msg.GetUid(), msg.GetCallsign(), msg.GetType())
-		if msg.GetUid() == app.uid {
+		app.Logger.Infof("new contact %s (%s) %s", msg.GetUID(), msg.GetCallsign(), msg.GetType())
+		if msg.GetUID() == app.uid {
 			return
 		}
-		app.units.Store(msg.GetUid(), model.ContactFromMsg(msg))
+		app.units.Store(msg.GetUID(), model.ContactFromMsg(msg))
 	}
 }
 
 func (app *App) ProcessUnit(msg *cot.Msg) {
-	if u := app.GetUnit(msg.GetUid()); u != nil {
-		app.Logger.Infof("update unit %s (%s) %s", msg.GetUid(), msg.GetCallsign(), msg.GetType())
+	if u := app.GetUnit(msg.GetUID()); u != nil {
+		app.Logger.Infof("update unit %s (%s) %s", msg.GetUID(), msg.GetCallsign(), msg.GetType())
 		u.Update(msg)
 	} else {
-		app.Logger.Infof("new unit %s (%s) %s", msg.GetUid(), msg.GetCallsign(), msg.GetType())
-		app.units.Store(msg.GetUid(), model.UnitFromMsg(msg))
+		app.Logger.Infof("new unit %s (%s) %s", msg.GetUID(), msg.GetCallsign(), msg.GetType())
+		app.units.Store(msg.GetUID(), model.UnitFromMsg(msg))
 	}
 }
 
@@ -403,9 +401,8 @@ func (app *App) GetContact(uid string) *model.Contact {
 	if v, ok := app.units.Load(uid); ok {
 		if contact, ok := v.(*model.Contact); ok {
 			return contact
-		} else {
-			app.Logger.Warnf("invalid object for uid %s: %s", uid, v)
 		}
+		app.Logger.Warnf("invalid object for uid %s: %s", uid, v)
 	}
 	return nil
 }
@@ -560,7 +557,7 @@ func main() {
 
 	err := viper.ReadInConfig()
 	if err != nil {
-		panic(fmt.Errorf("Fatal error config file: %s \n", err))
+		panic(fmt.Errorf("fatal error config file: %s", err))
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -570,7 +567,7 @@ func main() {
 
 	uid := viper.GetString("me.uid")
 	if uid == "auto" || uid == "" {
-		uid = makeUid(viper.GetString("me.callsign"))
+		uid = makeUID(viper.GetString("me.callsign"))
 	}
 
 	app := NewApp(

@@ -10,7 +10,7 @@ import (
 func TestConvert(t *testing.T) {
 	msg := &cotproto.TakMessage{CotEvent: &cotproto.CotEvent{
 		Type:      "a-f-G-U-C",
-		Uid:       "ANDROID-55511111111555",
+		UID:       "ANDROID-55511111111555",
 		SendTime:  1616961632610,
 		StartTime: 1616961632610,
 		StaleTime: 1616962007610,

@@ -14,12 +14,12 @@ type Msg struct {
 	Detail     *XMLDetails
 }
 
-func (m *Msg) GetUid() string {
+func (m *Msg) GetUID() string {
 	if m == nil || m.TakMessage == nil {
 		return ""
 	}
 
-	return m.TakMessage.GetCotEvent().Uid
+	return m.TakMessage.GetCotEvent().UID
 }
 
 func (m *Msg) GetType() string {

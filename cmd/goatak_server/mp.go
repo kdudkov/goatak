@@ -78,9 +78,8 @@ func (pm *PackageManager) Get(hash string) (*PackageInfo, bool) {
 	i, ok := pm.data.Load(hash)
 	if ok {
 		return i.(*PackageInfo), ok
-	} else {
-		return nil, ok
 	}
+	return nil, ok
 }
 
 func (pm *PackageManager) Range(f func(key string, pi *PackageInfo) bool) {

@@ -10,7 +10,7 @@ import (
 )
 
 type WebUnit struct {
-	Uid            string    `json:"uid"`
+	UID            string    `json:"uid"`
 	Callsign       string    `json:"callsign"`
 	Category       string    `json:"category"`
 	Team           string    `json:"team"`
@@ -64,7 +64,7 @@ func (c *Contact) ToWeb() *WebUnit {
 func (u *Unit) ToWeb() *WebUnit {
 	w := u.Item.ToWeb()
 	w.Category = "unit"
-	w.ParentUid = u.parentUid
+	w.ParentUid = u.parentUID
 	w.ParentCallsign = u.parentCallsign
 	return w
 }
@@ -72,7 +72,7 @@ func (u *Unit) ToWeb() *WebUnit {
 func (p *Point) ToWeb() *WebUnit {
 	w := p.Item.ToWeb()
 	w.Category = "point"
-	w.ParentUid = p.parentUid
+	w.ParentUid = p.parentUID
 	w.ParentCallsign = p.parentCallsign
 	return w
 }
@@ -81,7 +81,7 @@ func (i Item) ToWeb() *WebUnit {
 	evt := i.msg.TakMessage.CotEvent
 
 	w := &WebUnit{
-		Uid:       i.uid,
+		UID:       i.uid,
 		Callsign:  i.callsign,
 		Time:      cot.TimeFromMillis(evt.SendTime),
 		LastSeen:  i.received,

@@ -7,11 +7,16 @@ import (
 	"time"
 )
 
+const (
+	nilString = "nil"
+	mgString  = "m-g"
+)
+
 type Event struct {
 	XMLName xml.Name  `xml:"event"`
 	Version string    `xml:"version,attr"`
 	Type    string    `xml:"type,attr"`
-	Uid     string    `xml:"uid,attr"`
+	UID     string    `xml:"uid,attr"`
 	Time    time.Time `xml:"time,attr"`
 	Start   time.Time `xml:"start,attr"`
 	Stale   time.Time `xml:"stale,attr"`
@@ -23,9 +28,9 @@ type Event struct {
 
 func (e *Event) String() string {
 	if e == nil {
-		return "nil"
+		return nilString
 	}
-	return fmt.Sprintf("version=%s, type=%s, uid=%s, how=%s, stale=%s, detail={%s}", e.Version, e.Type, e.Uid, e.How, e.Stale.Sub(e.Start), e.Detail)
+	return fmt.Sprintf("version=%s, type=%s, uid=%s, how=%s, stale=%s, detail={%s}", e.Version, e.Type, e.UID, e.How, e.Stale.Sub(e.Start), e.Detail)
 }
 
 type Point struct {
@@ -38,7 +43,7 @@ type Point struct {
 }
 
 type Detail struct {
-	Uid               *Uid               `xml:"uid,omitempty"`
+	UID               *UID               `xml:"uid,omitempty"`
 	TakVersion        *TakVersion        `xml:"takv,omitempty"`
 	TakControl        *TakControl        `xml:"TakControl,omitempty"`
 	Contact           *Contact           `xml:"contact,omitempty"`
@@ -68,8 +73,8 @@ type Detail struct {
 func (d Detail) String() string {
 	var s string
 
-	if d.Uid != nil {
-		s += fmt.Sprintf("uid={%s}", d.Uid)
+	if d.UID != nil {
+		s += fmt.Sprintf("uid={%s}", d.UID)
 	}
 	if d.TakVersion != nil {
 		s += fmt.Sprintf(", takv={%s}", d.TakVersion)
@@ -148,7 +153,7 @@ type Group struct {
 
 func (g *Group) String() string {
 	if g == nil {
-		return "nil"
+		return nilString
 	}
 	return fmt.Sprintf("name=%s, role=%s", g.Name, g.Role)
 }
@@ -168,19 +173,19 @@ type Track struct {
 	Speed  string `xml:"speed,attr"`
 }
 
-type Uid struct {
+type UID struct {
 	Droid string `xml:"Droid,attr,omitempty"`
 }
 
-func (u *Uid) String() string {
+func (u *UID) String() string {
 	if u == nil {
-		return "nil"
+		return nilString
 	}
 	return fmt.Sprintf("Droid=%s", u.Droid)
 }
 
 type Chat struct {
-	Id      string   `xml:"id,attr"`
+	ID      string   `xml:"id,attr"`
 	Parent  string   `xml:"parent,attr,omitempty"`
 	Sender  string   `xml:"senderCallsign,attr,omitempty"`
 	Room    string   `xml:"chatroom,attr,omitempty"`
@@ -189,17 +194,17 @@ type Chat struct {
 }
 
 func (c *Chat) String() string {
-	return fmt.Sprintf("id=%s, parent=%s, sender=%s, room=%s, owner=%s, grp={%s}", c.Id, c.Parent, c.Sender, c.Room, c.Owner, c.ChatGrp)
+	return fmt.Sprintf("id=%s, parent=%s, sender=%s, room=%s, owner=%s, grp={%s}", c.ID, c.Parent, c.Sender, c.Room, c.Owner, c.ChatGrp)
 }
 
 type ChatGrp struct {
-	Id   string `xml:"id,attr"`
-	Uid0 string `xml:"uid0,attr"`
-	Uid1 string `xml:"uid1,attr"`
+	ID   string `xml:"id,attr"`
+	UID0 string `xml:"uid0,attr"`
+	UID1 string `xml:"uid1,attr"`
 }
 
 func (cg ChatGrp) String() string {
-	return fmt.Sprintf("id={%s}, uid0={%s},  uid1={%s}", cg.Id, cg.Uid0, cg.Uid1)
+	return fmt.Sprintf("id={%s}, uid0={%s},  uid1={%s}", cg.ID, cg.UID0, cg.UID1)
 }
 
 type Link struct {
@@ -207,12 +212,12 @@ type Link struct {
 	Relation       string    `xml:"relation,attr,omitempty"`
 	Type           string    `xml:"type,attr,omitempty"`
 	ParentCallsign string    `xml:"parent_callsign,attr,omitempty"`
-	Uid            string    `xml:"uid,attr,omitempty"`
+	UID            string    `xml:"uid,attr,omitempty"`
 	Point          string    `xml:"point,attr,omitempty"`
 }
 
 func (l Link) String() string {
-	return fmt.Sprintf("%s to %s %s", l.Relation, l.Uid, l.Type)
+	return fmt.Sprintf("%s to %s %s", l.Relation, l.UID, l.Type)
 }
 
 type Remarks struct {
@@ -253,8 +258,8 @@ func (e *Event) GetCallsignTo() []string {
 }
 
 func (e *Event) GetDroid() string {
-	if e.Detail.Uid != nil {
-		return e.Detail.Uid.Droid
+	if e.Detail.UID != nil {
+		return e.Detail.UID.Droid
 	}
 	return ""
 }
@@ -282,7 +287,7 @@ func (e *Event) IsTakControlRequest() bool {
 func BasicMsg(typ string, uid string, stale time.Duration) *Event {
 	return &Event{
 		Version: "2.0",
-		Uid:     uid,
+		UID:     uid,
 		Type:    typ,
 		Time:    time.Now().UTC(),
 		Start:   time.Now().UTC(),
@@ -299,21 +304,21 @@ func BasicMsg(typ string, uid string, stale time.Duration) *Event {
 
 func VersionSupportMsg(ver int8) *Event {
 	ev := BasicMsg("t-x-takp-v", "protouid", time.Minute)
-	ev.How = "m-g"
+	ev.How = mgString
 	ev.Detail = Detail{TakControl: &TakControl{TakProtocolSupport: &ProtoVersion{Version: ver}}}
 	return ev
 }
 
 func VersionReqMsg(ver int8) *Event {
 	ev := BasicMsg("t-x-takp-v", "protouid", time.Minute)
-	ev.How = "m-g"
+	ev.How = mgString
 	ev.Detail = Detail{TakControl: &TakControl{TakRequest: &ProtoVersion{Version: ver}}}
 	return ev
 }
 
 func ProtoChangeOkMsg() *Event {
 	ev := BasicMsg("t-x-takp-r", "protouid", time.Minute)
-	ev.How = "m-g"
+	ev.How = mgString
 	ev.Detail = Detail{TakControl: &TakControl{TakResponce: &TakResponse{true}}}
 	return ev
 }

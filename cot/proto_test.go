@@ -36,7 +36,7 @@ func TestMarshal(t *testing.T) {
 			Access:    "",
 			Qos:       "",
 			Opex:      "",
-			Uid:       "",
+			UID:       "",
 			SendTime:  0,
 			StartTime: 0,
 			StaleTime: 0,

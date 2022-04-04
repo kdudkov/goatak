@@ -15,20 +15,20 @@ import (
 var templates embed.FS
 
 type Connection struct {
-	Uid  string `json:"uid"`
+	UID  string `json:"UID"`
 	User string `json:"user"`
-	Ssl  bool   `json:"ssl"`
+	SSL  bool   `json:"ssl"`
 	Ver  int32  `json:"ver"`
 }
 
-type HttpServer struct {
+type HTTPServer struct {
 	app      *App
 	air      *air.Air
 	api      *air.Air
 	renderer *staticfiles.Renderer
 }
 
-func NewHttp(app *App, address string, apiAddress string) *HttpServer {
+func NewHTTP(app *App, address string, apiAddress string) *HTTPServer {
 	a := air.New()
 	a.Address = address
 
@@ -61,7 +61,7 @@ func NewHttp(app *App, address string, apiAddress string) *HttpServer {
 
 	api.NotFoundHandler = getNotFoundHandler(app)
 
-	return &HttpServer{
+	return &HTTPServer{
 		app:      app,
 		air:      a,
 		api:      api,
@@ -69,7 +69,7 @@ func NewHttp(app *App, address string, apiAddress string) *HttpServer {
 	}
 }
 
-func (h *HttpServer) Start() {
+func (h *HTTPServer) Start() {
 	go func() {
 		h.app.Logger.Infof("listening http at %s", h.air.Address)
 		if err := h.air.Serve(); err != nil {
@@ -170,9 +170,9 @@ func getConnHandler(app *App) func(req *air.Request, res *air.Response) error {
 		app.handlers.Range(func(key, value interface{}) bool {
 			if v, ok := value.(*ClientHandler); ok {
 				c := &Connection{
-					Uid:  v.uid,
+					UID:  v.UID,
 					User: v.user,
-					Ssl:  v.ssl,
+					SSL:  v.ssl,
 					Ver:  v.ver,
 				}
 				conn = append(conn, c)

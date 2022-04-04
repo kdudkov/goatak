@@ -12,7 +12,7 @@
                         </a>
                         <ul class="dropdown-menu dropdown-menu-dark" aria-labelledby="navbarDarkDropdownMenuLink">
                             <li v-for="u in byCategory('contact')">
-                                <a class="dropdown-item" href="#" v-on:click="setCurrentUnit(u.uid)">
+                                <a class="dropdown-item" href="#" v-on:click="setCurrentUnit(u.UID)">
                                     <img v-bind:src="getImg(u)"/>
                                     <span v-if="u.lat ===0 && u.lon ===0">* </span>{{u.callsign}}<span
                                         v-if="u.status != ''"> ({{u.status}})</span>
@@ -27,7 +27,7 @@
                         </a>
                         <ul class="dropdown-menu dropdown-menu-dark" aria-labelledby="navbarDarkDropdownMenuLink2">
                             <li v-for="u in byCategory('unit')">
-                                <a class="dropdown-item" href="#" v-on:click="setCurrentUnit(u.uid)">
+                                <a class="dropdown-item" href="#" v-on:click="setCurrentUnit(u.UID)">
                                     <span v-if="u.lat ===0 && u.lon ===0">* </span>{{u.callsign}}
                                 </a>
                             </li>
@@ -40,7 +40,7 @@
                         </a>
                         <ul class="dropdown-menu dropdown-menu-dark" aria-labelledby="navbarDarkDropdownMenuLink3">
                             <li v-for="u in byCategory('point')">
-                                <a class="dropdown-item" href="#" v-on:click="setCurrentUnit(u.uid)">
+                                <a class="dropdown-item" href="#" v-on:click="setCurrentUnit(u.UID)">
                                     <span v-if="u.lat ===0 && u.lon ===0">* </span>{{u.callsign}}
                                 </a>
                             </li>
@@ -63,7 +63,7 @@
                 <div class="card mb-1" v-if="config != null && ne(config.callsign)">
                     <div class="card-header">Me ({{config.callsign}})</div>
                     <div class="card-body">
-                        <b>UID:</b> {{config.uid}}<br/>
+                        <b>UID:</b> {{config.UID}}<br/>
                         <div v-if="ne(config.team)"><b>Team:</b> {{config.team}}, <b>Role:</b>
                             {{config.role}}
                         </div>
@@ -126,15 +126,15 @@
                             <img v-bind:src="milImg(current_unit)"/> {{current_unit.callsign}} <span
                                 v-if="ne(current_unit.status)"> ({{current_unit.status}})</span>
                             <img height="24" src="/static/icons/coord_unlock.png"
-                                 v-if="locked_unit_uid != current_unit.uid"
-                                 v-on:click="locked_unit_uid=current_unit.uid"/>
+                                 v-if="locked_unit_uid != current_unit.UID"
+                                 v-on:click="locked_unit_uid=current_unit.UID"/>
                             <img height="24" src="/static/icons/coord_lock.png"
-                                 v-if="locked_unit_uid == current_unit.uid"
+                                 v-if="locked_unit_uid == current_unit.UID"
                                  v-on:click="locked_unit_uid=''"/>
                         </h5>
                     </div>
                     <div class="card-body">
-                        <b>UID:</b> {{current_unit.uid}}<br/>
+                        <b>UID:</b> {{current_unit.UID}}<br/>
                         <span v-if="coords != null"></span>
                         <div v-if="ne(current_unit.team)"><b>Team:</b> {{current_unit.team}}, <b>Role:</b>
                             {{current_unit.role}}
@@ -163,7 +163,7 @@
                         </h5>
                     </div>
                     <div class="card-body">
-                        <b>UID:</b> {{current_unit.uid}}<br/>
+                        <b>UID:</b> {{current_unit.UID}}<br/>
                         <span v-if="coords != null"></span>
                         <b>Type:</b> {{current_unit.type}} <b>SIDC:</b> {{current_unit.sidc}}<br/>
                         <div>

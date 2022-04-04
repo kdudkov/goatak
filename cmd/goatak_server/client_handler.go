@@ -11,11 +11,11 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/golang/protobuf/proto"
 	"github.com/kdudkov/goatak/cot"
 	"github.com/kdudkov/goatak/cotproto"
 	"github.com/kdudkov/goatak/cotxml"
 	"github.com/kdudkov/goatak/model"
+	"google.golang.org/protobuf/proto"
 )
 
 const (
@@ -25,7 +25,7 @@ const (
 type ClientHandler struct {
 	conn         net.Conn
 	ver          int32
-	uid          string
+	UID          string
 	callsign     string
 	lastActivity time.Time
 	closeTimer   *time.Timer
@@ -110,7 +110,7 @@ func (h *ClientHandler) handleRead() {
 		}
 
 		cotmsg := &cot.Msg{
-			From:       h.uid,
+			From:       h.UID,
 			TakMessage: msg,
 			Detail:     d,
 		}
@@ -153,7 +153,7 @@ func (h *ClientHandler) processXMLRead(er *cot.TagReader) (*cotproto.TakMessage,
 		ver := ev.Detail.TakControl.TakRequest.Version
 		if ver == 1 {
 			if err := h.AddEvent(cotxml.ProtoChangeOkMsg()); err == nil {
-				h.app.Logger.Infof("client %s switch to v.1", h.uid)
+				h.app.Logger.Infof("client %s switch to v.1", h.UID)
 				h.SetVersion(1)
 				return nil, nil, nil
 			} else {
@@ -193,30 +193,30 @@ func (h *ClientHandler) GetVersion() int32 {
 }
 
 func (h *ClientHandler) checkFirstMsg(msg *cot.Msg) {
-	if h.GetUid() == "" && msg.TakMessage.GetCotEvent() != nil {
-		uid := msg.TakMessage.CotEvent.Uid
+	if h.GetUID() == "" && msg.TakMessage.GetCotEvent() != nil {
+		uid := msg.TakMessage.CotEvent.UID
 		if strings.HasSuffix(uid, "-ping") {
 			uid = uid[:len(uid)-5]
 		}
-		h.SetUid(uid)
+		h.SetUID(uid)
 		h.app.AddHandler(uid, h)
 	}
 	if h.GetCallsign() == "" && msg.TakMessage.GetCotEvent().GetDetail().GetContact() != nil {
 		h.callsign = msg.TakMessage.GetCotEvent().GetDetail().GetContact().Callsign
-		h.app.AddContact(msg.TakMessage.CotEvent.Uid, model.ContactFromMsg(msg))
+		h.app.AddContact(msg.TakMessage.CotEvent.UID, model.ContactFromMsg(msg))
 	}
 }
 
-func (h *ClientHandler) SetUid(uid string) {
+func (h *ClientHandler) SetUID(uid string) {
 	h.mx.Lock()
 	defer h.mx.Unlock()
-	h.uid = uid
+	h.UID = uid
 }
 
-func (h *ClientHandler) GetUid() string {
+func (h *ClientHandler) GetUID() string {
 	h.mx.RLock()
 	defer h.mx.RUnlock()
-	return h.uid
+	return h.UID
 }
 
 func (h *ClientHandler) SetCallsign(callsign string) {
@@ -234,7 +234,7 @@ func (h *ClientHandler) GetCallsign() string {
 func (h *ClientHandler) handleWrite() {
 	for msg := range h.sendChan {
 		if _, err := h.conn.Write(msg); err != nil {
-			h.app.Logger.Debugf("client %s write error %v", h.uid, err)
+			h.app.Logger.Debugf("client %s write error %v", h.UID, err)
 			h.stopHandle()
 			break
 		}
@@ -244,8 +244,8 @@ func (h *ClientHandler) handleWrite() {
 
 func (h *ClientHandler) stopHandle() {
 	if atomic.CompareAndSwapInt32(&h.active, 1, 0) {
-		if h.uid != "" {
-			h.app.RemoveHandler(h.uid)
+		if h.UID != "" {
+			h.app.RemoveHandler(h.UID)
 		}
 
 		close(h.sendChan)
@@ -254,12 +254,11 @@ func (h *ClientHandler) stopHandle() {
 			h.conn.Close()
 		}
 
-		if c := h.app.GetContact(h.uid); c != nil {
+		if c := h.app.GetContact(h.UID); c != nil {
 			c.SetOffline()
 		}
-		h.app.SendToAllOther(cot.MakeOfflineMsg(h.uid, "a-f-G"), h.uid)
+		h.app.SendToAllOther(cot.MakeOfflineMsg(h.UID, "a-f-G"), h.UID)
 	}
-	return
 }
 
 func (h *ClientHandler) setActivity() {
@@ -273,7 +272,7 @@ func (h *ClientHandler) setActivity() {
 }
 
 func (h *ClientHandler) closeIdle() {
-	idle := time.Now().Sub(h.lastActivity)
+	idle := time.Since(h.lastActivity)
 
 	if idle >= idleTimeout {
 		h.app.Logger.Debugf("closing tcp connection due to idle timeout: %v", idle)

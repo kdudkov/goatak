@@ -23,7 +23,7 @@ func (app *App) connect() error {
 
 	if app.tls {
 		app.Logger.Infof("connecting with SSL to %s...", app.addr)
-		if app.conn, err = tls.Dial("tcp", app.addr, app.getTlsConfig()); err != nil {
+		if app.conn, err = tls.Dial("tcp", app.addr, app.getTLSConfig()); err != nil {
 			return err
 		}
 		c := app.conn.(*tls.Conn)
@@ -50,7 +50,7 @@ func (app *App) connect() error {
 	return nil
 }
 
-func (app *App) getTlsConfig() *tls.Config {
+func (app *App) getTLSConfig() *tls.Config {
 	p12Data, err := ioutil.ReadFile(viper.GetString("ssl.cert"))
 	if err != nil {
 		app.Logger.Fatal(err)

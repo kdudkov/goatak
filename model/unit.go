@@ -34,7 +34,7 @@ type Item struct {
 type Unit struct {
 	Item
 	parentCallsign string
-	parentUid      string
+	parentUID      string
 	mx             sync.RWMutex
 	track          []*Pos
 }
@@ -50,7 +50,7 @@ type Contact struct {
 type Point struct {
 	Item
 	parentCallsign string
-	parentUid      string
+	parentUID      string
 	color          int32
 }
 
@@ -150,7 +150,7 @@ func UnitFromMsg(msg *cot.Msg) *Unit {
 		track: []*Pos{pos},
 	}
 
-	u.parentUid, u.parentCallsign = msg.GetParent()
+	u.parentUID, u.parentCallsign = msg.GetParent()
 
 	return u
 }
@@ -160,7 +160,7 @@ func PointFromEvent(msg *cot.Msg) *Point {
 		Item: ItemFromMsg(msg),
 	}
 
-	p.parentUid, p.parentCallsign = msg.GetParent()
+	p.parentUID, p.parentCallsign = msg.GetParent()
 
 	if c := msg.Detail.GetFirstChild("color"); c != nil {
 		if col, err := strconv.Atoi(c.GetAttr("argb")); err == nil {
@@ -221,7 +221,7 @@ func (u *Unit) Update(msg *cot.Msg) {
 		link := msg.Detail.GetFirstChild("link")
 		if link.GetAttr("relation") == "p-p" {
 			u.parentCallsign = link.GetAttr("parent_callsign")
-			u.parentUid = link.GetAttr("uid")
+			u.parentUID = link.GetAttr("uid")
 		}
 
 		if pos != nil {

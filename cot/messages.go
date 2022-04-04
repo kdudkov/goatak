@@ -15,7 +15,7 @@ func BasicMsg(typ string, uid string, stale time.Duration) *cotproto.TakMessage 
 			Access:    "",
 			Qos:       "",
 			Opex:      "",
-			Uid:       uid,
+			UID:       uid,
 			SendTime:  TimeToMillis(time.Now()),
 			StartTime: TimeToMillis(time.Now()),
 			StaleTime: TimeToMillis(time.Now().Add(stale)),
@@ -43,7 +43,7 @@ func MakePong() *cotproto.TakMessage {
 func MakeOfflineMsg(uid string, typ string) *cotproto.TakMessage {
 	msg := BasicMsg("t-x-d-d", uuid.New().String(), time.Minute*3)
 	msg.CotEvent.How = "h-g-i-g-o"
-	xd := NewXmlDetails()
+	xd := NewXMLDetails()
 	xd.node.AddChild("link", map[string]string{"uid": uid, "type": typ, "relation": "p-p"})
 	msg.CotEvent.Detail = &cotproto.Detail{XmlDetail: xd.AsXMLString()}
 	return msg
@@ -54,7 +54,7 @@ func MakeDpMsg(uid string, typ string, name string, lat float64, lon float64) *c
 	msg.CotEvent.How = "h-e"
 	msg.CotEvent.Lat = lat
 	msg.CotEvent.Lon = lon
-	xd := NewXmlDetails()
+	xd := NewXMLDetails()
 	xd.node.AddChild("precisionlocation", map[string]string{"altsrc": "DTED0"})
 	xd.node.AddChild("link", map[string]string{"uid": uid, "type": typ, "relation": "p-p"})
 	msg.CotEvent.Detail = &cotproto.Detail{
@@ -70,7 +70,7 @@ func MakeDpMsg(uid string, typ string, name string, lat float64, lon float64) *c
 // <__serverdestination destinations="192.168.0.15:4242:tcp:ANDROID-dc4a1fb7ad4180be"/><marti><dest callsign="Cl1"/></marti>
 func MakeChatMessage(uid string, callsign string, text string) *cotproto.TakMessage {
 	msg := BasicMsg("b-t-f", "server", time.Second*10)
-	xd := NewXmlDetails()
+	xd := NewXMLDetails()
 	chat := xd.node.AddChild("__chat", map[string]string{"parent": "RootContactGroup", "groupOwner": "false", "chatroom": callsign, "senderCallsign": "Op", "id": uid})
 	chat.AddChild("chatgrp", map[string]string{"uid0": "serverop", "uid1": uid, "id": uid})
 	xd.node.AddChildWithContext("remarks", nil, text)

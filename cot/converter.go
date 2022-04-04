@@ -19,7 +19,7 @@ func ProtoToEvent(msg *cotproto.TakMessage) *cotxml.Event {
 	ev := &cotxml.Event{
 		Version: "2.0",
 		Type:    msg.CotEvent.Type,
-		Uid:     msg.CotEvent.Uid,
+		UID:     msg.CotEvent.UID,
 		Time:    TimeFromMillis(msg.CotEvent.SendTime),
 		Start:   TimeFromMillis(msg.CotEvent.StartTime),
 		Stale:   TimeFromMillis(msg.CotEvent.StaleTime),
@@ -94,7 +94,7 @@ func EventToProto(ev *cotxml.Event) (*cotproto.TakMessage, *XMLDetails) {
 
 	msg := &cotproto.TakMessage{CotEvent: &cotproto.CotEvent{
 		Type:      ev.Type,
-		Uid:       ev.Uid,
+		UID:       ev.UID,
 		SendTime:  TimeToMillis(ev.Time),
 		StartTime: TimeToMillis(ev.Start),
 		StaleTime: TimeToMillis(ev.Stale),

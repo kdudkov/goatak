@@ -29,7 +29,7 @@ func addMartiEndpoints(app *App, a *air.Air) {
 	a.GET("/Marti/sync/missionquery", getMissionQueryHandler(app))
 	a.POST("/Marti/sync/missionupload", getMissionUploadHandler(app))
 
-	a.GET("/Marti/api/tls/config", getTlsConfigHandler(app))
+	a.GET("/Marti/api/tls/config", getTLSConfigHandler(app))
 }
 
 func getVersionHandler(app *App) func(req *air.Request, res *air.Response) error {
@@ -69,7 +69,7 @@ func getEndpointsHandler(app *App) func(req *air.Request, res *air.Response) err
 		app.units.Range(func(key, value interface{}) bool {
 			if c, ok := value.(*model.Contact); ok {
 				info := make(map[string]interface{}, 0)
-				info["uid"] = c.GetUID()
+				info["UID"] = c.GetUID()
 				info["callsign"] = c.GetCallsign()
 				info["lastEventTime"] = c.GetLastSeen()
 				if c.IsOnline() {
@@ -155,10 +155,10 @@ func getMissionUploadHandler(app *App) func(req *air.Request, res *air.Response)
 func getContentGetHandler(app *App) func(req *air.Request, res *air.Response) error {
 	return func(req *air.Request, res *air.Response) error {
 		app.Logger.Infof("%s %s", req.Method, req.Path)
-		uid := getStringParam(req, "uid")
+		uid := getStringParam(req, "UID")
 		if uid == "" {
 			res.Status = http.StatusNotAcceptable
-			return res.WriteString("no uid")
+			return res.WriteString("no UID")
 		}
 
 		return nil
@@ -238,7 +238,7 @@ func getSearchHandler(app *App) func(req *air.Request, res *air.Response) error 
 	}
 }
 
-func getTlsConfigHandler(app *App) func(req *air.Request, res *air.Response) error {
+func getTLSConfigHandler(app *App) func(req *air.Request, res *air.Response) error {
 	return func(req *air.Request, res *air.Response) error {
 		return nil
 	}

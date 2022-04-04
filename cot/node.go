@@ -18,7 +18,7 @@ type Node struct {
 	Nodes   []*Node    `xml:",any"`
 }
 
-func NewXmlDetails() *XMLDetails {
+func NewXMLDetails() *XMLDetails {
 	return &XMLDetails{node: &Node{
 		XMLName: xml.Name{Local: "detail"},
 		Attrs:   nil,

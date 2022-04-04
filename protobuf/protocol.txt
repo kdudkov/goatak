@@ -162,7 +162,7 @@ client that supports the TAK Protocol.
    CoT XML messages per "Traditional Protocol" section.
 3. A server which supports the TAK Protocol MAY send the following CoT XML
    message to indicate this support (whitespace added, xml header omitted):
-<event version='2.0' uid='protouid' type='t-x-takp-v' time='TIME' start='TIME' stale='TIME' how='m-g'>
+<event version='2.0' UID='protouid' type='t-x-takp-v' time='TIME' start='TIME' stale='TIME' how='m-g'>
   <point lat='0.0' lon='0.0' hae='0.0' ce='999999' le='999999'/>
   <detail>
     <TakControl>
@@ -185,7 +185,7 @@ client that supports the TAK Protocol.
 5. If the client wishes to initiate a transfer to TAK Protocol encoding, it
    selects one of the supported versions advertised in the server's message
    from step 3.  It then sends the following CoT XML:
-<event version='2.0' uid='protouid' type='t-x-takp-q' time='TIME' start='TIME' stale='TIME' how='m-g'>
+<event version='2.0' UID='protouid' type='t-x-takp-q' time='TIME' start='TIME' stale='TIME' how='m-g'>
   <point lat='0.0' lon='0.0' hae='0.0' ce='999999' le='999999'/>
   <detail>
     <TakControl>
@@ -218,7 +218,7 @@ client that supports the TAK Protocol.
    control request from the client (from step #5) and is ready to respond.
    The server MUST then respond as soon as possible to the client with the
    following message to indicate either acceptance or denial of the request:
-<event version='2.0' uid='protouid' type='t-x-takp-r' time='TIME' start='TIME' stale='TIME' how='m-g'>
+<event version='2.0' UID='protouid' type='t-x-takp-r' time='TIME' start='TIME' stale='TIME' how='m-g'>
   <point lat='0.0' lon='0.0' hae='0.0' ce='999999' le='999999'/>
   <detail>
     <TakControl>
