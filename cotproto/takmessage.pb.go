@@ -7,11 +7,12 @@
 package cotproto
 
 import (
+	reflect "reflect"
+	sync "sync"
+
 	proto "github.com/golang/protobuf/proto"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
-	reflect "reflect"
-	sync "sync"
 )
 
 const (
@@ -114,12 +115,15 @@ func file_takmessage_proto_rawDescGZIP() []byte {
 	return file_takmessage_proto_rawDescData
 }
 
-var file_takmessage_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
-var file_takmessage_proto_goTypes = []interface{}{
-	(*TakMessage)(nil), // 0: TakMessage
-	(*TakControl)(nil), // 1: TakControl
-	(*CotEvent)(nil),   // 2: CotEvent
-}
+var (
+	file_takmessage_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
+	file_takmessage_proto_goTypes  = []interface{}{
+		(*TakMessage)(nil), // 0: TakMessage
+		(*TakControl)(nil), // 1: TakControl
+		(*CotEvent)(nil),   // 2: CotEvent
+	}
+)
+
 var file_takmessage_proto_depIdxs = []int32{
 	1, // 0: TakMessage.takControl:type_name -> TakControl
 	2, // 1: TakMessage.cotEvent:type_name -> CotEvent

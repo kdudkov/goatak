@@ -11,7 +11,6 @@ import (
 func (app *App) ListenUDP(addr string) error {
 	app.Logger.Infof("listening UDP at %s", addr)
 	p, err := net.ListenPacket("udp", addr)
-
 	if err != nil {
 		app.Logger.Error(err)
 		return err

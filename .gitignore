@@ -5,3 +5,4 @@ data/
 *.tmp
 *.out
 test-*.yml
+vendor/*

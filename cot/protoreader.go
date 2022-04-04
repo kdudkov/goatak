@@ -30,7 +30,6 @@ func (er *ProtoReader) ReadProtoBuf() ([]byte, error) {
 		}
 	}
 	size, err := binary.ReadUvarint(er.r)
-
 	if err != nil {
 		return nil, err
 	}

@@ -51,7 +51,6 @@ func TestMarshal(t *testing.T) {
 	}
 
 	bytes, err := proto.Marshal(evt)
-
 	if err != nil {
 		t.Fatalf("error: %v", err)
 	}

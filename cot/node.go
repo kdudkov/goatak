@@ -26,6 +26,7 @@ func NewXmlDetails() *XMLDetails {
 		Nodes:   nil,
 	}}
 }
+
 func DetailsFromString(s string) (*XMLDetails, error) {
 	x := &XMLDetails{node: new(Node)}
 	var b []byte

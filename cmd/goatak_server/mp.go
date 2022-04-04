@@ -139,7 +139,7 @@ func (pm *PackageManager) GetFile(hash string) string {
 func (pm *PackageManager) SaveFile(hash, fname string, reader io.Reader) (int64, error) {
 	dir := filepath.Join(pm.baseDir, hash)
 	if !exists(dir) {
-		if err := os.MkdirAll(dir, 0777); err != nil {
+		if err := os.MkdirAll(dir, 0o777); err != nil {
 			return 0, err
 		}
 	}

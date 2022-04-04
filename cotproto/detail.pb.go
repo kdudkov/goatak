@@ -7,11 +7,12 @@
 package cotproto
 
 import (
+	reflect "reflect"
+	sync "sync"
+
 	proto "github.com/golang/protobuf/proto"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
-	reflect "reflect"
-	sync "sync"
 )
 
 const (
@@ -170,16 +171,19 @@ func file_detail_proto_rawDescGZIP() []byte {
 	return file_detail_proto_rawDescData
 }
 
-var file_detail_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
-var file_detail_proto_goTypes = []interface{}{
-	(*Detail)(nil),            // 0: Detail
-	(*Contact)(nil),           // 1: Contact
-	(*Group)(nil),             // 2: Group
-	(*PrecisionLocation)(nil), // 3: PrecisionLocation
-	(*Status)(nil),            // 4: Status
-	(*Takv)(nil),              // 5: Takv
-	(*Track)(nil),             // 6: Track
-}
+var (
+	file_detail_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
+	file_detail_proto_goTypes  = []interface{}{
+		(*Detail)(nil),            // 0: Detail
+		(*Contact)(nil),           // 1: Contact
+		(*Group)(nil),             // 2: Group
+		(*PrecisionLocation)(nil), // 3: PrecisionLocation
+		(*Status)(nil),            // 4: Status
+		(*Takv)(nil),              // 5: Takv
+		(*Track)(nil),             // 6: Track
+	}
+)
+
 var file_detail_proto_depIdxs = []int32{
 	1, // 0: Detail.contact:type_name -> Contact
 	2, // 1: Detail.group:type_name -> Group

@@ -221,7 +221,7 @@ func (app *App) EventProcessor() {
 		}
 
 		if app.config.logging {
-			if f, err := os.OpenFile(msg.GetType()+".log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666); err == nil {
+			if f, err := os.OpenFile(msg.GetType()+".log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o666); err == nil {
 				f.WriteString(msg.TakMessage.String())
 				f.Close()
 			} else {
@@ -359,9 +359,9 @@ func (app *App) SendToCallsign(callsign string, msg *cotproto.TakMessage) {
 
 func main() {
 	fmt.Printf("version %s %s\n", gitRevision, gitBranch)
-	var logging = flag.Bool("logging", false, "save all events to files")
-	var debug = flag.Bool("debug", false, "debug node")
-	var conf = flag.String("config", "goatak_server.yml", "name of config file")
+	logging := flag.Bool("logging", false, "save all events to files")
+	debug := flag.Bool("debug", false, "debug node")
+	conf := flag.String("config", "goatak_server.yml", "name of config file")
 	flag.Parse()
 
 	viper.SetConfigFile(*conf)

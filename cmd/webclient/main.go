@@ -209,7 +209,6 @@ func (app *App) processProtoRead(r *cot.ProtoReader) (*cotproto.TakMessage, *cot
 
 	msg := new(cotproto.TakMessage)
 	if err := proto.Unmarshal(buf, msg); err != nil {
-
 		return nil, nil, fmt.Errorf("failed to decode protobuf: %v", err)
 	}
 
@@ -438,7 +437,7 @@ func (app *App) removeByLink(msg *cot.Msg) {
 				return
 			case *model.Unit, *model.Point:
 				app.Logger.Debugf("remove unit/point %s type %s by message", uid, typ)
-				//app.units.Delete(uid)
+				// app.units.Delete(uid)
 				return
 			}
 		}
@@ -540,7 +539,7 @@ func (p *Pos) Get() (float64, float64) {
 }
 
 func main() {
-	var conf = flag.String("config", "goatak_client.yml", "name of config file")
+	conf := flag.String("config", "goatak_client.yml", "name of config file")
 	flag.Parse()
 
 	viper.SetConfigFile(*conf)

@@ -7,11 +7,12 @@
 package cotproto
 
 import (
+	reflect "reflect"
+	sync "sync"
+
 	proto "github.com/golang/protobuf/proto"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
-	reflect "reflect"
-	sync "sync"
 )
 
 const (
@@ -100,10 +101,13 @@ func file_status_proto_rawDescGZIP() []byte {
 	return file_status_proto_rawDescData
 }
 
-var file_status_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
-var file_status_proto_goTypes = []interface{}{
-	(*Status)(nil), // 0: Status
-}
+var (
+	file_status_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
+	file_status_proto_goTypes  = []interface{}{
+		(*Status)(nil), // 0: Status
+	}
+)
+
 var file_status_proto_depIdxs = []int32{
 	0, // [0:0] is the sub-list for method output_type
 	0, // [0:0] is the sub-list for method input_type

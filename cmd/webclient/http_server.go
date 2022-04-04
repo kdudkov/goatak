@@ -3,12 +3,11 @@ package main
 import (
 	"embed"
 	"encoding/json"
+	"runtime/pprof"
 
 	"github.com/aofei/air"
 	"github.com/kdudkov/goatak/cot"
 	"github.com/kdudkov/goatak/staticfiles"
-
-	"runtime/pprof"
 
 	"github.com/kdudkov/goatak/model"
 )

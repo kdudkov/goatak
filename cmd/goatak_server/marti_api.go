@@ -213,7 +213,7 @@ func getSearchHandler(app *App) func(req *air.Request, res *air.Response) error 
 		app.Logger.Infof("%s %s", req.Method, req.Path)
 		kw := getStringParam(req, "keywords")
 
-		//tool := getStringParam(req, "tool")
+		// tool := getStringParam(req, "tool")
 
 		result := make(map[string]interface{}, 0)
 		packages := make([]*PackageInfo, 0)
@@ -240,14 +240,13 @@ func getSearchHandler(app *App) func(req *air.Request, res *air.Response) error 
 
 func getTlsConfigHandler(app *App) func(req *air.Request, res *air.Response) error {
 	return func(req *air.Request, res *air.Response) error {
-
 		return nil
 	}
 }
 
 func saveFile(dir string, fname string, reader io.Reader) (int64, error) {
 	if !exists(dir) {
-		if err := os.MkdirAll(dir, 0777); err != nil {
+		if err := os.MkdirAll(dir, 0o777); err != nil {
 			return 0, err
 		}
 	}
