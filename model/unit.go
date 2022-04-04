@@ -37,6 +37,8 @@ type Unit struct {
 	parentUid      string
 	mx             sync.RWMutex
 	track          []*Pos
+	color          uint32
+	icon           string
 }
 
 type Contact struct {
@@ -51,7 +53,8 @@ type Point struct {
 	Item
 	parentCallsign string
 	parentUid      string
-	color          int32
+	color          uint32
+	icon           string
 }
 
 func (c *Contact) String() string {
@@ -82,6 +85,10 @@ func (c *Contact) GetMsg() *cot.Msg {
 
 func (u *Unit) IsOld() bool {
 	return u.staleTime.Before(time.Now())
+}
+
+func (p *Point) IsOld() bool {
+	return p.staleTime.Before(time.Now())
 }
 
 func (c *Contact) IsOld() bool {
@@ -151,11 +158,17 @@ func UnitFromMsg(msg *cot.Msg) *Unit {
 	}
 
 	u.parentUid, u.parentCallsign = msg.GetParent()
+	if c := msg.Detail.GetFirstChild("color"); c != nil {
+		if col, err := strconv.Atoi(c.GetAttr("argb")); err == nil {
+			u.color = uint32(col)
+		}
+	}
+	u.icon = msg.Detail.GetFirstChild("usericon").GetAttr("iconsetpath")
 
 	return u
 }
 
-func PointFromEvent(msg *cot.Msg) *Point {
+func PointFromMsg(msg *cot.Msg) *Point {
 	p := &Point{
 		Item: ItemFromMsg(msg),
 	}
@@ -164,9 +177,10 @@ func PointFromEvent(msg *cot.Msg) *Point {
 
 	if c := msg.Detail.GetFirstChild("color"); c != nil {
 		if col, err := strconv.Atoi(c.GetAttr("argb")); err == nil {
-			p.color = int32(col)
+			p.color = uint32(col)
 		}
 	}
+	p.icon = msg.Detail.GetFirstChild("usericon").GetAttr("iconsetpath")
 
 	return p
 }

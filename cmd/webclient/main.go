@@ -345,7 +345,7 @@ func (app *App) ProcessEvent(msg *cot.Msg) {
 	case strings.HasPrefix(msg.GetType(), "b-"):
 		if uid, _ := msg.GetParent(); uid != app.uid {
 			app.Logger.Infof("point %s (%s) %s", msg.GetUid(), msg.GetCallsign(), msg.GetType())
-			app.AddPoint(msg.GetUid(), model.PointFromEvent(msg))
+			app.AddPoint(msg.GetUid(), model.PointFromMsg(msg))
 		} else {
 			app.Logger.Infof("my own point %s (%s) %s", msg.GetUid(), msg.GetCallsign(), msg.GetType())
 		}
@@ -495,9 +495,13 @@ func (app *App) cleanOldUnits() {
 		case *model.Unit:
 			if val.IsOld() {
 				toDelete = append(toDelete, key.(string))
-				app.Logger.Debugf("removing %s", key)
+				app.Logger.Debugf("removing unit %s", key)
 			}
-
+		case *model.Point:
+			if val.IsOld() {
+				toDelete = append(toDelete, key.(string))
+				app.Logger.Debugf("removing point %s", key)
+			}
 		case *model.Contact:
 			if val.IsOld() {
 				toDelete = append(toDelete, key.(string))

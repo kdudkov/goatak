@@ -2,7 +2,6 @@ package model
 
 import (
 	"fmt"
-	"strconv"
 	"strings"
 	"time"
 
@@ -31,6 +30,7 @@ type WebUnit struct {
 	Status         string    `json:"status"`
 	Text           string    `json:"text"`
 	Color          string    `json:"color"`
+	Icon           string    `json:"icon"`
 	ParentCallsign string    `json:"parent_callsign"`
 	ParentUid      string    `json:"parent_uid"`
 }
@@ -66,6 +66,8 @@ func (u *Unit) ToWeb() *WebUnit {
 	w.Category = "unit"
 	w.ParentUid = u.parentUid
 	w.ParentCallsign = u.parentCallsign
+	w.Color = fmt.Sprintf("#%.6x", u.color&0xffffff)
+	w.Icon = u.icon
 	return w
 }
 
@@ -74,6 +76,8 @@ func (p *Point) ToWeb() *WebUnit {
 	w.Category = "point"
 	w.ParentUid = p.parentUid
 	w.ParentCallsign = p.parentCallsign
+	w.Color = fmt.Sprintf("#%.6x", p.color&0xffffff)
+	w.Icon = p.icon
 	return w
 }
 
@@ -110,7 +114,7 @@ func getSIDC(fn string) string {
 
 	tokens := strings.Split(fn, "-")
 
-	sidc := "S" + tokens[1] + tokens[2] + "-"
+	sidc := "S" + tokens[1] + tokens[2] + "P"
 	if len(tokens) > 3 {
 		for _, c := range tokens[3:] {
 			if len(c) > 1 {
@@ -124,12 +128,4 @@ func getSIDC(fn string) string {
 		sidc += strings.Repeat("-", 10-len(sidc))
 	}
 	return strings.ToUpper(sidc)
-}
-
-func argb2hex(argb string) string {
-	if s, err := strconv.Atoi(argb); err == nil {
-		return "#" + fmt.Sprintf("%x", uint32(s))[2:]
-	}
-
-	return ""
 }

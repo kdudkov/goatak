@@ -16,11 +16,3 @@ func checkSIDC(t *testing.T, fn, sidc string) {
 		t.Errorf("got %s, must be %s", getSIDC(fn), sidc)
 	}
 }
-
-func TestColor(t *testing.T) {
-	col := "-65536"
-
-	if argb2hex(col) != "#ff0000" {
-		t.Error(argb2hex(col))
-	}
-}

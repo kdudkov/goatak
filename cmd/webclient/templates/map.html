@@ -64,8 +64,8 @@
                     <div class="card-header">Me ({{config.callsign}})</div>
                     <div class="card-body">
                         <b>UID:</b> {{config.uid}}<br/>
-                        <div v-if="ne(config.team)"><b>Team:</b> {{config.team}}, <b>Role:</b>
-                            {{config.role}}
+                        <div v-if="ne(config.team)">
+                            <b>Team:</b> {{config.team}}, <b>Role:</b>{{config.role}}
                         </div>
                         <div>
                             <b>coords:</b> {{printCoords(config.lat, config.lon)}}
@@ -135,11 +135,13 @@
                     </div>
                     <div class="card-body">
                         <b>UID:</b> {{current_unit.uid}}<br/>
-                        <span v-if="coords != null"></span>
-                        <div v-if="ne(current_unit.team)"><b>Team:</b> {{current_unit.team}}, <b>Role:</b>
-                            {{current_unit.role}}
+                        <div v-if="ne(current_unit.team)">
+                            <b>Team:</b> {{current_unit.team}},
+                            <b>Role:</b> {{current_unit.role}}
                         </div>
-                        <b>Type:</b> {{current_unit.type}} <b>SIDC:</b> {{current_unit.sidc}}<br/>
+                        <div>
+                            <b>Type:</b> {{current_unit.type}} <b>SIDC:</b> {{current_unit.sidc}}
+                        </div>
                         <div>
                             <b>coords:</b> {{printCoords(current_unit.lat, current_unit.lon)}}
                             <span class="badge rounded-pill bg-success" style="cursor:default;"
@@ -149,7 +151,7 @@
                         </div>
                         <b>speed:</b> {{sp(current_unit.speed)}} km/h, <b>hae:</b> {{current_unit.hae.toFixed(1)}}<br/>
                         <div v-if="ne(current_unit.tak_version)"><b>ver:</b> {{current_unit.tak_version}}</div>
-                        <div v-if="current_unit.parent_callsign !== ''"><b>parent:</b> {{current_unit.parent_callsign}}
+                        <div v-if="ne(current_unit.parent_callsign)"><b>parent:</b> {{current_unit.parent_callsign}}
                         </div>
                         <b>time:</b> {{dt(current_unit.start_time)}} <b>stale:</b> {{dt(current_unit.stale_time)}}<br/>
                         <b>last seen</b>: {{dt(current_unit.last_seen)}}<br/>
@@ -163,9 +165,11 @@
                         </h5>
                     </div>
                     <div class="card-body">
-                        <b>UID:</b> {{current_unit.uid}}<br/>
-                        <span v-if="coords != null"></span>
-                        <b>Type:</b> {{current_unit.type}} <b>SIDC:</b> {{current_unit.sidc}}<br/>
+                        <b>UID:</b> {{current_unit.uid}}
+                        <span v-if="config != null && current_unit.parent_uid===config.myuid">delete</span>
+                        <div>
+                            <b>Type:</b> {{current_unit.type}} <b>SIDC:</b> {{current_unit.sidc}}
+                        </div>
                         <div>
                             <b>coords:</b> {{printCoords(current_unit.lat, current_unit.lon)}}
                             <span class="badge rounded-pill bg-success" style="cursor:default;"
@@ -173,7 +177,7 @@
                                     class="bi bi-geo"></i></span>
                             <span v-if="coords != null">({{ distBea(latlng(current_unit.lat, current_unit.lon), coords) }} to cursor)</span>
                         </div>
-                        <div v-if="current_unit.parent_callsign !== ''"><b>parent:</b> {{current_unit.parent_callsign}}
+                        <div v-if="ne(current_unit.parent_callsign)"><b>parent:</b> {{current_unit.parent_callsign}}
                         </div>
                         {{current_unit.text}}
                     </div>

@@ -26,6 +26,32 @@ function getIcon(item, withText) {
     if (ne(item.icon) && item.icon.startsWith("COT_MAPPING_SPOTMAP/")) {
         return {uri: toUri(circle(16, ne(item.color) ? item.color : 'green', '#000', null)), x: 8, y: 8}
     }
+    if (item.type === "b") {
+        return {uri: "/static/icons/b.png", x: 16, y: 16}
+    }
+    if (item.type === "b-m-p-w-GOTO") {
+        return {uri: "/static/icons/green_flag.png", x: 6, y: 30}
+    }
+    if (item.type === "b-m-p-s-p-op") {
+        return {uri: "/static/icons/binos.png", x: 16, y: 16}
+    }
+    if (item.type === "b-m-p-s-p-loc") {
+        return {uri: "/static/icons/sensor_location.png", x: 16, y: 16}
+    }
+    if (item.type === "b-m-p-s-p-i") {
+        switch (item.callsign.charAt(item.callsign.length - 1)) {
+            case "1":
+                return {uri: "/static/icons/spi1_icon.png", x: 16, y: 16}
+            case "2":
+                return {uri: "/static/icons/spi2_icon.png", x: 16, y: 16}
+            case "3":
+                return {uri: "/static/icons/spi3_icon.png", x: 16, y: 16}
+        }
+        return {uri: "/static/icons/spoi_icon.png", x: 16, y: 16}
+    }
+    if (item.type === "b-m-p-a") {
+        return {uri: "/static/icons/aimpoint.png", x: 16, y: 16}
+    }
     if (item.category === "point") {
         return {uri: toUri(circle(16, ne(item.color) ? item.color : 'green', '#000', null)), x: 8, y: 8}
     }
@@ -112,6 +138,10 @@ let app = new Vue({
 
                 if (ne(data.callsign)) {
                     vm.me = L.marker([data.lat, data.lon]);
+                    vm.me.setIcon(L.icon({
+                        iconUrl: "/static/icons/self.png",
+                        iconAnchor: new L.Point(16, 16),
+                    }));
                     vm.me.addTo(vm.map);
                 }
             });
@@ -285,9 +315,14 @@ let app = new Vue({
                     course: 0,
                     status: "",
                     text: "",
+                    parent_uid: "",
+                    parent_callsign: "",
                     my: true,
                 }
-                console.log(u);
+                if (this.config != null && ne(this.config.myuid)) {
+                    u.parent_uid = this.config.myuid;
+                    u.parent_callsign = this.callsign;
+                }
                 this.units.set(uid, u);
                 this.updateMarker(u, true, false);
                 this.current_unit = u;
@@ -295,7 +330,7 @@ let app = new Vue({
             if (document.getElementById("me").checked === true) {
                 this.config.lat = e.latlng.lat;
                 this.config.lon = e.latlng.lng;
-
+                this.me.setLatLng(e.latlng);
                 const requestOptions = {
                     method: "POST",
                     headers: {"Content-Type": "application/json"},

@@ -214,6 +214,29 @@ func (app *App) AddPoint(uid string, p *model.Point) {
 	app.units.Store(uid, p)
 }
 
+func (app *App) removeByLink(msg *cot.Msg) {
+	if msg.Detail != nil && msg.Detail.HasChild("link") {
+		uid := msg.Detail.GetFirstChild("link").GetAttr("uid")
+		typ := msg.Detail.GetFirstChild("link").GetAttr("type")
+		if uid == "" {
+			app.Logger.Errorf("invalid remove message: %s", msg.Detail)
+			return
+		}
+		if v, ok := app.units.Load(uid); ok {
+			switch vv := v.(type) {
+			case *model.Contact:
+				app.Logger.Debugf("remove %s by message", uid)
+				vv.SetOffline()
+				return
+			case *model.Unit, *model.Point:
+				app.Logger.Debugf("remove unit/point %s type %s by message", uid, typ)
+				app.units.Delete(uid)
+				return
+			}
+		}
+	}
+}
+
 func (app *App) EventProcessor() {
 	for msg := range app.ch {
 		if msg.TakMessage.CotEvent == nil {
@@ -246,6 +269,8 @@ func (app *App) EventProcessor() {
 			}
 			app.SendTo(uid, cot.MakePong())
 			break
+		case msg.GetType() == "t-x-d-d":
+			app.removeByLink(msg)
 		case msg.IsChat():
 			if c := model.MsgToChat(msg); c != nil {
 				app.Logger.Infof("Chat %s (%s) -> %s (%s) \"%s\"", c.From, c.FromUid, c.To, c.ToUid, c.Text)
@@ -270,7 +295,7 @@ func (app *App) EventProcessor() {
 				msg.GetUid(),
 				msg.GetCallsign(),
 				msg.GetStale().Sub(time.Now()))
-			app.AddPoint(msg.GetUid(), model.PointFromEvent(msg))
+			app.AddPoint(msg.GetUid(), model.PointFromMsg(msg))
 		default:
 			app.Logger.Warnf("msg: %s", msg)
 		}
@@ -306,9 +331,13 @@ func (app *App) cleanOldUnits() {
 		case *model.Unit:
 			if val.IsOld() {
 				toDelete = append(toDelete, key.(string))
-				app.Logger.Debugf("removing %s", key)
+				app.Logger.Debugf("removing unit %s", key)
 			}
-
+		case *model.Point:
+			if val.IsOld() {
+				toDelete = append(toDelete, key.(string))
+				app.Logger.Debugf("removing point %s", key)
+			}
 		case *model.Contact:
 			if val.IsOld() {
 				toDelete = append(toDelete, key.(string))
