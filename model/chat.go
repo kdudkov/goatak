@@ -33,6 +33,16 @@ type ChatMessage struct {
 // <link uid="ANDROID-dc4a1fb7ad4180be" type="a-f-G-U-C" relation="p-p"/>
 // <remarks source="BAO.F.ATAK.ANDROID-dc4a1fb7ad4180be" time="2021-04-10T16:44:29.371Z">at VDO</remarks>
 // <__serverdestination destinations="192.168.0.15:4242:tcp:ANDROID-dc4a1fb7ad4180be"/><marti><dest callsign="Cl1"/></marti>
+// add contact to group
+// <__chat parent="UserGroups" groupOwner="true" messageId="82741635-04dc-413b-9b66-289fde3e22f0" chatroom="j" id="c06c2986-f122-4e85-b213-88498a6fe8bb" senderCallsign="Kott">
+// <chatgrp uid0="ANDROID-765a942cbe30d010" uid1="ANDROID-80d62ea2265d8a" id="c06c2986-f122-4e85-b213-88498a6fe8bb"/>
+// <hierarchy><group uid="UserGroups" name="Groups"><group uid="c06c2986-f122-4e85-b213-88498a6fe8bb" name="j">
+// <contact uid="ANDROID-80d62ea2265d8a" name="test1"/>
+// <contact uid="ANDROID-765a942cbe30d010" name="Kott"/>
+// </group></group></hierarchy></__chat>
+// <link uid="ANDROID-765a942cbe30d010" type="a-f-G-U-C" relation="p-p"/>
+// <__serverdestination destinations="192.168.1.72:4242:tcp:ANDROID-765a942cbe30d010"/>
+// <remarks source="BAO.F.ATAK.ANDROID-765a942cbe30d010" time="2022-04-05T08:26:51.718Z">[UPDATED CONTACTS]</remarks>
 
 func MsgToChat(m *cot.Msg) *ChatMessage {
 	chat := m.Detail.GetFirstChild("__chat")
@@ -48,7 +58,11 @@ func MsgToChat(m *cot.Msg) *ChatMessage {
 
 	if cg := chat.GetFirstChild("chatgrp"); cg != nil {
 		c.FromUid = cg.GetAttr("uid0")
-		c.ToUid = cg.GetAttr("uid1")
+		c.ToUid = cg.GetAttr("id")
+	}
+
+	if c.From == "" {
+		c.From = c.FromUid
 	}
 	c.Text, _ = m.Detail.GetChildValue("remarks")
 

@@ -47,7 +47,7 @@
                         </ul>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="#">Chat <span
+                        <a class="nav-link" href="#" data-bs-toggle="modal" data-bs-target="#messages">Chat <span
                                 class="badge rounded-pill bg-success">{{msgNum()}}</span></a>
                     </li>
                 </ul>
@@ -153,8 +153,11 @@
                         <div v-if="ne(current_unit.tak_version)"><b>ver:</b> {{current_unit.tak_version}}</div>
                         <div v-if="ne(current_unit.parent_callsign)"><b>parent:</b> {{current_unit.parent_callsign}}
                         </div>
-                        <b>time:</b> {{dt(current_unit.start_time)}} <b>stale:</b> {{dt(current_unit.stale_time)}}<br/>
-                        <b>last seen</b>: {{dt(current_unit.last_seen)}}<br/>
+                        <div>
+                            <b>time:</b> {{dt(current_unit.start_time)}} <b>stale:</b>
+                            {{dt(current_unit.stale_time)}}<br/>
+                            <b>last seen</b>: {{dt(current_unit.last_seen)}}
+                        </div>
                         {{current_unit.text}}
                     </div>
                 </div>
@@ -166,7 +169,6 @@
                     </div>
                     <div class="card-body">
                         <b>UID:</b> {{current_unit.uid}}
-                        <span v-if="config != null && current_unit.parent_uid===config.myuid">delete</span>
                         <div>
                             <b>Type:</b> {{current_unit.type}} <b>SIDC:</b> {{current_unit.sidc}}
                         </div>
@@ -179,8 +181,37 @@
                         </div>
                         <div v-if="ne(current_unit.parent_callsign)"><b>parent:</b> {{current_unit.parent_callsign}}
                         </div>
+                        <div>
+                            <b>time:</b> {{dt(current_unit.start_time)}} <b>stale:</b>
+                            {{dt(current_unit.stale_time)}}<br/>
+                            <b>last seen</b>: {{dt(current_unit.last_seen)}}
+                        </div>
                         {{current_unit.text}}
                     </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal -->
+    <div class="modal fade" id="messages" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1"
+         aria-labelledby="staticBackdropLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="staticBackdropLabel">Chat messages</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div v-for="m in messages" class="alert alert-secondary">
+                        <span class="badge bg-success">{{m.from}}</span> -> <span
+                            class="badge bg-success">{{m.to}}</span><br/>
+                        {{m.text}}
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <!--                    <button type="button" class="btn btn-primary">Understood</button>-->
                 </div>
             </div>
         </div>
