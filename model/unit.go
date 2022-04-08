@@ -13,6 +13,10 @@ const (
 	staleContactDelete = time.Minute * 30
 )
 
+type CotItem interface {
+	GetCotType() string
+}
+
 type Pos struct {
 	time  time.Time
 	lat   float64
@@ -71,6 +75,18 @@ func (u *Unit) String() string {
 
 func (p *Point) String() string {
 	return fmt.Sprintf("point: %s %s %s", p.uid, p.type_, p.callsign)
+}
+
+func (u *Unit) GetCotType() string {
+	return u.type_
+}
+
+func (c *Contact) GetCotType() string {
+	return c.type_
+}
+
+func (p *Point) GetCotType() string {
+	return p.type_
 }
 
 func (u *Unit) GetMsg() *cot.Msg {

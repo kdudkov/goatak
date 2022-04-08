@@ -3,6 +3,7 @@ package main
 import (
 	"embed"
 	"encoding/json"
+	"fmt"
 
 	"github.com/aofei/air"
 	"github.com/kdudkov/goatak/cot"
@@ -31,6 +32,7 @@ func NewHttp(app *App, address string) *air.Air {
 	srv.GET("/config", getConfigHandler(app))
 	srv.POST("/dp", getDpHandler(app))
 	srv.POST("/pos", getPosHandler(app))
+	srv.POST("/add", addItemHandler(app))
 
 	srv.GET("/stack", getStackHandler())
 
@@ -91,7 +93,7 @@ func getDpHandler(app *App) func(req *air.Request, res *air.Response) error {
 		}
 
 		msg := cot.MakeDpMsg(app.uid, app.typ, app.callsign+"."+dp.Name, dp.Lat, dp.Lon)
-		app.AddMsg(msg)
+		app.SengMsg(msg)
 		return res.WriteString("Ok")
 	}
 }
@@ -115,8 +117,30 @@ func getPosHandler(app *App) func(req *air.Request, res *air.Response) error {
 			app.pos.Set(lat, lon)
 		}
 
-		app.AddMsg(app.MakeMe())
+		app.SengMsg(app.MakeMe())
 		return res.WriteString("Ok")
+	}
+}
+
+func addItemHandler(app *App) func(req *air.Request, res *air.Response) error {
+	return func(req *air.Request, res *air.Response) error {
+		item := new(model.WebUnit)
+		if req.Body == nil {
+			return nil
+		}
+
+		if err := json.NewDecoder(req.Body).Decode(item); err != nil {
+			return err
+		}
+
+		if item == nil {
+			return fmt.Errorf("no item")
+		}
+
+		msg := item.ToMsg()
+		app.SengMsg(msg)
+
+		return nil
 	}
 }
 

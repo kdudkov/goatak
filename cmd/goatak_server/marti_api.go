@@ -17,19 +17,28 @@ import (
 // /Marti/api/device/profile/connection?syncSecago=1644830591&clientUid=ANDROID-xxx
 //
 
-func addMartiEndpoints(app *App, a *air.Air) {
-	a.GET("/Marti/api/version", getVersionHandler(app))
-	a.GET("/Marti/api/version/config", getVersionConfigHandler(app))
-	a.GET("/Marti/api/clientEndPoints", getEndpointsHandler(app))
-	a.GET("/Marti/api/sync/metadata/:hash/tool", getMetadataGetHandler(app))
-	a.PUT("/Marti/api/sync/metadata/:hash/tool", getMetadataPutHandler(app))
+func getMartiApi(app *App, addr string) *air.Air {
+	api := air.New()
+	api.Address = addr
 
-	a.GET("/Marti/sync/content", getMetadataGetHandler(app))
-	a.GET("/Marti/sync/search", getSearchHandler(app))
-	a.GET("/Marti/sync/missionquery", getMissionQueryHandler(app))
-	a.POST("/Marti/sync/missionupload", getMissionUploadHandler(app))
+	//if app.config.keyFile != "" && app.config.certFile != "" {
+	//	api.TLSCertFile = app.config.certFile
+	//	api.TLSKeyFile = app.config.keyFile
+	//}
+	api.GET("/Marti/api/version", getVersionHandler(app))
+	api.GET("/Marti/api/version/config", getVersionConfigHandler(app))
+	api.GET("/Marti/api/clientEndPoints", getEndpointsHandler(app))
+	api.GET("/Marti/api/sync/metadata/:hash/tool", getMetadataGetHandler(app))
+	api.PUT("/Marti/api/sync/metadata/:hash/tool", getMetadataPutHandler(app))
 
-	a.GET("/Marti/api/tls/config", getTlsConfigHandler(app))
+	api.GET("/Marti/sync/content", getMetadataGetHandler(app))
+	api.GET("/Marti/sync/search", getSearchHandler(app))
+	api.GET("/Marti/sync/missionquery", getMissionQueryHandler(app))
+	api.POST("/Marti/sync/missionupload", getMissionUploadHandler(app))
+
+	api.NotFoundHandler = getNotFoundHandler(app)
+
+	return api
 }
 
 func getVersionHandler(app *App) func(req *air.Request, res *air.Response) error {

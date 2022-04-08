@@ -5,7 +5,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/kdudkov/goatak/cot"
+	"github.com/kdudkov/goatak/cotproto"
 )
 
 type WebUnit struct {
@@ -105,6 +107,58 @@ func (i Item) ToWeb() *WebUnit {
 
 	w.Text, _ = i.msg.Detail.GetChildValue("remarks")
 	return w
+}
+
+func (w *WebUnit) ToMsg() *cotproto.TakMessage {
+	msg := &cotproto.TakMessage{
+		CotEvent: &cotproto.CotEvent{
+			Type:      w.Type,
+			Uid:       w.Uid,
+			SendTime:  cot.TimeToMillis(w.SendTime),
+			StartTime: cot.TimeToMillis(w.StartTime),
+			StaleTime: cot.TimeToMillis(w.StaleTime),
+			How:       "",
+			Lat:       w.Lat,
+			Lon:       w.Lon,
+			Hae:       w.Hae,
+			Ce:        0,
+			Le:        0,
+			Detail: &cotproto.Detail{
+				Contact: &cotproto.Contact{Callsign: w.Callsign},
+			},
+		},
+	}
+
+	xd := cot.NewXmlDetails()
+	xd.AddChild("precisionlocation", map[string]string{"altsrc": "DTED0"})
+	if w.ParentUid != "" {
+		m := map[string]string{"uid": w.ParentUid, "relation": "p-p"}
+		if w.ParentCallsign != "" {
+			m["parent_callsign"] = w.ParentCallsign
+		}
+		xd.AddChild("link", m)
+	}
+
+	msg.GetCotEvent().Detail.XmlDetail = xd.AsXMLString()
+
+	zero := time.UnixMilli(0)
+	if msg.CotEvent.Uid == "" {
+		msg.CotEvent.Uid = uuid.New().String()
+	}
+
+	if w.StartTime.Before(zero) {
+		msg.CotEvent.StartTime = cot.TimeToMillis(time.Now())
+	}
+
+	if w.SendTime.Before(zero) {
+		msg.CotEvent.SendTime = cot.TimeToMillis(time.Now())
+	}
+
+	if w.StaleTime.Before(zero) {
+		msg.CotEvent.StaleTime = cot.TimeToMillis(time.Now().Add(time.Hour * 24))
+	}
+
+	return msg
 }
 
 func getSIDC(fn string) string {

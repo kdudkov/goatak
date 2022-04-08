@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/tls"
 	"embed"
 	"errors"
 	"net/http"
@@ -22,66 +23,89 @@ type Connection struct {
 }
 
 type HttpServer struct {
-	app      *App
-	air      *air.Air
-	api      *air.Air
-	renderer *staticfiles.Renderer
+	app       *App
+	listeners map[string]*air.Air
+	renderer  *staticfiles.Renderer
 }
 
-func NewHttp(app *App, address string, apiAddress string) *HttpServer {
-	a := air.New()
-	a.Address = address
-
-	staticfiles.EmbedFiles(a, "/static")
-
+func NewHttp(app *App, adminAddress string, apiAddress string) *HttpServer {
 	renderer := new(staticfiles.Renderer)
 	renderer.LeftDelimeter = "[["
 	renderer.RightDelimeter = "]]"
 	renderer.Load(templates, "templates")
 
-	a.GET("/", getIndexHandler(app, renderer))
-	a.GET("/map", getMapHandler(app, renderer))
-	a.GET("/config", getConfigHandler(app))
-	a.GET("/units", getUnitsHandler(app))
-	a.GET("/connections", getConnHandler(app))
-
-	a.GET("/stack", getStackHandler())
-
-	a.RendererTemplateLeftDelim = "[["
-	a.RendererTemplateRightDelim = "]]"
-
-	api := air.New()
-	api.Address = apiAddress
-
-	//if app.config.keyFile != "" && app.config.certFile != "" {
-	//	api.TLSCertFile = app.config.certFile
-	//	api.TLSKeyFile = app.config.keyFile
-	//}
-	addMartiEndpoints(app, api)
-
-	api.NotFoundHandler = getNotFoundHandler(app)
-
-	return &HttpServer{
-		app:      app,
-		air:      a,
-		api:      api,
-		renderer: renderer,
+	srv := &HttpServer{
+		app:       app,
+		listeners: make(map[string]*air.Air),
+		renderer:  renderer,
 	}
+
+	srv.listeners["admin api calls"] = getAdminApi(app, adminAddress, renderer)
+	srv.listeners["marti api calls"] = getMartiApi(app, apiAddress)
+	srv.listeners["tls api calls"] = getTlsApi(app)
+
+	return srv
+}
+
+func getAdminApi(app *App, addr string, renderer *staticfiles.Renderer) *air.Air {
+	adminApi := air.New()
+	adminApi.Address = addr
+
+	staticfiles.EmbedFiles(adminApi, "/static")
+	adminApi.GET("/", getIndexHandler(app, renderer))
+	adminApi.GET("/map", getMapHandler(app, renderer))
+	adminApi.GET("/config", getConfigHandler(app))
+	adminApi.GET("/units", getUnitsHandler(app))
+	adminApi.GET("/connections", getConnHandler(app))
+
+	adminApi.GET("/stack", getStackHandler())
+
+	adminApi.RendererTemplateLeftDelim = "[["
+	adminApi.RendererTemplateRightDelim = "]]"
+
+	return adminApi
+}
+
+func getTlsApi(app *App) *air.Air {
+	tlsApi := air.New()
+	tlsApi.Address = ":8446"
+
+	//auth := authenticator.BasicAuthGas(authenticator.BasicAuthGasConfig{
+	//	Validator: func(username string, password string, _ *air.Request, _ *air.Response) (bool, error) {
+	//		app.Logger.Infof("tls api login with user %s", username)
+	//		return username == "user", nil
+	//	},
+	//})
+	//
+	//tlsApi.Gases = []air.Gas{auth}
+
+	tlsApi.GET("/Marti/api/tls/config", getTlsConfigHandler(app))
+
+	tlsApi.NotFoundHandler = getNotFoundHandler(app)
+
+	if app.config.cert != nil {
+		tlsCfg := &tls.Config{
+			Certificates:       []tls.Certificate{*app.config.cert},
+			ClientCAs:          app.config.ca,
+			RootCAs:            app.config.ca,
+			ClientAuth:         tls.NoClientCert,
+			InsecureSkipVerify: true,
+		}
+
+		tlsApi.TLSConfig = tlsCfg
+	}
+	return tlsApi
 }
 
 func (h *HttpServer) Start() {
-	go func() {
-		h.app.Logger.Infof("listening http at %s", h.air.Address)
-		if err := h.air.Serve(); err != nil {
-			h.app.Logger.Panicf(err.Error())
-		}
-	}()
-	go func() {
-		h.app.Logger.Infof("listening api calls at %s", h.api.Address)
-		if err := h.api.Serve(); err != nil {
-			h.app.Logger.Panicf(err.Error())
-		}
-	}()
+	for name, listener := range h.listeners {
+		go func(name string, listener *air.Air) {
+			h.app.Logger.Infof("listening %s at %s", name, listener.Address)
+			if err := listener.Serve(); err != nil {
+				h.app.Logger.Panicf(err.Error())
+			}
+		}(name, listener)
+	}
 }
 
 func getIndexHandler(app *App, r *staticfiles.Renderer) func(req *air.Request, res *air.Response) error {

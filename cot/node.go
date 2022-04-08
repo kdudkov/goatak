@@ -40,6 +40,9 @@ func DetailsFromString(s string) (*XMLDetails, error) {
 	err := xml.NewDecoder(buf).Decode(x.node)
 	return x, err
 }
+func (x *XMLDetails) AddChild(name string, params map[string]string) {
+	x.node.AddChild(name, params)
+}
 
 func (x *XMLDetails) AsXMLString() string {
 	b := bytes.Buffer{}

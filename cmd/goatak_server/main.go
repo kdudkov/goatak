@@ -2,8 +2,11 @@ package main
 
 import (
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"os"
 	"os/signal"
@@ -35,10 +38,9 @@ type AppConfig struct {
 	apiPort int
 	sslPort int
 
-	logging  bool
-	certFile string
-	keyFile  string
-	caFile   string
+	logging bool
+	ca      *x509.CertPool
+	cert    *tls.Certificate
 }
 
 type App struct {
@@ -59,7 +61,7 @@ type App struct {
 }
 
 func NewApp(config *AppConfig, logger *zap.SugaredLogger) *App {
-	return &App{
+	app := &App{
 		Logger:         logger,
 		config:         config,
 		packageManager: NewPackageManager(logger),
@@ -68,6 +70,8 @@ func NewApp(config *AppConfig, logger *zap.SugaredLogger) *App {
 		units:          sync.Map{},
 		uid:            uuid.New().String(),
 	}
+
+	return app
 }
 
 func (app *App) Run() {
@@ -91,9 +95,9 @@ func (app *App) Run() {
 		}
 	}()
 
-	if app.config.keyFile != "" && app.config.certFile != "" {
+	if app.config.cert != nil {
 		go func() {
-			if err := app.ListenSSl(app.config.certFile, app.config.keyFile, app.config.caFile, fmt.Sprintf(":%d", app.config.sslPort)); err != nil {
+			if err := app.ListenSSl(fmt.Sprintf(":%d", app.config.sslPort)); err != nil {
 				panic(err)
 			}
 		}()
@@ -386,6 +390,26 @@ func (app *App) SendToCallsign(callsign string, msg *cotproto.TakMessage) {
 	})
 }
 
+func processCert() (*x509.CertPool, *tls.Certificate, error) {
+	caCertPEM, err := ioutil.ReadFile(viper.GetString("ssl.ca"))
+	if err != nil {
+		return nil, nil, err
+	}
+
+	roots := x509.NewCertPool()
+	ok := roots.AppendCertsFromPEM(caCertPEM)
+	if !ok {
+		panic("failed to parse root certificate")
+	}
+
+	cert, err := tls.LoadX509KeyPair(viper.GetString("ssl.cert"), viper.GetString("ssl.key"))
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return roots, &cert, nil
+}
+
 func main() {
 	fmt.Printf("version %s %s\n", gitRevision, gitBranch)
 	var logging = flag.Bool("logging", false, "save all events to files")
@@ -422,16 +446,21 @@ func main() {
 	logger, _ := cfg.Build()
 	defer logger.Sync()
 
+	ca, cert, err := processCert()
+
+	if err != nil {
+		panic(err)
+	}
+
 	config := &AppConfig{
-		tcpPort:  viper.GetInt("tcp_port"),
-		udpPort:  viper.GetInt("udp_port"),
-		webPort:  viper.GetInt("web_port"),
-		apiPort:  viper.GetInt("api_port"),
-		sslPort:  viper.GetInt("ssl_port"),
-		logging:  *logging,
-		certFile: viper.GetString("ssl.cert"),
-		keyFile:  viper.GetString("ssl.key"),
-		caFile:   viper.GetString("ssl.ca"),
+		tcpPort: viper.GetInt("tcp_port"),
+		udpPort: viper.GetInt("udp_port"),
+		webPort: viper.GetInt("web_port"),
+		apiPort: viper.GetInt("api_port"),
+		sslPort: viper.GetInt("ssl_port"),
+		logging: *logging,
+		ca:      ca,
+		cert:    cert,
 	}
 
 	app := NewApp(config, logger.Sugar())

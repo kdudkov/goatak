@@ -183,7 +183,7 @@ func (app *App) processXMLRead(er *cot.TagReader) (*cotproto.TakMessage, *cot.XM
 		v := ev.Detail.TakControl.TakProtocolSupport.Version
 		app.Logger.Infof("server supports protocol v. %d", v)
 		if v >= 1 {
-			app.AddEvent(cotxml.VersionReqMsg(1))
+			app.SendEvent(cotxml.VersionReqMsg(1))
 		}
 		return nil, nil, nil
 	}
@@ -224,7 +224,7 @@ func (app *App) processProtoRead(r *cot.ProtoReader) (*cotproto.TakMessage, *cot
 
 func (app *App) sender(ctx context.Context, wg *sync.WaitGroup) {
 	defer wg.Done()
-	app.AddMsg(app.MakeMe())
+	app.SengMsg(app.MakeMe())
 
 	for ctx.Err() == nil {
 		select {
@@ -232,7 +232,7 @@ func (app *App) sender(ctx context.Context, wg *sync.WaitGroup) {
 			return
 		case <-time.Tick(time.Minute):
 			app.Logger.Debugf("sending pos")
-			app.AddMsg(app.MakeMe())
+			app.SengMsg(app.MakeMe())
 		}
 	}
 }
@@ -247,7 +247,7 @@ func (app *App) setWriteActivity() {
 	}
 }
 
-func (app *App) AddEvent(evt *cotxml.Event) bool {
+func (app *App) SendEvent(evt *cotxml.Event) bool {
 	if !app.isOnline() {
 		return false
 	}
@@ -268,7 +268,7 @@ func (app *App) AddEvent(evt *cotxml.Event) bool {
 	}
 }
 
-func (app *App) AddMsg(msg *cotproto.TakMessage) bool {
+func (app *App) SengMsg(msg *cotproto.TakMessage) bool {
 	if !app.isOnline() {
 		return false
 	}
@@ -312,7 +312,7 @@ func (app *App) tryAddPacket(msg []byte) bool {
 func (app *App) sendPing() {
 	if time.Now().Sub(app.lastWrite) > pingTimeout {
 		app.Logger.Debug("sending ping")
-		app.AddMsg(cot.MakePing(app.uid))
+		app.SengMsg(cot.MakePing(app.uid))
 	}
 }
 

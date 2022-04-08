@@ -3,8 +3,6 @@ package main
 import (
 	"crypto/tls"
 	"crypto/x509"
-	"fmt"
-	"io/ioutil"
 	"net"
 )
 
@@ -28,28 +26,12 @@ func (app *App) ListenTCP(addr string) (err error) {
 	}
 }
 
-func (app *App) ListenSSl(certFile, keyFile, caFile, addr string) error {
+func (app *App) ListenSSl(addr string) error {
 	app.Logger.Infof("listening TCP SSL at %s", addr)
 
-	caCertPEM, err := ioutil.ReadFile(caFile)
-	if err != nil {
-		return err
-	}
-
-	roots := x509.NewCertPool()
-	ok := roots.AppendCertsFromPEM(caCertPEM)
-	if !ok {
-		return fmt.Errorf("failed to parse root certificate")
-	}
-
-	cert, err := tls.LoadX509KeyPair(certFile, keyFile)
-	if err != nil {
-		return err
-	}
-
 	tlsCfg := &tls.Config{
-		Certificates: []tls.Certificate{cert},
-		ClientCAs:    roots,
+		Certificates: []tls.Certificate{*app.config.cert},
+		ClientCAs:    app.config.ca,
 		ClientAuth:   tls.RequireAndVerifyClientCert,
 	}
 
@@ -74,8 +56,8 @@ func (app *App) ListenSSl(certFile, keyFile, caFile, addr string) error {
 			continue
 		}
 
+		app.logCert(c1.ConnectionState().PeerCertificates)
 		user := getUser(c1)
-
 		app.Logger.Infof("user: %s", user)
 		NewSSLClientHandler(app, conn, user).Start()
 	}
@@ -89,4 +71,11 @@ func getUser(conn *tls.Conn) string {
 	}
 
 	return ""
+}
+
+func (app *App) logCert(cert []*x509.Certificate) {
+	for i, cert := range cert {
+		app.Logger.Infof("#%d issuer: %s", i, cert.Issuer.String())
+		app.Logger.Infof("#%d subject: %s", i, cert.Subject.String())
+	}
 }

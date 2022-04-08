@@ -13,24 +13,20 @@ if [[ ! -e cacert.key ]]; then
 fi
 
 # make client cert
-openssl req -sha256 -nodes -newkey rsa:2048 -out client.csr -keyout client.key -subj "/CN=${user}/O=${user}"
-openssl x509 -req -in client.csr -CA cacert.pem -CAkey cacert.key -CAcreateserial -out client.pem -days 1024
+openssl req -sha256 -nodes -newkey rsa:2048 -out client.csr -keyout client.key \
+ -subj "/CN=${user}/O=${user}"
+openssl x509 -req -in client.csr -CA cacert.pem -CAkey cacert.key -CAcreateserial -out client.pem -days 1024 -extfile <(echo "extendedKeyUsage = clientAuth")
+rm client.csr
 
 # make client .p12
 openssl pkcs12 -export -name client-cert -in client.pem -inkey client.key -out "${user_p12}" -passout pass:${storepass}
-
-# make server .p12
-if [[ ! -e truststore.p12 ]]; then
-	openssl pkcs12 -export -nokeys -name cacert -in cacert.pem -out truststore.p12 -passout pass:${storepass}
-	openssl pkcs12 -export -nokeys -name server-cert -in server.pem -out truststore.p12 -passout pass:${storepass}
-fi
 
 dir=$(mktemp -d /tmp/cert-XXXXXX)
 
 mkdir -p "${dir}/MANIFEST"
 
 cp truststore.p12 "${dir}/"
-mv "${user_p12}" "${dir}/"
+cp "${user_p12}" "${dir}/"
 
 cat > "${dir}/${server_name}.pref" <<-EOF
 <preferences>
@@ -72,6 +68,5 @@ zip -r "${server_name}_${user}.zip" ./*
 cd -
 mv "${dir}/${server_name}_${user}.zip" ./
 rm -rf "$dir"
-rm client.csr
-rm client.key
-rm client.pem
+#rm client.key
+#rm client.pem

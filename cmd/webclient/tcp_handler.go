@@ -26,6 +26,7 @@ func (app *App) connect() error {
 		if app.conn, err = tls.Dial("tcp", app.addr, app.getTlsConfig()); err != nil {
 			return err
 		}
+		app.Logger.Debugf("handshake...")
 		c := app.conn.(*tls.Conn)
 
 		if err := c.Handshake(); err != nil {
