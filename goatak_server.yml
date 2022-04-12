@@ -2,13 +2,13 @@
 web_port: 8080
 tcp_port: 8999
 udp_port: 8999
-
+ssl_port: 8089
 me:
   lat: 35.462939
   lon: -97.537283
   zoom: 5
 
 ssl:
-  ca: cacert.pem
-  cert: server.pem
-  key: server.key
+  ca: cert/cacert.pem
+  cert: cert/server.pem
+  key: cert/server.key

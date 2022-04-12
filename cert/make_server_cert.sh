@@ -1,7 +1,7 @@
 #!/bin/bash
 
-server_host=test.planb
-server_ip=192.168.1.10
+server_host=test_host
+server_ip=192.168.0.1
 
 if [[ ! -e cacert.key ]]; then
 	echo "No ca cert found!"

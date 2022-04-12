@@ -1,8 +1,8 @@
 #!/bin/bash
 
 server_name=test_server
-server_host=127.0.0.1
-server_port=58088
+server_host=192.168.0.1
+server_port=8089
 user=$1
 storepass=111111
 user_p12=${server_name}_${user}.p12

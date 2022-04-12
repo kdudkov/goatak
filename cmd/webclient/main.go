@@ -428,7 +428,7 @@ func (app *App) removeByLink(msg *cot.Msg) {
 		uid := msg.Detail.GetFirstChild("link").GetAttr("uid")
 		typ := msg.Detail.GetFirstChild("link").GetAttr("type")
 		if uid == "" {
-			app.Logger.Errorf("invalid remove message: %s", msg.Detail)
+			app.Logger.Warnf("invalid remove message: %s", msg.Detail)
 			return
 		}
 		if v, ok := app.units.Load(uid); ok {

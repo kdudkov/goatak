@@ -42,7 +42,7 @@ func NewHttp(app *App, adminAddress string, apiAddress string) *HttpServer {
 
 	srv.listeners["admin api calls"] = getAdminApi(app, adminAddress, renderer)
 	srv.listeners["marti api calls"] = getMartiApi(app, apiAddress)
-	srv.listeners["tls api calls"] = getTlsApi(app)
+	//srv.listeners["tls api calls"] = getTlsApi(app, ":8446")
 
 	return srv
 }
@@ -66,9 +66,9 @@ func getAdminApi(app *App, addr string, renderer *staticfiles.Renderer) *air.Air
 	return adminApi
 }
 
-func getTlsApi(app *App) *air.Air {
+func getTlsApi(app *App, addr string) *air.Air {
 	tlsApi := air.New()
-	tlsApi.Address = ":8446"
+	tlsApi.Address = addr
 
 	//auth := authenticator.BasicAuthGas(authenticator.BasicAuthGasConfig{
 	//	Validator: func(username string, password string, _ *air.Request, _ *air.Response) (bool, error) {
