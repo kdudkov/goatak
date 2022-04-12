@@ -141,7 +141,7 @@ func (w *WebUnit) ToMsg() *cotproto.TakMessage {
 
 	msg.GetCotEvent().Detail.XmlDetail = xd.AsXMLString()
 
-	zero := time.UnixMilli(0)
+	zero := time.Unix(0, 0)
 	if msg.CotEvent.Uid == "" {
 		msg.CotEvent.Uid = uuid.New().String()
 	}
