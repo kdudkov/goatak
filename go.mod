@@ -5,9 +5,9 @@ go 1.16
 require (
 	github.com/aofei/air v0.22.0
 	github.com/golang/protobuf v1.5.2
-	github.com/google/uuid v1.2.0
-	github.com/spf13/viper v1.7.1
-	go.uber.org/zap v1.16.0
-	google.golang.org/protobuf v1.26.0
-	software.sslmate.com/src/go-pkcs12 v0.0.0-20210415151418-c5206de65a78
+	github.com/google/uuid v1.3.0
+	github.com/spf13/viper v1.11.0
+	go.uber.org/zap v1.21.0
+	google.golang.org/protobuf v1.28.0
+	software.sslmate.com/src/go-pkcs12 v0.2.0
 )
