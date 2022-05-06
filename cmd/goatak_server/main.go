@@ -277,6 +277,9 @@ func (app *App) EventProcessor() {
 			app.removeByLink(msg)
 		case msg.IsChat():
 			if c := model.MsgToChat(msg); c != nil {
+				if fromContact := app.GetContact(c.FromUid); fromContact != nil {
+					c.From = fromContact.GetCallsign()
+				}
 				app.Logger.Infof("Chat %s (%s) -> %s (%s) \"%s\"", c.From, c.FromUid, c.To, c.ToUid, c.Text)
 				app.messages = append(app.messages, c)
 			}

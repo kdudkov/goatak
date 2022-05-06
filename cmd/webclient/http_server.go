@@ -137,6 +137,7 @@ func addItemHandler(app *App) func(req *air.Request, res *air.Response) error {
 			return fmt.Errorf("no item")
 		}
 
+		app.Logger.Infof("new point: %v", item)
 		msg := item.ToMsg()
 		app.SengMsg(msg)
 
