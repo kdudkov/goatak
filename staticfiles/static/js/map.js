@@ -102,6 +102,9 @@ let app = new Vue({
         let sputnik = L.tileLayer('https://{s}.tilessputnik.ru/{z}/{x}/{y}.png', {
             maxZoom: 20
         });
+        let ggc = L.tileLayer('https://a.tiles.nakarte.me/ggc250/{z}/{y}/{x}', {
+            maxZoom: 15
+        });
         osm.addTo(this.map);
 
         L.control.scale({metric: true}).addTo(this.map);
@@ -109,6 +112,7 @@ let app = new Vue({
             "OSM": osm,
             "Telesputnik": sputnik,
             "OpenTopoMap": opentopo,
+            "GGC-250": ggc,
             "Google sat": google
         }, null, {hideSingleBase: true}).addTo(this.map);
 
