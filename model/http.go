@@ -168,6 +168,10 @@ func getSIDC(fn string) string {
 
 	tokens := strings.Split(fn, "-")
 
+	if len(tokens) < 3 {
+		return ""
+	}
+
 	sidc := "S" + tokens[1] + tokens[2] + "P"
 	if len(tokens) > 3 {
 		for _, c := range tokens[3:] {
