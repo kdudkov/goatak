@@ -90,8 +90,8 @@ let app = new Vue({
             attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
             maxZoom: 19
         });
-        let topoAttribution = 'Kartendaten: &copy; <a href="https://openstreetmap.org/copyright">OpenStreetMap</a>-Mitwirkende, <a href="http://viewfinderpanoramas.org">SRTM</a> | Kartendarstellung: &copy; <a href="https://opentopomap.org">OpenTopoMap</a>';
-        let opentopo = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+        let topoAttribution = 'Map data: &copy; <a href="https://openstreetmap.org/copyright">OpenStreetMap</a> contributors, <a href="http://viewfinderpanoramas.org">SRTM</a> | Map style: &copy; <a href="https://opentopomap.org">OpenTopoMap</a>, <a href="https://opentopomap.ru">OpenTopoMap.ru</a> (<a href="https://creativecommons.org/licenses/by-sa/3.0/">CC-BY-SA</a>)';
+        let opentopo = L.tileLayer('https://tile-{s}.opentopomap.ru/{z}/{x}/{y}.png', {
             attribution: topoAttribution,
             maxZoom: 17
         });
@@ -102,17 +102,13 @@ let app = new Vue({
         let sputnik = L.tileLayer('https://{s}.tilessputnik.ru/{z}/{x}/{y}.png', {
             maxZoom: 20
         });
-        let ggc = L.tileLayer('https://a.tiles.nakarte.me/ggc250/{z}/{y}/{x}', {
-            maxZoom: 15
-        });
-        osm.addTo(this.map);
+        opentopo.addTo(this.map);
 
         L.control.scale({metric: true}).addTo(this.map);
         L.control.layers({
             "OSM": osm,
             "Telesputnik": sputnik,
             "OpenTopoMap": opentopo,
-            "GGC-250": ggc,
             "Google sat": google
         }, null, {hideSingleBase: true}).addTo(this.map);
 

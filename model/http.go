@@ -168,11 +168,14 @@ func getSIDC(fn string) string {
 
 	tokens := strings.Split(fn, "-")
 
-	if len(tokens) < 3 {
-		return ""
+	sidc := "S" + tokens[1]
+
+	if len(tokens) > 2 {
+		sidc += tokens[2] + "P"
+	} else {
+		sidc += "-P"
 	}
 
-	sidc := "S" + tokens[1] + tokens[2] + "P"
 	if len(tokens) > 3 {
 		for _, c := range tokens[3:] {
 			if len(c) > 1 {
@@ -182,7 +185,7 @@ func getSIDC(fn string) string {
 		}
 	}
 
-	if len(sidc) < 10 {
+	if len(sidc) < 12 {
 		sidc += strings.Repeat("-", 10-len(sidc))
 	}
 	return strings.ToUpper(sidc)

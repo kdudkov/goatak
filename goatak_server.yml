@@ -1,8 +1,10 @@
 ---
-web_port: 8080
+admin_addr: ":8080"
+api_addr: ":8889"
 tcp_port: 8999
 udp_port: 8999
 ssl_port: 8089
+
 me:
   lat: 35.462939
   lon: -97.537283

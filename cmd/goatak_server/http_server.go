@@ -40,7 +40,9 @@ func NewHttp(app *App, adminAddress string, apiAddress string) *HttpServer {
 		renderer:  renderer,
 	}
 
-	srv.listeners["admin api calls"] = getAdminApi(app, adminAddress, renderer)
+	if adminAddress != "" {
+		srv.listeners["admin api calls"] = getAdminApi(app, adminAddress, renderer)
+	}
 	srv.listeners["marti api calls"] = getMartiApi(app, apiAddress)
 	//srv.listeners["tls api calls"] = getTlsApi(app, ":8446")
 

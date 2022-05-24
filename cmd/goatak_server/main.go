@@ -32,11 +32,11 @@ var (
 )
 
 type AppConfig struct {
-	tcpPort int
-	udpPort int
-	webPort int
-	apiPort int
-	sslPort int
+	tcpPort   int
+	udpPort   int
+	adminAddr string
+	apiAddr   string
+	sslPort   int
 
 	logging bool
 	ca      *x509.CertPool
@@ -103,10 +103,7 @@ func (app *App) Run() {
 		}()
 	}
 
-	NewHttp(app,
-		fmt.Sprintf(":%d", app.config.webPort),
-		fmt.Sprintf(":%d", app.config.apiPort),
-	).Start()
+	NewHttp(app, app.config.adminAddr, app.config.apiAddr).Start()
 
 	go app.EventProcessor()
 	go app.cleaner()
@@ -422,15 +419,15 @@ func main() {
 
 	viper.SetConfigFile(*conf)
 
-	viper.SetDefault("web_port", 8080)
 	viper.SetDefault("tcp_port", 8999)
 	viper.SetDefault("udp_port", 8999)
 	viper.SetDefault("ssl_port", 8089)
-	viper.SetDefault("api_port", 8889)
+	viper.SetDefault("admin_addr", ":8080")
+	viper.SetDefault("api_addr", ":8889")
 
-	viper.SetDefault("me.lat", 35.462939)
-	viper.SetDefault("me.lon", -97.537283)
-	viper.SetDefault("me.zoom", 5)
+	viper.SetDefault("me.lat", 59.8396)
+	viper.SetDefault("me.lon", 31.0213)
+	viper.SetDefault("me.zoom", 10)
 
 	err := viper.ReadInConfig()
 	if err != nil {
@@ -456,14 +453,14 @@ func main() {
 	}
 
 	config := &AppConfig{
-		tcpPort: viper.GetInt("tcp_port"),
-		udpPort: viper.GetInt("udp_port"),
-		webPort: viper.GetInt("web_port"),
-		apiPort: viper.GetInt("api_port"),
-		sslPort: viper.GetInt("ssl_port"),
-		logging: *logging,
-		ca:      ca,
-		cert:    cert,
+		tcpPort:   viper.GetInt("tcp_port"),
+		udpPort:   viper.GetInt("udp_port"),
+		adminAddr: viper.GetString("admin_addr"),
+		apiAddr:   viper.GetString("api_addr"),
+		sslPort:   viper.GetInt("ssl_port"),
+		logging:   *logging,
+		ca:        ca,
+		cert:      cert,
 	}
 
 	app := NewApp(config, logger.Sugar())
