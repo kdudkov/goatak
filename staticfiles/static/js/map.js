@@ -20,7 +20,7 @@ function ne(s) {
 }
 
 function getIcon(item, withText) {
-    if (item.category === "contact") {
+    if (item.category === "contact" || (ne(item.team) && ne(item.role))) {
         return {uri: toUri(roleCircle(24, colors.get(item.team), '#000', item.role)), x: 12, y: 12};
     }
     if (ne(item.icon) && item.icon.startsWith("COT_MAPPING_SPOTMAP/")) {
