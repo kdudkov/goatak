@@ -52,6 +52,11 @@ function getIcon(item, withText) {
 
 function getMilIcon(item, withText) {
     let opts = {size: 24};
+
+    if (!ne(item.sidc)) {
+        return "";
+    }
+
     if (withText) {
         // opts['uniqueDesignation'] = item.callsign;
         if (item.speed > 0) {
@@ -71,17 +76,18 @@ let app = new Vue({
     el: '#app',
     data: {
         units: new Map(),
-        markers: new Map(),
         messages: [],
         map: null,
         ts: 0,
         locked_unit_uid: '',
-        current_unit: null,
+        current_unit_uid: null,
         config: null,
         tools: new Map(),
         me: null,
         coords: null,
         point_num: 1,
+        coord_format: "d",
+        form_unit: {},
     },
 
     mounted() {
@@ -102,7 +108,7 @@ let app = new Vue({
         let sputnik = L.tileLayer('https://{s}.tilessputnik.ru/{z}/{x}/{y}.png', {
             maxZoom: 20
         });
-        opentopo.addTo(this.map);
+        osm.addTo(this.map);
 
         L.control.scale({metric: true}).addTo(this.map);
         L.control.layers({
@@ -114,10 +120,12 @@ let app = new Vue({
 
         this.renew();
         this.timer = setInterval(this.renew, 3000);
+        setInterval(this.sendMyPoints, 60000);
 
         this.map.on('click', this.mapClick);
         this.map.on('mousemove', this.mouseMove);
 
+        this.formFromUnit(null);
         let vm = this;
         fetch('/config')
             .then(function (response) {
@@ -139,11 +147,18 @@ let app = new Vue({
                 }
             });
     },
-    computed: {},
+    computed: {
+        current_unit: function () {
+            if (this.current_unit_uid != null) {
+                return this.current_unit_uid && this.getCurrentUnit();
+            } else {
+                return null;
+            }
+        }
+    },
     methods: {
         renew: function () {
             let vm = this;
-            let units = vm.units;
 
             fetch('/units')
                 .then(function (response) {
@@ -152,21 +167,28 @@ let app = new Vue({
                 .then(function (data) {
                     let keys = new Set();
 
-                    data.units.forEach(function (i) {
-                        let oldUnit = units.get(i.uid);
-                        units.set(i.uid, i);
-                        vm.updateMarker(i, false, oldUnit != null && oldUnit.sidc !== i.sidc);
-                        keys.add(i.uid);
-                        if (vm.current_unit != null && vm.current_unit.uid === i.uid) {
-                            vm.current_unit = i;
+                    data.units.forEach(function (u) {
+                        let oldUnit = vm.units.get(u.uid);
+                        let updateMarker = false;
+                        if (oldUnit === null || oldUnit === undefined) {
+                            vm.units.set(u.uid, u);
+                            oldUnit = u;
+                            updateMarker = true;
+                        } else {
+                            updateMarker = (oldUnit.sidc !== u.sidc);
+                            for (const k of Object.keys(u)) {
+                                oldUnit[k] = u[k];
+                            }
                         }
+                        vm.updateMarker(oldUnit, false, updateMarker);
+                        keys.add(oldUnit.uid);
                     });
 
-                    vm.units.forEach(function (v, k) {
-                        if (v.my === undefined && !keys.has(k)) {
+                    for (const [k, v] in vm.units.entries()) {
+                        if (v.parent_uid !== this.config.uid && !keys.has(k)) {
                             vm.removeUnit(k);
                         }
-                    });
+                    }
 
                     vm.messages = data.messages;
                     vm.ts += 1;
@@ -194,61 +216,114 @@ let app = new Vue({
                 fetch("/dp", requestOptions);
             }
         },
+        sendMyPoints: function () {
+            for (u of this.units) {
+                if (u.my !== true || u.send !== true) {
+                    return;
+                }
+                const requestOptions = {
+                    method: "POST",
+                    headers: {"Content-Type": "application/json"},
+                    body: JSON.stringify(this.cleanUnit(u))
+                };
+                fetch("/add", requestOptions);
+            }
+        },
         updateMarker: function (item, draggable, updateIcon) {
             if (item.lon === 0 && item.lat === 0) {
+                if (item.marker != null) {
+                    this.map.removeLayer(item.marker);
+                    item.marker = null;
+                }
                 return
             }
-            let marker;
-            if (this.markers.has(item.uid)) {
-                marker = this.markers.get(item.uid);
+
+            if (ne(item.marker)) {
                 if (updateIcon) {
                     let icon = getIcon(item, true);
-                    marker.setIcon(L.icon({
+                    item.marker.setIcon(L.icon({
                         iconUrl: icon.uri,
                         iconAnchor: new L.Point(icon.x, icon.y),
                     }));
                 }
             } else {
-                marker = L.marker([item.lat, item.lon], {draggable: draggable});
-                this.markers.set(item.uid, marker);
-                marker.on('click', function (e) {
-                    app.setCurrentUnit(item.uid);
+                item.marker = L.marker([item.lat, item.lon], {draggable: draggable});
+                item.marker.on('click', function (e) {
+                    app.setCurrentUnitUid(item.uid, false);
                 });
                 if (draggable) {
-                    marker.on('dragend', function (e) {
+                    item.marker.on('dragend', function (e) {
                         item.lat = marker.getLatLng().lat;
                         item.lon = marker.getLatLng().lng;
                     });
                 }
                 let icon = getIcon(item, true);
-                marker.setIcon(L.icon({
+                item.marker.setIcon(L.icon({
                     iconUrl: icon.uri,
                     iconAnchor: new L.Point(icon.x, icon.y),
                 }));
-                marker.addTo(this.map);
+                item.marker.addTo(this.map);
             }
-            marker.setLatLng([item.lat, item.lon]);
-            marker.bindTooltip(popup(item));
+
+            item.marker.setLatLng([item.lat, item.lon]);
+            item.marker.bindTooltip(popup(item));
             if (this.locked_unit_uid === item.uid) {
                 this.map.setView([item.lat, item.lon]);
             }
         },
         removeUnit: function (uid) {
-            if (this.markers.has(uid)) {
-                p = this.markers.get(uid);
-                this.map.removeLayer(p);
-                p.remove();
-                this.markers.delete(uid);
+            if (!this.units.has(uid)) return;
+
+            let item = this.units.get(uid);
+            if (item.marker != null) {
+                this.map.removeLayer(item.marker);
+                item.marker.remove();
             }
             this.units.delete(uid);
-            if (this.current_unit != null && this.current_unit.uid === uid) {
-                this.current_unit = null;
+            if (this.current_unit_uid === uid) {
+                this.setCurrentUnitUid(null, false);
             }
         },
-        setCurrentUnit: function (uid) {
-            if (this.units.has(uid)) {
-                this.current_unit = this.units.get(uid);
-                this.mapToUnit(this.unit);
+        setCurrentUnitUid: function (uid, follow) {
+            if (uid != null && this.units.has(uid)) {
+                this.current_unit_uid = uid;
+                let u = this.units.get(uid);
+                if (follow) this.mapToUnit(u);
+                this.formFromUnit(u);
+            } else {
+                this.current_unit_uid = null;
+                this.formFromUnit(null);
+            }
+        },
+        getCurrentUnit: function () {
+            if (this.current_unit_uid == null || !this.units.has(this.current_unit_uid)) return null;
+            return this.units.get(this.current_unit_uid);
+        },
+        formFromUnit: function (u) {
+            if (u == null) {
+                this.form_unit = {
+                    callsign: "",
+                    category: "",
+                    type: "",
+                    subtype: "",
+                    aff: "",
+                    send: false,
+                };
+            } else {
+                this.form_unit = {
+                    callsign: u.callsign,
+                    category: u.category,
+                    type: u.type,
+                    subtype: "G",
+                    aff: "h",
+                    send: u.send,
+                };
+
+                if (u.type.startsWith('a-')) {
+                    this.form_unit.type = 'a';
+                    this.form_unit.aff = u.type.substring(2, 3);
+                    this.form_unit.subtype = u.type.substring(4);
+                }
             }
         },
         byCategory: function (s) {
@@ -285,23 +360,31 @@ let app = new Vue({
         sp: function (v) {
             return (v * 3.6).toFixed(1);
         },
+        modeIs: function (s) {
+            return document.getElementById(s).checked === true;
+        },
         mapClick: function (e) {
-            if (document.getElementById("redx").checked === true) {
+            if (this.modeIs("redx")) {
                 this.addOrMove("redx", e.latlng, "/static/icons/x.png")
                 return;
             }
-            if (document.getElementById("dp1").checked === true) {
+            if (this.modeIs("dp1")) {
                 this.addOrMove("dp1", e.latlng, "/static/icons/spoi_icon.png")
                 return;
             }
-            if (document.getElementById("point").checked === true) {
+            if (this.modeIs("point")) {
                 let uid = uuidv4();
+                let now = new Date();
+                let stale = new Date(now);
+                stale.setDate(stale.getDate() + 30);
                 let u = {
                     uid: uid,
                     category: "point",
                     callsign: "point-" + this.point_num++,
-                    stale: null,
-                    received: null,
+                    sidc: "",
+                    start_time: now,
+                    last_seen: now,
+                    stale_time: stale,
                     type: "b-m-p-s-m",
                     lat: e.latlng.lat,
                     lon: e.latlng.lng,
@@ -314,15 +397,15 @@ let app = new Vue({
                     parent_callsign: "",
                     my: true,
                 }
-                if (this.config != null && ne(this.config.myuid)) {
-                    u.parent_uid = this.config.myuid;
-                    u.parent_callsign = this.callsign;
+                if (this.config != null && ne(this.config.uid)) {
+                    u.parent_uid = this.config.uid;
+                    u.parent_callsign = this.config.callsign;
                 }
                 this.units.set(uid, u);
                 this.updateMarker(u, true, false);
-                this.current_unit = u;
+                this.setCurrentUnitUid(u.uid, true);
             }
-            if (document.getElementById("me").checked === true) {
+            if (this.modeIs("me")) {
                 this.config.lat = e.latlng.lat;
                 this.config.lon = e.latlng.lng;
                 this.me.setLatLng(e.latlng);
@@ -339,7 +422,7 @@ let app = new Vue({
         },
         removeTool: function (name) {
             if (this.tools.has(name)) {
-                p = this.tools.get(name);
+                let p = this.tools.get(name);
                 this.map.removeLayer(p);
                 p.remove();
                 this.tools.delete(name);
@@ -347,8 +430,6 @@ let app = new Vue({
             }
         },
         getTool: function (name) {
-            if (this.ts > 5) {
-            }
             return this.tools.get(name);
         },
         addOrMove(name, coord, icon) {
@@ -419,6 +500,90 @@ let app = new Vue({
         },
         ne: function (s) {
             return s !== undefined && s !== null && s !== "";
+        },
+        getUnitName: function (u) {
+            let res = u.callsign;
+            if (u.parent_uid === this.config.uid) {
+                if (u.send === true) {
+                    res = "+ " + res;
+                } else {
+                    res = "* " + res;
+                }
+            }
+            return res;
+        },
+        saveEditForm: function () {
+            let u = this.getCurrentUnit();
+            if (!ne(u)) return;
+
+            u.callsign = this.form_unit.callsign;
+            u.category = this.form_unit.category;
+
+            if (this.form_unit.category === "unit") {
+                u.type = ["a", this.form_unit.aff, this.form_unit.subtype].join('-');
+                u.sidc = this.sidcFromType(u.type);
+                u.send = this.form_unit.send;
+            } else {
+                u.type = this.form_unit.type;
+                u.sidc = "";
+                u.send = this.form_unit.send;
+            }
+            this.updateMarker(u, false, true);
+
+            if (u.send === true) {
+                const requestOptions = {
+                    method: "POST",
+                    headers: {"Content-Type": "application/json"},
+                    body: JSON.stringify(this.cleanUnit(u))
+                };
+                fetch("/add", requestOptions);
+            }
+        },
+        cancelEditForm: function () {
+            this.formFromUnit(this.getCurrentUnit());
+        },
+        sidcFromType: function (s) {
+            if (!s.startsWith('a-')) return "";
+
+            let n = s.split('-');
+
+            let sidc = 'S' + n[1];
+
+            if (n.length > 2) {
+                sidc += n[2] + 'P';
+            } else {
+                sidc += '-P';
+            }
+
+            if (n.length > 3) {
+                for (let i = 3; i < n.length; i++) {
+                    if (n[i].length > 1) {
+                        break
+                    }
+                    sidc += n[i];
+                }
+            }
+
+            if (sidc.length < 10) {
+                sidc += '-'.repeat(10 - sidc.length);
+            }
+
+            return sidc.toUpperCase();
+        },
+        cleanUnit: function (u) {
+            let res = {};
+
+            for (const k in u) {
+                if (k != 'marker' && k != 'my' && k != 'send') {
+                    res[k] = u[k];
+                }
+            }
+            return res;
+        },
+        deleteCurrentUnit: function () {
+            if (this.current_unit_uid == null) return;
+            fetch("unit/" + this.current_unit_uid, {method: "DELETE"});
+            this.removeUnit(this.current_unit_uid);
         }
     },
 });
@@ -430,7 +595,7 @@ function popup(item) {
     if (item.sidc.charAt(2) === 'A') {
         v += "hae: " + item.hae.toFixed(0) + " m<br/>";
     }
-    v += item.text;
+    v += item.text.replaceAll('\n', '<br/>').replaceAll('; ', '<br/>');
     return v;
 }
 

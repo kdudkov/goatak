@@ -109,7 +109,7 @@ func (i Item) ToWeb() *WebUnit {
 	return w
 }
 
-func (w *WebUnit) ToMsg() *cotproto.TakMessage {
+func (w *WebUnit) ToMsg() *cot.Msg {
 	msg := &cotproto.TakMessage{
 		CotEvent: &cotproto.CotEvent{
 			Type:      w.Type,
@@ -130,7 +130,7 @@ func (w *WebUnit) ToMsg() *cotproto.TakMessage {
 	}
 
 	xd := cot.NewXmlDetails()
-	xd.AddChild("precisionlocation", map[string]string{"altsrc": "DTED0"})
+	//xd.AddChild("precisionlocation", map[string]string{"altsrc": "DTED0"})
 	if w.ParentUid != "" {
 		m := map[string]string{"uid": w.ParentUid, "relation": "p-p"}
 		if w.ParentCallsign != "" {
@@ -158,7 +158,11 @@ func (w *WebUnit) ToMsg() *cotproto.TakMessage {
 		msg.CotEvent.StaleTime = cot.TimeToMillis(time.Now().Add(time.Hour * 24))
 	}
 
-	return msg
+	return &cot.Msg{
+		From:       "",
+		TakMessage: msg,
+		Detail:     xd,
+	}
 }
 
 func getSIDC(fn string) string {

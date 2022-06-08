@@ -33,6 +33,7 @@ func NewHttp(app *App, address string) *air.Air {
 	srv.POST("/dp", getDpHandler(app))
 	srv.POST("/pos", getPosHandler(app))
 	srv.POST("/add", addItemHandler(app))
+	srv.DELETE("/unit/:uid", deleteItemHandler(app))
 
 	srv.GET("/stack", getStackHandler())
 
@@ -139,8 +140,23 @@ func addItemHandler(app *App) func(req *air.Request, res *air.Response) error {
 
 		app.Logger.Infof("new point: %v", item)
 		msg := item.ToMsg()
-		app.SengMsg(msg)
+		app.SengMsg(msg.TakMessage)
 
+		if item.Category == "unit" {
+			app.ProcessUnit(msg)
+		}
+		if item.Category == "point" {
+			app.AddPoint(msg.GetUid(), model.PointFromMsg(msg))
+		}
+
+		return nil
+	}
+}
+
+func deleteItemHandler(app *App) func(req *air.Request, res *air.Response) error {
+	return func(req *air.Request, res *air.Response) error {
+		uid := getStringParam(req, "uid")
+		app.units.Delete(uid)
 		return nil
 	}
 }
@@ -167,4 +183,13 @@ func getUnits(app *App) []*model.WebUnit {
 	})
 
 	return units
+}
+
+func getStringParam(req *air.Request, name string) string {
+	p := req.Param(name)
+	if p == nil {
+		return ""
+	}
+
+	return p.Value().String()
 }

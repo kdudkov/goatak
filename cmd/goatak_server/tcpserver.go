@@ -3,6 +3,7 @@ package main
 import (
 	"crypto/tls"
 	"crypto/x509"
+	"fmt"
 	"net"
 )
 
@@ -57,25 +58,26 @@ func (app *App) ListenSSl(addr string) error {
 		}
 
 		app.logCert(c1.ConnectionState().PeerCertificates)
-		user := getUser(c1)
-		app.Logger.Infof("user: %s", user)
+		user, serial := getUser(c1)
+		app.Logger.Infof("user: %s, sn: %s", user, serial)
 		NewSSLClientHandler(app, conn, user).Start()
 	}
 }
 
-func getUser(conn *tls.Conn) string {
+func getUser(conn *tls.Conn) (string, string) {
 	for _, cert := range conn.ConnectionState().PeerCertificates {
 		if cert.Subject.CommonName != "" {
-			return cert.Subject.CommonName
+			return cert.Subject.CommonName, fmt.Sprintf("%x", cert.SerialNumber)
 		}
 	}
 
-	return ""
+	return "", ""
 }
 
 func (app *App) logCert(cert []*x509.Certificate) {
 	for i, cert := range cert {
 		app.Logger.Infof("#%d issuer: %s", i, cert.Issuer.String())
 		app.Logger.Infof("#%d subject: %s", i, cert.Subject.String())
+		app.Logger.Infof("#%d sn: %x", i, cert.SerialNumber)
 	}
 }
