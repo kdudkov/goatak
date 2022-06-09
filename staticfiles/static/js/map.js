@@ -120,7 +120,6 @@ let app = new Vue({
 
         this.renew();
         this.timer = setInterval(this.renew, 3000);
-        setInterval(this.sendMyPoints, 60000);
 
         this.map.on('click', this.mapClick);
         this.map.on('mousemove', this.mouseMove);
@@ -160,39 +159,11 @@ let app = new Vue({
         renew: function () {
             let vm = this;
 
-            fetch('/units')
+            fetch('/unit')
                 .then(function (response) {
                     return response.json()
                 })
-                .then(function (data) {
-                    let keys = new Set();
-
-                    data.units.forEach(function (u) {
-                        let oldUnit = vm.units.get(u.uid);
-                        let updateMarker = false;
-                        if (oldUnit === null || oldUnit === undefined) {
-                            vm.units.set(u.uid, u);
-                            oldUnit = u;
-                            updateMarker = true;
-                        } else {
-                            updateMarker = (oldUnit.sidc !== u.sidc);
-                            for (const k of Object.keys(u)) {
-                                oldUnit[k] = u[k];
-                            }
-                        }
-                        vm.updateMarker(oldUnit, false, updateMarker);
-                        keys.add(oldUnit.uid);
-                    });
-
-                    for (const [k, v] in vm.units.entries()) {
-                        if (v.parent_uid !== this.config.uid && !keys.has(k)) {
-                            vm.removeUnit(k);
-                        }
-                    }
-
-                    vm.messages = data.messages;
-                    vm.ts += 1;
-                });
+                .then(this.processUnits);
 
             fetch('/config')
                 .then(function (response) {
@@ -216,18 +187,34 @@ let app = new Vue({
                 fetch("/dp", requestOptions);
             }
         },
-        sendMyPoints: function () {
-            for (u of this.units) {
-                if (u.my !== true || u.send !== true) {
-                    return;
+        processUnits: function (data) {
+            let keys = new Set();
+
+            for (let u of data.units) {
+                let oldUnit = this.units.get(u.uid);
+                let updateMarker = false;
+                if (oldUnit === null || oldUnit === undefined) {
+                    this.units.set(u.uid, u);
+                    oldUnit = u;
+                    updateMarker = true;
+                } else {
+                    updateMarker = (oldUnit.sidc !== u.sidc);
+                    for (const k of Object.keys(u)) {
+                        oldUnit[k] = u[k];
+                    }
                 }
-                const requestOptions = {
-                    method: "POST",
-                    headers: {"Content-Type": "application/json"},
-                    body: JSON.stringify(this.cleanUnit(u))
-                };
-                fetch("/add", requestOptions);
+                this.updateMarker(oldUnit, false, updateMarker);
+                keys.add(oldUnit.uid);
             }
+
+            for (const k of this.units.keys()) {
+                if (!keys.has(k)) {
+                    this.removeUnit(k);
+                }
+            }
+
+            this.messages = data.messages;
+            this.ts += 1;
         },
         updateMarker: function (item, draggable, updateIcon) {
             if (item.lon === 0 && item.lat === 0) {
@@ -395,14 +382,25 @@ let app = new Vue({
                     text: "",
                     parent_uid: "",
                     parent_callsign: "",
-                    my: true,
+                    local: true,
+                    send: false,
                 }
                 if (this.config != null && ne(this.config.uid)) {
                     u.parent_uid = this.config.uid;
                     u.parent_callsign = this.config.callsign;
                 }
-                this.units.set(uid, u);
-                this.updateMarker(u, true, false);
+
+                const requestOptions = {
+                    method: "POST",
+                    headers: {"Content-Type": "application/json"},
+                    body: JSON.stringify(this.cleanUnit(u))
+                };
+                fetch("/unit", requestOptions)
+                    .then(function (response) {
+                        return response.json()
+                    })
+                    .then(this.processUnits);
+
                 this.setCurrentUnitUid(u.uid, true);
             }
             if (this.modeIs("me")) {
@@ -530,14 +528,16 @@ let app = new Vue({
             }
             this.updateMarker(u, false, true);
 
-            if (u.send === true) {
-                const requestOptions = {
-                    method: "POST",
-                    headers: {"Content-Type": "application/json"},
-                    body: JSON.stringify(this.cleanUnit(u))
-                };
-                fetch("/add", requestOptions);
-            }
+            const requestOptions = {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify(this.cleanUnit(u))
+            };
+            fetch("/unit", requestOptions)
+                .then(function (response) {
+                    return response.json()
+                })
+                .then(this.processUnits);
         },
         cancelEditForm: function () {
             this.formFromUnit(this.getCurrentUnit());
@@ -574,7 +574,7 @@ let app = new Vue({
             let res = {};
 
             for (const k in u) {
-                if (k != 'marker' && k != 'my' && k != 'send') {
+                if (k !== 'marker') {
                     res[k] = u[k];
                 }
             }
@@ -582,8 +582,12 @@ let app = new Vue({
         },
         deleteCurrentUnit: function () {
             if (this.current_unit_uid == null) return;
-            fetch("unit/" + this.current_unit_uid, {method: "DELETE"});
-            this.removeUnit(this.current_unit_uid);
+            fetch("unit/" + this.current_unit_uid, {method: "DELETE"})
+                .then(function (response) {
+                    return response.json()
+                })
+                .then(this.processUnits);
+            // this.removeUnit(this.current_unit_uid);
         }
     },
 });

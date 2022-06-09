@@ -28,11 +28,12 @@ func NewHttp(app *App, address string) *air.Air {
 	renderer.Load(templates, "templates")
 
 	srv.GET("/", getIndexHandler(app, renderer))
-	srv.GET("/units", getUnitsHandler(app))
 	srv.GET("/config", getConfigHandler(app))
 	srv.POST("/dp", getDpHandler(app))
 	srv.POST("/pos", getPosHandler(app))
-	srv.POST("/add", addItemHandler(app))
+
+	srv.GET("/unit", getUnitsHandler(app))
+	srv.POST("/unit", addItemHandler(app))
 	srv.DELETE("/unit/:uid", deleteItemHandler(app))
 
 	srv.GET("/stack", getStackHandler())
@@ -140,16 +141,29 @@ func addItemHandler(app *App) func(req *air.Request, res *air.Response) error {
 
 		app.Logger.Infof("new point: %v", item)
 		msg := item.ToMsg()
-		app.SengMsg(msg.TakMessage)
+
+		if item.Send {
+			app.SengMsg(msg.TakMessage)
+		}
 
 		if item.Category == "unit" {
+			if u := app.GetUnit(msg.GetUid()); u != nil {
+				u.Update(msg)
+			} else {
+				unit := model.UnitFromMsgLocal(msg, item.Local, item.Send)
+				app.units.Store(msg.GetUid(), unit)
+			}
 			app.ProcessUnit(msg)
 		}
 		if item.Category == "point" {
-			app.AddPoint(msg.GetUid(), model.PointFromMsg(msg))
+			point := model.PointFromMsgLocal(msg, item.Local, item.Send)
+			app.AddPoint(msg.GetUid(), point)
 		}
 
-		return nil
+		r := make(map[string]interface{}, 0)
+		r["units"] = getUnits(app)
+		r["messages"] = app.messages
+		return res.WriteJSON(r)
 	}
 }
 
@@ -157,7 +171,11 @@ func deleteItemHandler(app *App) func(req *air.Request, res *air.Response) error
 	return func(req *air.Request, res *air.Response) error {
 		uid := getStringParam(req, "uid")
 		app.units.Delete(uid)
-		return nil
+
+		r := make(map[string]interface{}, 0)
+		r["units"] = getUnits(app)
+		r["messages"] = app.messages
+		return res.WriteJSON(r)
 	}
 }
 

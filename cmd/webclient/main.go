@@ -45,17 +45,18 @@ type Pos struct {
 }
 
 type App struct {
-	conn      net.Conn
-	addr      string
-	ver       uint32
-	webPort   int
-	Logger    *zap.SugaredLogger
-	ch        chan []byte
-	lastWrite time.Time
-	pingTimer *time.Timer
-	units     sync.Map
-	messages  []*model.ChatMessage
-	tls       bool
+	dialTimeout time.Duration
+	conn        net.Conn
+	addr        string
+	ver         uint32
+	webPort     int
+	Logger      *zap.SugaredLogger
+	ch          chan []byte
+	lastWrite   time.Time
+	pingTimer   *time.Timer
+	units       sync.Map
+	messages    []*model.ChatMessage
+	tls         bool
 
 	callsign string
 	uid      string
@@ -94,13 +95,14 @@ func NewApp(uid string, callsign string, connectStr string, webPort int, logger 
 	}
 
 	return &App{
-		Logger:   logger,
-		callsign: callsign,
-		uid:      uid,
-		addr:     fmt.Sprintf("%s:%s", parts[0], parts[1]),
-		tls:      tlsConn,
-		webPort:  webPort,
-		units:    sync.Map{},
+		Logger:      logger,
+		callsign:    callsign,
+		uid:         uid,
+		addr:        fmt.Sprintf("%s:%s", parts[0], parts[1]),
+		tls:         tlsConn,
+		webPort:     webPort,
+		units:       sync.Map{},
+		dialTimeout: time.Second * 5,
 	}
 }
 

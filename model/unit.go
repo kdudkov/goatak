@@ -33,6 +33,8 @@ type Item struct {
 	sendTime  time.Time
 	received  time.Time
 	msg       *cot.Msg
+	local     bool
+	send      bool
 }
 
 type Unit struct {
@@ -184,6 +186,13 @@ func UnitFromMsg(msg *cot.Msg) *Unit {
 	return u
 }
 
+func UnitFromMsgLocal(msg *cot.Msg, local, send bool) *Unit {
+	u := UnitFromMsg(msg)
+	u.local = local
+	u.send = send
+	return u
+}
+
 func PointFromMsg(msg *cot.Msg) *Point {
 	p := &Point{
 		Item: ItemFromMsg(msg),
@@ -198,6 +207,13 @@ func PointFromMsg(msg *cot.Msg) *Point {
 	}
 	p.icon = msg.Detail.GetFirstChild("usericon").GetAttr("iconsetpath")
 
+	return p
+}
+
+func PointFromMsgLocal(msg *cot.Msg, local, send bool) *Point {
+	p := PointFromMsg(msg)
+	p.local = local
+	p.send = send
 	return p
 }
 

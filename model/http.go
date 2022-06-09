@@ -35,6 +35,8 @@ type WebUnit struct {
 	Icon           string    `json:"icon"`
 	ParentCallsign string    `json:"parent_callsign"`
 	ParentUid      string    `json:"parent_uid"`
+	Local          bool      `json:"local"`
+	Send           bool      `json:"send"`
 }
 
 type DigitalPointer struct {

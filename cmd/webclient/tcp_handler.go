@@ -43,7 +43,7 @@ func (app *App) connect() error {
 		}
 	} else {
 		app.Logger.Infof("connecting to %s...", app.addr)
-		if app.conn, err = net.Dial("tcp", app.addr); err != nil {
+		if app.conn, err = net.DialTimeout("tcp", app.addr, app.dialTimeout); err != nil {
 			return err
 		}
 	}

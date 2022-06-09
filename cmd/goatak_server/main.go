@@ -356,6 +356,9 @@ func (app *App) cleanOldUnits() {
 		return true
 	})
 
+	if len(toDelete) > 0 {
+		app.Logger.Infof("%d records are stale", len(toDelete))
+	}
 	for _, uid := range toDelete {
 		app.units.Delete(uid)
 	}

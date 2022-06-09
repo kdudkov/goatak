@@ -57,8 +57,10 @@ func getAdminApi(app *App, addr string, renderer *staticfiles.Renderer) *air.Air
 	adminApi.GET("/", getIndexHandler(app, renderer))
 	adminApi.GET("/map", getMapHandler(app, renderer))
 	adminApi.GET("/config", getConfigHandler(app))
-	adminApi.GET("/units", getUnitsHandler(app))
 	adminApi.GET("/connections", getConnHandler(app))
+
+	adminApi.GET("/unit", getUnitsHandler(app))
+	adminApi.DELETE("/unit/:uid", deleteItemHandler(app))
 
 	adminApi.GET("/stack", getStackHandler())
 
@@ -187,6 +189,18 @@ func getUnits(app *App) []*model.WebUnit {
 	})
 
 	return units
+}
+
+func deleteItemHandler(app *App) func(req *air.Request, res *air.Response) error {
+	return func(req *air.Request, res *air.Response) error {
+		uid := getStringParam(req, "uid")
+		app.units.Delete(uid)
+
+		r := make(map[string]interface{}, 0)
+		r["units"] = getUnits(app)
+		r["messages"] = app.messages
+		return res.WriteJSON(r)
+	}
 }
 
 func getConnHandler(app *App) func(req *air.Request, res *air.Response) error {
