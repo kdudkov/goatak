@@ -328,6 +328,7 @@ func (app *App) cleaner() {
 }
 
 func (app *App) cleanOldUnits() {
+	app.Logger.Infof("start cleaner")
 	toDelete := make([]string, 0)
 
 	app.units.Range(func(key, value interface{}) bool {
