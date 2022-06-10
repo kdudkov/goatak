@@ -395,13 +395,15 @@ let app = new Vue({
                     headers: {"Content-Type": "application/json"},
                     body: JSON.stringify(this.cleanUnit(u))
                 };
+                let vm = this;
                 fetch("/unit", requestOptions)
                     .then(function (response) {
                         return response.json()
                     })
-                    .then(this.processUnits);
-
-                this.setCurrentUnitUid(u.uid, true);
+                    .then(function (data) {
+                        vm.processUnits(data);
+                        vm.setCurrentUnitUid(u.uid, true);
+                    });
             }
             if (this.modeIs("me")) {
                 this.config.lat = e.latlng.lat;
