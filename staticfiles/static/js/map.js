@@ -363,7 +363,7 @@ let app = new Vue({
                 let uid = uuidv4();
                 let now = new Date();
                 let stale = new Date(now);
-                stale.setDate(stale.getDate() + 30);
+                stale.setDate(stale.getDate() + 365);
                 let u = {
                     uid: uid,
                     category: "point",
