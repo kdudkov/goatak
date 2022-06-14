@@ -348,7 +348,7 @@ func (app *App) cleanOldUnits() {
 				toDelete = append(toDelete, key.(string))
 				app.Logger.Debugf("removing contact %s", key)
 			} else {
-				if val.IsOnline() && val.GetLastSeen().Add(lastSeenOfflineTimeout).Before(time.Now()) {
+				if val.IsOnline() && val.GetReceived().Add(lastSeenOfflineTimeout).Before(time.Now()) {
 					val.SetOffline()
 				}
 			}

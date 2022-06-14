@@ -163,7 +163,7 @@
                         <div v-if="ne(current_unit.parent_uid)"><b>parent:</b> {{current_unit.parent_uid}}
                         </div>
                         <div>
-                            <b>time:</b> {{dt(current_unit.start_time)}} <b>stale:</b>
+                            <b>time:</b> {{dt(current_unit.start_time)}} <b>send:</b> {{dt(current_unit.send_time)}} <b>stale:</b>
                             {{dt(current_unit.stale_time)}}<br/>
                             <b>last seen</b>: {{dt(current_unit.last_seen)}}
                         </div>

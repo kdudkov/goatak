@@ -80,7 +80,7 @@ func getEndpointsHandler(app *App) func(req *air.Request, res *air.Response) err
 				info := make(map[string]interface{}, 0)
 				info["uid"] = c.GetUID()
 				info["callsign"] = c.GetCallsign()
-				info["lastEventTime"] = c.GetLastSeen()
+				info["lastEventTime"] = c.GetReceived()
 				if c.IsOnline() {
 					info["lastStatus"] = "Connected"
 				} else {

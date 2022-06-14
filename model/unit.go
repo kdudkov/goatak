@@ -49,10 +49,9 @@ type Unit struct {
 
 type Contact struct {
 	Item
-	online   bool
-	lastSeen time.Time
-	mx       sync.RWMutex
-	track    []*Pos
+	online bool
+	mx     sync.RWMutex
+	track  []*Pos
 }
 
 type Point struct {
@@ -113,7 +112,7 @@ func (c *Contact) IsOld() bool {
 	c.mx.RLock()
 	defer c.mx.RUnlock()
 
-	return (!c.online) && c.lastSeen.Add(staleContactDelete).Before(time.Now())
+	return (!c.online) && c.received.Add(staleContactDelete).Before(time.Now())
 }
 
 func (c *Contact) GetUID() string {
@@ -130,11 +129,18 @@ func (c *Contact) GetCallsign() string {
 	return c.callsign
 }
 
-func (c *Contact) GetLastSeen() time.Time {
+func (c *Contact) GetReceived() time.Time {
 	c.mx.RLock()
 	defer c.mx.RUnlock()
 
-	return c.lastSeen
+	return c.received
+}
+
+func (c *Contact) GetStartTime() time.Time {
+	c.mx.RLock()
+	defer c.mx.RUnlock()
+
+	return c.startTime
 }
 
 func (c *Contact) IsOnline() bool {
@@ -153,11 +159,10 @@ func ContactFromMsg(msg *cot.Msg) *Contact {
 	}
 
 	return &Contact{
-		Item:     ItemFromMsg(msg),
-		online:   true,
-		lastSeen: time.Now(),
-		mx:       sync.RWMutex{},
-		track:    []*Pos{pos},
+		Item:   ItemFromMsg(msg),
+		online: true,
+		mx:     sync.RWMutex{},
+		track:  []*Pos{pos},
 	}
 }
 
@@ -239,7 +244,7 @@ func (c *Contact) Update(msg *cot.Msg) {
 	defer c.mx.Unlock()
 
 	c.online = true
-	c.lastSeen = time.Now()
+	c.received = time.Now()
 	if msg != nil {
 		pos := getPos(c.msg, msg)
 		c.msg = msg
