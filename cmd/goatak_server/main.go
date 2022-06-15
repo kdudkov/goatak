@@ -28,7 +28,7 @@ import (
 var (
 	gitRevision            = "unknown"
 	gitBranch              = "unknown"
-	lastSeenOfflineTimeout = time.Minute * 2
+	lastSeenOfflineTimeout = time.Minute * 5
 )
 
 type AppConfig struct {
@@ -116,7 +116,7 @@ func (app *App) Run() {
 }
 
 func (app *App) AddHandler(uid string, cl *ClientHandler) {
-	app.Logger.Infof("new client: %s", uid)
+	app.Logger.Infof("new client: %s %s", uid, cl.addr)
 	app.handlers.Store(uid, cl)
 }
 

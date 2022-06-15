@@ -38,12 +38,12 @@ func (m *Msg) GetCallsign() string {
 	return m.TakMessage.GetCotEvent().GetDetail().GetContact().GetCallsign()
 }
 
-func (m *Msg) GetCallsignTo() string {
+func (m *Msg) GetEndpoint() string {
 	if m == nil || m.TakMessage == nil {
 		return ""
 	}
 
-	return m.TakMessage.GetCotEvent().GetDetail().GetContact().GetCallsign()
+	return m.TakMessage.GetCotEvent().GetDetail().GetContact().GetEndpoint()
 }
 
 func (m *Msg) GetStale() time.Time {

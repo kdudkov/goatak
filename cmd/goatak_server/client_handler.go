@@ -24,6 +24,7 @@ const (
 
 type ClientHandler struct {
 	conn         net.Conn
+	addr         string
 	ver          int32
 	uid          string
 	callsign     string
@@ -40,6 +41,7 @@ type ClientHandler struct {
 
 func NewClientHandler(app *App, conn net.Conn, user string) *ClientHandler {
 	c := &ClientHandler{
+		addr:     "tcp:" + conn.RemoteAddr().String(),
 		conn:     conn,
 		app:      app,
 		ver:      0,
@@ -55,6 +57,7 @@ func NewClientHandler(app *App, conn net.Conn, user string) *ClientHandler {
 
 func NewSSLClientHandler(app *App, conn net.Conn, user string) *ClientHandler {
 	c := &ClientHandler{
+		addr:     "ssl:" + conn.RemoteAddr().String(),
 		conn:     conn,
 		app:      app,
 		ver:      0,
@@ -153,7 +156,7 @@ func (h *ClientHandler) processXMLRead(er *cot.TagReader) (*cotproto.TakMessage,
 		ver := ev.Detail.TakControl.TakRequest.Version
 		if ver == 1 {
 			if err := h.AddEvent(cotxml.ProtoChangeOkMsg()); err == nil {
-				h.app.Logger.Infof("client %s switch to v.1", h.uid)
+				h.app.Logger.Infof("client %s switch to v.1", h.addr)
 				h.SetVersion(1)
 				return nil, nil, nil
 			} else {
@@ -234,7 +237,7 @@ func (h *ClientHandler) GetCallsign() string {
 func (h *ClientHandler) handleWrite() {
 	for msg := range h.sendChan {
 		if _, err := h.conn.Write(msg); err != nil {
-			h.app.Logger.Debugf("client %s write error %v", h.uid, err)
+			h.app.Logger.Debugf("client %s write error %v", h.addr, err)
 			h.stopHandle()
 			break
 		}

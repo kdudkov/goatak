@@ -452,13 +452,13 @@ func (app *App) removeByLink(msg *cot.Msg) {
 }
 
 func (app *App) MakeMe() *cotproto.TakMessage {
-	ev := cot.BasicMsg(app.typ, app.uid, time.Hour)
+	ev := cot.BasicMsg(app.typ, app.uid, time.Minute*2)
 	lat, lon := app.pos.Get()
 	ev.CotEvent.Lat = lat
 	ev.CotEvent.Lon = lon
 	ev.CotEvent.Detail = &cotproto.Detail{
 		Contact: &cotproto.Contact{
-			Endpoint: "123",
+			Endpoint: "*:-1:stcp",
 			Callsign: app.callsign,
 		},
 		Group: &cotproto.Group{
