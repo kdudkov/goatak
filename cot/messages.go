@@ -1,7 +1,6 @@
 package cot
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/google/uuid"
@@ -44,7 +43,7 @@ func MakeOfflineMsg(uid string, typ string) *cotproto.TakMessage {
 	msg := BasicMsg("t-x-d-d", uuid.New().String(), time.Minute*3)
 	msg.CotEvent.How = "h-g-i-g-o"
 	xd := NewXmlDetails()
-	xd.node.AddChild("link", map[string]string{"uid": uid, "type": typ, "relation": "p-p"})
+	xd.AddLink(uid, typ, "")
 	msg.CotEvent.Detail = &cotproto.Detail{XmlDetail: xd.AsXMLString()}
 	return msg
 }
@@ -55,8 +54,7 @@ func MakeDpMsg(uid string, typ string, name string, lat float64, lon float64) *c
 	msg.CotEvent.Lat = lat
 	msg.CotEvent.Lon = lon
 	xd := NewXmlDetails()
-	xd.node.AddChild("precisionlocation", map[string]string{"altsrc": "DTED0"})
-	xd.node.AddChild("link", map[string]string{"uid": uid, "type": typ, "relation": "p-p"})
+	xd.AddLink(uid, typ, "")
 	msg.CotEvent.Detail = &cotproto.Detail{
 		XmlDetail: xd.AsXMLString(),
 		Contact:   &cotproto.Contact{Callsign: name},
@@ -71,12 +69,11 @@ func MakeDpMsg(uid string, typ string, name string, lat float64, lon float64) *c
 func MakeChatMessage(uid string, callsign string, text string) *cotproto.TakMessage {
 	msg := BasicMsg("b-t-f", "server", time.Second*10)
 	xd := NewXmlDetails()
-	chat := xd.node.AddChild("__chat", map[string]string{"parent": "RootContactGroup", "groupOwner": "false", "chatroom": callsign, "senderCallsign": "Op", "id": uid})
-	chat.AddChild("chatgrp", map[string]string{"uid0": "serverop", "uid1": uid, "id": uid})
-	xd.node.AddChildWithContext("remarks", nil, text)
-	marti := xd.node.AddChild("marti", nil)
-	marti.AddChild("dest", map[string]string{"callsign": callsign})
-	fmt.Println(xd.AsXMLString())
+	chat := xd.node.AddChild("__chat", map[string]string{"parent": "RootContactGroup", "groupOwner": "false", "chatroom": callsign, "senderCallsign": "Op", "id": uid}, "")
+	chat.AddChild("chatgrp", map[string]string{"uid0": "serverop", "uid1": uid, "id": uid}, "")
+	xd.node.AddChild("remarks", nil, text)
+	marti := xd.node.AddChild("marti", nil, "")
+	marti.AddChild("dest", map[string]string{"callsign": callsign}, "")
 	msg.CotEvent.Detail = &cotproto.Detail{XmlDetail: xd.AsXMLString()}
 	return msg
 }

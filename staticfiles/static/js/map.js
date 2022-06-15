@@ -294,6 +294,7 @@ let app = new Vue({
                     type: "",
                     subtype: "",
                     aff: "",
+                    text: "",
                     send: false,
                 };
             } else {
@@ -303,6 +304,7 @@ let app = new Vue({
                     type: u.type,
                     subtype: "G",
                     aff: "h",
+                    text: u.text,
                     send: u.send,
                 };
 
@@ -518,15 +520,15 @@ let app = new Vue({
 
             u.callsign = this.form_unit.callsign;
             u.category = this.form_unit.category;
+            u.send = this.form_unit.send;
+            u.text = this.form_unit.text;
 
             if (this.form_unit.category === "unit") {
                 u.type = ["a", this.form_unit.aff, this.form_unit.subtype].join('-');
                 u.sidc = this.sidcFromType(u.type);
-                u.send = this.form_unit.send;
             } else {
                 u.type = this.form_unit.type;
                 u.sidc = "";
-                u.send = this.form_unit.send;
             }
             this.updateMarker(u, false, true);
 

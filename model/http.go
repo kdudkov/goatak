@@ -119,28 +119,34 @@ func (w *WebUnit) ToMsg() *cot.Msg {
 			SendTime:  cot.TimeToMillis(w.SendTime),
 			StartTime: cot.TimeToMillis(w.StartTime),
 			StaleTime: cot.TimeToMillis(w.StaleTime),
-			How:       "",
+			How:       "h-g-i-g-o",
 			Lat:       w.Lat,
 			Lon:       w.Lon,
 			Hae:       w.Hae,
-			Ce:        0,
-			Le:        0,
+			Ce:        9999999,
+			Le:        9999999,
 			Detail: &cotproto.Detail{
 				Contact: &cotproto.Contact{Callsign: w.Callsign},
+				PrecisionLocation: &cotproto.PrecisionLocation{
+					Geopointsrc: "DTED0",
+					Altsrc:      "USER",
+				},
 			},
 		},
 	}
 
 	xd := cot.NewXmlDetails()
-	//xd.AddChild("precisionlocation", map[string]string{"altsrc": "DTED0"})
 	if w.ParentUid != "" {
 		m := map[string]string{"uid": w.ParentUid, "relation": "p-p"}
 		if w.ParentCallsign != "" {
 			m["parent_callsign"] = w.ParentCallsign
 		}
-		xd.AddChild("link", m)
+		xd.AddChild("link", m, "")
 	}
-
+	xd.AddChild("status", map[string]string{"readiness": "true"}, "")
+	if w.Text != "" {
+		xd.AddChild("remarks", nil, w.Text)
+	}
 	msg.GetCotEvent().Detail.XmlDetail = xd.AsXMLString()
 
 	zero := time.Unix(0, 0)

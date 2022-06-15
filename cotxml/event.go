@@ -317,3 +317,9 @@ func ProtoChangeOkMsg() *Event {
 	ev.Detail = Detail{TakControl: &TakControl{TakResponce: &TakResponse{true}}}
 	return ev
 }
+
+// Geopointsrc = "USER" ce Altsrc - "DTED0"
+// high   0 - cat1,  7 - CAT2 16 - CAT3 31 - CAT4 92 - CAT5
+// medium 3 - cat1, 11 - CAT2 23 - CAT3 61 - CAT4 198.5 - CAT5
+// low    6 - cat1, 15 - CAT2 30 - CAT3 91 - CAT4 305 - CAT5
+// UNKNOWN 9999999

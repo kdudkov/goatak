@@ -42,8 +42,24 @@ func DetailsFromString(s string) (*XMLDetails, error) {
 	return x, err
 }
 
-func (x *XMLDetails) AddChild(name string, params map[string]string) {
-	x.node.AddChild(name, params)
+func (x *XMLDetails) AddChild(name string, params map[string]string, text string) {
+	x.node.AddChild(name, params, text)
+}
+
+func (x *XMLDetails) AddLink(uid, typ, parent string) {
+	params := make(map[string]string)
+	if uid != "" {
+		params["uid"] = uid
+	}
+	if typ != "" {
+		params["type"] = typ
+	}
+	if parent != "" {
+		params["parent_callsign"] = parent
+	}
+	//params["production_time"] = prodTime.UTC().Format(time.RFC3339)
+	params["relation"] = "p-p"
+	x.node.AddChild("link", params, "")
 }
 
 func (x *XMLDetails) AsXMLString() string {
@@ -187,25 +203,16 @@ func (n *Node) print(s *bytes.Buffer, prefix string) {
 	}
 }
 
-func (n *Node) AddChild(name string, params map[string]string) *Node {
+func (n *Node) AddChild(name string, params map[string]string, text string) *Node {
 	nn := &Node{XMLName: xml.Name{Local: name}}
 
 	for k, v := range params {
 		nn.Attrs = append(nn.Attrs, xml.Attr{Name: xml.Name{Local: k}, Value: v})
 	}
 
-	n.Nodes = append(n.Nodes, nn)
-	return nn
-}
-
-func (n *Node) AddChildWithContext(name string, params map[string]string, text string) *Node {
-	nn := &Node{XMLName: xml.Name{Local: name}}
-
-	for k, v := range params {
-		nn.Attrs = append(nn.Attrs, xml.Attr{Name: xml.Name{Local: k}, Value: v})
+	if text != "" {
+		nn.Content = text
 	}
-
-	nn.Content = text
 	n.Nodes = append(n.Nodes, nn)
 	return nn
 }
