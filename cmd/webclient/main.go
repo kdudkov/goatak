@@ -146,7 +146,7 @@ func (app *App) Run(ctx context.Context) {
 		ctx1, cancel := context.WithCancel(ctx)
 		go app.reader(ctx1, wg, cancel)
 		go app.writer(ctx1, wg)
-		go app.sender(ctx1, wg)
+		go app.myPosSender(ctx1, wg)
 		wg.Wait()
 
 		app.Logger.Info("disconnected")
@@ -224,7 +224,7 @@ func (app *App) processProtoRead(r *cot.ProtoReader) (*cotproto.TakMessage, *cot
 	return msg, d, nil
 }
 
-func (app *App) sender(ctx context.Context, wg *sync.WaitGroup) {
+func (app *App) myPosSender(ctx context.Context, wg *sync.WaitGroup) {
 	defer wg.Done()
 	app.SengMsg(app.MakeMe())
 
@@ -235,6 +235,7 @@ func (app *App) sender(ctx context.Context, wg *sync.WaitGroup) {
 		case <-time.Tick(time.Minute):
 			app.Logger.Debugf("sending pos")
 			app.SengMsg(app.MakeMe())
+			app.sendMyPoints()
 		}
 	}
 }
@@ -326,7 +327,7 @@ func (app *App) ProcessEvent(msg *cot.Msg) {
 			c.Update(nil)
 		}
 	case msg.GetType() == "t-x-c-t-r":
-		app.Logger.Debugf("pong")
+		app.Logger.Infof("pong")
 	case msg.GetType() == "t-x-d-d":
 		app.removeByLink(msg)
 	case msg.IsChat():
@@ -524,6 +525,23 @@ func (app *App) cleanOldUnits() {
 	for _, uid := range toDelete {
 		app.units.Delete(uid)
 	}
+}
+
+func (app *App) sendMyPoints() {
+	app.units.Range(func(key, value interface{}) bool {
+		switch val := value.(type) {
+		case *model.Unit:
+			if val.IsSend() {
+				app.SengMsg(val.GetMsg().TakMessage)
+			}
+		case *model.Point:
+			if val.IsSend() {
+				app.SengMsg(val.GetMsg().TakMessage)
+			}
+		}
+
+		return true
+	})
 }
 
 func NewPos(lat, lon float64) *Pos {

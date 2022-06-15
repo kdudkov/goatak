@@ -16,10 +16,11 @@ import (
 var templates embed.FS
 
 type Connection struct {
-	Uid  string `json:"uid"`
-	User string `json:"user"`
-	Ssl  bool   `json:"ssl"`
-	Ver  int32  `json:"ver"`
+	Addr string            `json:"addr"`
+	User string            `json:"user"`
+	Ssl  bool              `json:"ssl"`
+	Ver  int32             `json:"ver"`
+	Uids map[string]string `json:"uids"`
 }
 
 type HttpServer struct {
@@ -210,10 +211,11 @@ func getConnHandler(app *App) func(req *air.Request, res *air.Response) error {
 		app.handlers.Range(func(key, value interface{}) bool {
 			if v, ok := value.(*ClientHandler); ok {
 				c := &Connection{
-					Uid:  v.uid,
+					Uids: v.uids,
 					User: v.user,
 					Ssl:  v.ssl,
 					Ver:  v.ver,
+					Addr: v.addr,
 				}
 				conn = append(conn, c)
 			}

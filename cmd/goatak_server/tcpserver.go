@@ -22,8 +22,10 @@ func (app *App) ListenTCP(addr string) (err error) {
 			app.Logger.Errorf("Unable to accept connections: %#v", err)
 			return err
 		}
-		app.Logger.Infof("TCP connection")
-		NewClientHandler(app, conn, "").Start()
+		app.Logger.Infof("TCP connection from %s", conn.RemoteAddr())
+		h := NewClientHandler(app, conn, "")
+		app.handlers.Store(h.addr, h)
+		h.Start()
 	}
 }
 
@@ -49,7 +51,7 @@ func (app *App) ListenSSl(addr string) error {
 			app.Logger.Errorf("Unable to accept connections: %#v", err)
 			continue
 		}
-		app.Logger.Infof("SSL connection")
+		app.Logger.Infof("SSL connection from %s", conn.RemoteAddr())
 		c1 := conn.(*tls.Conn)
 		if err := c1.Handshake(); err != nil {
 			app.Logger.Errorf("Handshake error: %#v", err)
@@ -60,7 +62,9 @@ func (app *App) ListenSSl(addr string) error {
 		app.logCert(c1.ConnectionState().PeerCertificates)
 		user, serial := getUser(c1)
 		app.Logger.Infof("user: %s, sn: %s", user, serial)
-		NewSSLClientHandler(app, conn, user).Start()
+		h := NewSSLClientHandler(app, conn, user)
+		app.handlers.Store(h.addr, h)
+		h.Start()
 	}
 }
 

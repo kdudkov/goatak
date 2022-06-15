@@ -90,8 +90,8 @@ func (p *Point) GetCotType() string {
 	return p.type_
 }
 
-func (u *Unit) GetMsg() *cot.Msg {
-	return u.msg
+func (i *Item) GetMsg() *cot.Msg {
+	return i.msg
 }
 
 func (c *Contact) GetMsg() *cot.Msg {
@@ -148,6 +148,14 @@ func (c *Contact) IsOnline() bool {
 	defer c.mx.RUnlock()
 
 	return c.online
+}
+
+func (i *Item) IsLocal() bool {
+	return i.local
+}
+
+func (i *Item) IsSend() bool {
+	return i.send
 }
 
 func ContactFromMsg(msg *cot.Msg) *Contact {

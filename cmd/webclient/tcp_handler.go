@@ -73,6 +73,13 @@ func (app *App) getTlsConfig() *tls.Config {
 
 func (app *App) reader(ctx context.Context, wg *sync.WaitGroup, cancel context.CancelFunc) {
 	defer wg.Done()
+	defer func() {
+		cancel()
+		app.setOnline(false)
+		_ = app.conn.Close()
+	}()
+
+	app.ver = 0
 	n := 0
 	er := cot.NewTagReader(app.conn)
 	pr := cot.NewProtoReader(app.conn)
@@ -80,7 +87,7 @@ func (app *App) reader(ctx context.Context, wg *sync.WaitGroup, cancel context.C
 
 Loop:
 	for ctx.Err() == nil {
-		app.conn.SetReadDeadline(time.Now().Add(time.Second * 120))
+		app.conn.SetReadDeadline(time.Now().Add(pingTimeout * 2))
 
 		var msg *cotproto.TakMessage
 		var d *cot.XMLDetails
@@ -94,10 +101,10 @@ Loop:
 		}
 
 		if err != nil {
+			app.Logger.Errorf("%v", err)
 			if err == io.EOF {
 				break Loop
 			}
-			app.Logger.Errorf("%v", err)
 			break Loop
 		}
 
@@ -116,11 +123,6 @@ Loop:
 		})
 		n++
 	}
-
-	app.setOnline(false)
-	app.conn.Close()
-	cancel()
-	app.Logger.Infof("got %d messages", n)
 }
 
 func (app *App) writer(ctx context.Context, wg *sync.WaitGroup) {

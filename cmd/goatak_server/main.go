@@ -41,6 +41,8 @@ type AppConfig struct {
 	logging bool
 	ca      *x509.CertPool
 	cert    *tls.Certificate
+
+	sendAll bool
 }
 
 type App struct {
@@ -151,27 +153,28 @@ func (app *App) RemoveUnit(uid string) {
 	}
 }
 
-func (app *App) AddContact(uid string, u *model.Contact) {
+func (app *App) AddContact(addr string, u *model.Contact) {
 	if u == nil {
 		return
 	}
-	app.Logger.Infof("contact added %s", uid)
-	app.units.Store(uid, u)
+	app.units.Store(addr, u)
 
 	callsing := u.GetCallsign()
-	app.SendTo(uid, cot.MakeChatMessage(u.GetUID(), callsing, "Welcome"))
+	app.SendTo(addr, cot.MakeChatMessage(u.GetUID(), callsing, "Welcome"))
 
-	app.units.Range(func(key, value interface{}) bool {
-		switch v := value.(type) {
-		case *model.Unit:
-			app.SendTo(uid, v.GetMsg().TakMessage)
-		case *model.Contact:
-			if v.GetUID() != uid {
-				app.SendTo(uid, v.GetMsg().TakMessage)
+	if app.config.sendAll {
+		app.units.Range(func(key, value interface{}) bool {
+			switch v := value.(type) {
+			case *model.Unit:
+				app.SendTo(addr, v.GetMsg().TakMessage)
+			case *model.Contact:
+				if v.GetUID() != u.GetUID() {
+					app.SendTo(addr, v.GetMsg().TakMessage)
+				}
 			}
-		}
-		return true
-	})
+			return true
+		})
+	}
 }
 
 func (app *App) GetContact(uid string) *model.Contact {
@@ -191,10 +194,7 @@ func (app *App) ProcessContact(msg *cot.Msg) {
 		c.Update(msg)
 	} else {
 		app.Logger.Infof("new contact %s (%s) %s", msg.GetUid(), msg.GetCallsign(), msg.GetType())
-		if msg.GetUid() == app.uid {
-			return
-		}
-		app.units.Store(msg.GetUid(), model.ContactFromMsg(msg))
+		app.AddContact(msg.From, model.ContactFromMsg(msg))
 	}
 }
 
@@ -268,7 +268,7 @@ func (app *App) EventProcessor() {
 			if c := app.GetContact(uid); c != nil {
 				c.Update(nil)
 			}
-			app.SendTo(uid, cot.MakePong())
+			app.SendTo(msg.From, cot.MakePong())
 			break
 		case msg.GetType() == "t-x-d-d":
 			app.removeByLink(msg)
@@ -328,7 +328,7 @@ func (app *App) cleaner() {
 }
 
 func (app *App) cleanOldUnits() {
-	app.Logger.Infof("start cleaner")
+	app.Logger.Debugf("start cleaner")
 	toDelete := make([]string, 0)
 
 	app.units.Range(func(key, value interface{}) bool {
@@ -365,29 +365,37 @@ func (app *App) cleanOldUnits() {
 }
 
 func (app *App) SendToAllOther(msg *cotproto.TakMessage, author string) {
-	app.handlers.Range(func(key, value interface{}) bool {
-		if key.(string) != author {
-			if err := value.(*ClientHandler).AddMsg(msg); err != nil {
-				app.Logger.Errorf("error sending to %s: %v", key, err)
+	app.handlers.Range(func(_, value interface{}) bool {
+		h := value.(*ClientHandler)
+		if h.addr != author {
+			if err := h.AddMsg(msg); err != nil {
+				app.Logger.Errorf("error sending to %s: %v", h.addr, err)
 			}
 		}
 		return true
 	})
 }
 
-func (app *App) SendTo(uid string, msg *cotproto.TakMessage) {
-	if h, ok := app.handlers.Load(uid); ok {
-		if err := h.(*ClientHandler).AddMsg(msg); err != nil {
-			app.Logger.Errorf("error sending to %s: %v", uid, err)
+func (app *App) SendTo(addr string, msg *cotproto.TakMessage) {
+	app.handlers.Range(func(_, value interface{}) bool {
+		h := value.(*ClientHandler)
+		if h.addr == addr {
+			if err := h.AddMsg(msg); err != nil {
+				app.Logger.Errorf("error sending to %s: %v", h.addr, err)
+			}
+			return false
 		}
-	}
+		return true
+	})
 }
 
 func (app *App) SendToCallsign(callsign string, msg *cotproto.TakMessage) {
 	app.handlers.Range(func(key, value interface{}) bool {
 		h := value.(*ClientHandler)
-		if h.GetCallsign() == callsign {
-			h.AddMsg(msg)
+		if h.GetUid(callsign) != "" {
+			if err := h.AddMsg(msg); err != nil {
+				app.Logger.Errorf("error: %v", err)
+			}
 			return false
 		}
 		return true
@@ -465,6 +473,7 @@ func main() {
 		logging:   *logging,
 		ca:        ca,
 		cert:      cert,
+		sendAll:   viper.GetBool("send_all"),
 	}
 
 	app := NewApp(config, logger.Sugar())

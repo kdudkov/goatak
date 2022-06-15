@@ -15,7 +15,6 @@ import (
 	"github.com/kdudkov/goatak/cot"
 	"github.com/kdudkov/goatak/cotproto"
 	"github.com/kdudkov/goatak/cotxml"
-	"github.com/kdudkov/goatak/model"
 )
 
 const (
@@ -26,8 +25,7 @@ type ClientHandler struct {
 	conn         net.Conn
 	addr         string
 	ver          int32
-	uid          string
-	callsign     string
+	uids         map[string]string
 	lastActivity time.Time
 	closeTimer   *time.Timer
 	lastWrite    time.Time
@@ -49,6 +47,7 @@ func NewClientHandler(app *App, conn net.Conn, user string) *ClientHandler {
 		active:   1,
 		ssl:      false,
 		user:     user,
+		uids:     make(map[string]string),
 		mx:       sync.RWMutex{},
 	}
 
@@ -65,6 +64,7 @@ func NewSSLClientHandler(app *App, conn net.Conn, user string) *ClientHandler {
 		active:   1,
 		ssl:      true,
 		user:     user,
+		uids:     make(map[string]string),
 		mx:       sync.RWMutex{},
 	}
 
@@ -75,6 +75,7 @@ func (h *ClientHandler) Start() {
 	go h.handleRead()
 	go h.handleWrite()
 
+	h.app.Logger.Infof("send version msg")
 	h.AddEvent(cotxml.VersionSupportMsg(1))
 }
 
@@ -101,10 +102,10 @@ func (h *ClientHandler) handleRead() {
 		}
 
 		if err != nil {
+			h.app.Logger.Infof(err.Error())
 			if err == io.EOF {
 				break
 			}
-			h.app.Logger.Debug(err.Error())
 			break
 		}
 
@@ -113,12 +114,12 @@ func (h *ClientHandler) handleRead() {
 		}
 
 		cotmsg := &cot.Msg{
-			From:       h.uid,
+			From:       h.addr,
 			TakMessage: msg,
 			Detail:     d,
 		}
 
-		h.checkFirstMsg(cotmsg)
+		h.checkContact(cotmsg)
 
 		if err != nil {
 			h.app.Logger.Errorf("error decoding details: %v", err)
@@ -144,7 +145,8 @@ func (h *ClientHandler) processXMLRead(er *cot.TagReader) (*cotproto.TakMessage,
 	}
 
 	if tag != "event" {
-		return nil, nil, fmt.Errorf("bad tag: %s", dat)
+		//return nil, nil, fmt.Errorf("bad tag: %s", dat)
+		return nil, nil, nil
 	}
 
 	ev := &cotxml.Event{}
@@ -195,43 +197,35 @@ func (h *ClientHandler) GetVersion() int32 {
 	return atomic.LoadInt32(&h.ver)
 }
 
-func (h *ClientHandler) checkFirstMsg(msg *cot.Msg) {
-	if h.GetUid() == "" && msg.TakMessage.GetCotEvent() != nil {
+func (h *ClientHandler) checkContact(msg *cot.Msg) {
+	if msg.IsContact() {
+
 		uid := msg.TakMessage.CotEvent.Uid
 		if strings.HasSuffix(uid, "-ping") {
 			uid = uid[:len(uid)-5]
 		}
-		h.SetUid(uid)
-		h.app.AddHandler(uid, h)
-	}
-	if h.GetCallsign() == "" && msg.TakMessage.GetCotEvent().GetDetail().GetContact() != nil {
-		h.callsign = msg.TakMessage.GetCotEvent().GetDetail().GetContact().Callsign
-		h.app.AddContact(msg.TakMessage.CotEvent.Uid, model.ContactFromMsg(msg))
+
+		h.AddUid(uid, msg.GetCallsign())
 	}
 }
 
-func (h *ClientHandler) SetUid(uid string) {
+func (h *ClientHandler) AddUid(uid, callsign string) {
 	h.mx.Lock()
 	defer h.mx.Unlock()
-	h.uid = uid
+	h.uids[uid] = callsign
 }
 
-func (h *ClientHandler) GetUid() string {
+func (h *ClientHandler) GetUid(callsign string) string {
 	h.mx.RLock()
 	defer h.mx.RUnlock()
-	return h.uid
-}
 
-func (h *ClientHandler) SetCallsign(callsign string) {
-	h.mx.Lock()
-	defer h.mx.Unlock()
-	h.callsign = callsign
-}
+	for k, v := range h.uids {
+		if v == callsign {
+			return k
+		}
+	}
 
-func (h *ClientHandler) GetCallsign() string {
-	h.mx.RLock()
-	defer h.mx.RUnlock()
-	return h.callsign
+	return ""
 }
 
 func (h *ClientHandler) handleWrite() {
@@ -247,20 +241,22 @@ func (h *ClientHandler) handleWrite() {
 
 func (h *ClientHandler) stopHandle() {
 	if atomic.CompareAndSwapInt32(&h.active, 1, 0) {
-		if h.uid != "" {
-			h.app.RemoveHandler(h.uid)
-		}
-
+		h.app.RemoveHandler(h.addr)
 		close(h.sendChan)
 
 		if h.conn != nil {
-			h.conn.Close()
+			_ = h.conn.Close()
 		}
 
-		if c := h.app.GetContact(h.uid); c != nil {
-			c.SetOffline()
+		h.mx.RLock()
+		defer h.mx.RUnlock()
+
+		for uid := range h.uids {
+			if c := h.app.GetContact(uid); c != nil {
+				c.SetOffline()
+			}
+			h.app.SendToAllOther(cot.MakeOfflineMsg(uid, "a-f-G"), h.addr)
 		}
-		h.app.SendToAllOther(cot.MakeOfflineMsg(h.uid, "a-f-G"), h.uid)
 	}
 	return
 }

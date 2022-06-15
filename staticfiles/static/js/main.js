@@ -66,7 +66,7 @@ let app = new Vue({
             let units = vm.units;
             let conns = vm.connections;
 
-            fetch('/units')
+            fetch('/unit')
                 .then(function (response) {
                     return response.json()
                 })

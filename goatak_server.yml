@@ -4,6 +4,7 @@ api_addr: ":8889"
 tcp_port: 8999
 udp_port: 8999
 ssl_port: 8089
+send_all: true
 
 me:
   lat: 35.462939
