@@ -84,7 +84,7 @@ let app = new Vue({
                 .then(function (data) {
                     conns.clear();
                     data.forEach(function (i) {
-                        conns.set(i.uid, i);
+                        conns.set(i.addr, i);
                     });
                     vm.ts += 1;
                 });
