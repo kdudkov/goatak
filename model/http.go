@@ -92,7 +92,7 @@ func (i Item) ToWeb() *WebUnit {
 		Uid:       i.uid,
 		Callsign:  i.callsign,
 		Time:      cot.TimeFromMillis(evt.SendTime),
-		LastSeen:  i.received,
+		LastSeen:  i.lastSeen,
 		StaleTime: i.staleTime,
 		StartTime: i.startTime,
 		SendTime:  i.sendTime,

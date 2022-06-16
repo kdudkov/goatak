@@ -34,10 +34,10 @@ func (app *App) ListenUDP(addr string) error {
 
 		msg, xd := cot.EventToProto(evt)
 
-		app.ch <- &cot.Msg{
+		app.NewCotMessage(&cot.Msg{
 			TakMessage: msg,
 			Detail:     xd,
-		}
+		})
 	}
 
 	return nil

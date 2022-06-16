@@ -356,6 +356,8 @@ func (app *App) ProcessEvent(msg *cot.Msg) {
 		} else {
 			app.Logger.Infof("my own point %s (%s) %s", msg.GetUid(), msg.GetCallsign(), msg.GetType())
 		}
+	case strings.HasPrefix(msg.GetType(), "u-"):
+		fmt.Println(msg.GetType())
 	case msg.GetType() == "tak registration":
 		app.Logger.Infof("registration %s %s", msg.GetUid(), msg.GetCallsign())
 		return

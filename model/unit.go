@@ -31,7 +31,7 @@ type Item struct {
 	staleTime time.Time
 	startTime time.Time
 	sendTime  time.Time
-	received  time.Time
+	lastSeen  time.Time
 	msg       *cot.Msg
 	local     bool
 	send      bool
@@ -112,7 +112,7 @@ func (c *Contact) IsOld() bool {
 	c.mx.RLock()
 	defer c.mx.RUnlock()
 
-	return (!c.online) && c.received.Add(staleContactDelete).Before(time.Now())
+	return (!c.online) && c.lastSeen.Add(staleContactDelete).Before(time.Now())
 }
 
 func (c *Contact) GetUID() string {
@@ -133,7 +133,7 @@ func (c *Contact) GetReceived() time.Time {
 	c.mx.RLock()
 	defer c.mx.RUnlock()
 
-	return c.received
+	return c.lastSeen
 }
 
 func (c *Contact) GetStartTime() time.Time {
@@ -239,7 +239,7 @@ func ItemFromMsg(msg *cot.Msg) Item {
 		startTime: cot.TimeFromMillis(msg.TakMessage.GetCotEvent().GetStartTime()),
 		sendTime:  cot.TimeFromMillis(msg.TakMessage.GetCotEvent().GetSendTime()),
 		msg:       msg,
-		received:  time.Now(),
+		lastSeen:  time.Now(),
 	}
 }
 
@@ -252,7 +252,7 @@ func (c *Contact) Update(msg *cot.Msg) {
 	defer c.mx.Unlock()
 
 	c.online = true
-	c.received = time.Now()
+	c.lastSeen = time.Now()
 	if msg != nil {
 		pos := getPos(c.msg, msg)
 		c.msg = msg

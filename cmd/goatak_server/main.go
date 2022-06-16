@@ -107,7 +107,7 @@ func (app *App) Run() {
 
 	NewHttp(app, app.config.adminAddr, app.config.apiAddr).Start()
 
-	go app.EventProcessor()
+	go app.MessageProcessor()
 	go app.cleaner()
 
 	c := make(chan os.Signal, 1)
@@ -117,15 +117,26 @@ func (app *App) Run() {
 	cancel()
 }
 
+func (app *App) NewCotMessage(msg *cot.Msg) {
+	app.ch <- msg
+}
+
 func (app *App) AddHandler(uid string, cl *ClientHandler) {
 	app.Logger.Infof("new client: %s %s", uid, cl.addr)
 	app.handlers.Store(uid, cl)
 }
 
-func (app *App) RemoveHandler(uid string) {
-	if _, ok := app.handlers.Load(uid); ok {
-		app.Logger.Infof("remove handler: %s", uid)
-		app.handlers.Delete(uid)
+func (app *App) RemoveHandlerCb(cl *ClientHandler) {
+	cl.ForAllUid(func(uid string, callsign string) {
+		if c := app.GetContact(uid); c != nil {
+			c.SetOffline()
+		}
+		app.SendToAllOther(cot.MakeOfflineMsg(uid, "a-f-G"), cl.addr)
+	})
+
+	if _, ok := app.handlers.Load(cl.addr); ok {
+		app.Logger.Infof("remove handler: %s", cl.addr)
+		app.handlers.Delete(cl.addr)
 	}
 }
 
@@ -238,7 +249,7 @@ func (app *App) removeByLink(msg *cot.Msg) {
 	}
 }
 
-func (app *App) EventProcessor() {
+func (app *App) MessageProcessor() {
 	for msg := range app.ch {
 		if msg.TakMessage.CotEvent == nil {
 			continue
@@ -368,7 +379,7 @@ func (app *App) SendToAllOther(msg *cotproto.TakMessage, author string) {
 	app.handlers.Range(func(_, value interface{}) bool {
 		h := value.(*ClientHandler)
 		if h.addr != author {
-			if err := h.AddMsg(msg); err != nil {
+			if err := h.SendMsg(msg); err != nil {
 				app.Logger.Errorf("error sending to %s: %v", h.addr, err)
 			}
 		}
@@ -380,7 +391,7 @@ func (app *App) SendTo(addr string, msg *cotproto.TakMessage) {
 	app.handlers.Range(func(_, value interface{}) bool {
 		h := value.(*ClientHandler)
 		if h.addr == addr {
-			if err := h.AddMsg(msg); err != nil {
+			if err := h.SendMsg(msg); err != nil {
 				app.Logger.Errorf("error sending to %s: %v", h.addr, err)
 			}
 			return false
@@ -393,7 +404,7 @@ func (app *App) SendToCallsign(callsign string, msg *cotproto.TakMessage) {
 	app.handlers.Range(func(key, value interface{}) bool {
 		h := value.(*ClientHandler)
 		if h.GetUid(callsign) != "" {
-			if err := h.AddMsg(msg); err != nil {
+			if err := h.SendMsg(msg); err != nil {
 				app.Logger.Errorf("error: %v", err)
 			}
 			return false

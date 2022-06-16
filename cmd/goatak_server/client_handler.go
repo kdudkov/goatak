@@ -15,6 +15,7 @@ import (
 	"github.com/kdudkov/goatak/cot"
 	"github.com/kdudkov/goatak/cotproto"
 	"github.com/kdudkov/goatak/cotxml"
+	"go.uber.org/zap"
 )
 
 const (
@@ -25,58 +26,71 @@ type ClientHandler struct {
 	conn         net.Conn
 	addr         string
 	ver          int32
+	isClient     bool
 	uids         map[string]string
 	lastActivity time.Time
 	closeTimer   *time.Timer
 	lastWrite    time.Time
-	app          *App
 	sendChan     chan []byte
 	active       int32
 	ssl          bool
 	user         string
 	mx           sync.RWMutex
+	cotProcessor func(msg *cot.Msg)
+	removeCb     func(ch *ClientHandler)
+	logger       *zap.SugaredLogger
 }
 
-func NewClientHandler(app *App, conn net.Conn, user string) *ClientHandler {
+func NewClientHandler(conn net.Conn, user string, logger *zap.SugaredLogger, fn func(msg *cot.Msg), removeCb func(ch *ClientHandler)) *ClientHandler {
 	c := &ClientHandler{
-		addr:     "tcp:" + conn.RemoteAddr().String(),
-		conn:     conn,
-		app:      app,
-		ver:      0,
-		sendChan: make(chan []byte, 10),
-		active:   1,
-		ssl:      false,
-		user:     user,
-		uids:     make(map[string]string),
-		mx:       sync.RWMutex{},
+		addr:         "tcp:" + conn.RemoteAddr().String(),
+		conn:         conn,
+		ver:          0,
+		sendChan:     make(chan []byte, 10),
+		active:       1,
+		ssl:          false,
+		user:         user,
+		uids:         make(map[string]string),
+		mx:           sync.RWMutex{},
+		logger:       logger.Named("client tcp:" + conn.RemoteAddr().String()),
+		cotProcessor: fn,
+		removeCb:     removeCb,
 	}
 
 	return c
 }
 
-func NewSSLClientHandler(app *App, conn net.Conn, user string) *ClientHandler {
+func NewSSLClientHandler(conn net.Conn, user string, logger *zap.SugaredLogger, fn func(msg *cot.Msg), removeCb func(ch *ClientHandler)) *ClientHandler {
 	c := &ClientHandler{
-		addr:     "ssl:" + conn.RemoteAddr().String(),
-		conn:     conn,
-		app:      app,
-		ver:      0,
-		sendChan: make(chan []byte, 10),
-		active:   1,
-		ssl:      true,
-		user:     user,
-		uids:     make(map[string]string),
-		mx:       sync.RWMutex{},
+		addr:         "ssl:" + conn.RemoteAddr().String(),
+		conn:         conn,
+		ver:          0,
+		sendChan:     make(chan []byte, 10),
+		active:       1,
+		ssl:          true,
+		user:         user,
+		uids:         make(map[string]string),
+		mx:           sync.RWMutex{},
+		logger:       logger.Named("client ssl:" + conn.RemoteAddr().String()),
+		cotProcessor: fn,
+		removeCb:     removeCb,
 	}
 
 	return c
+}
+
+func (h *ClientHandler) IsActive() bool {
+	return atomic.LoadInt32(&h.active) == 1
 }
 
 func (h *ClientHandler) Start() {
-	go h.handleRead()
 	go h.handleWrite()
+	go h.handleRead()
 
-	h.app.Logger.Infof("send version msg")
-	h.AddEvent(cotxml.VersionSupportMsg(1))
+	if !h.isClient {
+		h.logger.Infof("send version msg")
+		_ = h.SendEvent(cotxml.VersionSupportMsg(1))
+	}
 }
 
 func (h *ClientHandler) handleRead() {
@@ -86,7 +100,7 @@ func (h *ClientHandler) handleRead() {
 	pr := cot.NewProtoReader(h.conn)
 
 	for {
-		if atomic.LoadInt32(&h.active) != 1 {
+		if !h.IsActive() {
 			break
 		}
 
@@ -102,10 +116,11 @@ func (h *ClientHandler) handleRead() {
 		}
 
 		if err != nil {
-			h.app.Logger.Infof(err.Error())
 			if err == io.EOF {
+				h.logger.Info("EOF")
 				break
 			}
+			h.logger.Warnf(err.Error())
 			break
 		}
 
@@ -122,11 +137,11 @@ func (h *ClientHandler) handleRead() {
 		h.checkContact(cotmsg)
 
 		if err != nil {
-			h.app.Logger.Errorf("error decoding details: %v", err)
+			h.logger.Errorf("error decoding details: %v", err)
 			continue
 		}
 
-		h.app.ch <- cotmsg
+		h.cotProcessor(cotmsg)
 	}
 
 	if h.closeTimer != nil {
@@ -157,14 +172,32 @@ func (h *ClientHandler) processXMLRead(er *cot.TagReader) (*cotproto.TakMessage,
 	if ev.IsTakControlRequest() {
 		ver := ev.Detail.TakControl.TakRequest.Version
 		if ver == 1 {
-			if err := h.AddEvent(cotxml.ProtoChangeOkMsg()); err == nil {
-				h.app.Logger.Infof("client %s switch to v.1", h.addr)
+			if err := h.SendEvent(cotxml.ProtoChangeOkMsg()); err == nil {
+				h.logger.Infof("client %s switch to v.1", h.addr)
 				h.SetVersion(1)
 				return nil, nil, nil
 			} else {
 				return nil, nil, fmt.Errorf("error on send ok: %v", err)
 			}
 		}
+	}
+
+	if h.isClient && ev.Detail.TakControl != nil && ev.Detail.TakControl.TakProtocolSupport != nil {
+		v := ev.Detail.TakControl.TakProtocolSupport.Version
+		h.logger.Infof("server supports protocol v%d", v)
+		if v >= 1 {
+			_ = h.SendEvent(cotxml.VersionReqMsg(1))
+		}
+		return nil, nil, nil
+	}
+
+	if h.isClient && ev.Detail.TakControl != nil && ev.Detail.TakControl.TakResponce != nil {
+		ok := ev.Detail.TakControl.TakResponce.Status
+		h.logger.Infof("server switches to v1: %v", ok)
+		if ok {
+			h.SetVersion(1)
+		}
+		return nil, nil, nil
 	}
 
 	msg, d := cot.EventToProto(ev)
@@ -228,10 +261,19 @@ func (h *ClientHandler) GetUid(callsign string) string {
 	return ""
 }
 
+func (h *ClientHandler) ForAllUid(fn func(string, string)) {
+	h.mx.RLock()
+	defer h.mx.RUnlock()
+
+	for k, v := range h.uids {
+		fn(k, v)
+	}
+}
+
 func (h *ClientHandler) handleWrite() {
 	for msg := range h.sendChan {
 		if _, err := h.conn.Write(msg); err != nil {
-			h.app.Logger.Debugf("client %s write error %v", h.addr, err)
+			h.logger.Debugf("client %s write error %v", h.addr, err)
 			h.stopHandle()
 			break
 		}
@@ -241,22 +283,13 @@ func (h *ClientHandler) handleWrite() {
 
 func (h *ClientHandler) stopHandle() {
 	if atomic.CompareAndSwapInt32(&h.active, 1, 0) {
-		h.app.RemoveHandler(h.addr)
 		close(h.sendChan)
 
 		if h.conn != nil {
 			_ = h.conn.Close()
 		}
 
-		h.mx.RLock()
-		defer h.mx.RUnlock()
-
-		for uid := range h.uids {
-			if c := h.app.GetContact(uid); c != nil {
-				c.SetOffline()
-			}
-			h.app.SendToAllOther(cot.MakeOfflineMsg(uid, "a-f-G"), h.addr)
-		}
+		h.removeCb(h)
 	}
 	return
 }
@@ -275,7 +308,7 @@ func (h *ClientHandler) closeIdle() {
 	idle := time.Now().Sub(h.lastActivity)
 
 	if idle >= idleTimeout {
-		h.app.Logger.Debugf("closing tcp connection due to idle timeout: %v", idle)
+		h.logger.Debugf("closing tcp connection due to idle timeout: %v", idle)
 		h.conn.Close()
 	}
 }
@@ -284,8 +317,8 @@ func (h *ClientHandler) setWriteActivity() {
 	h.lastWrite = time.Now()
 }
 
-func (h *ClientHandler) AddEvent(evt *cotxml.Event) error {
-	if atomic.LoadInt32(&h.active) != 1 {
+func (h *ClientHandler) SendEvent(evt *cotxml.Event) error {
+	if !h.IsActive() {
 		return nil
 	}
 
@@ -305,8 +338,8 @@ func (h *ClientHandler) AddEvent(evt *cotxml.Event) error {
 	return fmt.Errorf("client is off")
 }
 
-func (h *ClientHandler) AddMsg(msg *cotproto.TakMessage) error {
-	if atomic.LoadInt32(&h.active) != 1 {
+func (h *ClientHandler) SendMsg(msg *cotproto.TakMessage) error {
+	if !h.IsActive() {
 		return nil
 	}
 
@@ -339,7 +372,7 @@ func (h *ClientHandler) AddMsg(msg *cotproto.TakMessage) error {
 }
 
 func (h *ClientHandler) tryAddPacket(msg []byte) bool {
-	if atomic.LoadInt32(&h.active) != 1 {
+	if !h.IsActive() {
 		return false
 	}
 	select {
