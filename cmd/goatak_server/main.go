@@ -121,22 +121,22 @@ func (app *App) NewCotMessage(msg *cot.Msg) {
 	app.ch <- msg
 }
 
-func (app *App) AddHandler(uid string, cl *ClientHandler) {
-	app.Logger.Infof("new client: %s %s", uid, cl.addr)
+func (app *App) AddHandler(uid string, cl *cot.ClientHandler) {
+	app.Logger.Infof("new client: %s %s", uid, cl.GetName())
 	app.handlers.Store(uid, cl)
 }
 
-func (app *App) RemoveHandlerCb(cl *ClientHandler) {
+func (app *App) RemoveHandlerCb(cl *cot.ClientHandler) {
 	cl.ForAllUid(func(uid string, callsign string) {
 		if c := app.GetContact(uid); c != nil {
 			c.SetOffline()
 		}
-		app.SendToAllOther(cot.MakeOfflineMsg(uid, "a-f-G"), cl.addr)
+		app.SendToAllOther(cot.MakeOfflineMsg(uid, "a-f-G"), cl.GetName())
 	})
 
-	if _, ok := app.handlers.Load(cl.addr); ok {
-		app.Logger.Infof("remove handler: %s", cl.addr)
-		app.handlers.Delete(cl.addr)
+	if _, ok := app.handlers.Load(cl.GetName()); ok {
+		app.Logger.Infof("remove handler: %s", cl.GetName())
+		app.handlers.Delete(cl.GetName())
 	}
 }
 
@@ -377,10 +377,10 @@ func (app *App) cleanOldUnits() {
 
 func (app *App) SendToAllOther(msg *cotproto.TakMessage, author string) {
 	app.handlers.Range(func(_, value interface{}) bool {
-		h := value.(*ClientHandler)
-		if h.addr != author {
+		h := value.(*cot.ClientHandler)
+		if h.GetName() != author {
 			if err := h.SendMsg(msg); err != nil {
-				app.Logger.Errorf("error sending to %s: %v", h.addr, err)
+				app.Logger.Errorf("error sending to %s: %v", h.GetName(), err)
 			}
 		}
 		return true
@@ -389,10 +389,10 @@ func (app *App) SendToAllOther(msg *cotproto.TakMessage, author string) {
 
 func (app *App) SendTo(addr string, msg *cotproto.TakMessage) {
 	app.handlers.Range(func(_, value interface{}) bool {
-		h := value.(*ClientHandler)
-		if h.addr == addr {
+		h := value.(*cot.ClientHandler)
+		if h.GetName() == addr {
 			if err := h.SendMsg(msg); err != nil {
-				app.Logger.Errorf("error sending to %s: %v", h.addr, err)
+				app.Logger.Errorf("error sending to %s: %v", h.GetName(), err)
 			}
 			return false
 		}
@@ -402,7 +402,7 @@ func (app *App) SendTo(addr string, msg *cotproto.TakMessage) {
 
 func (app *App) SendToCallsign(callsign string, msg *cotproto.TakMessage) {
 	app.handlers.Range(func(key, value interface{}) bool {
-		h := value.(*ClientHandler)
+		h := value.(*cot.ClientHandler)
 		if h.GetUid(callsign) != "" {
 			if err := h.SendMsg(msg); err != nil {
 				app.Logger.Errorf("error: %v", err)

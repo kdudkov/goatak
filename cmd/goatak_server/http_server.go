@@ -8,6 +8,7 @@ import (
 	"runtime/pprof"
 
 	"github.com/aofei/air"
+	"github.com/kdudkov/goatak/cot"
 	"github.com/kdudkov/goatak/model"
 	"github.com/kdudkov/goatak/staticfiles"
 )
@@ -209,13 +210,12 @@ func getConnHandler(app *App) func(req *air.Request, res *air.Response) error {
 		conn := make([]*Connection, 0)
 
 		app.handlers.Range(func(key, value interface{}) bool {
-			if v, ok := value.(*ClientHandler); ok {
+			if v, ok := value.(*cot.ClientHandler); ok {
 				c := &Connection{
-					Uids: v.uids,
-					User: v.user,
-					Ssl:  v.ssl,
-					Ver:  v.ver,
-					Addr: v.addr,
+					Uids: v.GetUids(),
+					User: v.GetUser(),
+					Ver:  v.GetVersion(),
+					Addr: v.GetName(),
 				}
 				conn = append(conn, c)
 			}

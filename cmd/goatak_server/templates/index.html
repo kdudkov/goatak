@@ -13,19 +13,19 @@
                     <div class="card-body">
                         <table class="table table-hover table-sm units">
                             <tr>
+                                <th>addr</th>
                                 <th>UIDS</th>
                                 <th>user</th>
-                                <th>SSL</th>
                                 <th>ver.</th>
                             </tr>
                             <tr v-for="c in all_conns">
+                                <td>{{c.addr}}</td>
                                 <td>
                                     <span v-for="(k, v) in c.uids">
                                         {{ k }}: {{ v }}
                                     </span>
                                 </td>
                                 <td>{{c.user}}</td>
-                                <td>{{c.ssl}}</td>
                                 <td>{{c.ver}}</td>
                             </tr>
                         </table>

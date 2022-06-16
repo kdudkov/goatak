@@ -1,4 +1,4 @@
-package main
+package cot
 
 import (
 	"encoding/binary"
@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/golang/protobuf/proto"
-	"github.com/kdudkov/goatak/cot"
 	"github.com/kdudkov/goatak/cotproto"
 	"github.com/kdudkov/goatak/cotxml"
 	"go.uber.org/zap"
@@ -30,29 +29,26 @@ type ClientHandler struct {
 	uids         map[string]string
 	lastActivity time.Time
 	closeTimer   *time.Timer
-	lastWrite    time.Time
 	sendChan     chan []byte
 	active       int32
-	ssl          bool
 	user         string
 	mx           sync.RWMutex
-	cotProcessor func(msg *cot.Msg)
+	cotProcessor func(msg *Msg)
 	removeCb     func(ch *ClientHandler)
 	logger       *zap.SugaredLogger
 }
 
-func NewClientHandler(conn net.Conn, user string, logger *zap.SugaredLogger, fn func(msg *cot.Msg), removeCb func(ch *ClientHandler)) *ClientHandler {
+func NewClientHandler(name string, conn net.Conn, user string, logger *zap.SugaredLogger, fn func(msg *Msg), removeCb func(ch *ClientHandler)) *ClientHandler {
 	c := &ClientHandler{
-		addr:         "tcp:" + conn.RemoteAddr().String(),
+		addr:         name,
 		conn:         conn,
 		ver:          0,
 		sendChan:     make(chan []byte, 10),
 		active:       1,
-		ssl:          false,
 		user:         user,
 		uids:         make(map[string]string),
 		mx:           sync.RWMutex{},
-		logger:       logger.Named("client tcp:" + conn.RemoteAddr().String()),
+		logger:       logger.Named("client " + name),
 		cotProcessor: fn,
 		removeCb:     removeCb,
 	}
@@ -60,23 +56,30 @@ func NewClientHandler(conn net.Conn, user string, logger *zap.SugaredLogger, fn 
 	return c
 }
 
-func NewSSLClientHandler(conn net.Conn, user string, logger *zap.SugaredLogger, fn func(msg *cot.Msg), removeCb func(ch *ClientHandler)) *ClientHandler {
-	c := &ClientHandler{
-		addr:         "ssl:" + conn.RemoteAddr().String(),
-		conn:         conn,
-		ver:          0,
-		sendChan:     make(chan []byte, 10),
-		active:       1,
-		ssl:          true,
-		user:         user,
-		uids:         make(map[string]string),
-		mx:           sync.RWMutex{},
-		logger:       logger.Named("client ssl:" + conn.RemoteAddr().String()),
-		cotProcessor: fn,
-		removeCb:     removeCb,
-	}
+func (h *ClientHandler) SetClient() {
+	h.isClient = true
+}
 
-	return c
+func (h *ClientHandler) GetName() string {
+	return h.addr
+}
+
+func (h *ClientHandler) GetUser() string {
+	h.mx.RLock()
+	defer h.mx.RUnlock()
+
+	return h.user
+}
+
+func (h *ClientHandler) GetUids() map[string]string {
+	h.mx.RLock()
+	defer h.mx.RUnlock()
+
+	res := make(map[string]string)
+	for k, v := range h.uids {
+		res[k] = v
+	}
+	return res
 }
 
 func (h *ClientHandler) IsActive() bool {
@@ -96,8 +99,8 @@ func (h *ClientHandler) Start() {
 func (h *ClientHandler) handleRead() {
 	defer h.stopHandle()
 
-	er := cot.NewTagReader(h.conn)
-	pr := cot.NewProtoReader(h.conn)
+	er := NewTagReader(h.conn)
+	pr := NewProtoReader(h.conn)
 
 	for {
 		if !h.IsActive() {
@@ -105,7 +108,7 @@ func (h *ClientHandler) handleRead() {
 		}
 
 		var msg *cotproto.TakMessage
-		var d *cot.XMLDetails
+		var d *XMLDetails
 		var err error
 
 		switch h.GetVersion() {
@@ -114,6 +117,8 @@ func (h *ClientHandler) handleRead() {
 		case 1:
 			msg, d, err = h.processProtoRead(pr)
 		}
+
+		h.setActivity()
 
 		if err != nil {
 			if err == io.EOF {
@@ -128,19 +133,13 @@ func (h *ClientHandler) handleRead() {
 			continue
 		}
 
-		cotmsg := &cot.Msg{
+		cotmsg := &Msg{
 			From:       h.addr,
 			TakMessage: msg,
 			Detail:     d,
 		}
 
 		h.checkContact(cotmsg)
-
-		if err != nil {
-			h.logger.Errorf("error decoding details: %v", err)
-			continue
-		}
-
 		h.cotProcessor(cotmsg)
 	}
 
@@ -149,7 +148,7 @@ func (h *ClientHandler) handleRead() {
 	}
 }
 
-func (h *ClientHandler) processXMLRead(er *cot.TagReader) (*cotproto.TakMessage, *cot.XMLDetails, error) {
+func (h *ClientHandler) processXMLRead(er *TagReader) (*cotproto.TakMessage, *XMLDetails, error) {
 	tag, dat, err := er.ReadTag()
 	if err != nil {
 		return nil, nil, err
@@ -200,12 +199,12 @@ func (h *ClientHandler) processXMLRead(er *cot.TagReader) (*cotproto.TakMessage,
 		return nil, nil, nil
 	}
 
-	msg, d := cot.EventToProto(ev)
+	msg, d := EventToProto(ev)
 
 	return msg, d, nil
 }
 
-func (h *ClientHandler) processProtoRead(r *cot.ProtoReader) (*cotproto.TakMessage, *cot.XMLDetails, error) {
+func (h *ClientHandler) processProtoRead(r *ProtoReader) (*cotproto.TakMessage, *XMLDetails, error) {
 	buf, err := r.ReadProtoBuf()
 	if err != nil {
 		return nil, nil, err
@@ -216,8 +215,8 @@ func (h *ClientHandler) processProtoRead(r *cot.ProtoReader) (*cotproto.TakMessa
 		return nil, nil, fmt.Errorf("failed to decode protobuf: %v", err)
 	}
 
-	var d *cot.XMLDetails
-	d, err = cot.DetailsFromString(msg.GetCotEvent().GetDetail().GetXmlDetail())
+	var d *XMLDetails
+	d, err = DetailsFromString(msg.GetCotEvent().GetDetail().GetXmlDetail())
 
 	return msg, d, err
 }
@@ -230,7 +229,7 @@ func (h *ClientHandler) GetVersion() int32 {
 	return atomic.LoadInt32(&h.ver)
 }
 
-func (h *ClientHandler) checkContact(msg *cot.Msg) {
+func (h *ClientHandler) checkContact(msg *Msg) {
 	if msg.IsContact() {
 
 		uid := msg.TakMessage.CotEvent.Uid
@@ -277,7 +276,7 @@ func (h *ClientHandler) handleWrite() {
 			h.stopHandle()
 			break
 		}
-		h.setWriteActivity()
+		h.setActivity()
 	}
 }
 
@@ -308,13 +307,9 @@ func (h *ClientHandler) closeIdle() {
 	idle := time.Now().Sub(h.lastActivity)
 
 	if idle >= idleTimeout {
-		h.logger.Debugf("closing tcp connection due to idle timeout: %v", idle)
+		h.logger.Debugf("closing connection due to idle timeout: %v", idle)
 		h.conn.Close()
 	}
-}
-
-func (h *ClientHandler) setWriteActivity() {
-	h.lastWrite = time.Now()
 }
 
 func (h *ClientHandler) SendEvent(evt *cotxml.Event) error {
@@ -345,7 +340,7 @@ func (h *ClientHandler) SendMsg(msg *cotproto.TakMessage) error {
 
 	switch h.GetVersion() {
 	case 0:
-		buf, err := xml.Marshal(cot.ProtoToEvent(msg))
+		buf, err := xml.Marshal(ProtoToEvent(msg))
 		if err != nil {
 			return err
 		}

@@ -5,6 +5,8 @@ import (
 	"crypto/x509"
 	"fmt"
 	"net"
+
+	"github.com/kdudkov/goatak/cot"
 )
 
 func (app *App) ListenTCP(addr string) (err error) {
@@ -23,8 +25,9 @@ func (app *App) ListenTCP(addr string) (err error) {
 			return err
 		}
 		app.Logger.Infof("TCP connection from %s", conn.RemoteAddr())
-		h := NewClientHandler(conn, "", app.Logger, app.NewCotMessage, app.RemoveHandlerCb)
-		app.handlers.Store(h.addr, h)
+		name := "tcp:" + conn.RemoteAddr().String()
+		h := cot.NewClientHandler(name, conn, "", app.Logger, app.NewCotMessage, app.RemoveHandlerCb)
+		app.handlers.Store(name, h)
 		h.Start()
 	}
 }
@@ -62,8 +65,9 @@ func (app *App) ListenSSl(addr string) error {
 		app.logCert(c1.ConnectionState().PeerCertificates)
 		user, serial := getUser(c1)
 		app.Logger.Infof("user: %s, sn: %s", user, serial)
-		h := NewSSLClientHandler(conn, user, app.Logger, app.NewCotMessage, app.RemoveHandlerCb)
-		app.handlers.Store(h.addr, h)
+		name := "ssl:" + conn.RemoteAddr().String()
+		h := cot.NewClientHandler(name, conn, user, app.Logger, app.NewCotMessage, app.RemoveHandlerCb)
+		app.handlers.Store(name, h)
 		h.Start()
 	}
 }

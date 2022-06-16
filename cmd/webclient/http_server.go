@@ -95,7 +95,7 @@ func getDpHandler(app *App) func(req *air.Request, res *air.Response) error {
 		}
 
 		msg := cot.MakeDpMsg(app.uid, app.typ, app.callsign+"."+dp.Name, dp.Lat, dp.Lon)
-		app.SengMsg(msg)
+		app.SendMsg(msg)
 		return res.WriteString("Ok")
 	}
 }
@@ -119,7 +119,7 @@ func getPosHandler(app *App) func(req *air.Request, res *air.Response) error {
 			app.pos.Set(lat, lon)
 		}
 
-		app.SengMsg(app.MakeMe())
+		app.SendMsg(app.MakeMe())
 		return res.WriteString("Ok")
 	}
 }
@@ -142,7 +142,7 @@ func addItemHandler(app *App) func(req *air.Request, res *air.Response) error {
 		msg := item.ToMsg()
 
 		if item.Send {
-			app.SengMsg(msg.TakMessage)
+			app.SendMsg(msg.TakMessage)
 		}
 
 		if item.Category == "unit" {

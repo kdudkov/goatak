@@ -3,32 +3,25 @@ package main
 import (
 	"context"
 	"crypto/md5"
-	"encoding/binary"
-	"encoding/xml"
 	"flag"
 	"fmt"
 	"math/rand"
-	"net"
 	"os"
 	"os/signal"
 	"runtime"
 	"strings"
 	"sync"
-	"sync/atomic"
 	"syscall"
 	"time"
 
-	"github.com/golang/protobuf/proto"
 	"github.com/kdudkov/goatak/cot"
 	"github.com/kdudkov/goatak/cotproto"
-	"github.com/kdudkov/goatak/cotxml"
 	"github.com/kdudkov/goatak/model"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
 )
 
 const (
-	pingTimeout            = time.Second * 15
 	lastSeenOfflineTimeout = time.Minute * 10
 	alfaNum                = "abcdefghijklmnopqrstuvwxyz012346789"
 )
@@ -46,17 +39,14 @@ type Pos struct {
 
 type App struct {
 	dialTimeout time.Duration
-	conn        net.Conn
 	addr        string
-	ver         uint32
 	webPort     int
 	Logger      *zap.SugaredLogger
 	ch          chan []byte
-	lastWrite   time.Time
-	pingTimer   *time.Timer
 	units       sync.Map
 	messages    []*model.ChatMessage
 	tls         bool
+	cl          *cot.ClientHandler
 
 	callsign string
 	uid      string
@@ -69,7 +59,6 @@ type App struct {
 	role     string
 	pos      *Pos
 	zoom     int8
-	online   uint32
 }
 
 func NewApp(uid string, callsign string, connectStr string, webPort int, logger *zap.SugaredLogger) *App {
@@ -106,18 +95,6 @@ func NewApp(uid string, callsign string, connectStr string, webPort int, logger 
 	}
 }
 
-func (app *App) setOnline(s bool) {
-	if s {
-		atomic.StoreUint32(&app.online, 1)
-	} else {
-		atomic.StoreUint32(&app.online, 0)
-	}
-}
-
-func (app *App) isOnline() bool {
-	return atomic.LoadUint32(&app.online) == 1
-}
-
 func (app *App) Run(ctx context.Context) {
 	go func() {
 		addr := fmt.Sprintf(":%d", app.webPort)
@@ -132,24 +109,30 @@ func (app *App) Run(ctx context.Context) {
 	app.ch = make(chan []byte, 20)
 
 	for ctx.Err() == nil {
-		if err := app.connect(); err != nil {
+		conn, err := app.connect()
+		if err != nil {
 			app.Logger.Errorf("connect error: %s", err)
 			time.Sleep(time.Second * 5)
 			continue
 		}
 
-		app.setOnline(true)
-
+		app.Logger.Info("connected")
 		wg := &sync.WaitGroup{}
-		wg.Add(3)
-
+		wg.Add(1)
 		ctx1, cancel := context.WithCancel(ctx)
-		go app.reader(ctx1, wg, cancel)
-		go app.writer(ctx1, wg)
-		go app.myPosSender(ctx1, wg)
-		wg.Wait()
 
-		app.Logger.Info("disconnected")
+		app.cl = cot.NewClientHandler(app.addr, conn, "", app.Logger, app.ProcessEvent, func(ch *cot.ClientHandler) {
+			wg.Done()
+			cancel()
+			app.Logger.Info("disconnected")
+		})
+		app.cl.SetClient()
+
+		go app.cl.Start()
+
+		go app.myPosSender(ctx1, wg)
+
+		wg.Wait()
 	}
 }
 
@@ -162,71 +145,10 @@ func makeUid(callsign string) string {
 	return "ANDROID-" + uid
 }
 
-func (app *App) processXMLRead(er *cot.TagReader) (*cotproto.TakMessage, *cot.XMLDetails, error) {
-	tag, dat, err := er.ReadTag()
-	if err != nil {
-		return nil, nil, err
-	}
-
-	if tag == "?xml" {
-		return nil, nil, nil
-	}
-
-	if tag != "event" {
-		return nil, nil, fmt.Errorf("bad tag: %s", dat)
-	}
-
-	ev := &cotxml.Event{}
-	if err := xml.Unmarshal(dat, ev); err != nil {
-		return nil, nil, fmt.Errorf("xml decode error: %v, data: %s", err, string(dat))
-	}
-
-	if ev.Detail.TakControl != nil && ev.Detail.TakControl.TakProtocolSupport != nil {
-		v := ev.Detail.TakControl.TakProtocolSupport.Version
-		app.Logger.Infof("server supports protocol v. %d", v)
-		if v >= 1 {
-			app.SendEvent(cotxml.VersionReqMsg(1))
-		}
-		return nil, nil, nil
-	}
-
-	if ev.Detail.TakControl != nil && ev.Detail.TakControl.TakResponce != nil {
-		ok := ev.Detail.TakControl.TakResponce.Status
-		app.Logger.Infof("server switches to v1: %v", ok)
-		if ok {
-			atomic.StoreUint32(&app.ver, 1)
-		}
-		return nil, nil, nil
-	}
-
-	msg, d := cot.EventToProto(ev)
-	return msg, d, nil
-}
-
-func (app *App) processProtoRead(r *cot.ProtoReader) (*cotproto.TakMessage, *cot.XMLDetails, error) {
-	buf, err := r.ReadProtoBuf()
-	if err != nil {
-		return nil, nil, err
-	}
-
-	msg := new(cotproto.TakMessage)
-	if err := proto.Unmarshal(buf, msg); err != nil {
-
-		return nil, nil, fmt.Errorf("failed to decode protobuf: %v", err)
-	}
-
-	if msg.GetCotEvent().GetDetail().GetXmlDetail() != "" {
-		app.Logger.Debugf("%s %s", msg.CotEvent.Type, msg.CotEvent.Detail.XmlDetail)
-	}
-
-	d, _ := cot.DetailsFromString(msg.GetCotEvent().GetDetail().GetXmlDetail())
-
-	return msg, d, nil
-}
-
 func (app *App) myPosSender(ctx context.Context, wg *sync.WaitGroup) {
+	wg.Add(1)
 	defer wg.Done()
-	app.SengMsg(app.MakeMe())
+	app.SendMsg(app.MakeMe())
 
 	for ctx.Err() == nil {
 		select {
@@ -234,88 +156,17 @@ func (app *App) myPosSender(ctx context.Context, wg *sync.WaitGroup) {
 			return
 		case <-time.Tick(time.Minute):
 			app.Logger.Debugf("sending pos")
-			app.SengMsg(app.MakeMe())
+			app.SendMsg(app.MakeMe())
 			app.sendMyPoints()
 		}
 	}
 }
 
-func (app *App) setWriteActivity() {
-	app.lastWrite = time.Now()
-
-	if app.pingTimer == nil {
-		app.pingTimer = time.AfterFunc(pingTimeout, app.sendPing)
-	} else {
-		app.pingTimer.Reset(pingTimeout)
-	}
-}
-
-func (app *App) SendEvent(evt *cotxml.Event) bool {
-	if !app.isOnline() {
-		return false
-	}
-	if atomic.LoadUint32(&app.ver) != 0 {
-		return false
-	}
-	msg, err := xml.Marshal(evt)
-	if err != nil {
-		app.Logger.Errorf("marshal error: %v", err)
-		return false
-	}
-
-	select {
-	case app.ch <- msg:
-		return true
-	default:
-		return false
-	}
-}
-
-func (app *App) SengMsg(msg *cotproto.TakMessage) bool {
-	if !app.isOnline() {
-		return false
-	}
-
-	switch atomic.LoadUint32(&app.ver) {
-	case 0:
-		buf, err := xml.Marshal(cot.ProtoToEvent(msg))
-		if err != nil {
-			app.Logger.Errorf("marshal error: %v", err)
-			return false
+func (app *App) SendMsg(msg *cotproto.TakMessage) {
+	if app.cl != nil {
+		if err := app.cl.SendMsg(msg); err != nil {
+			app.Logger.Errorf("%v", err)
 		}
-
-		return app.tryAddPacket(buf)
-	case 1:
-		buf1, err := proto.Marshal(msg)
-		if err != nil {
-			app.Logger.Errorf("marshal error: %v", err)
-			return false
-		}
-
-		buf := make([]byte, len(buf1)+5)
-		buf[0] = 0xbf
-		n := binary.PutUvarint(buf[1:], uint64(len(buf1)))
-		copy(buf[n+1:], buf1)
-
-		return app.tryAddPacket(buf[:n+len(buf1)+2])
-	}
-
-	return false
-}
-
-func (app *App) tryAddPacket(msg []byte) bool {
-	select {
-	case app.ch <- msg:
-		return true
-	default:
-		return false
-	}
-}
-
-func (app *App) sendPing() {
-	if time.Now().Sub(app.lastWrite) > pingTimeout {
-		app.Logger.Debug("sending ping")
-		app.SengMsg(cot.MakePing(app.uid))
 	}
 }
 
@@ -534,11 +385,11 @@ func (app *App) sendMyPoints() {
 		switch val := value.(type) {
 		case *model.Unit:
 			if val.IsSend() {
-				app.SengMsg(val.GetMsg().TakMessage)
+				app.SendMsg(val.GetMsg().TakMessage)
 			}
 		case *model.Point:
 			if val.IsSend() {
-				app.SengMsg(val.GetMsg().TakMessage)
+				app.SendMsg(val.GetMsg().TakMessage)
 			}
 		}
 
