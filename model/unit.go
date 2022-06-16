@@ -129,7 +129,7 @@ func (c *Contact) GetCallsign() string {
 	return c.callsign
 }
 
-func (c *Contact) GetReceived() time.Time {
+func (c *Contact) GetLastSeen() time.Time {
 	c.mx.RLock()
 	defer c.mx.RUnlock()
 

@@ -168,7 +168,7 @@ func (app *App) AddContact(addr string, u *model.Contact) {
 	if u == nil {
 		return
 	}
-	app.units.Store(addr, u)
+	app.units.Store(u.GetUID(), u)
 
 	callsing := u.GetCallsign()
 	app.SendTo(addr, cot.MakeChatMessage(u.GetUID(), callsing, "Welcome"))
@@ -201,7 +201,7 @@ func (app *App) GetContact(uid string) *model.Contact {
 
 func (app *App) ProcessContact(msg *cot.Msg) {
 	if c := app.GetContact(msg.GetUid()); c != nil {
-		app.Logger.Infof("update contact %s (%s) %s", msg.GetUid(), msg.GetCallsign(), msg.GetType())
+		app.Logger.Debugf("update contact %s (%s) %s", msg.GetUid(), msg.GetCallsign(), msg.GetType())
 		c.Update(msg)
 	} else {
 		app.Logger.Infof("new contact %s (%s) %s", msg.GetUid(), msg.GetCallsign(), msg.GetType())
@@ -211,7 +211,7 @@ func (app *App) ProcessContact(msg *cot.Msg) {
 
 func (app *App) ProcessUnit(msg *cot.Msg) {
 	if u := app.GetUnit(msg.GetUid()); u != nil {
-		app.Logger.Infof("update unit %s (%s) %s", msg.GetUid(), msg.GetCallsign(), msg.GetType())
+		app.Logger.Debugf("update unit %s (%s) %s", msg.GetUid(), msg.GetCallsign(), msg.GetType())
 		u.Update(msg)
 	} else {
 		app.Logger.Infof("new unit %s (%s) %s", msg.GetUid(), msg.GetCallsign(), msg.GetType())
@@ -359,7 +359,7 @@ func (app *App) cleanOldUnits() {
 				toDelete = append(toDelete, key.(string))
 				app.Logger.Debugf("removing contact %s", key)
 			} else {
-				if val.IsOnline() && val.GetReceived().Add(lastSeenOfflineTimeout).Before(time.Now()) {
+				if val.IsOnline() && val.GetLastSeen().Add(lastSeenOfflineTimeout).Before(time.Now()) {
 					val.SetOffline()
 				}
 			}

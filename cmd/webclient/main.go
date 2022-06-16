@@ -126,7 +126,7 @@ func (app *App) Run(ctx context.Context) {
 			cancel()
 			app.Logger.Info("disconnected")
 		})
-		app.cl.SetClient()
+		app.cl.SetClient(app.uid)
 
 		go app.cl.Start()
 

@@ -19,11 +19,13 @@ import (
 
 const (
 	idleTimeout = 1 * time.Minute
+	pingTimeout = time.Second * 15
 )
 
 type ClientHandler struct {
 	conn         net.Conn
 	addr         string
+	uid          string
 	ver          int32
 	isClient     bool
 	uids         map[string]string
@@ -56,8 +58,9 @@ func NewClientHandler(name string, conn net.Conn, user string, logger *zap.Sugar
 	return c
 }
 
-func (h *ClientHandler) SetClient() {
+func (h *ClientHandler) SetClient(uid string) {
 	h.isClient = true
+	h.uid = uid
 }
 
 func (h *ClientHandler) GetName() string {
@@ -87,12 +90,29 @@ func (h *ClientHandler) IsActive() bool {
 }
 
 func (h *ClientHandler) Start() {
+	h.logger.Info("starting")
 	go h.handleWrite()
 	go h.handleRead()
+
+	if h.isClient {
+		go h.pinger()
+	}
 
 	if !h.isClient {
 		h.logger.Infof("send version msg")
 		_ = h.SendEvent(cotxml.VersionSupportMsg(1))
+	}
+}
+
+func (h *ClientHandler) pinger() {
+	for {
+		if !h.IsActive() {
+			return
+		}
+
+		time.Sleep(pingTimeout)
+		h.logger.Debugf("ping")
+		h.SendMsg(MakePing(h.uid))
 	}
 }
 
@@ -276,12 +296,12 @@ func (h *ClientHandler) handleWrite() {
 			h.stopHandle()
 			break
 		}
-		h.setActivity()
 	}
 }
 
 func (h *ClientHandler) stopHandle() {
 	if atomic.CompareAndSwapInt32(&h.active, 1, 0) {
+		h.logger.Info("stopping")
 		close(h.sendChan)
 
 		if h.conn != nil {
