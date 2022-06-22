@@ -47,6 +47,8 @@ type AppConfig struct {
 
 	sendAll bool
 	debug   bool
+
+	connections []string
 }
 
 type App struct {
@@ -113,6 +115,11 @@ func (app *App) Run() {
 
 	go app.MessageProcessor()
 	go app.cleaner()
+
+	for _, c := range app.config.connections {
+		app.Logger.Infof("start external connection to %s", c)
+		go app.ConnectTo(c)
+	}
 
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, syscall.SIGINT, syscall.SIGTERM, syscall.SIGKILL)
@@ -574,16 +581,17 @@ func main() {
 	}
 
 	config := &AppConfig{
-		tcpPort:   viper.GetInt("tcp_port"),
-		udpPort:   viper.GetInt("udp_port"),
-		adminAddr: viper.GetString("admin_addr"),
-		apiAddr:   viper.GetString("api_addr"),
-		sslPort:   viper.GetInt("ssl_port"),
-		logging:   *logging,
-		ca:        ca,
-		cert:      cert,
-		sendAll:   viper.GetBool("send_all"),
-		debug:     *debug,
+		tcpPort:     viper.GetInt("tcp_port"),
+		udpPort:     viper.GetInt("udp_port"),
+		adminAddr:   viper.GetString("admin_addr"),
+		apiAddr:     viper.GetString("api_addr"),
+		sslPort:     viper.GetInt("ssl_port"),
+		logging:     *logging,
+		ca:          ca,
+		cert:        cert,
+		sendAll:     viper.GetBool("send_all"),
+		debug:       *debug,
+		connections: viper.GetStringSlice("connections"),
 	}
 
 	app := NewApp(config, logger.Sugar())
