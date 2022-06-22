@@ -26,7 +26,10 @@ func (app *App) ListenTCP(addr string) (err error) {
 		}
 		app.Logger.Infof("TCP connection from %s", conn.RemoteAddr())
 		name := "tcp:" + conn.RemoteAddr().String()
-		h := cot.NewClientHandler(name, conn, "", app.Logger, app.NewCotMessage, app.RemoveHandlerCb)
+		h := cot.NewClientHandler(name, conn, &cot.HandlerConfig{
+			Logger:    app.Logger,
+			MessageCb: app.NewCotMessage,
+			RemoveCb:  app.RemoveHandlerCb})
 		app.handlers.Store(name, h)
 		h.Start()
 	}
@@ -66,7 +69,11 @@ func (app *App) ListenSSl(addr string) error {
 		user, serial := getUser(c1)
 		app.Logger.Infof("user: %s, sn: %s", user, serial)
 		name := "ssl:" + conn.RemoteAddr().String()
-		h := cot.NewClientHandler(name, conn, user, app.Logger, app.NewCotMessage, app.RemoveHandlerCb)
+		h := cot.NewClientHandler(name, conn, &cot.HandlerConfig{
+			Logger:    app.Logger,
+			User:      user,
+			MessageCb: app.NewCotMessage,
+			RemoveCb:  app.RemoveHandlerCb})
 		app.handlers.Store(name, h)
 		h.Start()
 	}

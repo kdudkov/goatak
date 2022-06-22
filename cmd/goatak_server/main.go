@@ -2,12 +2,14 @@ package main
 
 import (
 	"context"
+	"crypto"
 	"crypto/tls"
 	"crypto/x509"
 	"flag"
 	"fmt"
 	"io/ioutil"
 	"log"
+	"net"
 	"os"
 	"os/signal"
 	"strings"
@@ -17,6 +19,7 @@ import (
 
 	"github.com/kdudkov/goatak/cot"
 	"github.com/spf13/viper"
+	"software.sslmate.com/src/go-pkcs12"
 
 	"github.com/google/uuid"
 	"go.uber.org/zap"
@@ -43,6 +46,7 @@ type AppConfig struct {
 	cert    *tls.Certificate
 
 	sendAll bool
+	debug   bool
 }
 
 type App struct {
@@ -121,23 +125,119 @@ func (app *App) NewCotMessage(msg *cot.Msg) {
 	app.ch <- msg
 }
 
-func (app *App) AddHandler(uid string, cl *cot.ClientHandler) {
-	app.Logger.Infof("new client: %s %s", uid, cl.GetName())
-	app.handlers.Store(uid, cl)
-}
-
 func (app *App) RemoveHandlerCb(cl *cot.ClientHandler) {
-	cl.ForAllUid(func(uid string, callsign string) {
+	cl.ForAllUid(func(uid string, callsign string) bool {
 		if c := app.GetContact(uid); c != nil {
 			c.SetOffline()
 		}
-		app.SendToAllOther(cot.MakeOfflineMsg(uid, "a-f-G"), cl.GetName())
+		app.SendToAllOther(cot.MakeOfflineMsg(uid, ""), cl.GetName())
+		return true
 	})
 
 	if _, ok := app.handlers.Load(cl.GetName()); ok {
 		app.Logger.Infof("remove handler: %s", cl.GetName())
 		app.handlers.Delete(cl.GetName())
 	}
+}
+
+func (app *App) ConnectTo(addr string) {
+	name := "ext_" + addr
+	for app.ctx.Err() == nil {
+		conn, err := app.connect(addr)
+		if err != nil {
+			app.Logger.Errorf("connect error: %s", err)
+			time.Sleep(time.Second * 5)
+			continue
+		}
+
+		app.Logger.Info("connected")
+		wg := &sync.WaitGroup{}
+		wg.Add(1)
+
+		h := cot.NewClientHandler(name, conn, &cot.HandlerConfig{
+			Logger:    app.Logger,
+			MessageCb: app.NewCotMessage,
+			RemoveCb: func(ch *cot.ClientHandler) {
+				wg.Done()
+				app.handlers.Delete(name)
+				app.Logger.Info("disconnected")
+			},
+			IsClient: true,
+			Uid:      app.uid,
+		})
+
+		go h.Start()
+		app.handlers.Store(name, h)
+
+		wg.Wait()
+	}
+}
+
+func (app *App) connect(connectStr string) (net.Conn, error) {
+	parts := strings.Split(connectStr, ":")
+
+	if len(parts) != 3 {
+		return nil, fmt.Errorf("invalid connect string: %s", connectStr)
+	}
+	var tlsConn bool
+
+	switch parts[2] {
+	case "tcp":
+		tlsConn = false
+		break
+	case "ssl":
+		tlsConn = true
+		break
+	default:
+		return nil, fmt.Errorf("invalid connect string: %s", connectStr)
+	}
+
+	addr := fmt.Sprintf("%s:%s", parts[0], parts[1])
+	if tlsConn {
+		app.Logger.Infof("connecting with SSL to %s...", connectStr)
+		conn, err := tls.Dial("tcp", addr, app.getTlsConfig())
+		if err != nil {
+			return nil, err
+		}
+		app.Logger.Debugf("handshake...")
+
+		if err := conn.Handshake(); err != nil {
+			return conn, err
+		}
+		cs := conn.ConnectionState()
+
+		app.Logger.Infof("Handshake complete: %t", cs.HandshakeComplete)
+		app.Logger.Infof("version: %d", cs.Version)
+		for i, cert := range cs.PeerCertificates {
+			app.Logger.Infof("cert #%d subject: %s", i, cert.Subject.String())
+			app.Logger.Infof("cert #%d issuer: %s", i, cert.Issuer.String())
+			app.Logger.Infof("cert #%d dns_names: %s", i, strings.Join(cert.DNSNames, ","))
+		}
+		return conn, nil
+	} else {
+		app.Logger.Infof("connecting to %s...", connectStr)
+		return net.DialTimeout("tcp", addr, time.Second*3)
+	}
+}
+
+func (app *App) getTlsConfig() *tls.Config {
+	p12Data, err := ioutil.ReadFile(viper.GetString("ssl.cert"))
+	if err != nil {
+		app.Logger.Fatal(err)
+	}
+
+	key, cert, _, err := pkcs12.DecodeChain(p12Data, viper.GetString("ssl.password"))
+	if err != nil {
+		app.Logger.Fatal(err)
+	}
+
+	tlsCert := tls.Certificate{
+		Certificate: [][]byte{cert.Raw},
+		PrivateKey:  key.(crypto.PrivateKey),
+		Leaf:        cert,
+	}
+
+	return &tls.Config{Certificates: []tls.Certificate{tlsCert}, InsecureSkipVerify: true}
 }
 
 func (app *App) AddUnit(uid string, u *model.Unit) {
@@ -171,29 +271,29 @@ func (app *App) AddContact(addr string, u *model.Contact) {
 	app.units.Store(u.GetUID(), u)
 
 	callsing := u.GetCallsign()
-	app.SendTo(addr, cot.MakeChatMessage(u.GetUID(), callsing, "Welcome"))
+	time.AfterFunc(time.Second, func() {
+		app.SendTo(addr, cot.MakeChatMessage(u.GetUID(), callsing, "Welcome"))
 
-	if app.config.sendAll {
-		app.units.Range(func(key, value interface{}) bool {
-			switch v := value.(type) {
-			case *model.Unit:
-				app.SendTo(addr, v.GetMsg().TakMessage)
-			case *model.Contact:
-				if v.GetUID() != u.GetUID() {
+		if app.config.sendAll {
+			app.units.Range(func(key, value interface{}) bool {
+				switch v := value.(type) {
+				case *model.Unit:
 					app.SendTo(addr, v.GetMsg().TakMessage)
+				case *model.Contact:
+					if v.GetUID() != u.GetUID() {
+						app.SendTo(addr, v.GetMsg().TakMessage)
+					}
 				}
-			}
-			return true
-		})
-	}
+				return true
+			})
+		}
+	})
 }
 
 func (app *App) GetContact(uid string) *model.Contact {
 	if v, ok := app.units.Load(uid); ok {
 		if contact, ok := v.(*model.Contact); ok {
 			return contact
-		} else {
-			app.Logger.Errorf("invalid object for uid %s: %v", uid, v)
 		}
 	}
 	return nil
@@ -264,21 +364,22 @@ func (app *App) MessageProcessor() {
 			}
 		}
 
-		if msg.TakMessage.GetCotEvent().GetDetail().GetXmlDetail() != "" {
+		if app.config.debug && msg.TakMessage.GetCotEvent().GetDetail().GetXmlDetail() != "" {
 			app.Logger.Debugf("details: %s", msg.TakMessage.GetCotEvent().GetDetail().GetXmlDetail())
+		}
+
+		uid := msg.GetUid()
+		if strings.HasSuffix(uid, "-ping") {
+			uid = uid[:len(uid)-5]
+		}
+		if c := app.GetContact(uid); c != nil {
+			c.Update(nil)
 		}
 
 		switch {
 		case msg.GetType() == "t-x-c-t":
 			// ping
 			app.Logger.Debugf("ping from %s", msg.GetUid())
-			uid := msg.GetUid()
-			if strings.HasSuffix(uid, "-ping") {
-				uid = uid[:len(uid)-5]
-			}
-			if c := app.GetContact(uid); c != nil {
-				c.Update(nil)
-			}
 			app.SendTo(msg.From, cot.MakePong())
 			break
 		case msg.GetType() == "t-x-d-d":
@@ -302,9 +403,6 @@ func (app *App) MessageProcessor() {
 			} else {
 				app.ProcessUnit(msg)
 			}
-			// b-m-p-s-p-i digital pointer
-			// b-m-p-s-m point
-			// b-m-r route
 		case strings.HasPrefix(msg.GetType(), "b-"):
 			app.Logger.Debugf("point %s (%s) stale %s",
 				msg.GetUid(),
@@ -368,7 +466,7 @@ func (app *App) cleanOldUnits() {
 	})
 
 	if len(toDelete) > 0 {
-		app.Logger.Infof("%d records are stale", len(toDelete))
+		app.Logger.Debugf("%d records are stale", len(toDelete))
 	}
 	for _, uid := range toDelete {
 		app.units.Delete(uid)
@@ -485,6 +583,7 @@ func main() {
 		ca:        ca,
 		cert:      cert,
 		sendAll:   viper.GetBool("send_all"),
+		debug:     *debug,
 	}
 
 	app := NewApp(config, logger.Sugar())

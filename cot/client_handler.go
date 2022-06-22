@@ -22,45 +22,53 @@ const (
 	pingTimeout = time.Second * 15
 )
 
+type HandlerConfig struct {
+	User      string
+	Uid       string
+	IsClient  bool
+	MessageCb func(msg *Msg)
+	RemoveCb  func(ch *ClientHandler)
+	Logger    *zap.SugaredLogger
+}
+
 type ClientHandler struct {
 	conn         net.Conn
 	addr         string
 	uid          string
 	ver          int32
 	isClient     bool
-	uids         map[string]string
+	uids         sync.Map
 	lastActivity time.Time
 	closeTimer   *time.Timer
 	sendChan     chan []byte
 	active       int32
 	user         string
-	mx           sync.RWMutex
-	cotProcessor func(msg *Msg)
+	messageCb    func(msg *Msg)
 	removeCb     func(ch *ClientHandler)
 	logger       *zap.SugaredLogger
 }
 
-func NewClientHandler(name string, conn net.Conn, user string, logger *zap.SugaredLogger, fn func(msg *Msg), removeCb func(ch *ClientHandler)) *ClientHandler {
+func NewClientHandler(name string, conn net.Conn, config *HandlerConfig) *ClientHandler {
 	c := &ClientHandler{
-		addr:         name,
-		conn:         conn,
-		ver:          0,
-		sendChan:     make(chan []byte, 10),
-		active:       1,
-		user:         user,
-		uids:         make(map[string]string),
-		mx:           sync.RWMutex{},
-		logger:       logger.Named("client " + name),
-		cotProcessor: fn,
-		removeCb:     removeCb,
+		addr:     name,
+		conn:     conn,
+		ver:      0,
+		sendChan: make(chan []byte, 10),
+		active:   1,
+		uids:     sync.Map{},
 	}
 
+	if config != nil {
+		c.user = config.User
+		c.uid = config.Uid
+		if config.Logger != nil {
+			c.logger = config.Logger.Named("client " + name)
+		}
+		c.isClient = config.IsClient
+		c.messageCb = config.MessageCb
+		c.removeCb = config.RemoveCb
+	}
 	return c
-}
-
-func (h *ClientHandler) SetClient(uid string) {
-	h.isClient = true
-	h.uid = uid
 }
 
 func (h *ClientHandler) GetName() string {
@@ -68,20 +76,15 @@ func (h *ClientHandler) GetName() string {
 }
 
 func (h *ClientHandler) GetUser() string {
-	h.mx.RLock()
-	defer h.mx.RUnlock()
-
 	return h.user
 }
 
 func (h *ClientHandler) GetUids() map[string]string {
-	h.mx.RLock()
-	defer h.mx.RUnlock()
-
 	res := make(map[string]string)
-	for k, v := range h.uids {
-		res[k] = v
-	}
+	h.uids.Range(func(key, value interface{}) bool {
+		res[key.(string)] = value.(string)
+		return true
+	})
 	return res
 }
 
@@ -112,7 +115,9 @@ func (h *ClientHandler) pinger() {
 
 		time.Sleep(pingTimeout)
 		h.logger.Debugf("ping")
-		h.SendMsg(MakePing(h.uid))
+		if err := h.SendMsg(MakePing(h.uid)); err != nil {
+			h.logger.Debugf("sendMsg error: %v", err)
+		}
 	}
 }
 
@@ -160,11 +165,17 @@ func (h *ClientHandler) handleRead() {
 		}
 
 		h.checkContact(cotmsg)
-		h.cotProcessor(cotmsg)
-	}
 
-	if h.closeTimer != nil {
-		h.closeTimer.Stop()
+		if cotmsg.GetType() == "t-x-c-t-r" {
+			h.logger.Debug("pong")
+			continue
+		}
+
+		h.messageCb(cotmsg)
+
+		if h.closeTimer != nil {
+			h.closeTimer.Stop()
+		}
 	}
 }
 
@@ -251,42 +262,36 @@ func (h *ClientHandler) GetVersion() int32 {
 
 func (h *ClientHandler) checkContact(msg *Msg) {
 	if msg.IsContact() {
-
 		uid := msg.TakMessage.CotEvent.Uid
 		if strings.HasSuffix(uid, "-ping") {
 			uid = uid[:len(uid)-5]
 		}
-
-		h.AddUid(uid, msg.GetCallsign())
+		h.uids.Store(uid, msg.GetCallsign())
 	}
-}
 
-func (h *ClientHandler) AddUid(uid, callsign string) {
-	h.mx.Lock()
-	defer h.mx.Unlock()
-	h.uids[uid] = callsign
+	if msg.GetType() == "t-x-d-d" && msg.Detail != nil && msg.Detail.HasChild("link") {
+		uid := msg.Detail.GetFirstChild("link").GetAttr("uid")
+		h.uids.Delete(uid)
+	}
 }
 
 func (h *ClientHandler) GetUid(callsign string) string {
-	h.mx.RLock()
-	defer h.mx.RUnlock()
-
-	for k, v := range h.uids {
-		if v == callsign {
-			return k
+	res := ""
+	h.uids.Range(func(key, value interface{}) bool {
+		if callsign == value.(string) {
+			res = key.(string)
+			return false
 		}
-	}
+		return true
+	})
 
-	return ""
+	return res
 }
 
-func (h *ClientHandler) ForAllUid(fn func(string, string)) {
-	h.mx.RLock()
-	defer h.mx.RUnlock()
-
-	for k, v := range h.uids {
-		fn(k, v)
-	}
+func (h *ClientHandler) ForAllUid(fn func(string, string) bool) {
+	h.uids.Range(func(key, value interface{}) bool {
+		return fn(key.(string), value.(string))
+	})
 }
 
 func (h *ClientHandler) handleWrite() {
@@ -327,8 +332,8 @@ func (h *ClientHandler) closeIdle() {
 	idle := time.Now().Sub(h.lastActivity)
 
 	if idle >= idleTimeout {
-		h.logger.Debugf("closing connection due to idle timeout: %v", idle)
-		h.conn.Close()
+		h.logger.Infof("closing connection due to idle timeout: %v", idle)
+		_ = h.conn.Close()
 	}
 }
 

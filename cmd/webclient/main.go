@@ -121,15 +121,19 @@ func (app *App) Run(ctx context.Context) {
 		wg.Add(1)
 		ctx1, cancel := context.WithCancel(ctx)
 
-		app.cl = cot.NewClientHandler(app.addr, conn, "", app.Logger, app.ProcessEvent, func(ch *cot.ClientHandler) {
-			wg.Done()
-			cancel()
-			app.Logger.Info("disconnected")
+		app.cl = cot.NewClientHandler(app.addr, conn, &cot.HandlerConfig{
+			Logger:    app.Logger,
+			MessageCb: app.ProcessEvent,
+			RemoveCb: func(ch *cot.ClientHandler) {
+				wg.Done()
+				cancel()
+				app.Logger.Info("disconnected")
+			},
+			IsClient: true,
+			Uid:      app.uid,
 		})
-		app.cl.SetClient(app.uid)
 
 		go app.cl.Start()
-
 		go app.myPosSender(ctx1, wg)
 
 		wg.Wait()
@@ -171,14 +175,13 @@ func (app *App) SendMsg(msg *cotproto.TakMessage) {
 }
 
 func (app *App) ProcessEvent(msg *cot.Msg) {
+	if c := app.GetContact(msg.GetUid()); c != nil {
+		c.Update(nil)
+	}
+
 	switch {
 	case msg.GetType() == "t-x-c-t":
 		app.Logger.Debugf("ping from %s", msg.GetUid())
-		if c := app.GetContact(msg.GetUid()); c != nil {
-			c.Update(nil)
-		}
-	case msg.GetType() == "t-x-c-t-r":
-		app.Logger.Infof("pong")
 	case msg.GetType() == "t-x-d-d":
 		app.removeByLink(msg)
 	case msg.IsChat():
