@@ -12,9 +12,10 @@ import (
 	"time"
 
 	"github.com/golang/protobuf/proto"
+	"go.uber.org/zap"
+
 	"github.com/kdudkov/goatak/cotproto"
 	"github.com/kdudkov/goatak/cotxml"
-	"go.uber.org/zap"
 )
 
 const (
@@ -164,8 +165,29 @@ func (h *ClientHandler) handleRead() {
 			Detail:     d,
 		}
 
-		h.checkContact(cotmsg)
+		// add new contact uid
+		if cotmsg.IsContact() {
+			uid := msg.GetCotEvent().GetUid()
+			if strings.HasSuffix(uid, "-ping") {
+				uid = uid[:len(uid)-5]
+			}
+			h.uids.Store(uid, cotmsg.GetCallsign())
+		}
 
+		// remove contact
+		if cotmsg.GetType() == "t-x-d-d" && cotmsg.Detail != nil && cotmsg.Detail.HasChild("link") {
+			uid := cotmsg.Detail.GetFirstChild("link").GetAttr("uid")
+			h.uids.Delete(uid)
+		}
+
+		// ping
+		if cotmsg.GetType() == "t-x-c-t" {
+			if err := h.SendMsg(MakePong()); err != nil {
+				h.logger.Errorf("SendMsg error: %v", err)
+			}
+		}
+
+		// pong
 		if cotmsg.GetType() == "t-x-c-t-r" {
 			h.logger.Debug("pong")
 			continue

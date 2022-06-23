@@ -375,19 +375,17 @@ func (app *App) MessageProcessor() {
 			app.Logger.Debugf("details: %s", msg.TakMessage.GetCotEvent().GetDetail().GetXmlDetail())
 		}
 
-		uid := msg.GetUid()
-		if strings.HasSuffix(uid, "-ping") {
-			uid = uid[:len(uid)-5]
-		}
-		if c := app.GetContact(uid); c != nil {
-			c.Update(nil)
-		}
-
 		switch {
 		case msg.GetType() == "t-x-c-t":
 			// ping
 			app.Logger.Debugf("ping from %s", msg.GetUid())
-			app.SendTo(msg.From, cot.MakePong())
+			uid := msg.GetUid()
+			if strings.HasSuffix(uid, "-ping") {
+				uid = uid[:len(uid)-5]
+			}
+			if c := app.GetContact(uid); c != nil {
+				c.Update(nil)
+			}
 			break
 		case msg.GetType() == "t-x-d-d":
 			app.removeByLink(msg)
