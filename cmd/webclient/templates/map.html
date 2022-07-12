@@ -230,16 +230,18 @@
                             </div>
                         </div>
                         <div class="form-group row my-2 mx-2" v-if="form_unit.category == 'point'">
-                            <label class="my-1 mr-2 col-6" for="ed-type">Type</label>
-                            <select class="form-select my-1 mr-sm-2" id="ed-type" v-model="form_unit.type">
-                                <option value="b-m-p-s-m">Spot</option>
-                                <option value="b-m-p-w-GOTO">WayPt</option>
-                                <option value="b-m-p-s-p-op">OP</option>
-                                <option value="b-m-p-a">Aim</option>
-                            </select>
+                            <div class="col-12">
+                                <label class="my-1 mr-2 col-6" for="ed-type">Type</label>
+                                <select class="form-select my-1 mr-sm-2" id="ed-type" v-model="form_unit.type">
+                                    <option value="b-m-p-s-m">Spot</option>
+                                    <option value="b-m-p-w-GOTO">WayPt</option>
+                                    <option value="b-m-p-s-p-op">OP</option>
+                                    <option value="b-m-p-a">Aim</option>
+                                </select>
+                            </div>
                         </div>
                         <div class="form-group row my-2 mx-2" v-if="form_unit.category == 'unit'">
-                            <div class="col-6">
+                            <div class="col-12">
                                 <label class="my-1 mr-2 col-6" for="ed-aff">Affilation</label>
                                 <select class="form-select my-1 mr-sm-2" id="ed-aff" v-model="form_unit.aff">
                                     <option value="h">Hostile</option>
@@ -249,14 +251,28 @@
                                     <option value="s">Suspect</option>
                                 </select>
                             </div>
-                            <div class="col-6">
-                                <label class="my-1 mr-2 col-6" for="ed-subtype">Type</label>
-                                <select class="form-select my-1 mr-sm-2" id="ed-subtype" v-model="form_unit.subtype">
-                                    <option value="G">Ground</option>
-                                    <option value="G-U">Ground unit</option>
-                                    <option value="G-U-C">Ground combat unit</option>
-                                    <option value="G-U-C-I">Troops</option>
-                                </select>
+                            <div class="col-12 row my-1 mr-sm-2" v-if="form_unit.root_sidc !== null">
+                                <label class="my-1 mr-2" for="ed-subtype">Type</label>
+                                <div class="col-1">
+                                    <button type="button" class="btn btn-secondary"
+                                            v-if="form_unit.root_sidc.code !== ''"
+                                            v-on:click="setFormRootSidc(getRootSidc(form_unit.root_sidc.code).code)">
+                                        &lt;
+                                    </button>
+                                </div>
+                                <div class="col-10">
+                                    <select class="form-select" id="ed-subtype"
+                                            v-model="form_unit.subtype">
+                                        <option v-for="t in form_unit.root_sidc.next" :value="t.code">{{t.name}}
+                                        </option>
+                                    </select>
+                                </div>
+                                <div class="col-1">
+                                    <button type="button" class="btn btn-secondary"
+                                            v-if="getSidc(form_unit.subtype).next != null"
+                                            v-on:click="setFormRootSidc(form_unit.subtype)">&gt;
+                                    </button>
+                                </div>
                             </div>
                         </div>
                         <div class="form-group row my-2 mx-2">

@@ -29,6 +29,7 @@ func NewHttp(app *App, address string) *air.Air {
 
 	srv.GET("/", getIndexHandler(app, renderer))
 	srv.GET("/config", getConfigHandler(app))
+	srv.GET("/types", getTypes)
 	srv.POST("/dp", getDpHandler(app))
 	srv.POST("/pos", getPosHandler(app))
 
@@ -209,4 +210,8 @@ func getStringParam(req *air.Request, name string) string {
 	}
 
 	return p.Value().String()
+}
+
+func getTypes(req *air.Request, res *air.Response) error {
+	return res.WriteJSON(cot.Root)
 }

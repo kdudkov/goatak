@@ -267,8 +267,6 @@ func (app *App) GetContact(uid string) *model.Contact {
 	if v, ok := app.units.Load(uid); ok {
 		if contact, ok := v.(*model.Contact); ok {
 			return contact
-		} else {
-			app.Logger.Warnf("invalid object for uid %s: %s", uid, v)
 		}
 	}
 	return nil

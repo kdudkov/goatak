@@ -88,6 +88,7 @@ let app = new Vue({
         point_num: 1,
         coord_format: "d",
         form_unit: {},
+        types: null,
     },
 
     mounted() {
@@ -173,6 +174,16 @@ let app = new Vue({
                     vm.config = data;
                     if (ne(vm.me)) {
                         vm.me.setLatLng([data.lat, data.lon]);
+                    }
+
+                    if (ne(vm.config.callsign)) {
+                        fetch('/types')
+                            .then(function (response) {
+                                return response.json()
+                            })
+                            .then(function (data) {
+                                vm.types = data;
+                            });
                     }
                 });
 
@@ -286,35 +297,6 @@ let app = new Vue({
             if (this.current_unit_uid == null || !this.units.has(this.current_unit_uid)) return null;
             return this.units.get(this.current_unit_uid);
         },
-        formFromUnit: function (u) {
-            if (u == null) {
-                this.form_unit = {
-                    callsign: "",
-                    category: "",
-                    type: "",
-                    subtype: "",
-                    aff: "",
-                    text: "",
-                    send: false,
-                };
-            } else {
-                this.form_unit = {
-                    callsign: u.callsign,
-                    category: u.category,
-                    type: u.type,
-                    subtype: "G",
-                    aff: "h",
-                    text: u.text,
-                    send: u.send,
-                };
-
-                if (u.type.startsWith('a-')) {
-                    this.form_unit.type = 'a';
-                    this.form_unit.aff = u.type.substring(2, 3);
-                    this.form_unit.subtype = u.type.substring(4);
-                }
-            }
-        },
         byCategory: function (s) {
             let arr = Array.from(this.units.values()).filter(function (u) {
                 return u.category === s
@@ -419,6 +401,123 @@ let app = new Vue({
                 fetch("/pos", requestOptions);
             }
         },
+        formFromUnit: function (u) {
+            if (u == null) {
+                this.form_unit = {
+                    callsign: "",
+                    category: "",
+                    type: "",
+                    subtype: "",
+                    aff: "",
+                    text: "",
+                    send: false,
+                    root_sidc: null,
+                };
+            } else {
+                this.form_unit = {
+                    callsign: u.callsign,
+                    category: u.category,
+                    type: u.type,
+                    subtype: "G",
+                    aff: "h",
+                    text: u.text,
+                    send: u.send,
+                    root_sidc: this.types,
+                };
+
+                if (u.type.startsWith('a-')) {
+                    this.form_unit.type = 'b-m-p-s-m';
+                    this.form_unit.aff = u.type.substring(2, 3);
+                    this.form_unit.subtype = u.type.substring(4);
+                    this.form_unit.root_sidc = this.getRootSidc(u.type.substring(4))
+                }
+            }
+        },
+        saveEditForm: function () {
+            let u = this.getCurrentUnit();
+            if (!ne(u)) return;
+
+            u.callsign = this.form_unit.callsign;
+            u.category = this.form_unit.category;
+            u.send = this.form_unit.send;
+            u.text = this.form_unit.text;
+
+            if (this.form_unit.category === "unit") {
+                u.type = ["a", this.form_unit.aff, this.form_unit.subtype].join('-');
+                u.sidc = this.sidcFromType(u.type);
+            } else {
+                u.type = this.form_unit.type;
+                u.sidc = "";
+            }
+            this.updateMarker(u, false, true);
+
+            const requestOptions = {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify(this.cleanUnit(u))
+            };
+            fetch("/unit", requestOptions)
+                .then(function (response) {
+                    return response.json()
+                })
+                .then(this.processUnits);
+        },
+        getRootSidc: function (s) {
+            let curr = this.types;
+
+            if (curr.next === undefined) {
+                return null;
+            }
+
+            for (; ;) {
+                for (const k of curr.next) {
+                    if (k.code === s) {
+                        return curr;
+                    }
+
+                    if (s.startsWith(k.code)) {
+                        curr = k;
+                        break
+                    }
+                }
+            }
+            return null;
+        },
+        getSidc: function (s) {
+            let curr = this.types;
+
+            if (s === "") {
+                return curr;
+            }
+
+            if (curr.next === undefined) {
+                return null;
+            }
+
+            for (; ;) {
+                for (const k of curr.next) {
+                    if (k.code === s) {
+                        return k;
+                    }
+
+                    if (s.startsWith(k.code)) {
+                        curr = k;
+                        break
+                    }
+                }
+            }
+            return null;
+        },
+        setFormRootSidc: function (s) {
+            let t = this.getSidc(s);
+            if (t != null && t.next != null) {
+                this.form_unit.root_sidc = t;
+                this.form_unit.subtype = t.next[0].code;
+            } else {
+                this.form_unit.root_sidc = this.types;
+                this.form_unit.subtype = this.types.next[0].code;
+            }
+        },
         mouseMove: function (e) {
             this.coords = e.latlng;
         },
@@ -513,35 +612,6 @@ let app = new Vue({
                 }
             }
             return res;
-        },
-        saveEditForm: function () {
-            let u = this.getCurrentUnit();
-            if (!ne(u)) return;
-
-            u.callsign = this.form_unit.callsign;
-            u.category = this.form_unit.category;
-            u.send = this.form_unit.send;
-            u.text = this.form_unit.text;
-
-            if (this.form_unit.category === "unit") {
-                u.type = ["a", this.form_unit.aff, this.form_unit.subtype].join('-');
-                u.sidc = this.sidcFromType(u.type);
-            } else {
-                u.type = this.form_unit.type;
-                u.sidc = "";
-            }
-            this.updateMarker(u, false, true);
-
-            const requestOptions = {
-                method: "POST",
-                headers: {"Content-Type": "application/json"},
-                body: JSON.stringify(this.cleanUnit(u))
-            };
-            fetch("/unit", requestOptions)
-                .then(function (response) {
-                    return response.json()
-                })
-                .then(this.processUnits);
         },
         cancelEditForm: function () {
             this.formFromUnit(this.getCurrentUnit());
