@@ -105,6 +105,8 @@ func (i Item) ToWeb() *WebUnit {
 		Team:      evt.GetDetail().GetGroup().GetName(),
 		Role:      evt.GetDetail().GetGroup().GetRole(),
 		Sidc:      getSIDC(i.type_),
+		Local:     i.local,
+		Send:      i.send,
 	}
 
 	w.Text, _ = i.msg.Detail.GetChildValue("remarks")
