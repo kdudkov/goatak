@@ -470,6 +470,7 @@ let app = new Vue({
             }
 
             for (; ;) {
+                let found = false;
                 for (const k of curr.next) {
                     if (k.code === s) {
                         return curr;
@@ -477,11 +478,14 @@ let app = new Vue({
 
                     if (s.startsWith(k.code)) {
                         curr = k;
+                        found = true;
                         break
                     }
                 }
+                if (!found) {
+                    return null;
+                }
             }
-            return null;
         },
         getSidc: function (s) {
             let curr = this.types;
