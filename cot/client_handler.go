@@ -15,7 +15,6 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/kdudkov/goatak/cotproto"
-	"github.com/kdudkov/goatak/cotxml"
 )
 
 const (
@@ -104,7 +103,7 @@ func (h *ClientHandler) Start() {
 
 	if !h.isClient {
 		h.logger.Infof("send version msg")
-		_ = h.SendEvent(cotxml.VersionSupportMsg(1))
+		_ = h.SendEvent(VersionSupportMsg(1))
 	}
 }
 
@@ -134,7 +133,7 @@ func (h *ClientHandler) handleRead() {
 		}
 
 		var msg *cotproto.TakMessage
-		var d *XMLDetails
+		var d *Node
 		var err error
 
 		switch h.GetVersion() {
@@ -175,8 +174,8 @@ func (h *ClientHandler) handleRead() {
 		}
 
 		// remove contact
-		if cotmsg.GetType() == "t-x-d-d" && cotmsg.Detail != nil && cotmsg.Detail.HasChild("link") {
-			uid := cotmsg.Detail.GetFirstChild("link").GetAttr("uid")
+		if cotmsg.GetType() == "t-x-d-d" && cotmsg.Detail != nil && cotmsg.Detail.Has("link") {
+			uid := cotmsg.Detail.GetFirst("link").GetAttr("uid")
 			h.uids.Delete(uid)
 		}
 
@@ -201,7 +200,7 @@ func (h *ClientHandler) handleRead() {
 	}
 }
 
-func (h *ClientHandler) processXMLRead(er *TagReader) (*cotproto.TakMessage, *XMLDetails, error) {
+func (h *ClientHandler) processXMLRead(er *TagReader) (*cotproto.TakMessage, *Node, error) {
 	tag, dat, err := er.ReadTag()
 	if err != nil {
 		return nil, nil, err
@@ -216,15 +215,15 @@ func (h *ClientHandler) processXMLRead(er *TagReader) (*cotproto.TakMessage, *XM
 		return nil, nil, nil
 	}
 
-	ev := &cotxml.Event{}
+	ev := &Event{}
 	if err := xml.Unmarshal(dat, ev); err != nil {
 		return nil, nil, fmt.Errorf("xml decode error: %v, data: %s", err, string(dat))
 	}
 
 	if ev.IsTakControlRequest() {
-		ver := ev.Detail.TakControl.TakRequest.Version
-		if ver == 1 {
-			if err := h.SendEvent(cotxml.ProtoChangeOkMsg()); err == nil {
+		ver := ev.Detail.GetFirst("TakControl").GetFirst("TakRequest").GetAttr("version")
+		if ver == "1" {
+			if err := h.SendEvent(ProtoChangeOkMsg()); err == nil {
 				h.logger.Infof("client %s switch to v.1", h.addr)
 				h.SetVersion(1)
 				return nil, nil, nil
@@ -234,20 +233,22 @@ func (h *ClientHandler) processXMLRead(er *TagReader) (*cotproto.TakMessage, *XM
 		}
 	}
 
-	if h.isClient && ev.Detail.TakControl != nil && ev.Detail.TakControl.TakProtocolSupport != nil {
-		v := ev.Detail.TakControl.TakProtocolSupport.Version
-		h.logger.Infof("server supports protocol v%d", v)
-		if v >= 1 {
-			_ = h.SendEvent(cotxml.VersionReqMsg(1))
+	if h.isClient && ev.Detail.GetFirst("TakControl").Has("TakProtocolSupport") {
+		v := ev.Detail.GetFirst("TakControl").GetFirst("TakProtocolSupport").GetAttr("version")
+		h.logger.Infof("server supports protocol v%s", v)
+		if v == "1" {
+			_ = h.SendEvent(VersionReqMsg(1))
 		}
 		return nil, nil, nil
 	}
 
-	if h.isClient && ev.Detail.TakControl != nil && ev.Detail.TakControl.TakResponce != nil {
-		ok := ev.Detail.TakControl.TakResponce.Status
-		h.logger.Infof("server switches to v1: %v", ok)
-		if ok {
+	if h.isClient && ev.Detail.GetFirst("TakControl").Has("TakResponse") {
+		status := ev.Detail.GetFirst("TakControl").GetFirst("TakResponse").GetAttr("status")
+		h.logger.Infof("server switches to v1: %v", status)
+		if status == "true" {
 			h.SetVersion(1)
+		} else {
+			h.logger.Errorf("got TakResponce with status %s: %s", status, ev.Detail)
 		}
 		return nil, nil, nil
 	}
@@ -257,7 +258,7 @@ func (h *ClientHandler) processXMLRead(er *TagReader) (*cotproto.TakMessage, *XM
 	return msg, d, nil
 }
 
-func (h *ClientHandler) processProtoRead(r *ProtoReader) (*cotproto.TakMessage, *XMLDetails, error) {
+func (h *ClientHandler) processProtoRead(r *ProtoReader) (*cotproto.TakMessage, *Node, error) {
 	buf, err := r.ReadProtoBuf()
 	if err != nil {
 		return nil, nil, err
@@ -268,7 +269,7 @@ func (h *ClientHandler) processProtoRead(r *ProtoReader) (*cotproto.TakMessage, 
 		return nil, nil, fmt.Errorf("failed to decode protobuf: %v", err)
 	}
 
-	var d *XMLDetails
+	var d *Node
 	d, err = DetailsFromString(msg.GetCotEvent().GetDetail().GetXmlDetail())
 
 	return msg, d, err
@@ -291,8 +292,8 @@ func (h *ClientHandler) checkContact(msg *Msg) {
 		h.uids.Store(uid, msg.GetCallsign())
 	}
 
-	if msg.GetType() == "t-x-d-d" && msg.Detail != nil && msg.Detail.HasChild("link") {
-		uid := msg.Detail.GetFirstChild("link").GetAttr("uid")
+	if msg.GetType() == "t-x-d-d" && msg.Detail != nil && msg.Detail.Has("link") {
+		uid := msg.Detail.GetFirst("link").GetAttr("uid")
 		h.uids.Delete(uid)
 	}
 }
@@ -359,7 +360,7 @@ func (h *ClientHandler) closeIdle() {
 	}
 }
 
-func (h *ClientHandler) SendEvent(evt *cotxml.Event) error {
+func (h *ClientHandler) SendEvent(evt *Event) error {
 	if !h.IsActive() {
 		return nil
 	}

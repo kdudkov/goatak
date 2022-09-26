@@ -8,15 +8,15 @@ import (
 	"strings"
 
 	"github.com/kdudkov/goatak/cotproto"
-	"github.com/kdudkov/goatak/cotxml"
 )
 
-func ProtoToEvent(msg *cotproto.TakMessage) *cotxml.Event {
+func ProtoToEvent(msg *cotproto.TakMessage) *Event {
 	if msg == nil || msg.CotEvent == nil {
 		return nil
 	}
 
-	ev := &cotxml.Event{
+	ev := &Event{
+		XMLName: xml.Name{Local: "event"},
 		Version: "2.0",
 		Type:    msg.CotEvent.Type,
 		Uid:     msg.CotEvent.Uid,
@@ -24,13 +24,14 @@ func ProtoToEvent(msg *cotproto.TakMessage) *cotxml.Event {
 		Start:   TimeFromMillis(msg.CotEvent.StartTime),
 		Stale:   TimeFromMillis(msg.CotEvent.StaleTime),
 		How:     msg.CotEvent.How,
-		Point: cotxml.Point{
+		Point: Point{
 			Lat: msg.CotEvent.Lat,
 			Lon: msg.CotEvent.Lon,
 			Hae: msg.CotEvent.Hae,
 			Ce:  msg.CotEvent.Ce,
 			Le:  msg.CotEvent.Le,
 		},
+		Detail: NewXmlDetails(),
 	}
 
 	if d := msg.CotEvent.Detail; d != nil {
@@ -38,56 +39,60 @@ func ProtoToEvent(msg *cotproto.TakMessage) *cotxml.Event {
 			b := bytes.Buffer{}
 			b.WriteString("<detail>" + d.XmlDetail + "</detail>")
 			xml.NewDecoder(&b).Decode(&ev.Detail)
+			ev.Detail.Content = ""
 		}
 
 		if d.Contact != nil {
-			ev.Detail.Contact = &cotxml.Contact{
-				Endpoint: d.Contact.Endpoint,
-				Callsign: d.Contact.Callsign,
+			attrs := map[string]string{
+				"endpoint": d.Contact.Endpoint,
+				"callsign": d.Contact.Callsign,
 			}
+			ev.Detail.AddChild("contact", attrs, "")
 		}
 
 		if d.Status != nil {
-			ev.Detail.Status = &cotxml.Status{
-				Battery: strconv.Itoa(int(d.Status.Battery)),
-			}
+			ev.Detail.AddChild("status", map[string]string{"battery": strconv.Itoa(int(d.Status.Battery))}, "")
 		}
 
 		if d.Track != nil {
-			ev.Detail.Track = &cotxml.Track{
-				Course: fmt.Sprintf("%f", d.Track.Course),
-				Speed:  fmt.Sprintf("%f", d.Track.Speed),
+			attrs := map[string]string{
+				"course": fmt.Sprintf("%f", d.Track.Course),
+				"speed":  fmt.Sprintf("%f", d.Track.Speed),
 			}
+			ev.Detail.AddChild("__track", attrs, "")
 		}
 
 		if d.Takv != nil {
-			ev.Detail.TakVersion = &cotxml.TakVersion{
-				Os:       d.Takv.Os,
-				Version:  d.Takv.Version,
-				Device:   d.Takv.Device,
-				Platform: d.Takv.Platform,
+			attrs := map[string]string{
+				"os":       d.Takv.Os,
+				"version":  d.Takv.Version,
+				"device":   d.Takv.Device,
+				"platform": d.Takv.Platform,
 			}
+			ev.Detail.AddChild("takv", attrs, "")
 		}
 
 		if d.Group != nil {
-			ev.Detail.Group = &cotxml.Group{
-				Name: d.Group.Name,
-				Role: d.Group.Role,
+			attrs := map[string]string{
+				"name": d.Group.Name,
+				"role": d.Group.Role,
 			}
+			ev.Detail.AddChild("__group", attrs, "")
 		}
 
 		if d.PrecisionLocation != nil {
-			ev.Detail.PrecisionLocation = &cotxml.Precisionlocation{
-				Altsrc:      d.PrecisionLocation.Altsrc,
-				Geopointsrc: d.PrecisionLocation.Geopointsrc,
+			attrs := map[string]string{
+				"altsrc":      d.PrecisionLocation.Altsrc,
+				"geopointsrc": d.PrecisionLocation.Geopointsrc,
 			}
+			ev.Detail.AddChild("precisionlocation", attrs, "")
 		}
 	}
 
 	return ev
 }
 
-func EventToProto(ev *cotxml.Event) (*cotproto.TakMessage, *XMLDetails) {
+func EventToProto(ev *Event) (*cotproto.TakMessage, *Node) {
 	if ev == nil {
 		return nil, nil
 	}
@@ -107,55 +112,55 @@ func EventToProto(ev *cotxml.Event) (*cotproto.TakMessage, *XMLDetails) {
 		Detail:    &cotproto.Detail{},
 	}}
 
-	if c := ev.Detail.Contact; c != nil {
+	if c := ev.Detail.GetFirst("contact"); c != nil {
 		msg.CotEvent.Detail.Contact = &cotproto.Contact{
-			Endpoint: c.Endpoint,
-			Callsign: c.Callsign,
+			Endpoint: c.GetAttr("endpoint"),
+			Callsign: c.GetAttr("callsign"),
 		}
 	}
 
-	if c := ev.Detail.Group; c != nil {
+	if c := ev.Detail.GetFirst("__group"); c != nil {
 		msg.CotEvent.Detail.Group = &cotproto.Group{
-			Name: c.Name,
-			Role: c.Role,
+			Name: c.GetAttr("name"),
+			Role: c.GetAttr("role"),
 		}
 	}
 
-	if c := ev.Detail.PrecisionLocation; c != nil {
+	if c := ev.Detail.GetFirst("precisionlocation"); c != nil {
 		msg.CotEvent.Detail.PrecisionLocation = &cotproto.PrecisionLocation{
-			Geopointsrc: c.Geopointsrc,
-			Altsrc:      c.Altsrc,
+			Altsrc:      c.GetAttr("altsrc"),
+			Geopointsrc: c.GetAttr("geopointsrc"),
 		}
 	}
 
-	if c := ev.Detail.Status; c != nil {
-		if n, err := strconv.Atoi(c.Battery); err == nil {
+	if c := ev.Detail.GetFirst("status"); c != nil {
+		if n, err := strconv.Atoi(c.GetAttr("battery")); err == nil {
 			msg.CotEvent.Detail.Status = &cotproto.Status{Battery: uint32(n)}
 		}
 	}
 
-	if c := ev.Detail.TakVersion; c != nil {
+	if c := ev.Detail.GetFirst("takv"); c != nil {
 		msg.CotEvent.Detail.Takv = &cotproto.Takv{
-			Device:   c.Device,
-			Platform: c.Platform,
-			Os:       c.Os,
-			Version:  c.Version,
+			Device:   c.GetAttr("device"),
+			Platform: c.GetAttr("platform"),
+			Os:       c.GetAttr("os"),
+			Version:  c.GetAttr("version"),
 		}
 	}
 
-	if c := ev.Detail.Track; c != nil {
+	if c := ev.Detail.GetFirst("__track"); c != nil {
 		msg.CotEvent.Detail.Track = &cotproto.Track{
-			Speed:  getFloat(c.Speed),
-			Course: getFloat(c.Course),
+			Speed:  getFloat(c.GetAttr("speed")),
+			Course: getFloat(c.GetAttr("course")),
 		}
 	}
 
-	xd, _ := GetXmlDetails(&ev.Detail)
+	xd, _ := GetXmlDetails(ev.Detail)
 	msg.CotEvent.Detail.XmlDetail = xd.AsXMLString()
 	return msg, xd
 }
 
-func GetXmlDetails(d *cotxml.Detail) (*XMLDetails, error) {
+func GetXmlDetails(d *Node) (*Node, error) {
 	if d == nil {
 		return nil, nil
 	}
@@ -169,7 +174,7 @@ func GetXmlDetails(d *cotxml.Detail) (*XMLDetails, error) {
 	if err != nil {
 		return nil, err
 	}
-	details.RemoveTags("contact", "__group", "precisionlocation", "status", "takv", "track")
+	details.RemoveTags("contact", "__group", "precisionlocation", "status", "takv", "__track")
 	return details, nil
 }
 

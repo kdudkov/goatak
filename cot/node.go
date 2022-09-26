@@ -7,10 +7,6 @@ import (
 	"strings"
 )
 
-type XMLDetails struct {
-	node *Node
-}
-
 type Node struct {
 	XMLName xml.Name
 	Attrs   []xml.Attr `xml:",any,attr"`
@@ -18,17 +14,24 @@ type Node struct {
 	Nodes   []*Node    `xml:",any"`
 }
 
-func NewXmlDetails() *XMLDetails {
-	return &XMLDetails{node: &Node{
-		XMLName: xml.Name{Local: "detail"},
-		Attrs:   nil,
-		Content: "",
-		Nodes:   nil,
-	}}
+func NewXmlDetails() *Node {
+	return NewNode("detail", nil)
 }
 
-func DetailsFromString(s string) (*XMLDetails, error) {
-	x := &XMLDetails{node: new(Node)}
+func NewNode(name string, attrs map[string]string) *Node {
+	n := &Node{XMLName: xml.Name{Local: name}}
+
+	for k, v := range attrs {
+		if v != "" {
+			n.Attrs = append(n.Attrs, xml.Attr{Name: xml.Name{Local: k}, Value: v})
+		}
+	}
+
+	return n
+}
+
+func DetailsFromString(s string) (*Node, error) {
+	x := new(Node)
 	var b []byte
 
 	if strings.HasPrefix(s, "<Detail>") || strings.HasPrefix(s, "<detail>") {
@@ -38,15 +41,11 @@ func DetailsFromString(s string) (*XMLDetails, error) {
 	}
 
 	buf := bytes.NewBuffer(b)
-	err := xml.NewDecoder(buf).Decode(x.node)
+	err := xml.NewDecoder(buf).Decode(x)
 	return x, err
 }
 
-func (x *XMLDetails) AddChild(name string, params map[string]string, text string) {
-	x.node.AddChild(name, params, text)
-}
-
-func (x *XMLDetails) AddLink(uid, typ, parent string) {
+func (n *Node) AddLink(uid, typ, parent string) {
 	params := make(map[string]string)
 	if uid != "" {
 		params["uid"] = uid
@@ -59,32 +58,36 @@ func (x *XMLDetails) AddLink(uid, typ, parent string) {
 	}
 	//params["production_time"] = prodTime.UTC().Format(time.RFC3339)
 	params["relation"] = "p-p"
-	x.node.AddChild("link", params, "")
+	n.AddChild("link", params, "")
 }
 
-func (x *XMLDetails) AsXMLString() string {
+func (n *Node) AsXMLString() string {
 	b := bytes.Buffer{}
-	xml.NewEncoder(&b).Encode(x.node)
+	xml.NewEncoder(&b).Encode(n)
 	s := b.String()
-	return s[len("<detail>") : len(s)-len("</detail>")]
+	if len(s) > 17 {
+		return s[len("<detail>") : len(s)-len("</detail>")]
+	} else {
+		return ""
+	}
 }
 
-func (x *XMLDetails) String() string {
-	if x.node == nil || len(x.node.Nodes) == 0 {
+func (n *Node) String() string {
+	if len(n.Nodes) == 0 {
 		return "*empty*"
 	}
 
 	s := new(bytes.Buffer)
-	for _, n := range x.node.Nodes {
+	for _, n := range n.Nodes {
 		n.print(s, "")
 	}
 	return s.String()
 }
 
-func (x *XMLDetails) GetDest() []string {
+func (n *Node) GetDest() []string {
 	r := make([]string, 0)
 
-	marti := x.GetFirstChild("marti")
+	marti := n.GetFirst("marti")
 	if marti == nil {
 		return r
 	}
@@ -100,13 +103,13 @@ func (x *XMLDetails) GetDest() []string {
 	return r
 }
 
-func (x *XMLDetails) RemoveTags(tags ...string) {
-	if x == nil {
+func (n *Node) RemoveTags(tags ...string) {
+	if n == nil {
 		return
 	}
 
 	newNodes := make([]*Node, 0)
-	for _, x := range x.node.Nodes {
+	for _, x := range n.Nodes {
 		found := false
 		for _, t := range tags {
 			if t == x.XMLName.Local {
@@ -118,31 +121,14 @@ func (x *XMLDetails) RemoveTags(tags ...string) {
 			newNodes = append(newNodes, x)
 		}
 	}
-	x.node.Content = ""
-	x.node.Nodes = newNodes
+	n.Content = ""
+	n.Nodes = newNodes
 }
 
-func (x *XMLDetails) GetFirstChild(name string) *Node {
-	node := x.node
-
-	for _, s := range strings.Split(name, "/") {
-		found := false
-		for _, n := range node.Nodes {
-			if n.XMLName.Local == s {
-				node = n
-				found = true
-				break
-			}
-		}
-		if !found {
-			return nil
-		}
+func (n *Node) GetFirst(name string) *Node {
+	if n == nil {
+		return nil
 	}
-
-	return node
-}
-
-func (n *Node) GetFirstChild(name string) *Node {
 	for _, n := range n.Nodes {
 		if n.XMLName.Local == name {
 			return n
@@ -151,18 +137,24 @@ func (n *Node) GetFirstChild(name string) *Node {
 	return nil
 }
 
-func (x *XMLDetails) HasChild(name string) bool {
-	return x.GetFirstChild(name) != nil
+func (n *Node) Has(name string) bool {
+	return n.GetFirst(name) != nil
 }
 
-func (x *XMLDetails) GetChildValue(name string) (string, bool) {
-	for _, n := range x.node.Nodes {
-		if n.XMLName.Local == name {
-			return n.Content, true
+func (n *Node) GetAll(name string) []*Node {
+	if n == nil {
+		return nil
+	}
+
+	res := make([]*Node, 0)
+
+	for _, nn := range n.Nodes {
+		if nn.XMLName.Local == name {
+			res = append(res, nn)
 		}
 	}
 
-	return "", false
+	return res
 }
 
 func (n *Node) GetAttr(name string) string {
@@ -177,6 +169,14 @@ func (n *Node) GetAttr(name string) string {
 	}
 
 	return ""
+}
+
+func (n *Node) GetText() string {
+	if n == nil {
+		return ""
+	}
+
+	return n.Content
 }
 
 func (n *Node) print(s *bytes.Buffer, prefix string) {
@@ -207,7 +207,9 @@ func (n *Node) AddChild(name string, params map[string]string, text string) *Nod
 	nn := &Node{XMLName: xml.Name{Local: name}}
 
 	for k, v := range params {
-		nn.Attrs = append(nn.Attrs, xml.Attr{Name: xml.Name{Local: k}, Value: v})
+		if v != "" {
+			nn.Attrs = append(nn.Attrs, xml.Attr{Name: xml.Name{Local: k}, Value: v})
+		}
 	}
 
 	if text != "" {

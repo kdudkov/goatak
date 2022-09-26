@@ -109,7 +109,7 @@ func (i Item) ToWeb() *WebUnit {
 		Send:      i.send,
 	}
 
-	w.Text, _ = i.msg.Detail.GetChildValue("remarks")
+	w.Text = i.msg.Detail.GetFirst("remarks").GetText()
 	return w
 }
 

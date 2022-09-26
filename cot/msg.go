@@ -11,7 +11,7 @@ import (
 type Msg struct {
 	From       string
 	TakMessage *cotproto.TakMessage
-	Detail     *XMLDetails
+	Detail     *Node
 }
 
 func (m *Msg) GetUid() string {
@@ -67,18 +67,18 @@ func (m *Msg) IsChat() bool {
 		return false
 	}
 
-	return m.GetType() == "b-t-f" && m.Detail != nil && m.Detail.HasChild("__chat")
+	return m.GetType() == "b-t-f" && m.Detail != nil && m.Detail.Has("__chat")
 }
 
 func (m *Msg) PrintChat() string {
-	chat := m.Detail.GetFirstChild("__chat")
+	chat := m.Detail.GetFirst("__chat")
 	if chat == nil {
 		return ""
 	}
 
 	from := chat.GetAttr("senderCallsign")
 	to := chat.GetAttr("chatroom")
-	text, _ := m.Detail.GetChildValue("remarks")
+	text := m.Detail.GetFirst("remarks").GetText()
 
 	return fmt.Sprintf("%s -> %s: \"%s\"", from, to, text)
 }
@@ -108,7 +108,7 @@ func (m *Msg) GetLon() float64 {
 }
 
 func (m *Msg) GetParent() (string, string) {
-	link := m.Detail.GetFirstChild("link")
+	link := m.Detail.GetFirst("link")
 	if link.GetAttr("relation") == "p-p" {
 		return link.GetAttr("uid"), link.GetAttr("parent_callsign")
 	}

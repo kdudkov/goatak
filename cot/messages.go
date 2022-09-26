@@ -69,10 +69,10 @@ func MakeDpMsg(uid string, typ string, name string, lat float64, lon float64) *c
 func MakeChatMessage(uid string, callsign string, text string) *cotproto.TakMessage {
 	msg := BasicMsg("b-t-f", "server", time.Second*10)
 	xd := NewXmlDetails()
-	chat := xd.node.AddChild("__chat", map[string]string{"parent": "RootContactGroup", "groupOwner": "false", "chatroom": callsign, "senderCallsign": "Op", "id": uid}, "")
+	chat := xd.AddChild("__chat", map[string]string{"parent": "RootContactGroup", "groupOwner": "false", "chatroom": callsign, "senderCallsign": "Op", "id": uid}, "")
 	chat.AddChild("chatgrp", map[string]string{"uid0": "serverop", "uid1": uid, "id": uid}, "")
-	xd.node.AddChild("remarks", nil, text)
-	marti := xd.node.AddChild("marti", nil, "")
+	xd.AddChild("remarks", nil, text)
+	marti := xd.AddChild("marti", nil, "")
 	marti.AddChild("dest", map[string]string{"callsign": callsign}, "")
 	msg.CotEvent.Detail = &cotproto.Detail{XmlDetail: xd.AsXMLString()}
 	return msg

@@ -334,9 +334,9 @@ func (app *App) AddPoint(uid string, p *model.Point) {
 }
 
 func (app *App) removeByLink(msg *cot.Msg) {
-	if msg.Detail != nil && msg.Detail.HasChild("link") {
-		uid := msg.Detail.GetFirstChild("link").GetAttr("uid")
-		typ := msg.Detail.GetFirstChild("link").GetAttr("type")
+	if msg.Detail != nil && msg.Detail.Has("link") {
+		uid := msg.Detail.GetFirst("link").GetAttr("uid")
+		typ := msg.Detail.GetFirst("link").GetAttr("type")
 		if uid == "" {
 			app.Logger.Errorf("invalid remove message: %s", msg.Detail)
 			return

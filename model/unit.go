@@ -189,12 +189,12 @@ func UnitFromMsg(msg *cot.Msg) *Unit {
 	}
 
 	u.parentUid, u.parentCallsign = msg.GetParent()
-	if c := msg.Detail.GetFirstChild("color"); c != nil {
+	if c := msg.Detail.GetFirst("color"); c != nil {
 		if col, err := strconv.Atoi(c.GetAttr("argb")); err == nil {
 			u.color = uint32(col)
 		}
 	}
-	u.icon = msg.Detail.GetFirstChild("usericon").GetAttr("iconsetpath")
+	u.icon = msg.Detail.GetFirst("usericon").GetAttr("iconsetpath")
 
 	return u
 }
@@ -213,12 +213,12 @@ func PointFromMsg(msg *cot.Msg) *Point {
 
 	p.parentUid, p.parentCallsign = msg.GetParent()
 
-	if c := msg.Detail.GetFirstChild("color"); c != nil {
+	if c := msg.Detail.GetFirst("color"); c != nil {
 		if col, err := strconv.Atoi(c.GetAttr("argb")); err == nil {
 			p.color = uint32(col)
 		}
 	}
-	p.icon = msg.Detail.GetFirstChild("usericon").GetAttr("iconsetpath")
+	p.icon = msg.Detail.GetFirst("usericon").GetAttr("iconsetpath")
 
 	return p
 }
@@ -277,7 +277,7 @@ func (u *Unit) Update(msg *cot.Msg) {
 		pos := getPos(u.msg, msg)
 		u.msg = msg
 
-		link := msg.Detail.GetFirstChild("link")
+		link := msg.Detail.GetFirst("link")
 		if link.GetAttr("relation") == "p-p" {
 			u.parentCallsign = link.GetAttr("parent_callsign")
 			u.parentUid = link.GetAttr("uid")

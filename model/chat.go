@@ -45,7 +45,7 @@ type ChatMessage struct {
 // <remarks source="BAO.F.ATAK.ANDROID-765a942cbe30d010" time="2022-04-05T08:26:51.718Z">[UPDATED CONTACTS]</remarks>
 
 func MsgToChat(m *cot.Msg) *ChatMessage {
-	chat := m.Detail.GetFirstChild("__chat")
+	chat := m.Detail.GetFirst("__chat")
 	if chat == nil {
 		return nil
 	}
@@ -56,7 +56,7 @@ func MsgToChat(m *cot.Msg) *ChatMessage {
 		To:   chat.GetAttr("chatroom"),
 	}
 
-	if cg := chat.GetFirstChild("chatgrp"); cg != nil {
+	if cg := chat.GetFirst("chatgrp"); cg != nil {
 		c.FromUid = cg.GetAttr("uid0")
 		c.ToUid = cg.GetAttr("id")
 	}
@@ -64,7 +64,7 @@ func MsgToChat(m *cot.Msg) *ChatMessage {
 	if c.From == "" {
 		c.From = c.FromUid
 	}
-	c.Text, _ = m.Detail.GetChildValue("remarks")
+	c.Text = m.Detail.GetFirst("remarks").GetText()
 
 	return c
 }

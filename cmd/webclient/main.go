@@ -206,6 +206,7 @@ func (app *App) ProcessEvent(msg *cot.Msg) {
 	case strings.HasPrefix(msg.GetType(), "b-"):
 		if uid, _ := msg.GetParent(); uid != app.uid {
 			app.Logger.Infof("point %s (%s) %s", msg.GetUid(), msg.GetCallsign(), msg.GetType())
+			app.Logger.Infof("%s", msg.TakMessage.GetCotEvent().GetDetail().GetXmlDetail())
 			app.AddPoint(msg.GetUid(), model.PointFromMsg(msg))
 		} else {
 			app.Logger.Infof("my own point %s (%s) %s", msg.GetUid(), msg.GetCallsign(), msg.GetType())
@@ -284,9 +285,9 @@ func (app *App) GetUnit(uid string) *model.Unit {
 }
 
 func (app *App) removeByLink(msg *cot.Msg) {
-	if msg.Detail != nil && msg.Detail.HasChild("link") {
-		uid := msg.Detail.GetFirstChild("link").GetAttr("uid")
-		typ := msg.Detail.GetFirstChild("link").GetAttr("type")
+	if msg.Detail != nil && msg.Detail.Has("link") {
+		uid := msg.Detail.GetFirst("link").GetAttr("uid")
+		typ := msg.Detail.GetFirst("link").GetAttr("type")
 		if uid == "" {
 			app.Logger.Warnf("invalid remove message: %s", msg.Detail)
 			return
