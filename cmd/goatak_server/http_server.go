@@ -179,14 +179,8 @@ func getUnits(app *App) []*model.WebUnit {
 	units := make([]*model.WebUnit, 0)
 
 	app.units.Range(func(key, value interface{}) bool {
-		switch v := value.(type) {
-		case *model.Unit:
-			units = append(units, v.ToWeb())
-		case *model.Contact:
-			units = append(units, v.ToWeb())
-		case *model.Point:
-			units = append(units, v.ToWeb())
-		}
+		v := value.(*model.Item)
+		units = append(units, v.ToWeb())
 		return true
 	})
 

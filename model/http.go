@@ -45,68 +45,48 @@ type DigitalPointer struct {
 	Name string  `json:"name"`
 }
 
-func (c *Contact) ToWeb() *WebUnit {
-	c.mx.RLock()
-	defer c.mx.RUnlock()
-
-	w := c.Item.ToWeb()
-	w.Category = "contact"
-
-	if c.online {
-		w.Status = "Online"
-	} else {
-		w.Status = "Offline"
-	}
-
-	if v := c.msg.TakMessage.GetCotEvent().GetDetail().GetTakv(); v != nil {
-		w.TakVersion = strings.Trim(fmt.Sprintf("%s %s on %s", v.Platform, v.Version, v.Device), " ")
-	}
-
-	return w
-}
-
-func (u *Unit) ToWeb() *WebUnit {
-	w := u.Item.ToWeb()
-	w.Category = "unit"
-	w.ParentUid = u.parentUid
-	w.ParentCallsign = u.parentCallsign
-	w.Color = fmt.Sprintf("#%.6x", u.color&0xffffff)
-	w.Icon = u.icon
-	return w
-}
-
-func (p *Point) ToWeb() *WebUnit {
-	w := p.Item.ToWeb()
-	w.Category = "point"
-	w.ParentUid = p.parentUid
-	w.ParentCallsign = p.parentCallsign
-	w.Color = fmt.Sprintf("#%.6x", p.color&0xffffff)
-	w.Icon = p.icon
-	return w
-}
-
-func (i Item) ToWeb() *WebUnit {
+func (i *Item) ToWeb() *WebUnit {
 	evt := i.msg.TakMessage.CotEvent
 
+	i.mx.RLock()
+	defer i.mx.RUnlock()
+
 	w := &WebUnit{
-		Uid:       i.uid,
-		Callsign:  i.callsign,
-		Time:      cot.TimeFromMillis(evt.SendTime),
-		LastSeen:  i.lastSeen,
-		StaleTime: i.staleTime,
-		StartTime: i.startTime,
-		SendTime:  i.sendTime,
-		Type:      i.type_,
-		Lat:       evt.Lat,
-		Lon:       evt.Lon,
-		Hae:       evt.Hae,
-		Speed:     evt.GetDetail().GetTrack().GetSpeed(),
-		Course:    evt.GetDetail().GetTrack().GetCourse(),
-		Team:      evt.GetDetail().GetGroup().GetName(),
-		Role:      evt.GetDetail().GetGroup().GetRole(),
-		Sidc:      getSIDC(i.type_),
-		Local:     i.local,
-		Send:      i.send,
+		Uid:            i.uid,
+		Category:       i.class,
+		Callsign:       i.callsign,
+		Time:           cot.TimeFromMillis(evt.SendTime),
+		LastSeen:       i.lastSeen,
+		StaleTime:      i.staleTime,
+		StartTime:      i.startTime,
+		SendTime:       i.sendTime,
+		Type:           i.cottype,
+		Lat:            evt.Lat,
+		Lon:            evt.Lon,
+		Hae:            evt.Hae,
+		Speed:          evt.GetDetail().GetTrack().GetSpeed(),
+		Course:         evt.GetDetail().GetTrack().GetCourse(),
+		Team:           evt.GetDetail().GetGroup().GetName(),
+		Role:           evt.GetDetail().GetGroup().GetRole(),
+		Sidc:           getSIDC(i.cottype),
+		ParentUid:      i.parentUid,
+		ParentCallsign: i.parentCallsign,
+		Color:          fmt.Sprintf("#%.6x", i.color&0xffffff),
+		Icon:           i.icon,
+		Local:          i.local,
+		Send:           i.send,
+	}
+
+	if i.class == CONTACT {
+		if i.online {
+			w.Status = "Online"
+		} else {
+			w.Status = "Offline"
+		}
+
+		if v := i.msg.TakMessage.GetCotEvent().GetDetail().GetTakv(); v != nil {
+			w.TakVersion = strings.Trim(fmt.Sprintf("%s %s on %s", v.Platform, v.Version, v.Device), " ")
+		}
 	}
 
 	w.Text = i.msg.Detail.GetFirst("remarks").GetText()

@@ -76,7 +76,8 @@ func getEndpointsHandler(app *App) func(req *air.Request, res *air.Response) err
 		result["type"] = "com.bbn.marti.remote.ClientEndpoint"
 
 		app.units.Range(func(key, value interface{}) bool {
-			if c, ok := value.(*model.Contact); ok {
+			c := value.(*model.Item)
+			if c.GetClass() == model.CONTACT {
 				info := make(map[string]interface{}, 0)
 				info["uid"] = c.GetUID()
 				info["callsign"] = c.GetCallsign()

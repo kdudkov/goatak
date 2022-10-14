@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/aofei/air"
+	"github.com/google/uuid"
 	"github.com/kdudkov/goatak/cot"
 	"github.com/kdudkov/goatak/staticfiles"
 
@@ -32,6 +33,8 @@ func NewHttp(app *App, address string) *air.Air {
 	srv.GET("/types", getTypes)
 	srv.POST("/dp", getDpHandler(app))
 	srv.POST("/pos", getPosHandler(app))
+
+	srv.GET("/ws", getWsHandler(app))
 
 	srv.GET("/unit", getUnitsHandler(app))
 	srv.POST("/unit", addItemHandler(app))
@@ -127,43 +130,98 @@ func getPosHandler(app *App) func(req *air.Request, res *air.Response) error {
 
 func addItemHandler(app *App) func(req *air.Request, res *air.Response) error {
 	return func(req *air.Request, res *air.Response) error {
-		item := new(model.WebUnit)
+		wu := new(model.WebUnit)
 		if req.Body == nil {
 			return nil
 		}
 
-		if err := json.NewDecoder(req.Body).Decode(item); err != nil {
+		if err := json.NewDecoder(req.Body).Decode(wu); err != nil {
 			return err
 		}
 
-		if item == nil {
+		if wu == nil {
 			return fmt.Errorf("no item")
 		}
 
-		msg := item.ToMsg()
+		msg := wu.ToMsg()
 
-		if item.Send {
+		if wu.Send {
 			app.SendMsg(msg.TakMessage)
 		}
 
-		if item.Category == "unit" {
-			if u := app.GetUnit(msg.GetUid()); u != nil {
-				u.Update(msg)
+		if wu.Category == "unit" || wu.Category == "point" {
+			if u := app.GetItem(msg.GetUid()); u != nil {
+				u.UpdateFromWeb(wu, msg)
 			} else {
-				unit := model.UnitFromMsgLocal(msg, item.Local, item.Send)
+				unit := model.FromMsgLocal(msg, wu.Send)
 				app.units.Store(msg.GetUid(), unit)
 			}
-			app.ProcessUnit(msg)
-		}
-		if item.Category == "point" {
-			point := model.PointFromMsgLocal(msg, item.Local, item.Send)
-			app.AddPoint(msg.GetUid(), point)
+
+			//app.ProcessItem(msg)
 		}
 
 		r := make(map[string]interface{}, 0)
 		r["units"] = getUnits(app)
 		r["messages"] = app.messages
 		return res.WriteJSON(r)
+	}
+}
+
+func getWsHandler(app *App) func(req *air.Request, res *air.Response) error {
+	return func(req *air.Request, res *air.Response) error {
+		ws, err := res.WebSocket()
+		if err != nil {
+			return err
+		}
+
+		defer ws.Close()
+
+		name := uuid.New().String()
+
+		ch := make(chan *model.WebUnit)
+
+		go func() {
+			for ci := range ch {
+				if ws.Closed {
+					return
+				}
+
+				if b, err := json.Marshal(ci); err == nil {
+					if err := ws.WriteText(string(b)); err != nil {
+						ws.Close()
+						return
+					}
+				} else {
+					ws.Close()
+					return
+				}
+			}
+		}()
+
+		app.listeners.Store(name, func(u *model.WebUnit) {
+			if ws.Closed {
+				return
+			}
+
+			select {
+			case ch <- u:
+			default:
+			}
+		})
+
+		app.Logger.Debug("ws listener connected")
+
+		ws.BinaryHandler = func(b []byte) error {
+			return nil
+		}
+
+		ws.Listen()
+		app.Logger.Debug("ws listener disconnected")
+		app.listeners.Delete(name)
+		ws.Close()
+		close(ch)
+
+		return nil
 	}
 }
 
@@ -189,14 +247,8 @@ func getUnits(app *App) []*model.WebUnit {
 	units := make([]*model.WebUnit, 0)
 
 	app.units.Range(func(key, value interface{}) bool {
-		switch v := value.(type) {
-		case *model.Unit:
-			units = append(units, v.ToWeb())
-		case *model.Contact:
-			units = append(units, v.ToWeb())
-		case *model.Point:
-			units = append(units, v.ToWeb())
-		}
+		v := value.(*model.Item)
+		units = append(units, v.ToWeb())
 		return true
 	})
 

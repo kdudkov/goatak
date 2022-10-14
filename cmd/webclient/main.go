@@ -47,6 +47,7 @@ type App struct {
 	messages    []*model.ChatMessage
 	tls         bool
 	cl          *cot.ClientHandler
+	listeners   sync.Map
 
 	callsign string
 	uid      string
@@ -92,6 +93,7 @@ func NewApp(uid string, callsign string, connectStr string, webPort int, logger 
 		webPort:     webPort,
 		units:       sync.Map{},
 		dialTimeout: time.Second * 5,
+		listeners:   sync.Map{},
 	}
 }
 
@@ -175,39 +177,36 @@ func (app *App) SendMsg(msg *cotproto.TakMessage) {
 }
 
 func (app *App) ProcessEvent(msg *cot.Msg) {
-	if c := app.GetContact(msg.GetUid()); c != nil {
+	if c := app.GetItem(msg.GetUid()); c != nil {
 		c.Update(nil)
 	}
 
 	switch {
 	case msg.GetType() == "t-x-c-t":
 		app.Logger.Debugf("ping from %s", msg.GetUid())
+		if i := app.GetItem(msg.GetUid()); i != nil {
+			i.SetOffline()
+		}
 	case msg.GetType() == "t-x-d-d":
 		app.removeByLink(msg)
 	case msg.IsChat():
 		if c := model.MsgToChat(msg); c != nil {
-			if fromContact := app.GetContact(c.FromUid); fromContact != nil {
+			if fromContact := app.GetItem(c.FromUid); fromContact != nil {
 				c.From = fromContact.GetCallsign()
 			}
 			app.Logger.Infof("Chat %s (%s) -> %s (%s) \"%s\"", c.From, c.FromUid, c.To, c.ToUid, c.Text)
 			app.messages = append(app.messages, c)
 		}
 	case strings.HasPrefix(msg.GetType(), "a-"):
-		if msg.IsContact() {
-			if msg.GetUid() == app.uid {
-				app.Logger.Info("my own info")
-				break
-			}
-			app.ProcessContact(msg)
-		} else {
-			app.ProcessUnit(msg)
+		if msg.GetUid() == app.uid {
+			break
 		}
-		return
+		app.ProcessItem(msg)
 	case strings.HasPrefix(msg.GetType(), "b-"):
 		if uid, _ := msg.GetParent(); uid != app.uid {
 			app.Logger.Infof("point %s (%s) %s", msg.GetUid(), msg.GetCallsign(), msg.GetType())
 			app.Logger.Infof("%s", msg.TakMessage.GetCotEvent().GetDetail().GetXmlDetail())
-			app.AddPoint(msg.GetUid(), model.PointFromMsg(msg))
+			app.ProcessItem(msg)
 		} else {
 			app.Logger.Infof("my own point %s (%s) %s", msg.GetUid(), msg.GetCallsign(), msg.GetType())
 		}
@@ -215,36 +214,23 @@ func (app *App) ProcessEvent(msg *cot.Msg) {
 		fmt.Println(msg.GetType())
 	case msg.GetType() == "tak registration":
 		app.Logger.Infof("registration %s %s", msg.GetUid(), msg.GetCallsign())
-		return
 	default:
 		app.Logger.Debugf("unknown event: %s", msg.GetType())
 	}
 }
 
-func (app *App) ProcessContact(msg *cot.Msg) {
-	if c := app.GetContact(msg.GetUid()); c != nil {
-		app.Logger.Infof("update contact %s (%s) %s", msg.GetUid(), msg.GetCallsign(), msg.GetType())
+func (app *App) ProcessItem(msg *cot.Msg) {
+	cl := model.GetClass(msg)
+	if c := app.GetItem(msg.GetUid()); c != nil {
+		app.Logger.Infof("update %s %s (%s) %s", cl, msg.GetUid(), msg.GetCallsign(), msg.GetType())
 		c.Update(msg)
 	} else {
-		app.Logger.Infof("new contact %s (%s) %s", msg.GetUid(), msg.GetCallsign(), msg.GetType())
-		if msg.GetUid() == app.uid {
-			return
-		}
-		app.units.Store(msg.GetUid(), model.ContactFromMsg(msg))
+		app.Logger.Infof("new %s %s (%s) %s", cl, msg.GetUid(), msg.GetCallsign(), msg.GetType())
+		app.units.Store(msg.GetUid(), model.FromMsg(msg))
 	}
 }
 
-func (app *App) ProcessUnit(msg *cot.Msg) {
-	if u := app.GetUnit(msg.GetUid()); u != nil {
-		app.Logger.Infof("update unit %s (%s) %s", msg.GetUid(), msg.GetCallsign(), msg.GetType())
-		u.Update(msg)
-	} else {
-		app.Logger.Infof("new unit %s (%s) %s", msg.GetUid(), msg.GetCallsign(), msg.GetType())
-		app.units.Store(msg.GetUid(), model.UnitFromMsg(msg))
-	}
-}
-
-func (app *App) AddPoint(uid string, u *model.Point) {
+func (app *App) AddItem(uid string, u *model.Item) {
 	if u == nil {
 		return
 	}
@@ -257,28 +243,10 @@ func (app *App) Remove(uid string) {
 	}
 }
 
-func (app *App) AddContact(uid string, u *model.Contact) {
-	if u == nil || uid == app.uid {
-		return
-	}
-	app.units.Store(uid, u)
-}
-
-func (app *App) GetContact(uid string) *model.Contact {
+func (app *App) GetItem(uid string) *model.Item {
 	if v, ok := app.units.Load(uid); ok {
-		if contact, ok := v.(*model.Contact); ok {
-			return contact
-		}
-	}
-	return nil
-}
-
-func (app *App) GetUnit(uid string) *model.Unit {
-	if v, ok := app.units.Load(uid); ok {
-		if contact, ok := v.(*model.Unit); ok {
-			return contact
-		} else {
-			app.Logger.Warnf("invalid unit for uid %s: %s", uid, v)
+		if i, ok := v.(*model.Item); ok {
+			return i
 		}
 	}
 	return nil
@@ -292,19 +260,24 @@ func (app *App) removeByLink(msg *cot.Msg) {
 			app.Logger.Warnf("invalid remove message: %s", msg.Detail)
 			return
 		}
-		if v, ok := app.units.Load(uid); ok {
-			switch vv := v.(type) {
-			case *model.Contact:
+		if v := app.GetItem(uid); v != nil {
+			switch v.GetClass() {
+			case model.CONTACT:
 				app.Logger.Debugf("remove %s by message", uid)
-				vv.SetOffline()
+				v.SetOffline()
+				app.processChange(v)
 				return
-			case *model.Unit, *model.Point:
+			case model.UNIT, model.POINT:
 				app.Logger.Debugf("remove unit/point %s type %s by message", uid, typ)
 				//app.units.Delete(uid)
 				return
 			}
 		}
 	}
+}
+
+func (app *App) processChange(u *model.Item) {
+
 }
 
 func (app *App) MakeMe() *cotproto.TakMessage {
@@ -353,23 +326,20 @@ func (app *App) cleanOldUnits() {
 	toDelete := make([]string, 0)
 
 	app.units.Range(func(key, value interface{}) bool {
-		switch val := value.(type) {
-		case *model.Unit:
+		val := value.(*model.Item)
+
+		switch val.GetClass() {
+		case model.UNIT, model.POINT:
 			if val.IsOld() {
 				toDelete = append(toDelete, key.(string))
-				app.Logger.Debugf("removing unit %s", key)
+				app.Logger.Debugf("removing %s %s", val.GetClass(), key)
 			}
-		case *model.Point:
-			if val.IsOld() {
-				toDelete = append(toDelete, key.(string))
-				app.Logger.Debugf("removing point %s", key)
-			}
-		case *model.Contact:
+		case model.CONTACT:
 			if val.IsOld() {
 				toDelete = append(toDelete, key.(string))
 				app.Logger.Debugf("removing contact %s", key)
 			} else {
-				if val.IsOnline() && val.GetStartTime().Add(lastSeenOfflineTimeout).Before(time.Now()) {
+				if val.IsOnline() && val.GetLastSeen().Add(lastSeenOfflineTimeout).Before(time.Now()) {
 					val.SetOffline()
 				}
 			}
@@ -384,15 +354,9 @@ func (app *App) cleanOldUnits() {
 
 func (app *App) sendMyPoints() {
 	app.units.Range(func(key, value interface{}) bool {
-		switch val := value.(type) {
-		case *model.Unit:
-			if val.IsSend() {
-				app.SendMsg(val.GetMsg().TakMessage)
-			}
-		case *model.Point:
-			if val.IsSend() {
-				app.SendMsg(val.GetMsg().TakMessage)
-			}
+		val := value.(*model.Item)
+		if val.IsSend() {
+			app.SendMsg(val.GetMsg().TakMessage)
 		}
 
 		return true

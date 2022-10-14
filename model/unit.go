@@ -3,6 +3,7 @@ package model
 import (
 	"fmt"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -10,12 +11,12 @@ import (
 )
 
 const (
-	staleContactDelete = time.Minute * 30
+	staleContactDelete = time.Hour * 24
+	POINT              = "point"
+	UNIT               = "unit"
+	CONTACT            = "contact"
+	MAX_TRACK_POINTS   = 5000
 )
-
-type CotItem interface {
-	GetCotType() string
-}
 
 type Pos struct {
 	time  time.Time
@@ -25,308 +26,268 @@ type Pos struct {
 }
 
 type Item struct {
-	uid       string
-	type_     string
-	callsign  string
-	staleTime time.Time
-	startTime time.Time
-	sendTime  time.Time
-	lastSeen  time.Time
-	msg       *cot.Msg
-	local     bool
-	send      bool
-}
-
-type Unit struct {
-	Item
-	parentCallsign string
-	parentUid      string
 	mx             sync.RWMutex
-	track          []*Pos
-	color          uint32
-	icon           string
-}
-
-type Contact struct {
-	Item
-	online bool
-	mx     sync.RWMutex
-	track  []*Pos
-}
-
-type Point struct {
-	Item
+	uid            string
+	cottype        string
+	class          string
+	callsign       string
+	staleTime      time.Time
+	startTime      time.Time
+	sendTime       time.Time
+	lastSeen       time.Time
+	online         bool
+	local          bool
+	send           bool
 	parentCallsign string
 	parentUid      string
 	color          uint32
 	icon           string
+	track          []*Pos
+	msg            *cot.Msg
 }
 
-func (c *Contact) String() string {
-	c.mx.RLock()
-	defer c.mx.RUnlock()
-	return fmt.Sprintf("contact: %s %s %s", c.uid, c.type_, c.callsign)
+func (i *Item) String() string {
+	i.mx.RLock()
+	defer i.mx.RUnlock()
+	return fmt.Sprintf("%s: %s %s %s", i.class, i.uid, i.cottype, i.callsign)
 }
 
-func (u *Unit) String() string {
-	u.mx.RLock()
-	defer u.mx.RUnlock()
-	return fmt.Sprintf("unit: %s %s %s", u.uid, u.type_, u.callsign)
+func (i *Item) GetClass() string {
+	i.mx.RLock()
+	defer i.mx.RUnlock()
+	return i.class
 }
 
-func (p *Point) String() string {
-	return fmt.Sprintf("point: %s %s %s", p.uid, p.type_, p.callsign)
-}
-
-func (u *Unit) GetCotType() string {
-	return u.type_
-}
-
-func (c *Contact) GetCotType() string {
-	return c.type_
-}
-
-func (p *Point) GetCotType() string {
-	return p.type_
+func (i *Item) GetCotType() string {
+	i.mx.RLock()
+	defer i.mx.RUnlock()
+	return i.cottype
 }
 
 func (i *Item) GetMsg() *cot.Msg {
+	i.mx.RLock()
+	defer i.mx.RUnlock()
 	return i.msg
 }
 
-func (c *Contact) GetMsg() *cot.Msg {
-	c.mx.RLock()
-	defer c.mx.RUnlock()
-	return c.msg
+func (i *Item) GetUID() string {
+	i.mx.RLock()
+	defer i.mx.RUnlock()
+	return i.uid
 }
 
-func (u *Unit) IsOld() bool {
-	return u.staleTime.Before(time.Now())
+func (i *Item) GetCallsign() string {
+	i.mx.RLock()
+	defer i.mx.RUnlock()
+	return i.callsign
 }
 
-func (p *Point) IsOld() bool {
-	return p.staleTime.Before(time.Now())
+func (i *Item) GetLastSeen() time.Time {
+	i.mx.RLock()
+	defer i.mx.RUnlock()
+	return i.lastSeen
 }
 
-func (c *Contact) IsOld() bool {
-	c.mx.RLock()
-	defer c.mx.RUnlock()
-
-	return (!c.online) && c.lastSeen.Add(staleContactDelete).Before(time.Now())
+func (i *Item) GetStartTime() time.Time {
+	i.mx.RLock()
+	defer i.mx.RUnlock()
+	return i.startTime
 }
 
-func (c *Contact) GetUID() string {
-	c.mx.RLock()
-	defer c.mx.RUnlock()
+func (i *Item) IsOld() bool {
+	i.mx.RLock()
+	defer i.mx.RUnlock()
 
-	return c.uid
+	switch i.class {
+	case CONTACT:
+		return (!i.online) && i.lastSeen.Add(staleContactDelete).Before(time.Now())
+	default:
+		return i.staleTime.Before(time.Now())
+	}
 }
 
-func (c *Contact) GetCallsign() string {
-	c.mx.RLock()
-	defer c.mx.RUnlock()
-
-	return c.callsign
+func (i *Item) IsOnline() bool {
+	i.mx.RLock()
+	defer i.mx.RUnlock()
+	return i.online
 }
 
-func (c *Contact) GetLastSeen() time.Time {
-	c.mx.RLock()
-	defer c.mx.RUnlock()
-
-	return c.lastSeen
+func (i *Item) SetOffline() {
+	i.mx.Lock()
+	defer i.mx.Unlock()
+	i.online = false
 }
 
-func (c *Contact) GetStartTime() time.Time {
-	c.mx.RLock()
-	defer c.mx.RUnlock()
-
-	return c.startTime
+func (i *Item) SetOnline() {
+	i.mx.Lock()
+	defer i.mx.Unlock()
+	i.online = true
+	i.lastSeen = time.Now()
 }
 
-func (c *Contact) IsOnline() bool {
-	c.mx.RLock()
-	defer c.mx.RUnlock()
-
-	return c.online
-}
-
-func (i *Item) IsLocal() bool {
-	return i.local
+func (i *Item) SetLocal(local, send bool) {
+	i.mx.Lock()
+	defer i.mx.Unlock()
+	i.local = local
+	i.send = send
 }
 
 func (i *Item) IsSend() bool {
+	i.mx.RLock()
+	defer i.mx.RUnlock()
 	return i.send
 }
 
-func ContactFromMsg(msg *cot.Msg) *Contact {
-	pos := &Pos{
-		time:  cot.TimeFromMillis(msg.TakMessage.GetCotEvent().GetSendTime()),
-		lat:   msg.TakMessage.GetCotEvent().GetLat(),
-		lon:   msg.TakMessage.GetCotEvent().GetLon(),
-		speed: msg.TakMessage.GetCotEvent().GetDetail().GetTrack().GetSpeed(),
+func GetClass(msg *cot.Msg) string {
+	if msg == nil {
+		return ""
 	}
+	t := msg.GetType()
 
-	return &Contact{
-		Item:   ItemFromMsg(msg),
-		online: true,
-		mx:     sync.RWMutex{},
-		track:  []*Pos{pos},
-	}
-}
-
-func UnitFromMsg(msg *cot.Msg) *Unit {
-	pos := &Pos{
-		time:  cot.TimeFromMillis(msg.TakMessage.GetCotEvent().GetSendTime()),
-		lat:   msg.TakMessage.GetCotEvent().GetLat(),
-		lon:   msg.TakMessage.GetCotEvent().GetLon(),
-		speed: msg.TakMessage.GetCotEvent().GetDetail().GetTrack().GetSpeed(),
-	}
-
-	u := &Unit{
-		Item:  ItemFromMsg(msg),
-		mx:    sync.RWMutex{},
-		track: []*Pos{pos},
-	}
-
-	u.parentUid, u.parentCallsign = msg.GetParent()
-	if c := msg.Detail.GetFirst("color"); c != nil {
-		if col, err := strconv.Atoi(c.GetAttr("argb")); err == nil {
-			u.color = uint32(col)
+	switch {
+	case strings.HasPrefix(t, "a-"):
+		if msg.IsContact() {
+			return CONTACT
+		} else {
+			return UNIT
 		}
-	}
-	u.icon = msg.Detail.GetFirst("usericon").GetAttr("iconsetpath")
-
-	return u
-}
-
-func UnitFromMsgLocal(msg *cot.Msg, local, send bool) *Unit {
-	u := UnitFromMsg(msg)
-	u.local = local
-	u.send = send
-	return u
-}
-
-func PointFromMsg(msg *cot.Msg) *Point {
-	p := &Point{
-		Item: ItemFromMsg(msg),
+	case strings.HasPrefix(t, "b-"):
+		return POINT
 	}
 
-	p.parentUid, p.parentCallsign = msg.GetParent()
+	return ""
+}
 
-	if c := msg.Detail.GetFirst("color"); c != nil {
-		if col, err := strconv.Atoi(c.GetAttr("argb")); err == nil {
-			p.color = uint32(col)
-		}
+func FromMsg(msg *cot.Msg) *Item {
+	cls := GetClass(msg)
+
+	if cls == "" {
+		return nil
 	}
-	p.icon = msg.Detail.GetFirst("usericon").GetAttr("iconsetpath")
 
-	return p
-}
-
-func PointFromMsgLocal(msg *cot.Msg, local, send bool) *Point {
-	p := PointFromMsg(msg)
-	p.local = local
-	p.send = send
-	return p
-}
-
-func ItemFromMsg(msg *cot.Msg) Item {
-	return Item{
+	i := &Item{
+		class:     cls,
 		uid:       msg.TakMessage.GetCotEvent().GetUid(),
-		type_:     msg.TakMessage.GetCotEvent().GetType(),
+		cottype:   msg.TakMessage.GetCotEvent().GetType(),
 		callsign:  msg.TakMessage.GetCotEvent().GetDetail().GetContact().GetCallsign(),
 		staleTime: cot.TimeFromMillis(msg.TakMessage.GetCotEvent().GetStaleTime()),
 		startTime: cot.TimeFromMillis(msg.TakMessage.GetCotEvent().GetStartTime()),
 		sendTime:  cot.TimeFromMillis(msg.TakMessage.GetCotEvent().GetSendTime()),
 		msg:       msg,
 		lastSeen:  time.Now(),
+		online:    true,
+		mx:        sync.RWMutex{},
 	}
+
+	i.parentUid, i.parentCallsign = msg.GetParent()
+
+	if c := msg.Detail.GetFirst("color"); c != nil {
+		if col, err := strconv.Atoi(c.GetAttr("argb")); err == nil {
+			i.color = uint32(col)
+		}
+	}
+
+	i.icon = msg.Detail.GetFirst("usericon").GetAttr("iconsetpath")
+
+	if i.class == UNIT || i.class == CONTACT {
+		if msg.TakMessage.GetCotEvent().GetLat() != 0 || msg.TakMessage.GetCotEvent().GetLat() != 0 {
+			pos := &Pos{
+				time:  cot.TimeFromMillis(msg.TakMessage.GetCotEvent().GetSendTime()),
+				lat:   msg.TakMessage.GetCotEvent().GetLat(),
+				lon:   msg.TakMessage.GetCotEvent().GetLon(),
+				speed: msg.TakMessage.GetCotEvent().GetDetail().GetTrack().GetSpeed(),
+			}
+
+			i.track = []*Pos{pos}
+		}
+	}
+	return i
+}
+
+func FromMsgLocal(msg *cot.Msg, send bool) *Item {
+	i := FromMsg(msg)
+	i.local = true
+	i.send = send
+	return i
 }
 
 func (i *Item) GetLanLon() (float64, float64) {
 	return i.msg.TakMessage.GetCotEvent().GetLat(), i.msg.TakMessage.GetCotEvent().GetLon()
 }
 
-func (c *Contact) Update(msg *cot.Msg) {
-	c.mx.Lock()
-	defer c.mx.Unlock()
+func (i *Item) Update(msg *cot.Msg) {
+	if msg == nil {
+		return
+	}
 
-	c.online = true
-	c.lastSeen = time.Now()
-	if msg != nil {
-		pos := getPos(c.msg, msg)
-		c.msg = msg
+	i.mx.Lock()
+	defer i.mx.Unlock()
 
-		if pos != nil {
-			c.track = append(c.track, pos)
+	i.class = GetClass(msg)
+	i.cottype = msg.TakMessage.GetCotEvent().GetType()
+	i.callsign = msg.TakMessage.GetCotEvent().GetDetail().GetContact().GetCallsign()
+	i.staleTime = cot.TimeFromMillis(msg.TakMessage.GetCotEvent().GetStaleTime())
+	i.startTime = cot.TimeFromMillis(msg.TakMessage.GetCotEvent().GetStartTime())
+	i.sendTime = cot.TimeFromMillis(msg.TakMessage.GetCotEvent().GetSendTime())
+	i.msg = msg
+	i.lastSeen = time.Now()
 
-			if len(c.track) > 5000 {
-				c.track = c.track[len(c.track)-5000:]
+	i.parentUid, i.parentCallsign = msg.GetParent()
+
+	if c := msg.Detail.GetFirst("color"); c != nil {
+		if col, err := strconv.Atoi(c.GetAttr("argb")); err == nil {
+			i.color = uint32(col)
+		}
+	}
+
+	i.icon = msg.Detail.GetFirst("usericon").GetAttr("iconsetpath")
+
+	if i.class == UNIT || i.class == CONTACT {
+		i.online = true
+		if i.class == UNIT || i.class == CONTACT {
+			if msg.TakMessage.GetCotEvent().GetLat() != 0 || msg.TakMessage.GetCotEvent().GetLat() != 0 {
+				pos := &Pos{
+					time:  cot.TimeFromMillis(msg.TakMessage.GetCotEvent().GetSendTime()),
+					lat:   msg.TakMessage.GetCotEvent().GetLat(),
+					lon:   msg.TakMessage.GetCotEvent().GetLon(),
+					speed: msg.TakMessage.GetCotEvent().GetDetail().GetTrack().GetSpeed(),
+				}
+
+				i.track = append(i.track, pos)
+				if len(i.track) > MAX_TRACK_POINTS {
+					i.track = i.track[len(i.track)-MAX_TRACK_POINTS:]
+				}
 			}
 		}
 	}
 }
 
-func (u *Unit) Update(msg *cot.Msg) {
-	u.mx.Lock()
-	defer u.mx.Unlock()
-
-	u.Item = ItemFromMsg(msg)
-
-	if msg != nil {
-		pos := getPos(u.msg, msg)
-		u.msg = msg
-
-		link := msg.Detail.GetFirst("link")
-		if link.GetAttr("relation") == "p-p" {
-			u.parentCallsign = link.GetAttr("parent_callsign")
-			u.parentUid = link.GetAttr("uid")
-		}
-
-		if pos != nil {
-			u.track = append(u.track, pos)
-
-			if len(u.track) > 5000 {
-				u.track = u.track[len(u.track)-5000:]
-			}
-		}
-	}
-}
-
-func (c *Contact) SetOffline() {
-	c.mx.Lock()
-	defer c.mx.Unlock()
-
-	c.online = false
-}
-
-func getPos(msg1, msg2 *cot.Msg) *Pos {
-	if msg1 == nil || msg2 == nil {
-		return nil
+func (i *Item) UpdateFromWeb(w *WebUnit, m *cot.Msg) {
+	if w == nil {
+		return
 	}
 
-	lat1, lon1 := msg1.GetLatLon()
+	i.mx.Lock()
+	defer i.mx.Unlock()
 
-	if lat1 == 0 && lon1 == 0 {
-		return nil
-	}
+	i.class = w.Category
+	i.cottype = w.Type
+	i.callsign = w.Callsign
+	i.staleTime = w.StaleTime
+	i.startTime = w.StartTime
+	i.sendTime = w.SendTime
+	i.lastSeen = time.Now()
+	i.parentUid = w.ParentUid
+	i.parentCallsign = w.ParentCallsign
+	i.icon = w.Icon
+	i.local = w.Local
+	i.send = w.Send
 
-	lat2, lon2 := msg2.GetLatLon()
-
-	if lat2 == 0 && lon2 == 0 {
-		return nil
-	}
-
-	dist, _ := DistBea(lat1, lon1, lat2, lon2)
-
-	if dist > 25 {
-		return &Pos{
-			time:  cot.TimeFromMillis(msg2.TakMessage.GetCotEvent().GetSendTime()),
-			lat:   lat2,
-			lon:   lon2,
-			speed: msg2.TakMessage.GetCotEvent().GetDetail().GetTrack().GetSpeed(),
+	if w.Color != "" {
+		if col, err := strconv.Atoi(w.Color); err == nil {
+			i.color = uint32(col)
 		}
 	}
 
-	return nil
+	i.msg = m
 }

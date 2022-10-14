@@ -134,7 +134,7 @@ func (app *App) NewCotMessage(msg *cot.Msg) {
 
 func (app *App) RemoveHandlerCb(cl *cot.ClientHandler) {
 	cl.ForAllUid(func(uid string, callsign string) bool {
-		if c := app.GetContact(uid); c != nil {
+		if c := app.GetItem(uid); c != nil {
 			c.SetOffline()
 		}
 		app.SendToAllOther(cot.MakeOfflineMsg(uid, ""), cl.GetName())
@@ -247,90 +247,35 @@ func (app *App) getTlsConfig() *tls.Config {
 	return &tls.Config{Certificates: []tls.Certificate{tlsCert}, InsecureSkipVerify: true}
 }
 
-func (app *App) AddUnit(uid string, u *model.Unit) {
+func (app *App) AddItem(uid string, u *model.Item) {
 	if u == nil {
 		return
 	}
 	app.units.Store(uid, u)
 }
 
-func (app *App) GetUnit(uid string) *model.Unit {
+func (app *App) GetItem(uid string) *model.Item {
 	if v, ok := app.units.Load(uid); ok {
-		if unit, ok := v.(*model.Unit); ok {
-			return unit
-		} else {
-			app.Logger.Errorf("invalid object for uid %s: %v", uid, v)
-		}
+		return v.(*model.Item)
 	}
 	return nil
 }
 
-func (app *App) RemoveUnit(uid string) {
+func (app *App) RemoveItem(uid string) {
 	if _, ok := app.units.Load(uid); ok {
 		app.units.Delete(uid)
 	}
 }
 
-func (app *App) AddContact(addr string, u *model.Contact) {
-	if u == nil {
-		return
-	}
-	app.units.Store(u.GetUID(), u)
-
-	callsing := u.GetCallsign()
-	time.AfterFunc(time.Second, func() {
-		app.SendTo(addr, cot.MakeChatMessage(u.GetUID(), callsing, "Welcome"))
-
-		if app.config.sendAll {
-			app.units.Range(func(key, value interface{}) bool {
-				switch v := value.(type) {
-				case *model.Unit:
-					app.SendTo(addr, v.GetMsg().TakMessage)
-				case *model.Contact:
-					if v.GetUID() != u.GetUID() {
-						app.SendTo(addr, v.GetMsg().TakMessage)
-					}
-				}
-				return true
-			})
-		}
-	})
-}
-
-func (app *App) GetContact(uid string) *model.Contact {
-	if v, ok := app.units.Load(uid); ok {
-		if contact, ok := v.(*model.Contact); ok {
-			return contact
-		}
-	}
-	return nil
-}
-
-func (app *App) ProcessContact(msg *cot.Msg) {
-	if c := app.GetContact(msg.GetUid()); c != nil {
-		app.Logger.Debugf("update contact %s (%s) %s", msg.GetUid(), msg.GetCallsign(), msg.GetType())
+func (app *App) ProcessItem(msg *cot.Msg) {
+	cl := model.GetClass(msg)
+	if c := app.GetItem(msg.GetUid()); c != nil {
+		app.Logger.Infof("update %s %s (%s) %s", cl, msg.GetUid(), msg.GetCallsign(), msg.GetType())
 		c.Update(msg)
 	} else {
-		app.Logger.Infof("new contact %s (%s) %s", msg.GetUid(), msg.GetCallsign(), msg.GetType())
-		app.AddContact(msg.From, model.ContactFromMsg(msg))
+		app.Logger.Infof("new %s %s (%s) %s", cl, msg.GetUid(), msg.GetCallsign(), msg.GetType())
+		app.units.Store(msg.GetUid(), model.FromMsg(msg))
 	}
-}
-
-func (app *App) ProcessUnit(msg *cot.Msg) {
-	if u := app.GetUnit(msg.GetUid()); u != nil {
-		app.Logger.Debugf("update unit %s (%s) %s", msg.GetUid(), msg.GetCallsign(), msg.GetType())
-		u.Update(msg)
-	} else {
-		app.Logger.Infof("new unit %s (%s) %s", msg.GetUid(), msg.GetCallsign(), msg.GetType())
-		app.units.Store(msg.GetUid(), model.UnitFromMsg(msg))
-	}
-}
-
-func (app *App) AddPoint(uid string, p *model.Point) {
-	if p == nil {
-		return
-	}
-	app.units.Store(uid, p)
 }
 
 func (app *App) removeByLink(msg *cot.Msg) {
@@ -338,18 +283,18 @@ func (app *App) removeByLink(msg *cot.Msg) {
 		uid := msg.Detail.GetFirst("link").GetAttr("uid")
 		typ := msg.Detail.GetFirst("link").GetAttr("type")
 		if uid == "" {
-			app.Logger.Errorf("invalid remove message: %s", msg.Detail)
+			app.Logger.Warnf("invalid remove message: %s", msg.Detail)
 			return
 		}
-		if v, ok := app.units.Load(uid); ok {
-			switch vv := v.(type) {
-			case *model.Contact:
+		if v := app.GetItem(uid); v != nil {
+			switch v.GetClass() {
+			case model.CONTACT:
 				app.Logger.Debugf("remove %s by message", uid)
-				vv.SetOffline()
+				v.SetOffline()
 				return
-			case *model.Unit, *model.Point:
+			case model.UNIT, model.POINT:
 				app.Logger.Debugf("remove unit/point %s type %s by message", uid, typ)
-				app.units.Delete(uid)
+				//app.units.Delete(uid)
 				return
 			}
 		}
@@ -383,7 +328,7 @@ func (app *App) MessageProcessor() {
 			if strings.HasSuffix(uid, "-ping") {
 				uid = uid[:len(uid)-5]
 			}
-			if c := app.GetContact(uid); c != nil {
+			if c := app.GetItem(uid); c != nil {
 				c.Update(nil)
 			}
 			break
@@ -391,29 +336,18 @@ func (app *App) MessageProcessor() {
 			app.removeByLink(msg)
 		case msg.IsChat():
 			if c := model.MsgToChat(msg); c != nil {
-				if fromContact := app.GetContact(c.FromUid); fromContact != nil {
+				if fromContact := app.GetItem(c.FromUid); fromContact != nil {
 					c.From = fromContact.GetCallsign()
 				}
 				app.Logger.Infof("Chat %s (%s) -> %s (%s) \"%s\"", c.From, c.FromUid, c.To, c.ToUid, c.Text)
 				app.messages = append(app.messages, c)
 			}
 		case strings.HasPrefix(msg.GetType(), "a-"):
-			app.Logger.Debugf("pos %s (%s) %s stale %s",
-				msg.GetUid(),
-				msg.GetCallsign(),
-				msg.GetType(),
-				msg.GetStale().Sub(time.Now()))
-			if msg.IsContact() {
-				app.ProcessContact(msg)
-			} else {
-				app.ProcessUnit(msg)
-			}
+			app.ProcessItem(msg)
 		case strings.HasPrefix(msg.GetType(), "b-"):
-			app.Logger.Debugf("point %s (%s) stale %s",
-				msg.GetUid(),
-				msg.GetCallsign(),
-				msg.GetStale().Sub(time.Now()))
-			app.AddPoint(msg.GetUid(), model.PointFromMsg(msg))
+			app.Logger.Infof("point %s (%s) %s", msg.GetUid(), msg.GetCallsign(), msg.GetType())
+			app.Logger.Infof("%s", msg.TakMessage.GetCotEvent().GetDetail().GetXmlDetail())
+			app.ProcessItem(msg)
 		default:
 			app.Logger.Warnf("msg: %s", msg)
 		}
@@ -442,22 +376,18 @@ func (app *App) cleaner() {
 }
 
 func (app *App) cleanOldUnits() {
-	app.Logger.Debugf("start cleaner")
 	toDelete := make([]string, 0)
 
 	app.units.Range(func(key, value interface{}) bool {
-		switch val := value.(type) {
-		case *model.Unit:
+		val := value.(*model.Item)
+
+		switch val.GetClass() {
+		case model.UNIT, model.POINT:
 			if val.IsOld() {
 				toDelete = append(toDelete, key.(string))
-				app.Logger.Debugf("removing unit %s", key)
+				app.Logger.Debugf("removing %s %s", val.GetClass(), key)
 			}
-		case *model.Point:
-			if val.IsOld() {
-				toDelete = append(toDelete, key.(string))
-				app.Logger.Debugf("removing point %s", key)
-			}
-		case *model.Contact:
+		case model.CONTACT:
 			if val.IsOld() {
 				toDelete = append(toDelete, key.(string))
 				app.Logger.Debugf("removing contact %s", key)
@@ -470,9 +400,6 @@ func (app *App) cleanOldUnits() {
 		return true
 	})
 
-	if len(toDelete) > 0 {
-		app.Logger.Debugf("%d records are stale", len(toDelete))
-	}
 	for _, uid := range toDelete {
 		app.units.Delete(uid)
 	}
