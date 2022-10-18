@@ -39,7 +39,7 @@ func (app *App) ListenSSl(addr string) error {
 	app.Logger.Infof("listening TCP SSL at %s", addr)
 
 	tlsCfg := &tls.Config{
-		Certificates: []tls.Certificate{*app.config.cert},
+		Certificates: []tls.Certificate{*app.config.tlsCert},
 		ClientCAs:    app.config.ca,
 		ClientAuth:   tls.RequireAndVerifyClientCert,
 	}
@@ -67,6 +67,12 @@ func (app *App) ListenSSl(addr string) error {
 
 		app.logCert(c1.ConnectionState().PeerCertificates)
 		user, serial := getUser(c1)
+
+		if !app.config.UserIsValid(user) {
+			app.Logger.Warnf("bad user %s", user)
+			continue
+		}
+
 		app.Logger.Infof("user: %s, sn: %s", user, serial)
 		name := "ssl:" + conn.RemoteAddr().String()
 		h := cot.NewClientHandler(name, conn, &cot.HandlerConfig{

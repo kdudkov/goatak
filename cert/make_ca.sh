@@ -1,7 +1,7 @@
 #!/bin/bash
 
 ca_name=myCa
-storepass=111111
+storepass=11111111
 
 if [[ -e cacert.key ]]; then
   echo "ca exists!"
@@ -10,7 +10,10 @@ fi
 
 openssl req -x509 -sha256 -extensions v3_ca -nodes -newkey rsa:4096 -days 3650 -out cacert.pem -keyout cacert.key \
   -subj "/C=RU/O=${ca_name}/CN=${ca_name}" \
-  -addext "keyUsage = digitalSignature,keyCertSign,cRLSign"
+  -addext "basicConstraints=critical,CA:TRUE" \
+  -addext "keyUsage = critical,cRLSign,keyCertSign"
+
+openssl x509 -in cacert.pem  -addtrust clientAuth -addtrust serverAuth -setalias "${ca_name}" -out ca-trusted.pem
 
 [[ -e truststore.p12 ]] && rm truststore.p12
-openssl pkcs12 -export -nokeys -name ca -in cacert.pem -out truststore.p12 -passout pass:${storepass}
+openssl pkcs12 -export -nokeys -name ca -in ca-trusted.pem -out truststore.p12 -passout pass:${storepass}

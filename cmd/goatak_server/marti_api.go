@@ -21,10 +21,6 @@ func getMartiApi(app *App, addr string) *air.Air {
 	api := air.New()
 	api.Address = addr
 
-	//if app.config.keyFile != "" && app.config.certFile != "" {
-	//	api.TLSCertFile = app.config.certFile
-	//	api.TLSKeyFile = app.config.keyFile
-	//}
 	api.GET("/Marti/api/version", getVersionHandler(app))
 	api.GET("/Marti/api/version/config", getVersionConfigHandler(app))
 	api.GET("/Marti/api/clientEndPoints", getEndpointsHandler(app))
@@ -245,13 +241,6 @@ func getSearchHandler(app *App) func(req *air.Request, res *air.Response) error 
 		result["results"] = packages
 		result["resultCount"] = len(packages)
 		return res.WriteJSON(result)
-	}
-}
-
-func getTlsConfigHandler(app *App) func(req *air.Request, res *air.Response) error {
-	return func(req *air.Request, res *air.Response) error {
-
-		return nil
 	}
 }
 

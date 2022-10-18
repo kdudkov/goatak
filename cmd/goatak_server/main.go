@@ -5,6 +5,7 @@ import (
 	"crypto"
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/pem"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -39,16 +40,30 @@ type AppConfig struct {
 	udpPort   int
 	adminAddr string
 	apiAddr   string
+	certAddr  string
 	sslPort   int
 
 	logging bool
+	tlsCert *tls.Certificate
 	ca      *x509.CertPool
-	cert    *tls.Certificate
+	cert    *x509.Certificate
 
 	sendAll bool
 	debug   bool
 
+	users []string
+
 	connections []string
+}
+
+func (ac *AppConfig) UserIsValid(username string) bool {
+	for _, u := range ac.users {
+		if u == username {
+			return true
+		}
+	}
+
+	return false
 }
 
 type App struct {
@@ -103,7 +118,7 @@ func (app *App) Run() {
 		}
 	}()
 
-	if app.config.cert != nil {
+	if app.config.tlsCert != nil {
 		go func() {
 			if err := app.ListenSSl(fmt.Sprintf(":%d", app.config.sslPort)); err != nil {
 				panic(err)
@@ -111,7 +126,7 @@ func (app *App) Run() {
 		}()
 	}
 
-	NewHttp(app, app.config.adminAddr, app.config.apiAddr).Start()
+	NewHttp(app).Start()
 
 	go app.MessageProcessor()
 	go app.cleaner()
@@ -443,16 +458,23 @@ func (app *App) SendToCallsign(callsign string, msg *cotproto.TakMessage) {
 	})
 }
 
-func processCert() (*x509.CertPool, *tls.Certificate, error) {
-	caCertPEM, err := ioutil.ReadFile(viper.GetString("ssl.ca"))
+func getServerCert() (*x509.Certificate, error) {
+	pemBytes, err := os.ReadFile(viper.GetString("ssl.cert"))
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
+	pemBlock, _ := pem.Decode(pemBytes)
+	return x509.ParseCertificate(pemBlock.Bytes)
+}
+
+func processCert() (*x509.CertPool, *tls.Certificate, error) {
 	roots := x509.NewCertPool()
-	ok := roots.AppendCertsFromPEM(caCertPEM)
-	if !ok {
-		panic("failed to parse root certificate")
+	if err := loadCert(roots, "ssl.ca"); err != nil {
+		panic(err)
+	}
+	if err := loadCert(roots, "ssl.cert"); err != nil {
+		panic(err)
 	}
 
 	cert, err := tls.LoadX509KeyPair(viper.GetString("ssl.cert"), viper.GetString("ssl.key"))
@@ -461,6 +483,19 @@ func processCert() (*x509.CertPool, *tls.Certificate, error) {
 	}
 
 	return roots, &cert, nil
+}
+
+func loadCert(cp *x509.CertPool, name string) error {
+	caCertPEM, err := os.ReadFile(viper.GetString(name))
+	if err != nil {
+		return nil
+	}
+
+	ok := cp.AppendCertsFromPEM(caCertPEM)
+	if !ok {
+		return fmt.Errorf("failed to parse root certificate %s", name)
+	}
+	return nil
 }
 
 func main() {
@@ -499,7 +534,13 @@ func main() {
 	logger, _ := cfg.Build()
 	defer logger.Sync()
 
-	ca, cert, err := processCert()
+	ca, tlsCert, err := processCert()
+
+	if err != nil {
+		panic(err)
+	}
+
+	cert, err := getServerCert()
 
 	if err != nil {
 		panic(err)
@@ -510,13 +551,16 @@ func main() {
 		udpPort:     viper.GetInt("udp_port"),
 		adminAddr:   viper.GetString("admin_addr"),
 		apiAddr:     viper.GetString("api_addr"),
+		certAddr:    viper.GetString("cert_addr"),
 		sslPort:     viper.GetInt("ssl_port"),
 		logging:     *logging,
 		ca:          ca,
+		tlsCert:     tlsCert,
 		cert:        cert,
 		sendAll:     viper.GetBool("send_all"),
 		debug:       *debug,
 		connections: viper.GetStringSlice("connections"),
+		users:       viper.GetStringSlice("valid_users"),
 	}
 
 	app := NewApp(config, logger.Sugar())

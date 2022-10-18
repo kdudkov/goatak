@@ -5,3 +5,8 @@ data/
 *.tmp
 *.out
 test-*.yml
+*.csr
+*.srl
+*.pem
+*.key
+*.p12

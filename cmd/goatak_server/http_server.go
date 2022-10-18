@@ -1,7 +1,6 @@
 package main
 
 import (
-	"crypto/tls"
 	"embed"
 	"errors"
 	"net/http"
@@ -30,7 +29,7 @@ type HttpServer struct {
 	renderer  *staticfiles.Renderer
 }
 
-func NewHttp(app *App, adminAddress string, apiAddress string) *HttpServer {
+func NewHttp(app *App) *HttpServer {
 	renderer := new(staticfiles.Renderer)
 	renderer.LeftDelimeter = "[["
 	renderer.RightDelimeter = "]]"
@@ -42,11 +41,13 @@ func NewHttp(app *App, adminAddress string, apiAddress string) *HttpServer {
 		renderer:  renderer,
 	}
 
-	if adminAddress != "" {
-		srv.listeners["admin api calls"] = getAdminApi(app, adminAddress, renderer)
+	if app.config.adminAddr != "" {
+		srv.listeners["admin api calls"] = getAdminApi(app, app.config.adminAddr, renderer)
 	}
-	srv.listeners["marti api calls"] = getMartiApi(app, apiAddress)
-	//srv.listeners["tls api calls"] = getTlsApi(app, ":8446")
+	if app.config.certAddr != "" {
+		srv.listeners["cert api calls"] = getCertApi(app, app.config.certAddr)
+	}
+	srv.listeners["marti api calls"] = getMartiApi(app, app.config.apiAddr)
 
 	return srv
 }
@@ -70,37 +71,6 @@ func getAdminApi(app *App, addr string, renderer *staticfiles.Renderer) *air.Air
 	adminApi.RendererTemplateRightDelim = "]]"
 
 	return adminApi
-}
-
-func getTlsApi(app *App, addr string) *air.Air {
-	tlsApi := air.New()
-	tlsApi.Address = addr
-
-	//auth := authenticator.BasicAuthGas(authenticator.BasicAuthGasConfig{
-	//	Validator: func(username string, password string, _ *air.Request, _ *air.Response) (bool, error) {
-	//		app.Logger.Infof("tls api login with user %s", username)
-	//		return username == "user", nil
-	//	},
-	//})
-	//
-	//tlsApi.Gases = []air.Gas{auth}
-
-	tlsApi.GET("/Marti/api/tls/config", getTlsConfigHandler(app))
-
-	tlsApi.NotFoundHandler = getNotFoundHandler(app)
-
-	if app.config.cert != nil {
-		tlsCfg := &tls.Config{
-			Certificates:       []tls.Certificate{*app.config.cert},
-			ClientCAs:          app.config.ca,
-			RootCAs:            app.config.ca,
-			ClientAuth:         tls.NoClientCert,
-			InsecureSkipVerify: true,
-		}
-
-		tlsApi.TLSConfig = tlsCfg
-	}
-	return tlsApi
 }
 
 func (h *HttpServer) Start() {
