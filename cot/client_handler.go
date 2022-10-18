@@ -185,12 +185,12 @@ func (h *ClientHandler) handleRead() {
 				h.logger.Errorf("SendMsg error: %v", err)
 			}
 		}
-
-		// pong
-		if cotmsg.GetType() == "t-x-c-t-r" {
-			h.logger.Debug("pong")
-			continue
-		}
+		//
+		//// pong
+		//if cotmsg.GetType() == "t-x-c-t-r" {
+		//	h.logger.Debug("pong")
+		//	continue
+		//}
 
 		h.messageCb(cotmsg)
 

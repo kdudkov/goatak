@@ -47,6 +47,7 @@ type AppConfig struct {
 	tlsCert *tls.Certificate
 	ca      *x509.CertPool
 	cert    *x509.Certificate
+	useSsl  bool
 
 	sendAll bool
 	debug   bool
@@ -57,6 +58,9 @@ type AppConfig struct {
 }
 
 func (ac *AppConfig) UserIsValid(username string) bool {
+	if len(ac.users) == 0 {
+		return true
+	}
 	for _, u := range ac.users {
 		if u == username {
 			return true
@@ -553,6 +557,7 @@ func main() {
 		apiAddr:     viper.GetString("api_addr"),
 		certAddr:    viper.GetString("cert_addr"),
 		sslPort:     viper.GetInt("ssl_port"),
+		useSsl:      viper.GetBool("ssl.use_ssl"),
 		logging:     *logging,
 		ca:          ca,
 		tlsCert:     tlsCert,

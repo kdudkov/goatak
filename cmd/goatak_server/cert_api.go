@@ -21,14 +21,16 @@ func getCertApi(app *App, addr string) *air.Air {
 	certApi := air.New()
 	certApi.Address = addr
 
-	_ = authenticator.BasicAuthGas(authenticator.BasicAuthGasConfig{
-		Validator: func(username string, password string, _ *air.Request, _ *air.Response) (bool, error) {
-			app.Logger.Infof("tls api login with user %s", username)
-			return username == "user", nil
-		},
-	})
+	if app.config.useSsl {
+		_ = authenticator.BasicAuthGas(authenticator.BasicAuthGasConfig{
+			Validator: func(username string, password string, _ *air.Request, _ *air.Response) (bool, error) {
+				app.Logger.Infof("tls api login with user %s", username)
+				return username == "user", nil
+			},
+		})
 
-	//certApi.Gases = []air.Gas{auth}
+		//certApi.Gases = []air.Gas{auth}
+	}
 
 	certApi.GET("/Marti/api/tls/config", getTlsConfigHandler(app))
 	certApi.POST("/Marti/api/tls/signClient", getSignHandler(app))
@@ -36,7 +38,7 @@ func getCertApi(app *App, addr string) *air.Air {
 
 	certApi.NotFoundHandler = getNotFoundHandler(app)
 
-	if app.config.tlsCert != nil {
+	if app.config.useSsl {
 		tlsCfg := &tls.Config{
 			Certificates: []tls.Certificate{*app.config.tlsCert},
 			ClientCAs:    app.config.ca,
@@ -113,7 +115,7 @@ func getSignHandler(app *App) func(req *air.Request, res *air.Response) error {
 			Issuer:       app.config.cert.Subject,
 			Subject:      clientCSR.Subject,
 			NotBefore:    time.Now(),
-			NotAfter:     time.Now().Add(24 * time.Hour),
+			NotAfter:     time.Now().Add(365 * 24 * time.Hour),
 			KeyUsage:     x509.KeyUsageDigitalSignature,
 			ExtKeyUsage:  []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth},
 		}

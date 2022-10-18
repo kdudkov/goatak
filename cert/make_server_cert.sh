@@ -1,7 +1,6 @@
 #!/bin/bash
 
-server_name="testserver.cot"
-server_hosts="testserver.cot 192.168.1.10 127.0.0.1"
+server_name=$1
 
 if [[ ! -e cacert.key ]]; then
 	echo "No ca cert found!"
@@ -18,7 +17,7 @@ keyUsage = critical,digitalSignature,keyEncipherment,cRLSign,keyCertSign
 extendedKeyUsage = critical,clientAuth,serverAuth
 EOT
 
-for d in $server_hosts
+for d in "$@"
 do
 	[[ "$s" != "" ]] && s="$s,"
 
@@ -29,6 +28,8 @@ do
 	fi
 done
 echo "subjectAltName=$s" >> ext.cfg
+
+cat ext.cfg
 
 openssl x509 -req -in server.csr -CA cacert.pem -CAkey cacert.key -CAcreateserial -out server.pem -days 3650 \
  -extfile ext.cfg
