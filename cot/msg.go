@@ -108,9 +108,10 @@ func (m *Msg) GetLon() float64 {
 }
 
 func (m *Msg) GetParent() (string, string) {
-	link := m.Detail.GetFirst("link")
-	if link.GetAttr("relation") == "p-p" {
-		return link.GetAttr("uid"), link.GetAttr("parent_callsign")
+	for _, link := range m.Detail.GetAll("link") {
+		if link.GetAttr("relation") == "p-p" {
+			return link.GetAttr("uid"), link.GetAttr("parent_callsign")
+		}
 	}
 	return "", ""
 }

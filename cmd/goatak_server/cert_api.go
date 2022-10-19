@@ -17,6 +17,8 @@ import (
 	"software.sslmate.com/src/go-pkcs12"
 )
 
+const certTtl = time.Hour * 24 * 365
+
 func getCertApi(app *App, addr string) *air.Air {
 	certApi := air.New()
 	certApi.Address = addr
@@ -114,8 +116,8 @@ func getSignHandler(app *App) func(req *air.Request, res *air.Response) error {
 			SerialNumber: serialNumber,
 			Issuer:       app.config.cert.Subject,
 			Subject:      clientCSR.Subject,
-			NotBefore:    time.Now(),
-			NotAfter:     time.Now().Add(365 * 24 * time.Hour),
+			NotBefore:    time.Now().Add(-5 * time.Minute),
+			NotAfter:     time.Now().Add(certTtl),
 			KeyUsage:     x509.KeyUsageDigitalSignature,
 			ExtKeyUsage:  []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth},
 		}
