@@ -3,8 +3,8 @@ package main
 import (
 	"crypto"
 	"crypto/tls"
-	"io/ioutil"
 	"net"
+	"os"
 	"strings"
 
 	"github.com/spf13/viper"
@@ -40,7 +40,7 @@ func (app *App) connect() (net.Conn, error) {
 }
 
 func (app *App) getTlsConfig() *tls.Config {
-	p12Data, err := ioutil.ReadFile(viper.GetString("ssl.cert"))
+	p12Data, err := os.ReadFile(viper.GetString("ssl.cert"))
 	if err != nil {
 		app.Logger.Fatal(err)
 	}

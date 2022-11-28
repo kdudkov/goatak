@@ -61,7 +61,7 @@ func getTlsConfigHandler(app *App) func(req *air.Request, res *air.Response) err
 		s.WriteString("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n")
 
 		s.WriteString("<certificateConfig><nameEntries>")
-		//s.WriteString("<nameEntry name=\"name\" value=\"value\"/>")
+		s.WriteString("<nameEntry name=\"C\" value=\"RU\"/>")
 		s.WriteString("</nameEntries></certificateConfig>")
 
 		return res.WriteString(s.String())
@@ -72,7 +72,7 @@ func getSignHandler(app *App) func(req *air.Request, res *air.Response) error {
 	return func(req *air.Request, res *air.Response) error {
 		app.Logger.Infof("%s %s", req.Method, req.Path)
 
-		uid := getStringParam(req, "clientUid")
+		uid := getStringParamIgnoreCaps(req, "clientUid")
 		ver := getStringParam(req, "version")
 
 		app.Logger.Infof("cert sign req from %s ver %s", uid, ver)
@@ -160,7 +160,7 @@ func getSignHandler(app *App) func(req *air.Request, res *air.Response) error {
 func getProfileEnrollmentHandler(app *App) func(req *air.Request, res *air.Response) error {
 	return func(req *air.Request, res *air.Response) error {
 		app.Logger.Infof("%s %s", req.Method, req.Path)
-		uid := getStringParam(req, "clientUid")
+		uid := getStringParamIgnoreCaps(req, "clientUid")
 		app.Logger.Infof("Profile enrollment req from %s", uid)
 
 		return nil

@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/aofei/air"
@@ -273,6 +274,16 @@ func getStringParam(req *air.Request, name string) string {
 	}
 
 	return p.Value().String()
+}
+
+func getStringParamIgnoreCaps(req *air.Request, name string) string {
+	for _, p := range req.Params() {
+		if strings.ToLower(p.Name) == strings.ToLower(name) {
+			return p.Value().String()
+		}
+	}
+
+	return ""
 }
 
 func exists(path string) bool {

@@ -492,7 +492,7 @@ func processCert() (*x509.CertPool, *tls.Certificate, error) {
 func loadCert(cp *x509.CertPool, name string) error {
 	caCertPEM, err := os.ReadFile(viper.GetString(name))
 	if err != nil {
-		return nil
+		return err
 	}
 
 	ok := cp.AppendCertsFromPEM(caCertPEM)
