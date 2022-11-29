@@ -204,6 +204,10 @@ func (n *Node) print(s *bytes.Buffer, prefix string) {
 }
 
 func (n *Node) AddChild(name string, params map[string]string, text string) *Node {
+	if n == nil {
+		return nil
+	}
+
 	nn := &Node{XMLName: xml.Name{Local: name}}
 
 	for k, v := range params {

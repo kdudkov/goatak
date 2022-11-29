@@ -84,7 +84,7 @@ type App struct {
 
 	ctx context.Context
 	uid string
-	ch  chan *cot.Msg
+	ch  chan *cot.CotMessage
 }
 
 func NewApp(config *AppConfig, logger *zap.SugaredLogger) *App {
@@ -92,7 +92,7 @@ func NewApp(config *AppConfig, logger *zap.SugaredLogger) *App {
 		Logger:         logger,
 		config:         config,
 		packageManager: NewPackageManager(logger),
-		ch:             make(chan *cot.Msg, 20),
+		ch:             make(chan *cot.CotMessage, 20),
 		handlers:       sync.Map{},
 		units:          sync.Map{},
 		uid:            uuid.New().String(),
@@ -147,7 +147,7 @@ func (app *App) Run() {
 	cancel()
 }
 
-func (app *App) NewCotMessage(msg *cot.Msg) {
+func (app *App) NewCotMessage(msg *cot.CotMessage) {
 	app.ch <- msg
 }
 
@@ -286,7 +286,7 @@ func (app *App) RemoveItem(uid string) {
 	}
 }
 
-func (app *App) ProcessItem(msg *cot.Msg) {
+func (app *App) ProcessItem(msg *cot.CotMessage) {
 	cl := model.GetClass(msg)
 	if c := app.GetItem(msg.GetUid()); c != nil {
 		app.Logger.Infof("update %s %s (%s) %s", cl, msg.GetUid(), msg.GetCallsign(), msg.GetType())
@@ -297,7 +297,7 @@ func (app *App) ProcessItem(msg *cot.Msg) {
 	}
 }
 
-func (app *App) removeByLink(msg *cot.Msg) {
+func (app *App) removeByLink(msg *cot.CotMessage) {
 	if msg.Detail != nil && msg.Detail.Has("link") {
 		uid := msg.Detail.GetFirst("link").GetAttr("uid")
 		typ := msg.Detail.GetFirst("link").GetAttr("type")
@@ -375,7 +375,7 @@ func (app *App) MessageProcessor() {
 	}
 }
 
-func (app *App) route(msg *cot.Msg) {
+func (app *App) route(msg *cot.CotMessage) {
 	if len(msg.Detail.GetDest()) > 0 {
 		for _, s := range msg.Detail.GetDest() {
 			app.SendToCallsign(s, msg.TakMessage)

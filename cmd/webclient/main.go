@@ -176,7 +176,7 @@ func (app *App) SendMsg(msg *cotproto.TakMessage) {
 	}
 }
 
-func (app *App) ProcessEvent(msg *cot.Msg) {
+func (app *App) ProcessEvent(msg *cot.CotMessage) {
 	if c := app.GetItem(msg.GetUid()); c != nil {
 		c.Update(nil)
 	}
@@ -219,7 +219,7 @@ func (app *App) ProcessEvent(msg *cot.Msg) {
 	}
 }
 
-func (app *App) ProcessItem(msg *cot.Msg) {
+func (app *App) ProcessItem(msg *cot.CotMessage) {
 	cl := model.GetClass(msg)
 	if c := app.GetItem(msg.GetUid()); c != nil {
 		app.Logger.Infof("update %s %s (%s) %s", cl, msg.GetUid(), msg.GetCallsign(), msg.GetType())
@@ -252,7 +252,7 @@ func (app *App) GetItem(uid string) *model.Item {
 	return nil
 }
 
-func (app *App) removeByLink(msg *cot.Msg) {
+func (app *App) removeByLink(msg *cot.CotMessage) {
 	if msg.Detail != nil && msg.Detail.Has("link") {
 		uid := msg.Detail.GetFirst("link").GetAttr("uid")
 		typ := msg.Detail.GetFirst("link").GetAttr("type")

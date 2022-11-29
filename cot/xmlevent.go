@@ -28,6 +28,54 @@ func (e *Event) String() string {
 	return fmt.Sprintf("version=%s, type=%s, uid=%s, how=%s, stale=%s, detail={%s}", e.Version, e.Type, e.Uid, e.How, e.Stale.Sub(e.Start), e.Detail)
 }
 
+func (e *Event) AddDetail() *Node {
+	if e == nil {
+		return nil
+	}
+
+	if e.Detail == nil {
+		e.Detail = &Node{XMLName: xml.Name{Local: "detail"}}
+	}
+
+	return e.Detail
+}
+
+func (e *Event) AddGroup(group, role string) {
+	if e == nil {
+		return
+	}
+
+	e.AddDetail().AddChild("__group", map[string]string{"name": group, "role": role}, "")
+}
+
+func (e *Event) AddCallsign(callsign, endpoint string, addDroid bool) {
+	if e == nil {
+		return
+	}
+
+	e.AddDetail().AddChild("contact", map[string]string{"callsign": callsign, "endpoint": endpoint}, "")
+
+	if addDroid {
+		e.AddDetail().AddChild("uid", map[string]string{"Droid": callsign}, "")
+	}
+}
+
+func (e *Event) AddTrack(speed, course string) {
+	if e == nil {
+		return
+	}
+
+	e.AddDetail().AddChild("__track", map[string]string{"speed": speed, "course": course}, "")
+}
+
+func (e *Event) AddVersion(device, platform, os, version string) {
+	if e == nil {
+		return
+	}
+
+	e.AddDetail().AddChild("takv", map[string]string{"device": device, "platform": platform, "os": os, "version": version}, "")
+}
+
 type Point struct {
 	XMLName xml.Name `xml:"point"`
 	Lat     float64  `xml:"lat,attr"`
@@ -63,8 +111,7 @@ func VersionSupportMsg(ver int8) *Event {
 	v := strconv.Itoa(int(ver))
 	ev := XmlBasicMsg("t-x-takp-v", "protouid", time.Minute)
 	ev.How = "m-g"
-	ev.Detail = NewXmlDetails()
-	ev.Detail.AddChild("TakControl", nil, "").AddChild("TakProtocolSupport", map[string]string{"version": v}, "")
+	ev.AddDetail().AddChild("TakControl", nil, "").AddChild("TakProtocolSupport", map[string]string{"version": v}, "")
 	return ev
 }
 
@@ -72,20 +119,19 @@ func VersionReqMsg(ver int8) *Event {
 	v := strconv.Itoa(int(ver))
 	ev := XmlBasicMsg("t-x-takp-v", "protouid", time.Minute)
 	ev.How = "m-g"
-	ev.Detail = NewXmlDetails()
-	ev.Detail.AddChild("TakControl", nil, "").AddChild("TakRequest", map[string]string{"version": v}, "")
+	ev.AddDetail().AddChild("TakControl", nil, "").AddChild("TakRequest", map[string]string{"version": v}, "")
 	return ev
 }
 
 func ProtoChangeOkMsg() *Event {
 	ev := XmlBasicMsg("t-x-takp-r", "protouid", time.Minute)
 	ev.How = "m-g"
-	ev.Detail = NewXmlDetails()
-	ev.Detail.AddChild("TakControl", nil, "").AddChild("TakResponse", map[string]string{"status": "true"}, "")
+	ev.AddDetail().AddChild("TakControl", nil, "").AddChild("TakResponse", map[string]string{"status": "true"}, "")
 	return ev
 }
 
-// Geopointsrc = "USER" ce Altsrc - "DTED0"
+// Geopointsrc = "USER" Altsrc - "DTED0"
+// ce
 // high   0 - cat1,  7 - CAT2 16 - CAT3 31 - CAT4 92 - CAT5
 // medium 3 - cat1, 11 - CAT2 23 - CAT3 61 - CAT4 198.5 - CAT5
 // low    6 - cat1, 15 - CAT2 30 - CAT3 91 - CAT4 305 - CAT5

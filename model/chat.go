@@ -44,7 +44,7 @@ type ChatMessage struct {
 // <__serverdestination destinations="192.168.1.72:4242:tcp:ANDROID-765a942cbe30d010"/>
 // <remarks source="BAO.F.ATAK.ANDROID-765a942cbe30d010" time="2022-04-05T08:26:51.718Z">[UPDATED CONTACTS]</remarks>
 
-func MsgToChat(m *cot.Msg) *ChatMessage {
+func MsgToChat(m *cot.CotMessage) *ChatMessage {
 	chat := m.Detail.GetFirst("__chat")
 	if chat == nil {
 		return nil

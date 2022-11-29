@@ -43,7 +43,7 @@ type Item struct {
 	color          uint32
 	icon           string
 	track          []*Pos
-	msg            *cot.Msg
+	msg            *cot.CotMessage
 }
 
 func (i *Item) String() string {
@@ -64,7 +64,7 @@ func (i *Item) GetCotType() string {
 	return i.cottype
 }
 
-func (i *Item) GetMsg() *cot.Msg {
+func (i *Item) GetMsg() *cot.CotMessage {
 	i.mx.RLock()
 	defer i.mx.RUnlock()
 	return i.msg
@@ -138,7 +138,7 @@ func (i *Item) IsSend() bool {
 	return i.send
 }
 
-func GetClass(msg *cot.Msg) string {
+func GetClass(msg *cot.CotMessage) string {
 	if msg == nil {
 		return ""
 	}
@@ -158,7 +158,7 @@ func GetClass(msg *cot.Msg) string {
 	return ""
 }
 
-func FromMsg(msg *cot.Msg) *Item {
+func FromMsg(msg *cot.CotMessage) *Item {
 	cls := GetClass(msg)
 
 	if cls == "" {
@@ -204,7 +204,7 @@ func FromMsg(msg *cot.Msg) *Item {
 	return i
 }
 
-func FromMsgLocal(msg *cot.Msg, send bool) *Item {
+func FromMsgLocal(msg *cot.CotMessage, send bool) *Item {
 	i := FromMsg(msg)
 	i.local = true
 	i.send = send
@@ -215,7 +215,7 @@ func (i *Item) GetLanLon() (float64, float64) {
 	return i.msg.TakMessage.GetCotEvent().GetLat(), i.msg.TakMessage.GetCotEvent().GetLon()
 }
 
-func (i *Item) Update(msg *cot.Msg) {
+func (i *Item) Update(msg *cot.CotMessage) {
 	if msg == nil {
 		return
 	}
@@ -262,7 +262,7 @@ func (i *Item) Update(msg *cot.Msg) {
 	}
 }
 
-func (i *Item) UpdateFromWeb(w *WebUnit, m *cot.Msg) {
+func (i *Item) UpdateFromWeb(w *WebUnit, m *cot.CotMessage) {
 	if w == nil {
 		return
 	}

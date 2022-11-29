@@ -26,7 +26,7 @@ type HandlerConfig struct {
 	User      string
 	Uid       string
 	IsClient  bool
-	MessageCb func(msg *Msg)
+	MessageCb func(msg *CotMessage)
 	RemoveCb  func(ch *ClientHandler)
 	Logger    *zap.SugaredLogger
 }
@@ -43,7 +43,7 @@ type ClientHandler struct {
 	sendChan     chan []byte
 	active       int32
 	user         string
-	messageCb    func(msg *Msg)
+	messageCb    func(msg *CotMessage)
 	removeCb     func(ch *ClientHandler)
 	logger       *zap.SugaredLogger
 }
@@ -158,7 +158,7 @@ func (h *ClientHandler) handleRead() {
 			continue
 		}
 
-		cotmsg := &Msg{
+		cotmsg := &CotMessage{
 			From:       h.addr,
 			TakMessage: msg,
 			Detail:     d,
@@ -283,7 +283,7 @@ func (h *ClientHandler) GetVersion() int32 {
 	return atomic.LoadInt32(&h.ver)
 }
 
-func (h *ClientHandler) checkContact(msg *Msg) {
+func (h *ClientHandler) checkContact(msg *CotMessage) {
 	if msg.IsContact() {
 		uid := msg.TakMessage.CotEvent.Uid
 		if strings.HasSuffix(uid, "-ping") {

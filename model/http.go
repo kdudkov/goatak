@@ -93,7 +93,7 @@ func (i *Item) ToWeb() *WebUnit {
 	return w
 }
 
-func (w *WebUnit) ToMsg() *cot.Msg {
+func (w *WebUnit) ToMsg() *cot.CotMessage {
 	msg := &cotproto.TakMessage{
 		CotEvent: &cotproto.CotEvent{
 			Type:      w.Type,
@@ -148,7 +148,7 @@ func (w *WebUnit) ToMsg() *cot.Msg {
 		msg.CotEvent.StaleTime = cot.TimeToMillis(time.Now().Add(time.Hour * 24))
 	}
 
-	return &cot.Msg{
+	return &cot.CotMessage{
 		From:       "",
 		TakMessage: msg,
 		Detail:     xd,
