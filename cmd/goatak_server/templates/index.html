@@ -1,4 +1,3 @@
-
 <div class="container-fluid" id="app">
     <h5>ATAK Server</h5>
     <a href="/map">Map</a>
@@ -6,7 +5,7 @@
         <div class="col-6">
             <div class="overflow-auto">
                 <div class="alert alert-secondary info" role="alert" v-if="alert != null">
-                    {{alert}}
+                    {{ alert }}
                 </div>
                 <div class="card mb-2">
                     <div class="card-header">Connections</div>
@@ -19,14 +18,14 @@
                                 <th>ver.</th>
                             </tr>
                             <tr v-for="c in all_conns">
-                                <td>{{c.addr}}</td>
+                                <td>{{ c.addr }}</td>
                                 <td>
                                     <span v-for="(k, v) in c.uids">
                                         {{ k }}: {{ v }}
                                     </span>
                                 </td>
-                                <td>{{c.user}}</td>
-                                <td>{{c.ver}}</td>
+                                <td>{{ c.user }}</td>
+                                <td>{{ c.ver }}</td>
                             </tr>
                         </table>
                     </div>
@@ -39,11 +38,10 @@
                                 <td>
                                     <img v-bind:src="getImg(u)"/>
                                 </td>
-                                <td>{{u.callsign}}</td>
-                                <td>{{u.status}}</td>
-                                <td>{{printCoords(u.lat, u.lon)}}</td>
-                                <td>{{u.speed}}</td>
-                                <td>{{u.tak_version}}</td>
+                                <td>{{ u.callsign }}</td>
+                                <td>{{ u.status }}</td>
+                                <td>{{ printCoords(u.lat, u.lon) }}</td>
+                                <td>{{ u.tak_version }}</td>
                             </tr>
                         </table>
                     </div>
@@ -59,9 +57,10 @@
                             <td>
                                 <img v-bind:src="getImg(u)"/>
                             </td>
-                            <td>{{u.callsign}}</td>
-                            <td>{{printCoords(u.lat, u.lon)}}</td>
-                            <td>{{dt(u.stale_time)}}</td>
+                            <td>{{ u.callsign }}</td>
+                            <td>{{ printCoords(u.lat, u.lon) }}</td>
+                            <td>{{ u.speed }}</td>
+                            <td>{{ dt(u.stale_time) }}</td>
                         </tr>
                     </table>
                 </div>
@@ -72,10 +71,10 @@
                     <table class="table table-hover table-sm units">
                         <tr v-for="u in byCategory('point')">
                             <td><img v-bind:src="getImg(u)"/></td>
-                            <td>{{u.callsign}}</td>
-                            <td>{{printCoords(u.lat, u.lon)}}</td>
-                            <td>{{dt(u.send_time)}}</td>
-                            <td>{{dt(u.stale_time)}}</td>
+                            <td>{{ u.callsign }}</td>
+                            <td>{{ printCoords(u.lat, u.lon) }}</td>
+                            <td>{{ dt(u.send_time) }}</td>
+                            <td>{{ dt(u.stale_time) }}</td>
                         </tr>
                     </table>
                 </div>
