@@ -59,7 +59,7 @@ func ProtoToEvent(msg *cotproto.TakMessage) *Event {
 				"course": fmt.Sprintf("%f", d.Track.Course),
 				"speed":  fmt.Sprintf("%f", d.Track.Speed),
 			}
-			ev.Detail.AddChild("__track", attrs, "")
+			ev.Detail.AddChild("track", attrs, "")
 		}
 
 		if d.Takv != nil {
@@ -148,7 +148,7 @@ func EventToProto(ev *Event) (*cotproto.TakMessage, *Node) {
 		}
 	}
 
-	if c := ev.Detail.GetFirst("__track"); c != nil {
+	if c := ev.Detail.GetFirst("track"); c != nil {
 		msg.CotEvent.Detail.Track = &cotproto.Track{
 			Speed:  getFloat(c.GetAttr("speed")),
 			Course: getFloat(c.GetAttr("course")),
@@ -174,7 +174,7 @@ func GetXmlDetails(d *Node) (*Node, error) {
 	if err != nil {
 		return nil, err
 	}
-	details.RemoveTags("contact", "__group", "precisionlocation", "status", "takv", "__track")
+	details.RemoveTags("contact", "__group", "precisionlocation", "status", "takv", "track")
 	return details, nil
 }
 

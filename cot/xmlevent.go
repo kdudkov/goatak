@@ -65,7 +65,7 @@ func (e *Event) AddTrack(speed, course string) {
 		return
 	}
 
-	e.AddDetail().AddChild("__track", map[string]string{"speed": speed, "course": course}, "")
+	e.AddDetail().AddChild("track", map[string]string{"speed": speed, "course": course}, "")
 }
 
 func (e *Event) AddVersion(device, platform, os, version string) {
