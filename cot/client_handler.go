@@ -1,6 +1,7 @@
 package cot
 
 import (
+	"context"
 	"encoding/binary"
 	"encoding/xml"
 	"fmt"
@@ -32,6 +33,8 @@ type HandlerConfig struct {
 }
 
 type ClientHandler struct {
+	ctx          context.Context
+	cancel       context.CancelFunc
 	conn         net.Conn
 	addr         string
 	uid          string
@@ -57,6 +60,8 @@ func NewClientHandler(name string, conn net.Conn, config *HandlerConfig) *Client
 		active:   1,
 		uids:     sync.Map{},
 	}
+
+	c.ctx, c.cancel = context.WithCancel(context.Background())
 
 	if config != nil {
 		c.user = config.User
@@ -108,15 +113,17 @@ func (h *ClientHandler) Start() {
 }
 
 func (h *ClientHandler) pinger() {
-	for {
-		if !h.IsActive() {
+	ticker := time.NewTicker(pingTimeout)
+	defer ticker.Stop()
+	for h.ctx.Err() == nil {
+		select {
+		case <-ticker.C:
+			h.logger.Debugf("ping")
+			if err := h.SendMsg(MakePing(h.uid)); err != nil {
+				h.logger.Debugf("sendMsg error: %v", err)
+			}
+		case <-h.ctx.Done():
 			return
-		}
-
-		time.Sleep(pingTimeout)
-		h.logger.Debugf("ping")
-		if err := h.SendMsg(MakePing(h.uid)); err != nil {
-			h.logger.Debugf("sendMsg error: %v", err)
 		}
 	}
 }
@@ -127,11 +134,7 @@ func (h *ClientHandler) handleRead() {
 	er := NewTagReader(h.conn)
 	pr := NewProtoReader(h.conn)
 
-	for {
-		if !h.IsActive() {
-			break
-		}
-
+	for h.ctx.Err() == nil {
 		var msg *cotproto.TakMessage
 		var d *Node
 		var err error
@@ -148,7 +151,7 @@ func (h *ClientHandler) handleRead() {
 		if err != nil {
 			if err == io.EOF {
 				h.logger.Info("EOF")
-				break
+				return
 			}
 			h.logger.Warnf(err.Error())
 			break
@@ -185,18 +188,8 @@ func (h *ClientHandler) handleRead() {
 				h.logger.Errorf("SendMsg error: %v", err)
 			}
 		}
-		//
-		//// pong
-		//if cotmsg.GetType() == "t-x-c-t-r" {
-		//	h.logger.Debug("pong")
-		//	continue
-		//}
 
 		h.messageCb(cotmsg)
-
-		if h.closeTimer != nil {
-			h.closeTimer.Stop()
-		}
 	}
 }
 
@@ -330,6 +323,8 @@ func (h *ClientHandler) handleWrite() {
 func (h *ClientHandler) stopHandle() {
 	if atomic.CompareAndSwapInt32(&h.active, 1, 0) {
 		h.logger.Info("stopping")
+		h.cancel()
+
 		close(h.sendChan)
 
 		if h.conn != nil {
@@ -337,6 +332,10 @@ func (h *ClientHandler) stopHandle() {
 		}
 
 		h.removeCb(h)
+
+		if h.closeTimer != nil {
+			h.closeTimer.Stop()
+		}
 	}
 	return
 }
@@ -361,10 +360,6 @@ func (h *ClientHandler) closeIdle() {
 }
 
 func (h *ClientHandler) SendEvent(evt *Event) error {
-	if !h.IsActive() {
-		return nil
-	}
-
 	if h.GetVersion() != 0 {
 		return fmt.Errorf("bad client version")
 	}
@@ -382,10 +377,6 @@ func (h *ClientHandler) SendEvent(evt *Event) error {
 }
 
 func (h *ClientHandler) SendMsg(msg *cotproto.TakMessage) error {
-	if !h.IsActive() {
-		return nil
-	}
-
 	switch h.GetVersion() {
 	case 0:
 		buf, err := xml.Marshal(ProtoToEvent(msg))
