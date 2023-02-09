@@ -219,7 +219,7 @@ func (app *App) ProcessEvent(msg *cot.CotMessage) {
 	case strings.HasPrefix(msg.GetType(), "u-"):
 		fmt.Println(msg.GetType())
 	case msg.GetType() == "tak registration":
-		app.Logger.Infof("registration %s %s", msg.GetUid(), msg.GetCallsign())
+		app.Logger.Debugf("registration %s %s", msg.GetUid(), msg.GetCallsign())
 	default:
 		app.Logger.Debugf("unknown event: %s", msg.GetType())
 	}
@@ -228,7 +228,7 @@ func (app *App) ProcessEvent(msg *cot.CotMessage) {
 func (app *App) ProcessItem(msg *cot.CotMessage) {
 	cl := model.GetClass(msg)
 	if c := app.GetItem(msg.GetUid()); c != nil {
-		app.Logger.Infof("update %s %s (%s) %s", cl, msg.GetUid(), msg.GetCallsign(), msg.GetType())
+		app.Logger.Debugf("update %s %s (%s) %s", cl, msg.GetUid(), msg.GetCallsign(), msg.GetType())
 		c.Update(msg)
 	} else {
 		app.Logger.Infof("new %s %s (%s) %s", cl, msg.GetUid(), msg.GetCallsign(), msg.GetType())
@@ -407,7 +407,7 @@ func main() {
 
 	viper.SetConfigFile(*conf)
 
-	viper.SetDefault("server_address", "127.0.0.1:8089:tcp")
+	viper.SetDefault("server_address", "204.48.30.216:8087:tcp")
 	viper.SetDefault("web_port", 8080)
 	viper.SetDefault("me.callsign", RandString(10))
 	viper.SetDefault("me.lat", 35.462939)

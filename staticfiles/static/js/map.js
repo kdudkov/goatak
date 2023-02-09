@@ -213,7 +213,7 @@ let app = new Vue({
                     oldUnit = u;
                     updateMarker = true;
                 } else {
-                    updateMarker = (oldUnit.sidc !== u.sidc);
+                    updateMarker = (oldUnit.sidc !== u.sidc || oldUnit.status !== u.status);
                     for (const k of Object.keys(u)) {
                         oldUnit[k] = u[k];
                     }
