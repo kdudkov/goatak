@@ -152,22 +152,25 @@
                             <b>Type:</b> {{current_unit.type}} <b>SIDC:</b> {{current_unit.sidc}}
                         </div>
                         <div>
-                            <b>coords:</b> {{printCoords(current_unit.lat, current_unit.lon)}}
+                            <b>coords:</b> {{ printCoords(current_unit.lat, current_unit.lon) }}
                             <span class="badge rounded-pill bg-success" style="cursor:default;"
                                   v-on:click="map.setView([current_unit.lat, current_unit.lon])"><i
                                     class="bi bi-geo"></i></span>
                             <span v-if="coords != null">({{ distBea(latlng(current_unit.lat, current_unit.lon), coords) }} to cursor)</span>
                         </div>
-                        <b>speed:</b> {{sp(current_unit.speed)}} km/h, <b>hae:</b> {{current_unit.hae.toFixed(1)}}<br/>
-                        <div v-if="ne(current_unit.tak_version)"><b>ver:</b> {{current_unit.tak_version}}</div>
-                        <div v-if="ne(current_unit.parent_uid)"><b>parent:</b> {{current_unit.parent_uid}}
+                        <b>speed:</b> {{ sp(current_unit.speed) }} km/h,
+                        <b>hae:</b> {{ current_unit.hae.toFixed(1) }}<br/>
+                        <div v-if="ne(current_unit.tak_version)"><b>ver:</b> {{ current_unit.tak_version }}</div>
+                        <div v-if="ne(current_unit.parent_uid)"><b>parent:</b> {{ current_unit.parent_uid }}
+                            <span v-if="ne(current_unit.parent_callsign)">({{ current_unit.parent_callsign }})</span>
                         </div>
                         <div>
-                            <b>time:</b> {{dt(current_unit.start_time)}} <b>send:</b> {{dt(current_unit.send_time)}} <b>stale:</b>
-                            {{dt(current_unit.stale_time)}}<br/>
-                            <b>last seen</b>: {{dt(current_unit.last_seen)}}
+                            <b>time:</b> {{ dt(current_unit.start_time) }} <b>send:</b> {{ dt(current_unit.send_time) }}
+                            <b>stale:</b>
+                            {{ dt(current_unit.stale_time) }}<br/>
+                            <b>last seen</b>: {{ dt(current_unit.last_seen) }}
                         </div>
-                        {{current_unit.text}}
+                        {{ current_unit.text }}
                     </div>
                 </div>
             </div>
