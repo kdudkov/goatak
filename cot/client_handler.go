@@ -151,7 +151,7 @@ func (h *ClientHandler) handleRead() {
 		if err != nil {
 			if err == io.EOF {
 				h.logger.Info("EOF")
-				return
+				break
 			}
 			h.logger.Warnf(err.Error())
 			break
@@ -204,8 +204,7 @@ func (h *ClientHandler) processXMLRead(er *TagReader) (*cotproto.TakMessage, *No
 	}
 
 	if tag != "event" {
-		//return nil, nil, fmt.Errorf("bad tag: %s", dat)
-		return nil, nil, nil
+		return nil, nil, fmt.Errorf("bad tag: %s", dat)
 	}
 
 	ev := &Event{}
@@ -383,7 +382,6 @@ func (h *ClientHandler) SendMsg(msg *cotproto.TakMessage) error {
 		if err != nil {
 			return err
 		}
-
 		if h.tryAddPacket(buf) {
 			return nil
 		}

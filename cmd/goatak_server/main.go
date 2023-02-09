@@ -340,8 +340,8 @@ func (app *App) MessageProcessor() {
 		}
 
 		switch {
-		case msg.GetType() == "t-x-c-t":
-			// ping
+		case msg.GetType() == "t-x-c-t", msg.GetType() == "t-x-c-t-r":
+			// ping, pong
 			app.Logger.Debugf("ping from %s", msg.GetUid())
 			uid := msg.GetUid()
 			if strings.HasSuffix(uid, "-ping") {

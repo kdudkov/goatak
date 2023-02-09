@@ -22,6 +22,7 @@ import (
 )
 
 const (
+	selfPosSendPeriod      = time.Minute
 	lastSeenOfflineTimeout = time.Minute * 10
 	alfaNum                = "abcdefghijklmnopqrstuvwxyz012346789"
 )
@@ -160,7 +161,7 @@ func (app *App) myPosSender(ctx context.Context, wg *sync.WaitGroup) {
 		select {
 		case <-ctx.Done():
 			return
-		case <-time.Tick(time.Minute):
+		case <-time.Tick(selfPosSendPeriod):
 			app.Logger.Debugf("sending pos")
 			app.SendMsg(app.MakeMe())
 			app.sendMyPoints()
@@ -185,7 +186,12 @@ func (app *App) ProcessEvent(msg *cot.CotMessage) {
 	case msg.GetType() == "t-x-c-t":
 		app.Logger.Debugf("ping from %s", msg.GetUid())
 		if i := app.GetItem(msg.GetUid()); i != nil {
-			i.SetOffline()
+			i.SetOnline()
+		}
+	case msg.GetType() == "t-x-c-t-r":
+		app.Logger.Debugf("pong from %s", msg.GetUid())
+		if i := app.GetItem(msg.GetUid()); i != nil {
+			i.SetOnline()
 		}
 	case msg.GetType() == "t-x-d-d":
 		app.removeByLink(msg)
@@ -300,8 +306,17 @@ func (app *App) MakeMe() *cotproto.TakMessage {
 			Os:       app.os,
 			Version:  app.version,
 		},
+		Track: &cotproto.Track{
+			Speed:  0,
+			Course: 0,
+		},
+		PrecisionLocation: &cotproto.PrecisionLocation{
+			Geopointsrc: "",
+			Altsrc:      "DTED2",
+		},
+		Status: &cotproto.Status{Battery: 39},
 	}
-
+	ev.CotEvent.Detail.XmlDetail = fmt.Sprintf("<uid Droid=\"%s\"></uid>", app.callsign)
 	return ev
 }
 

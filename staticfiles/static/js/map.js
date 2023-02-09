@@ -21,7 +21,11 @@ function ne(s) {
 
 function getIcon(item, withText) {
     if (item.category === "contact" || (ne(item.team) && ne(item.role))) {
-        return {uri: toUri(roleCircle(24, colors.get(item.team), '#000', item.role)), x: 12, y: 12};
+        let col = "#555";
+        if (item.status === "Online") {
+            col = colors.get(item.team);
+        }
+        return {uri: toUri(roleCircle(24, col, '#000', item.role)), x: 12, y: 12};
     }
     if (ne(item.icon) && item.icon.startsWith("COT_MAPPING_SPOTMAP/")) {
         return {uri: toUri(circle(16, ne(item.color) ? item.color : 'green', '#000', null)), x: 8, y: 8}

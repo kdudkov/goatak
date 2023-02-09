@@ -20,9 +20,9 @@ func ProtoToEvent(msg *cotproto.TakMessage) *Event {
 		Version: "2.0",
 		Type:    msg.CotEvent.Type,
 		Uid:     msg.CotEvent.Uid,
-		Time:    TimeFromMillis(msg.CotEvent.SendTime),
-		Start:   TimeFromMillis(msg.CotEvent.StartTime),
-		Stale:   TimeFromMillis(msg.CotEvent.StaleTime),
+		Time:    TimeFromMillis(msg.CotEvent.SendTime).UTC(),
+		Start:   TimeFromMillis(msg.CotEvent.StartTime).UTC(),
+		Stale:   TimeFromMillis(msg.CotEvent.StaleTime).UTC(),
 		How:     msg.CotEvent.How,
 		Point: Point{
 			Lat: msg.CotEvent.Lat,
