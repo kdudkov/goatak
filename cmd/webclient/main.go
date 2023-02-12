@@ -203,8 +203,8 @@ func (app *App) ProcessEvent(msg *cot.CotMessage) {
 			if fromContact := app.GetItem(c.FromUid); fromContact != nil {
 				c.From = fromContact.GetCallsign()
 			}
-			app.Logger.Infof("Chat %s (%s) -> %s (%s) \"%s\"", c.From, c.FromUid, c.To, c.ToUid, c.Text)
-			key := c.To
+			app.Logger.Infof("Chat %s (%s) -> %s (%s) \"%s\"", c.From, c.FromUid, c.Room, c.ToUid, c.Text)
+			key := c.Room
 			if c.ToUid == app.uid {
 				key = c.From
 			}
