@@ -23,7 +23,7 @@ import (
 
 const (
 	selfPosSendPeriod      = time.Minute
-	lastSeenOfflineTimeout = time.Minute * 10
+	lastSeenOfflineTimeout = time.Minute * 15
 	alfaNum                = "abcdefghijklmnopqrstuvwxyz012346789"
 )
 
@@ -45,7 +45,7 @@ type App struct {
 	Logger      *zap.SugaredLogger
 	ch          chan []byte
 	units       sync.Map
-	messages    []*model.ChatMessage
+	messages    map[string][]*model.ChatMessage
 	tls         bool
 	cl          *cot.ClientHandler
 	listeners   sync.Map
@@ -95,6 +95,7 @@ func NewApp(uid string, callsign string, connectStr string, webPort int, logger 
 		units:       sync.Map{},
 		dialTimeout: time.Second * 5,
 		listeners:   sync.Map{},
+		messages:    make(map[string][]*model.ChatMessage),
 	}
 }
 
@@ -156,12 +157,14 @@ func (app *App) myPosSender(ctx context.Context, wg *sync.WaitGroup) {
 	wg.Add(1)
 	defer wg.Done()
 	app.SendMsg(app.MakeMe())
+	ticker := time.NewTicker(selfPosSendPeriod)
+	defer ticker.Stop()
 
 	for ctx.Err() == nil {
 		select {
 		case <-ctx.Done():
 			return
-		case <-time.Tick(selfPosSendPeriod):
+		case <-ticker.C:
 			app.Logger.Debugf("sending pos")
 			app.SendMsg(app.MakeMe())
 			app.sendMyPoints()
@@ -201,7 +204,11 @@ func (app *App) ProcessEvent(msg *cot.CotMessage) {
 				c.From = fromContact.GetCallsign()
 			}
 			app.Logger.Infof("Chat %s (%s) -> %s (%s) \"%s\"", c.From, c.FromUid, c.To, c.ToUid, c.Text)
-			app.messages = append(app.messages, c)
+			key := c.To
+			if c.ToUid == app.uid {
+				key = c.From
+			}
+			app.messages[key] = append(app.messages[key], c)
 		}
 	case strings.HasPrefix(msg.GetType(), "a-"):
 		if msg.GetUid() == app.uid {
@@ -329,11 +336,8 @@ func RandString(strlen int) string {
 }
 
 func (app *App) cleaner() {
-	for {
-		select {
-		case <-time.Tick(time.Minute):
-			app.cleanOldUnits()
-		}
+	for range time.Tick(time.Minute) {
+		app.cleanOldUnits()
 	}
 }
 

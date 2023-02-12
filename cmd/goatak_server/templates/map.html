@@ -175,9 +175,9 @@
                 </div>
                 <div class="modal-body">
                     <div v-for="m in messages" class="alert alert-secondary">
-                        <span class="badge bg-success">{{m.from}}</span> -> <span
-                            class="badge bg-success">{{m.to}}</span><br/>
-                        {{m.text}}
+                        <span class="badge bg-success">{{ m.from }}</span> -> <span
+                            class="badge bg-success">{{ m.chatroom }}</span><br/>
+                        {{ m.text }}
                     </div>
                 </div>
                 <div class="modal-footer">

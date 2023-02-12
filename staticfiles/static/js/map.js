@@ -93,6 +93,7 @@ let app = new Vue({
         coord_format: "d",
         form_unit: {},
         types: null,
+        msgFrom: "",
     },
 
     mounted() {
@@ -605,7 +606,18 @@ let app = new Vue({
         },
         msgNum: function () {
             if (this.messages == null) return 0;
-            return this.messages.length;
+            let n = 0;
+            for (const [key, value] of Object.entries(this.messages)) {
+                n += value.length;
+            }
+            return n;
+        },
+        msgNum1: function (k) {
+            if (this.messages == null) return 0;
+            return this.messages[k].length;
+        },
+        setFrom: function (m) {
+            this.msgFrom = m;
         },
         ne: function (s) {
             return s !== undefined && s !== null && s !== "";

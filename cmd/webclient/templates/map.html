@@ -36,19 +36,29 @@
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" id="navbarDarkDropdownMenuLink3" role="button"
                            data-bs-toggle="dropdown" aria-expanded="false">
-                            Points <span class="badge rounded-pill bg-success">{{countByCategory('point')}}</span>
+                            Points <span class="badge rounded-pill bg-success">{{ countByCategory('point') }}</span>
                         </a>
                         <ul class="dropdown-menu dropdown-menu-dark" aria-labelledby="navbarDarkDropdownMenuLink3">
                             <li v-for="u in byCategory('point')">
                                 <a class="dropdown-item" href="#" v-on:click="setCurrentUnitUid(u.uid, true)">
-                                    {{getUnitName(u)}}
+                                    {{ getUnitName(u) }}
                                 </a>
                             </li>
                         </ul>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="#" data-bs-toggle="modal" data-bs-target="#messages">Chat <span
-                                class="badge rounded-pill bg-success">{{msgNum()}}</span></a>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="navbarDarkDropdownMenuLink4" role="button"
+                           data-bs-toggle="dropdown" aria-expanded="false">
+                            Messages <span class="badge rounded-pill bg-success">{{ msgNum() }}</span>
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-dark" aria-labelledby="navbarDarkDropdownMenuLink4">
+                            <li v-for="m in Object.keys(messages)">
+                                <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#messages"
+                                   v-on:click="setFrom(m)">
+                                    {{ m }} <span class="badge rounded-pill bg-success">{{ msgNum1(m) }}</span>
+                                </a>
+                            </li>
+                        </ul>
                     </li>
                 </ul>
             </div>
@@ -183,14 +193,12 @@
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="staticBackdropLabel">Chat messages</h5>
+                    <h5 class="modal-title" id="staticBackdropLabel">Chat messages {{ msgFrom }}</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <div v-for="m in messages" class="alert alert-secondary">
-                        <span class="badge bg-success">{{m.from}}</span> -> <span
-                            class="badge bg-success">{{m.to}}</span><br/>
-                        {{m.text}}
+                    <div v-for="m in messages[msgFrom]" class="alert alert-secondary">
+                        <span class="badge bg-success">{{ m.from }}</span>: {{ m.text }}
                     </div>
                 </div>
                 <div class="modal-footer">

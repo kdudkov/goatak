@@ -358,8 +358,9 @@ func (app *App) MessageProcessor() {
 				if fromContact := app.GetItem(c.FromUid); fromContact != nil {
 					c.From = fromContact.GetCallsign()
 				}
-				app.Logger.Infof("Chat %s (%s) -> %s (%s) \"%s\"", c.From, c.FromUid, c.To, c.ToUid, c.Text)
+				app.Logger.Infof("Chat %s (%s) -> %s (%s) \"%s\"", c.From, c.FromUid, c.Room, c.ToUid, c.Text)
 				app.messages = append(app.messages, c)
+				app.logMessage(c)
 			}
 		case strings.HasPrefix(msg.GetType(), "a-"):
 			app.ProcessItem(msg)
@@ -386,11 +387,8 @@ func (app *App) route(msg *cot.CotMessage) {
 }
 
 func (app *App) cleaner() {
-	for {
-		select {
-		case <-time.Tick(time.Minute):
-			app.cleanOldUnits()
-		}
+	for range time.Tick(time.Minute) {
+		app.cleanOldUnits()
 	}
 }
 
@@ -460,6 +458,16 @@ func (app *App) SendToCallsign(callsign string, msg *cotproto.TakMessage) {
 		}
 		return true
 	})
+}
+
+func (app *App) logMessage(c *model.ChatMessage) {
+	fd, err := os.OpenFile("msg.log", os.O_RDWR|os.O_APPEND|os.O_CREATE, 0666)
+	if err != nil {
+		app.Logger.Errorf("can't write to message log: %s", err.Error())
+		return
+	}
+	defer fd.Close()
+	fmt.Fprintf(fd, "%s %s (%s) -> %s (%s) \"%s\"\n", c.Time, c.From, c.FromUid, c.Room, c.ToUid, c.Text)
 }
 
 func getServerCert() (*x509.Certificate, error) {
