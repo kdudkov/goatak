@@ -1,10 +1,14 @@
 package model
 
 import (
+	"golang.org/x/net/html"
+	"regexp"
 	"time"
 
 	"github.com/kdudkov/goatak/cot"
 )
+
+var numericSymbol = regexp.MustCompile(`&#(x?[a-f0-9]+);`)
 
 type ChatMessage struct {
 	Time    time.Time `json:"time"`
@@ -70,7 +74,7 @@ func MsgToChat(m *cot.CotMessage) *ChatMessage {
 	if c.From == "" {
 		c.From = c.FromUid
 	}
-	c.Text = m.Detail.GetFirst("remarks").GetText()
+	c.Text = html.UnescapeString(m.Detail.GetFirst("remarks").GetText())
 
 	return c
 }
