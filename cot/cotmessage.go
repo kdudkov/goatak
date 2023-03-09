@@ -66,8 +66,14 @@ func (m *CotMessage) IsChat() bool {
 	if m == nil || m.TakMessage == nil {
 		return false
 	}
-
 	return m.GetType() == "b-t-f" && m.Detail != nil && m.Detail.Has("__chat")
+}
+
+func (m *CotMessage) IsChatReceipt() bool {
+	if m == nil || m.TakMessage == nil {
+		return false
+	}
+	return (m.GetType() == "b-t-f-r" || m.GetType() == "b-t-f-d") && m.Detail != nil && m.Detail.Has("__chatreceipt")
 }
 
 func (m *CotMessage) PrintChat() string {

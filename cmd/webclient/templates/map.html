@@ -1,21 +1,21 @@
 <div id="app">
     <nav class="navbar navbar-expand-md navbar-dark fixed-top bg-dark">
         <div class="container-fluid">
-            <a class="navbar-brand" href="#">GoATAK client <span v-if="config != null">v.{{config.version}}</span></a>
+            <a class="navbar-brand" href="#">GoATAK client <span v-if="config != null">v.{{ config.version }}</span></a>
 
             <div class="collapse navbar-collapse" id="navbarCollapse">
                 <ul class="navbar-nav me-auto mb-2 mb-md-0">
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" id="navbarDarkDropdownMenuLink" role="button"
                            data-bs-toggle="dropdown" aria-expanded="false">
-                            Contacts <span class="badge rounded-pill bg-success">{{contactsNum()}}</span>
+                            Contacts <span class="badge rounded-pill bg-success">{{ contactsNum() }}</span>
                         </a>
                         <ul class="dropdown-menu dropdown-menu-dark" aria-labelledby="navbarDarkDropdownMenuLink">
                             <li v-for="u in byCategory('contact')">
                                 <a class="dropdown-item" href="#" v-on:click="setCurrentUnitUid(u.uid, true)">
                                     <img v-bind:src="getImg(u)"/>
-                                    <span v-if="u.lat ===0 && u.lon ===0">* </span>{{u.callsign}}<span
-                                        v-if="u.status != ''"> ({{u.status}})</span>
+                                    <span v-if="u.lat ===0 && u.lon ===0">* </span>{{ u.callsign }}<span
+                                        v-if="u.status != ''"> ({{ u.status }})</span>
                                 </a>
                             </li>
                         </ul>
@@ -23,12 +23,12 @@
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" id="navbarDarkDropdownMenuLink2" role="button"
                            data-bs-toggle="dropdown" aria-expanded="false">
-                            Units <span class="badge rounded-pill bg-success">{{countByCategory('unit')}}</span>
+                            Units <span class="badge rounded-pill bg-success">{{ countByCategory('unit') }}</span>
                         </a>
                         <ul class="dropdown-menu dropdown-menu-dark" aria-labelledby="navbarDarkDropdownMenuLink2">
                             <li v-for="u in byCategory('unit')">
                                 <a class="dropdown-item" href="#" v-on:click="setCurrentUnitUid(u.uid, true)">
-                                    {{getUnitName(u)}}
+                                    {{ getUnitName(u) }}
                                 </a>
                             </li>
                         </ul>
@@ -52,10 +52,10 @@
                             Messages <span class="badge rounded-pill bg-success">{{ msgNum() }}</span>
                         </a>
                         <ul class="dropdown-menu dropdown-menu-dark" aria-labelledby="navbarDarkDropdownMenuLink4">
-                            <li v-for="m in Object.keys(messages)">
+                            <li v-for="m in Object.values(messages)">
                                 <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#messages"
-                                   v-on:click="setFrom(m)">
-                                    {{ m }} <span class="badge rounded-pill bg-success">{{ msgNum1(m) }}</span>
+                                   v-on:click="setChat(m.uid, m.from)">
+                                    {{ m.from }} <span class="badge rounded-pill bg-success">{{ msgNum1(m.uid) }}</span>
                                 </a>
                             </li>
                         </ul>
@@ -71,14 +71,14 @@
             </div>
             <div class="col-3">
                 <div class="card mb-1" v-if="config != null && ne(config.callsign)">
-                    <div class="card-header">Me ({{config.callsign}})</div>
+                    <div class="card-header">Me ({{ config.callsign }})</div>
                     <div class="card-body">
-                        <b>UID:</b> {{config.uid}}<br/>
+                        <b>UID:</b> {{ config.uid }}<br/>
                         <div v-if="ne(config.team)">
-                            <b>Team:</b> {{config.team}}, <b>Role:</b>{{config.role}}
+                            <b>Team:</b> {{ config.team }}, <b>Role:</b>{{ config.role }}
                         </div>
                         <div>
-                            <b>coords:</b> {{printCoords(config.lat, config.lon)}}
+                            <b>coords:</b> {{ printCoords(config.lat, config.lon) }}
                             <span class="badge rounded-pill bg-success" style="cursor:default;"
                                   v-on:click="map.setView([config.lat, config.lon])"><i
                                     class="bi bi-geo"></i></span>
@@ -110,21 +110,21 @@
                                    for="me">Me</label>
                         </div>
                         <div v-if="getTool('redx') != null" class="mt-1">
-                            <span class="badge bg-danger">RedX</span>: {{printCoordsll(getTool('redx').getLatLng())}}
+                            <span class="badge bg-danger">RedX</span>: {{ printCoordsll(getTool('redx').getLatLng()) }}
                             <span class="badge rounded-pill bg-success" style="cursor:default;"
                                   v-on:click="map.setView(getTool('redx').getLatLng())"><i class="bi bi-geo"></i></span>
                             <span class="badge rounded-pill bg-danger" style="cursor:default;"
                                   v-on:click="removeTool('redx')">X</span>
                         </div>
                         <div v-if="getTool('dp1') != null" class="mt-1">
-                            <span class="badge bg-success">DP1</span>: {{printCoordsll(getTool('dp1').getLatLng())}}
+                            <span class="badge bg-success">DP1</span>: {{ printCoordsll(getTool('dp1').getLatLng()) }}
                             <span class="badge rounded-pill bg-success" style="cursor:default;"
                                   v-on:click="map.setView(getTool('dp1').getLatLng())"><i class="bi bi-geo"></i></span>
                             <span class="badge rounded-pill bg-danger" style="cursor:default;"
                                   v-on:click="removeTool('dp1')">X</span>
                         </div>
                         <div v-if="coords != null" class="mt-1">
-                            <span class="badge bg-secondary">cursor</span>: {{printCoordsll(coords)}} <span
+                            <span class="badge bg-secondary">cursor</span>: {{ printCoordsll(coords) }} <span
                                 v-if="getTool('redx') != null">({{ distBea(getTool('redx').getLatLng(), coords) }} from RedX)</span>
                         </div>
                     </div>
@@ -133,14 +133,16 @@
                     <div class="card-header">
                         <div class="row">
                             <h5 v-on:click="mapToUnit(current_unit)" class="col-9">
-                                <img v-bind:src="milImg(current_unit)"/> {{getUnitName(current_unit)}} <span
-                                    v-if="ne(current_unit.status)"> ({{current_unit.status}})</span>
+                                <img v-bind:src="milImg(current_unit)"/> {{ getUnitName(current_unit) }} <span
+                                    v-if="ne(current_unit.status)"> ({{ current_unit.status }})</span>
                                 <img height="24" src="/static/icons/coord_unlock.png"
                                      v-if="current_unit.category !== 'point' && locked_unit_uid != current_unit.uid"
                                      v-on:click="locked_unit_uid=current_unit.uid"/>
                                 <img height="24" src="/static/icons/coord_lock.png"
                                      v-if="locked_unit_uid == current_unit.uid"
                                      v-on:click="locked_unit_uid=''"/>
+                                <a href="#" v-if="current_unit.category === 'contact'"
+                                   v-on:click="openChat(current_unit.uid, current_unit.callsign);">chat</a>
                             </h5>
                             <div class="col-3" v-if="current_unit.category !== 'contact'">
                                 <button type="button" class="btn btn-sm btn-primary"
@@ -153,13 +155,13 @@
                         </div>
                     </div>
                     <div class="card-body">
-                        <b>UID:</b> {{current_unit.uid}}<br/>
+                        <b>UID:</b> {{ current_unit.uid }}<br/>
                         <div v-if="ne(current_unit.team)">
-                            <b>Team:</b> {{current_unit.team}},
-                            <b>Role:</b> {{current_unit.role}}
+                            <b>Team:</b> {{ current_unit.team }},
+                            <b>Role:</b> {{ current_unit.role }}
                         </div>
                         <div>
-                            <b>Type:</b> {{current_unit.type}} <b>SIDC:</b> {{current_unit.sidc}}
+                            <b>Type:</b> {{ current_unit.type }} <b>SIDC:</b> {{ current_unit.sidc }}
                         </div>
                         <div>
                             <b>coords:</b> {{ printCoords(current_unit.lat, current_unit.lon) }}
@@ -190,20 +192,25 @@
     <!-- Modal -->
     <div class="modal fade" id="messages" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1"
          aria-labelledby="staticBackdropLabel" aria-hidden="true">
-        <div class="modal-dialog modal-lg">
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="staticBackdropLabel">Chat messages {{ msgFrom }}</h5>
+                    <h5 class="modal-title" id="staticBackdropLabel">Chat messages {{ chatroom }}</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <div v-for="m in messages[msgFrom]" class="alert alert-secondary">
-                        <span class="badge bg-success">{{ m.from }}</span>: {{ m.text }}
+                    <div v-for="m in getMessages()" class="alert alert-secondary">
+                        <span class="badge"
+                              :class="{'bg-primary': m.from_uid != config.uid, 'bg-success': m.from_uid == config.uid}">{{ m.from }}</span>:
+                        {{ m.text }}
                     </div>
                 </div>
                 <div class="modal-footer">
+                    <form>
+                        <input type="text" class="form-control" id="message-text" v-model="chat_msg"/>
+                    </form>
+                    <button type="button" class="btn btn-primary" v-on:click="sendMessage">Send message</button>
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                    <!--                    <button type="button" class="btn btn-primary">Understood</button>-->
                 </div>
             </div>
         </div>
@@ -274,7 +281,7 @@
                                 <div class="col-10">
                                     <select class="form-select" id="ed-subtype"
                                             v-model="form_unit.subtype">
-                                        <option v-for="t in form_unit.root_sidc.next" :value="t.code">{{t.name}}
+                                        <option v-for="t in form_unit.root_sidc.next" :value="t.code">{{ t.name }}
                                         </option>
                                     </select>
                                 </div>

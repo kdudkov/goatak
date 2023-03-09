@@ -280,6 +280,14 @@ func (app *App) GetItem(uid string) *model.Item {
 	return nil
 }
 
+func (app *App) GetCallsign(uid string) string {
+	i := app.GetItem(uid)
+	if i != nil {
+		return i.GetCallsign()
+	}
+	return ""
+}
+
 func (app *App) RemoveItem(uid string) {
 	if _, ok := app.units.Load(uid); ok {
 		app.units.Delete(uid)
@@ -289,7 +297,7 @@ func (app *App) RemoveItem(uid string) {
 func (app *App) ProcessItem(msg *cot.CotMessage) {
 	cl := model.GetClass(msg)
 	if c := app.GetItem(msg.GetUid()); c != nil {
-		app.Logger.Infof("update %s %s (%s) %s", cl, msg.GetUid(), msg.GetCallsign(), msg.GetType())
+		app.Logger.Debugf("update %s %s (%s) %s", cl, msg.GetUid(), msg.GetCallsign(), msg.GetType())
 		c.Update(msg)
 	} else {
 		app.Logger.Infof("new %s %s (%s) %s", cl, msg.GetUid(), msg.GetCallsign(), msg.GetType())
@@ -355,10 +363,10 @@ func (app *App) MessageProcessor() {
 			app.removeByLink(msg)
 		case msg.IsChat():
 			if c := model.MsgToChat(msg); c != nil {
-				if fromContact := app.GetItem(c.FromUid); fromContact != nil {
-					c.From = fromContact.GetCallsign()
+				if c.From == "" {
+					c.From = app.GetCallsign(c.FromUid)
 				}
-				app.Logger.Infof("Chat %s (%s) -> %s (%s) \"%s\"", c.From, c.FromUid, c.Room, c.ToUid, c.Text)
+				app.Logger.Infof("Chat %s (%s) -> %s (%s) \"%s\"", c.From, c.FromUid, c.Chatroom, c.ToUid, c.Text)
 				app.messages = append(app.messages, c)
 				app.logMessage(c)
 			}
@@ -467,7 +475,7 @@ func (app *App) logMessage(c *model.ChatMessage) {
 		return
 	}
 	defer fd.Close()
-	fmt.Fprintf(fd, "%s %s (%s) -> %s (%s) \"%s\"\n", c.Time, c.From, c.FromUid, c.Room, c.ToUid, c.Text)
+	fmt.Fprintf(fd, "%s %s (%s) -> %s (%s) \"%s\"\n", c.Time, c.From, c.FromUid, c.Chatroom, c.ToUid, c.Text)
 }
 
 func getServerCert() (*x509.Certificate, error) {

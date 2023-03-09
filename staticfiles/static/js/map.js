@@ -93,7 +93,9 @@ let app = new Vue({
         coord_format: "d",
         form_unit: {},
         types: null,
-        msgFrom: "",
+        chatroom: "",
+        chat_uid: "",
+        chat_msg: "",
     },
 
     mounted() {
@@ -608,16 +610,30 @@ let app = new Vue({
             if (this.messages == null) return 0;
             let n = 0;
             for (const [key, value] of Object.entries(this.messages)) {
-                n += value.length;
+                if (value.messages != null) {
+                    n += value.messages.length;
+                }
             }
             return n;
         },
         msgNum1: function (k) {
-            if (this.messages == null) return 0;
-            return this.messages[k].length;
+            if (this.messages == null || this.messages[k].messages == null) return 0;
+            return this.messages[k].messages.length;
         },
-        setFrom: function (m) {
-            this.msgFrom = m;
+        setChat: function (uid, chatroom) {
+            this.chat_uid = uid;
+            this.chatroom = chatroom;
+        },
+        openChat: function (uid, chatroom) {
+            this.chat_uid = uid;
+            this.chatroom = chatroom;
+            new bootstrap.Modal(document.getElementById('messages')).show();
+        },
+        getMessages: function () {
+            if (this.chat_uid == "") {
+                return [];
+            }
+            return ne(this.messages[this.chat_uid]) ? this.messages[this.chat_uid].messages : [];
         },
         ne: function (s) {
             return s !== undefined && s !== null && s !== "";
@@ -682,6 +698,26 @@ let app = new Vue({
                 })
                 .then(this.processUnits);
             // this.removeUnit(this.current_unit_uid);
+        },
+        sendMessage: function () {
+            let msg = {
+                from: this.config.callsign,
+                from_uid: this.config.uid,
+                chatroom: this.chatroom,
+                to_uid: this.chat_uid,
+                text: this.chat_msg,
+            };
+            this.chat_msg = "";
+
+            const requestOptions = {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify(msg)
+            };
+            fetch("/message", requestOptions)
+                .then(function (response) {
+                    return response.json()
+                })
         }
     },
 });

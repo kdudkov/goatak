@@ -38,6 +38,7 @@ func NewHttp(app *App, address string) *air.Air {
 
 	srv.GET("/unit", getUnitsHandler(app))
 	srv.POST("/unit", addItemHandler(app))
+	srv.POST("/message", addMessageHandler(app))
 	srv.DELETE("/unit/:uid", deleteItemHandler(app))
 
 	srv.GET("/stack", getStackHandler())
@@ -64,7 +65,7 @@ func getUnitsHandler(app *App) func(req *air.Request, res *air.Response) error {
 	return func(req *air.Request, res *air.Response) error {
 		r := make(map[string]interface{}, 0)
 		r["units"] = getUnits(app)
-		r["messages"] = app.messages
+		r["messages"] = app.messages.Chats
 		return res.WriteJSON(r)
 	}
 }
@@ -164,6 +165,30 @@ func addItemHandler(app *App) func(req *air.Request, res *air.Response) error {
 		r["units"] = getUnits(app)
 		r["messages"] = app.messages
 		return res.WriteJSON(r)
+	}
+}
+
+func addMessageHandler(app *App) func(req *air.Request, res *air.Response) error {
+	return func(req *air.Request, res *air.Response) error {
+		msg := new(model.ChatMessage)
+		if req.Body == nil {
+			return nil
+		}
+
+		if err := json.NewDecoder(req.Body).Decode(msg); err != nil {
+			return err
+		}
+
+		if msg == nil {
+			return fmt.Errorf("no message")
+		}
+
+		if msg.Id == "" {
+			msg.Id = uuid.New().String()
+		}
+		app.SendMsg(model.MakeChatMessage(msg))
+		app.messages.Add(msg)
+		return res.WriteJSON(map[string]string{"ok": "ok"})
 	}
 }
 

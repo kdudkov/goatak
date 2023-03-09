@@ -45,7 +45,7 @@ type App struct {
 	Logger      *zap.SugaredLogger
 	ch          chan []byte
 	units       sync.Map
-	messages    map[string][]*model.ChatMessage
+	messages    *model.Messages
 	tls         bool
 	cl          *cot.ClientHandler
 	listeners   sync.Map
@@ -95,7 +95,7 @@ func NewApp(uid string, callsign string, connectStr string, webPort int, logger 
 		units:       sync.Map{},
 		dialTimeout: time.Second * 5,
 		listeners:   sync.Map{},
-		messages:    make(map[string][]*model.ChatMessage),
+		messages:    model.NewMessages(uid),
 	}
 }
 
@@ -199,17 +199,18 @@ func (app *App) ProcessEvent(msg *cot.CotMessage) {
 	case msg.GetType() == "t-x-d-d":
 		app.removeByLink(msg)
 	case msg.IsChat():
+		fmt.Println(msg.TakMessage.GetCotEvent().Detail.XmlDetail)
 		if c := model.MsgToChat(msg); c != nil {
-			if fromContact := app.GetItem(c.FromUid); fromContact != nil {
-				c.From = fromContact.GetCallsign()
+			if c.From == "" {
+				c.From = app.GetCallsign(c.FromUid)
 			}
-			app.Logger.Infof("Chat %s (%s) -> %s (%s) \"%s\"", c.From, c.FromUid, c.Room, c.ToUid, c.Text)
-			key := c.Room
-			if c.ToUid == app.uid {
-				key = c.From
-			}
-			app.messages[key] = append(app.messages[key], c)
+			app.Logger.Infof("%s", c)
+			app.messages.Add(c)
 		}
+		break
+	case msg.IsChatReceipt():
+		app.Logger.Infof("got receipt %s", msg.GetType())
+		break
 	case strings.HasPrefix(msg.GetType(), "a-"):
 		if msg.GetUid() == app.uid {
 			break
@@ -217,11 +218,10 @@ func (app *App) ProcessEvent(msg *cot.CotMessage) {
 		app.ProcessItem(msg)
 	case strings.HasPrefix(msg.GetType(), "b-"):
 		if uid, _ := msg.GetParent(); uid != app.uid {
-			app.Logger.Infof("point %s (%s) %s", msg.GetUid(), msg.GetCallsign(), msg.GetType())
-			app.Logger.Infof("%s", msg.TakMessage.GetCotEvent().GetDetail().GetXmlDetail())
+			app.Logger.Debugf("point %s (%s) %s", msg.GetUid(), msg.GetCallsign(), msg.GetType())
 			app.ProcessItem(msg)
 		} else {
-			app.Logger.Infof("my own point %s (%s) %s", msg.GetUid(), msg.GetCallsign(), msg.GetType())
+			app.Logger.Debugf("my own point %s (%s) %s", msg.GetUid(), msg.GetCallsign(), msg.GetType())
 		}
 	case strings.HasPrefix(msg.GetType(), "u-"):
 		fmt.Println(msg.GetType())
@@ -234,6 +234,9 @@ func (app *App) ProcessEvent(msg *cot.CotMessage) {
 
 func (app *App) ProcessItem(msg *cot.CotMessage) {
 	cl := model.GetClass(msg)
+	if cl == model.CONTACT {
+		app.messages.CheckCallsing(msg.GetUid(), msg.GetCallsign())
+	}
 	if c := app.GetItem(msg.GetUid()); c != nil {
 		app.Logger.Debugf("update %s %s (%s) %s", cl, msg.GetUid(), msg.GetCallsign(), msg.GetType())
 		c.Update(msg)
@@ -263,6 +266,14 @@ func (app *App) GetItem(uid string) *model.Item {
 		}
 	}
 	return nil
+}
+
+func (app *App) GetCallsign(uid string) string {
+	i := app.GetItem(uid)
+	if i != nil {
+		return i.GetCallsign()
+	}
+	return uid
 }
 
 func (app *App) removeByLink(msg *cot.CotMessage) {
