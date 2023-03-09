@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"crypto"
 	"crypto/rand"
 	"crypto/tls"
 	"crypto/x509"
@@ -9,6 +10,7 @@ import (
 	"fmt"
 	"io"
 	"math/big"
+	"net/http"
 	"strings"
 	"time"
 
@@ -17,7 +19,7 @@ import (
 	"software.sslmate.com/src/go-pkcs12"
 )
 
-const certTtl = time.Hour * 24 * 365
+const certTtl = time.Hour * 24 * 5
 
 func getCertApi(app *App, addr string) *air.Air {
 	certApi := air.New()
@@ -36,6 +38,7 @@ func getCertApi(app *App, addr string) *air.Air {
 
 	certApi.GET("/Marti/api/tls/config", getTlsConfigHandler(app))
 	certApi.POST("/Marti/api/tls/signClient", getSignHandler(app))
+	certApi.POST("/Marti/api/tls/signClient/v2", getSignHandlerV2(app))
 	certApi.GET("/Marti/api/tls/profile/enrollment", getProfileEnrollmentHandler(app))
 
 	certApi.NotFoundHandler = getNotFoundHandler(app)
@@ -46,6 +49,7 @@ func getCertApi(app *App, addr string) *air.Air {
 			ClientCAs:    app.config.ca,
 			RootCAs:      app.config.ca,
 			ClientAuth:   tls.NoClientCert,
+			MinVersion:   tls.VersionTLS10,
 		}
 
 		certApi.TLSConfig = tlsCfg
@@ -59,13 +63,64 @@ func getTlsConfigHandler(app *App) func(req *air.Request, res *air.Response) err
 
 		s := strings.Builder{}
 		s.WriteString("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n")
-
 		s.WriteString("<certificateConfig><nameEntries>")
 		s.WriteString("<nameEntry name=\"C\" value=\"RU\"/>")
 		s.WriteString("</nameEntries></certificateConfig>")
 
 		return res.WriteString(s.String())
 	}
+}
+
+func signClientCert(clientCSR *x509.CertificateRequest, serverCert *x509.Certificate, privateKey *crypto.PrivateKey) (*x509.Certificate, error) {
+	serialNumber, _ := rand.Int(rand.Reader, new(big.Int).Lsh(big.NewInt(1), 128))
+
+	template := x509.Certificate{
+		Signature:          clientCSR.Signature,
+		SignatureAlgorithm: clientCSR.SignatureAlgorithm,
+
+		PublicKeyAlgorithm: clientCSR.PublicKeyAlgorithm,
+		PublicKey:          clientCSR.PublicKey,
+
+		SerialNumber: serialNumber,
+		Issuer:       serverCert.Subject,
+		Subject:      clientCSR.Subject,
+		NotBefore:    time.Now().Add(-5 * time.Minute),
+		NotAfter:     time.Now().Add(certTtl),
+		KeyUsage:     x509.KeyUsageDigitalSignature,
+		ExtKeyUsage:  []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth},
+	}
+
+	certBytes, err := x509.CreateCertificate(rand.Reader, &template, serverCert, clientCSR.PublicKey, privateKey)
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate certificate, error: %s", err)
+	}
+
+	return x509.ParseCertificate(certBytes)
+}
+
+func parseCsr(b []byte) (*x509.CertificateRequest, error) {
+	bb := bytes.Buffer{}
+	bb.WriteString("-----BEGIN CERTIFICATE REQUEST-----\n")
+	bb.Write(b)
+	bb.WriteString("\n-----END CERTIFICATE REQUEST-----")
+	csrBlock, _ := pem.Decode(bb.Bytes())
+
+	return x509.ParseCertificateRequest(csrBlock.Bytes)
+}
+
+func makeP12(certs map[string]*x509.Certificate) ([]byte, error) {
+	var entries []pkcs12.TrustStoreEntry
+
+	for k, v := range certs {
+		entries = append(entries, pkcs12.TrustStoreEntry{Cert: v, FriendlyName: k})
+	}
+
+	return pkcs12.EncodeTrustStoreEntries(rand.Reader, entries, "atakatak")
+}
+
+func certToPem(cert *x509.Certificate) []byte {
+	return pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: cert.Raw})
 }
 
 func getSignHandler(app *App) func(req *air.Request, res *air.Response) error {
@@ -77,24 +132,14 @@ func getSignHandler(app *App) func(req *air.Request, res *air.Response) error {
 
 		app.Logger.Infof("cert sign req from %s ver %s", uid, ver)
 		b, err := io.ReadAll(req.Body)
-
-		bb := bytes.Buffer{}
-		bb.WriteString("-----BEGIN CERTIFICATE REQUEST-----")
-		bb.Write(b)
-		bb.WriteString("-----END CERTIFICATE REQUEST-----")
-		csrBlock, _ := pem.Decode(bb.Bytes())
-
-		if csrBlock == nil {
-			return fmt.Errorf("error")
-		}
-
-		clientCSR, err := x509.ParseCertificateRequest(csrBlock.Bytes)
 		if err != nil {
 			return err
 		}
 
-		if err = clientCSR.CheckSignature(); err != nil {
-			return err
+		clientCSR, err := parseCsr(b)
+		if err != nil {
+			app.Logger.Warnf("empry csr block")
+			return fmt.Errorf("empty csr block")
 		}
 
 		if !app.config.UserIsValid(clientCSR.Subject.CommonName) {
@@ -102,58 +147,78 @@ func getSignHandler(app *App) func(req *air.Request, res *air.Response) error {
 			return fmt.Errorf("bad user")
 		}
 
-		app.Logger.Infof("makeing cert for %s", clientCSR.Subject.CommonName)
-
-		serialNumber, _ := rand.Int(rand.Reader, new(big.Int).Lsh(big.NewInt(1), 128))
-
-		template := x509.Certificate{
-			Signature:          clientCSR.Signature,
-			SignatureAlgorithm: clientCSR.SignatureAlgorithm,
-
-			PublicKeyAlgorithm: clientCSR.PublicKeyAlgorithm,
-			PublicKey:          clientCSR.PublicKey,
-
-			SerialNumber: serialNumber,
-			Issuer:       app.config.cert.Subject,
-			Subject:      clientCSR.Subject,
-			NotBefore:    time.Now().Add(-5 * time.Minute),
-			NotAfter:     time.Now().Add(certTtl),
-			KeyUsage:     x509.KeyUsageDigitalSignature,
-			ExtKeyUsage:  []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth},
+		signedCert, err := signClientCert(clientCSR, app.config.cert, &app.config.tlsCert.PrivateKey)
+		if err != nil {
+			app.Logger.Errorf("error signing cert: %v", err)
+			return err
 		}
 
-		certBytes, err := x509.CreateCertificate(rand.Reader, &template, app.config.cert, clientCSR.PublicKey, app.config.tlsCert.PrivateKey)
+		p12Bytes, err := makeP12(map[string]*x509.Certificate{"signedCert": signedCert, "server": app.config.cert})
 
 		if err != nil {
-			app.Logger.Errorf("failed to generate certificate, error: %s", err)
-			return fmt.Errorf("failed to generate certificate, error: %s", err)
-		}
-
-		cert, err := x509.ParseCertificate(certBytes)
-		if err != nil {
-			app.Logger.Errorf("failed to parse certificate, error: %s", err)
-			return fmt.Errorf("failed to generate certificate, error: %s", err)
-		}
-
-		entr := []pkcs12.TrustStoreEntry{
-			{
-				Cert:         cert,
-				FriendlyName: "signedCert",
-			},
-			{
-				Cert:         app.config.cert,
-				FriendlyName: "server",
-			},
-		}
-
-		p12Bytes, err := pkcs12.EncodeTrustStoreEntries(rand.Reader, entr, "atakatak")
-
-		if err != nil {
-			app.Logger.Errorf("failed to encode truststore, error: %s", err)
-			return fmt.Errorf("failed to encode truststore, error: %s", err)
+			app.Logger.Errorf("error making p12: %v", err)
+			return err
 		}
 
 		return res.Write(bytes.NewReader(p12Bytes))
+	}
+}
+
+func getSignHandlerV2(app *App) func(req *air.Request, res *air.Response) error {
+	return func(req *air.Request, res *air.Response) error {
+		app.Logger.Infof("%s %s", req.Method, req.Path)
+
+		uid := getStringParamIgnoreCaps(req, "clientUid")
+		ver := getStringParam(req, "version")
+
+		app.Logger.Infof("cert sign reqv2 from %s ver %s", uid, ver)
+		b, err := io.ReadAll(req.Body)
+		if err != nil {
+			return err
+		}
+
+		clientCSR, err := parseCsr(b)
+		if err != nil {
+			app.Logger.Warnf("empry csr block")
+			return fmt.Errorf("empty csr block")
+		}
+
+		if !app.config.UserIsValid(clientCSR.Subject.CommonName) {
+			app.Logger.Warnf("bad user %s", clientCSR.Subject.CommonName)
+			return fmt.Errorf("bad user")
+		}
+
+		signedCert, err := signClientCert(clientCSR, app.config.cert, &app.config.tlsCert.PrivateKey)
+		if err != nil {
+			app.Logger.Errorf("error signing cert: %v", err)
+			return err
+		}
+
+		accept := req.Header.Get("Accept")
+		switch {
+		case accept == "", strings.Contains(accept, "*/*"), strings.Contains(accept, "application/json"):
+			return res.WriteJSON(map[string]string{
+				"signedCert": string(certToPem(signedCert)),
+				"ca0":        string(certToPem(app.config.cert)),
+			})
+		case strings.Contains(accept, "application/xml"):
+			buf := strings.Builder{}
+			buf.WriteString("<?xml version=\"1.0\" encoding=\"UTF-8\"?>")
+			buf.WriteString("<enrollment>")
+			buf.WriteString("<signedCert>")
+			buf.WriteString(string(certToPem(signedCert)))
+			buf.WriteString("</signedCert>")
+			buf.WriteString("<ca>")
+			buf.WriteString(string(certToPem(app.config.cert)))
+			buf.WriteString("</ca>")
+			buf.WriteString("</enrollment>")
+
+			res.Header.Set("Content-Type", "application/xml; charset=utf-8")
+			return res.Write(strings.NewReader(buf.String()))
+		default:
+			res.Status = http.StatusBadRequest
+			return res.WriteString("")
+		}
 	}
 }
 
