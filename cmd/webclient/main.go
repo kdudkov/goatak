@@ -418,6 +418,7 @@ func (p *Pos) Get() (float64, float64) {
 
 func main() {
 	var conf = flag.String("config", "goatak_client.yml", "name of config file")
+	var dev = flag.Bool("develop", false, "dev")
 	flag.Parse()
 
 	viper.SetConfigFile(*conf)
@@ -442,7 +443,13 @@ func main() {
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
-	cfg := zap.NewDevelopmentConfig()
+	var cfg zap.Config
+	if *dev {
+		cfg = zap.NewDevelopmentConfig()
+	} else {
+		cfg = zap.NewProductionConfig()
+		cfg.Encoding = "console"
+	}
 	logger, _ := cfg.Build()
 	defer logger.Sync()
 
