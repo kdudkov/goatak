@@ -4,7 +4,7 @@ cert_name=$1
 shift
 server_name=$1
 shift
-names="$@"
+names=$*
 
 if [[ -z "$cert_name" || -z "$server_name" ]]; then
   echo "usage: make_server_cert.sh CERT_NAME SERVER_NAME [ALT_NAME...]"
@@ -21,7 +21,6 @@ openssl req -sha256 -nodes -newkey rsa:2048 -out ${cert_name}.csr -keyout ${cert
   -subj "/C=RU/O=${server_name}/CN=${server_name}"
 
 cat >ext.cfg <<-EOT
-basicConstraints=critical,CA:TRUE
 keyUsage = critical,digitalSignature,keyEncipherment,cRLSign,keyCertSign
 extendedKeyUsage = critical,clientAuth,serverAuth
 EOT

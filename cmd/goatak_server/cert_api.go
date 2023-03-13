@@ -19,7 +19,7 @@ import (
 	"software.sslmate.com/src/go-pkcs12"
 )
 
-const certTtl = time.Hour * 24 * 5
+const certTtl = time.Hour * 24 * 60
 
 func getCertApi(app *App, addr string) *air.Air {
 	certApi := air.New()
@@ -71,7 +71,7 @@ func getTlsConfigHandler(app *App) func(req *air.Request, res *air.Response) err
 	}
 }
 
-func signClientCert(clientCSR *x509.CertificateRequest, serverCert *x509.Certificate, privateKey *crypto.PrivateKey) (*x509.Certificate, error) {
+func signClientCert(clientCSR *x509.CertificateRequest, serverCert *x509.Certificate, privateKey crypto.PrivateKey) (*x509.Certificate, error) {
 	serialNumber, _ := rand.Int(rand.Reader, new(big.Int).Lsh(big.NewInt(1), 128))
 
 	template := x509.Certificate{
@@ -147,7 +147,7 @@ func getSignHandler(app *App) func(req *air.Request, res *air.Response) error {
 			return fmt.Errorf("bad user")
 		}
 
-		signedCert, err := signClientCert(clientCSR, app.config.cert, &app.config.tlsCert.PrivateKey)
+		signedCert, err := signClientCert(clientCSR, app.config.cert, app.config.tlsCert.PrivateKey)
 		if err != nil {
 			app.Logger.Errorf("error signing cert: %v", err)
 			return err
@@ -188,7 +188,7 @@ func getSignHandlerV2(app *App) func(req *air.Request, res *air.Response) error 
 			return fmt.Errorf("bad user")
 		}
 
-		signedCert, err := signClientCert(clientCSR, app.config.cert, &app.config.tlsCert.PrivateKey)
+		signedCert, err := signClientCert(clientCSR, app.config.cert, app.config.tlsCert.PrivateKey)
 		if err != nil {
 			app.Logger.Errorf("error signing cert: %v", err)
 			return err

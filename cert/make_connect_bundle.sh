@@ -1,11 +1,15 @@
 #!/bin/bash
 
 server_name=test_server
-server_host=192.168.0.1
-server_port=8089
+connect_string=192.168.0.1:8089:ssl
 user=$1
-storepass=111111
-user_p12=${server_name}_${user}.p12
+storepass=atakatak
+user_p12=${user}.p12
+
+if [[ -z "$user" ]]; then
+  echo "usage: make_connect_bundle.sh username"
+  exit 1
+fi
 
 if [[ ! -e cacert.key ]]; then
 	echo "No ca cert found!"
@@ -20,6 +24,7 @@ rm client.csr
 
 # make client .p12
 openssl pkcs12 -export -name client-cert -in client.pem -inkey client.key -out "${user_p12}" -passout pass:${storepass}
+rm client.key client.pem
 
 dir=$(mktemp -d /tmp/cert-XXXXXX)
 
@@ -33,7 +38,7 @@ cat > "${dir}/${server_name}.pref" <<-EOF
   <preference version="1" name="cot_streams">
 	<entry key="count" class="class java.lang.Integer">1</entry>
 	<entry key="enabled0" class="class java.lang.Boolean">true</entry>
-	<entry key="connectString0" class="class java.lang.String">${server_host}:${server_port}:ssl</entry>
+	<entry key="connectString0" class="class java.lang.String">${connect_string}</entry>
 	<entry key="useAuth0" class="class java.lang.Boolean">false</entry>
 	<entry key="description0" class="class java.lang.String">SSL connection to ${server_host}</entry>
   </preference>
@@ -68,5 +73,3 @@ zip -r "${server_name}_${user}.zip" ./*
 cd -
 mv "${dir}/${server_name}_${user}.zip" ./
 rm -rf "$dir"
-#rm client.key
-#rm client.pem
