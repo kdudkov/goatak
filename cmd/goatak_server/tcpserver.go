@@ -40,7 +40,7 @@ func (app *App) ListenSSl(addr string) error {
 
 	tlsCfg := &tls.Config{
 		Certificates: []tls.Certificate{*app.config.tlsCert},
-		ClientCAs:    app.config.ca,
+		ClientCAs:    app.config.certPool,
 		ClientAuth:   tls.RequireAndVerifyClientCert,
 	}
 
@@ -68,7 +68,7 @@ func (app *App) ListenSSl(addr string) error {
 		app.logCert(c1.ConnectionState().PeerCertificates)
 		user, serial := getUser(c1)
 
-		if !app.config.UserIsValid(user) {
+		if !app.UserIsValid(user) {
 			app.Logger.Warnf("bad user %s", user)
 			continue
 		}

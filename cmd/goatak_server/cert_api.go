@@ -25,16 +25,14 @@ func getCertApi(app *App, addr string) *air.Air {
 	certApi := air.New()
 	certApi.Address = addr
 
-	if app.config.useSsl {
-		_ = authenticator.BasicAuthGas(authenticator.BasicAuthGasConfig{
-			Validator: func(username string, password string, _ *air.Request, _ *air.Response) (bool, error) {
-				app.Logger.Infof("tls api login with user %s", username)
-				return username == "user", nil
-			},
-		})
+	auth := authenticator.BasicAuthGas(authenticator.BasicAuthGasConfig{
+		Validator: func(username string, password string, _ *air.Request, _ *air.Response) (bool, error) {
+			app.Logger.Infof("tls api login with user %s", username)
+			return app.CheckUserAuth(username, password), nil
+		},
+	})
 
-		//certApi.Gases = []air.Gas{auth}
-	}
+	certApi.Gases = []air.Gas{auth}
 
 	certApi.GET("/Marti/api/tls/config", getTlsConfigHandler(app))
 	certApi.POST("/Marti/api/tls/signClient", getSignHandler(app))
@@ -46,8 +44,8 @@ func getCertApi(app *App, addr string) *air.Air {
 	if app.config.useSsl {
 		tlsCfg := &tls.Config{
 			Certificates: []tls.Certificate{*app.config.tlsCert},
-			ClientCAs:    app.config.ca,
-			RootCAs:      app.config.ca,
+			ClientCAs:    app.config.certPool,
+			RootCAs:      app.config.certPool,
 			ClientAuth:   tls.NoClientCert,
 			MinVersion:   tls.VersionTLS10,
 		}
@@ -142,7 +140,7 @@ func getSignHandler(app *App) func(req *air.Request, res *air.Response) error {
 			return fmt.Errorf("empty csr block")
 		}
 
-		if !app.config.UserIsValid(clientCSR.Subject.CommonName) {
+		if !app.UserIsValid(clientCSR.Subject.CommonName) {
 			app.Logger.Warnf("bad user %s", clientCSR.Subject.CommonName)
 			return fmt.Errorf("bad user")
 		}
@@ -153,7 +151,12 @@ func getSignHandler(app *App) func(req *air.Request, res *air.Response) error {
 			return err
 		}
 
-		p12Bytes, err := makeP12(map[string]*x509.Certificate{"signedCert": signedCert, "server": app.config.cert})
+		certs := map[string]*x509.Certificate{"signedCert": signedCert}
+		for i, c := range app.config.ca {
+			certs[fmt.Sprintf("ca%d", i)] = c
+		}
+
+		p12Bytes, err := makeP12(certs)
 
 		if err != nil {
 			app.Logger.Errorf("error making p12: %v", err)
@@ -183,7 +186,7 @@ func getSignHandlerV2(app *App) func(req *air.Request, res *air.Response) error 
 			return fmt.Errorf("empty csr block")
 		}
 
-		if !app.config.UserIsValid(clientCSR.Subject.CommonName) {
+		if !app.UserIsValid(clientCSR.Subject.CommonName) {
 			app.Logger.Warnf("bad user %s", clientCSR.Subject.CommonName)
 			return fmt.Errorf("bad user")
 		}
@@ -197,10 +200,11 @@ func getSignHandlerV2(app *App) func(req *air.Request, res *air.Response) error 
 		accept := req.Header.Get("Accept")
 		switch {
 		case accept == "", strings.Contains(accept, "*/*"), strings.Contains(accept, "application/json"):
-			return res.WriteJSON(map[string]string{
-				"signedCert": string(certToPem(signedCert)),
-				"ca0":        string(certToPem(app.config.cert)),
-			})
+			certs := map[string]string{"signedCert": string(certToPem(signedCert))}
+			for i, c := range app.config.ca {
+				certs[fmt.Sprintf("ca%d", i)] = string(certToPem(c))
+			}
+			return res.WriteJSON(certs)
 		case strings.Contains(accept, "application/xml"):
 			buf := strings.Builder{}
 			buf.WriteString("<?xml version=\"1.0\" encoding=\"UTF-8\"?>")
@@ -208,9 +212,11 @@ func getSignHandlerV2(app *App) func(req *air.Request, res *air.Response) error 
 			buf.WriteString("<signedCert>")
 			buf.WriteString(string(certToPem(signedCert)))
 			buf.WriteString("</signedCert>")
-			buf.WriteString("<ca>")
-			buf.WriteString(string(certToPem(app.config.cert)))
-			buf.WriteString("</ca>")
+			for _, c := range app.config.ca {
+				buf.WriteString("<ca>")
+				buf.WriteString(string(certToPem(c)))
+				buf.WriteString("</ca>")
+			}
 			buf.WriteString("</enrollment>")
 
 			res.Header.Set("Content-Type", "application/xml; charset=utf-8")

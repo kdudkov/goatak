@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"context"
 	"crypto"
 	"crypto/tls"
@@ -8,6 +9,7 @@ import (
 	"encoding/pem"
 	"flag"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"log"
 	"net"
@@ -18,12 +20,12 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/kdudkov/goatak/cot"
 	"github.com/spf13/viper"
-	"software.sslmate.com/src/go-pkcs12"
-
-	"github.com/google/uuid"
+	htpasswd "github.com/tg123/go-htpasswd"
 	"go.uber.org/zap"
+	"software.sslmate.com/src/go-pkcs12"
 
 	"github.com/kdudkov/goatak/cotproto"
 	"github.com/kdudkov/goatak/model"
@@ -43,31 +45,19 @@ type AppConfig struct {
 	certAddr  string
 	sslPort   int
 
-	logging bool
-	tlsCert *tls.Certificate
-	ca      *x509.CertPool
-	cert    *x509.Certificate
-	useSsl  bool
+	usersFile string
 
-	sendAll bool
-	debug   bool
+	logging  bool
+	tlsCert  *tls.Certificate
+	certPool *x509.CertPool
+	cert     *x509.Certificate
+	ca       []*x509.Certificate
 
-	users []string
+	useSsl bool
+
+	debug bool
 
 	connections []string
-}
-
-func (ac *AppConfig) UserIsValid(username string) bool {
-	if len(ac.users) == 0 {
-		return true
-	}
-	for _, u := range ac.users {
-		if u == username {
-			return true
-		}
-	}
-
-	return false
 }
 
 type App struct {
@@ -145,6 +135,57 @@ func (app *App) Run() {
 	<-c
 	app.Logger.Info("exiting...")
 	cancel()
+}
+
+func (app *App) CheckUserAuth(user, password string) bool {
+	if app.config.usersFile == "" {
+		return false
+	}
+	myauth, err := htpasswd.New(app.config.usersFile, htpasswd.DefaultSystems, nil)
+	if err != nil {
+		app.Logger.Errorf("%v", err)
+		return false
+	}
+	ok := myauth.Match(user, password)
+	if ok {
+		app.Logger.Infof("successfully auth user %s", user)
+	} else {
+		app.Logger.Warnf("bad auth user %s", user)
+	}
+
+	return ok
+}
+
+func (app *App) UserIsValid(user string) bool {
+	if app.config.usersFile == "" {
+		return true
+	}
+
+	f, err := os.Open(app.config.usersFile)
+	if err != nil {
+		app.Logger.Errorf("%v", err)
+		return false
+	}
+	defer f.Close()
+
+	rd := bufio.NewReader(f)
+
+	for {
+		line, err := rd.ReadString('\n')
+		if err != nil {
+			if err == io.EOF {
+				break
+			}
+			app.Logger.Errorf("read file line error: %v", err)
+			return false
+		}
+		s := strings.SplitN(line, ":", 2)
+		if s[0] == user {
+			return true
+		}
+	}
+
+	return false
 }
 
 func (app *App) NewCotMessage(msg *cot.CotMessage) {
@@ -478,22 +519,39 @@ func (app *App) logMessage(c *model.ChatMessage) {
 	fmt.Fprintf(fd, "%s %s (%s) -> %s (%s) \"%s\"\n", c.Time, c.From, c.FromUid, c.Chatroom, c.ToUid, c.Text)
 }
 
-func getServerCert() (*x509.Certificate, error) {
-	pemBytes, err := os.ReadFile(viper.GetString("ssl.cert"))
+func loadCert(name string) ([]*x509.Certificate, error) {
+	pemBytes, err := os.ReadFile(viper.GetString(name))
 	if err != nil {
 		return nil, err
 	}
+	var certs []*x509.Certificate
+	var pemBlock *pem.Block
+	for {
+		pemBlock, pemBytes = pem.Decode(pemBytes)
+		if pemBlock == nil {
+			break
+		}
+		if pemBlock.Type == "CERTIFICATE" {
+			cert, err := x509.ParseCertificate(pemBlock.Bytes)
+			if err != nil {
+				return nil, err
+			}
+			certs = append(certs, cert)
+		}
+	}
 
-	pemBlock, _ := pem.Decode(pemBytes)
-	return x509.ParseCertificate(pemBlock.Bytes)
+	if len(certs) == 0 {
+		return nil, fmt.Errorf("no cert in file")
+	}
+	return certs, nil
 }
 
 func processCert() (*x509.CertPool, *tls.Certificate, error) {
 	roots := x509.NewCertPool()
-	if err := loadCert(roots, "ssl.ca"); err != nil {
+	if err := loadCerts(roots, "ssl.ca"); err != nil {
 		panic(err)
 	}
-	if err := loadCert(roots, "ssl.cert"); err != nil {
+	if err := loadCerts(roots, "ssl.cert"); err != nil {
 		panic(err)
 	}
 
@@ -505,7 +563,7 @@ func processCert() (*x509.CertPool, *tls.Certificate, error) {
 	return roots, &cert, nil
 }
 
-func loadCert(cp *x509.CertPool, name string) error {
+func loadCerts(cp *x509.CertPool, name string) error {
 	caCertPEM, err := os.ReadFile(viper.GetString(name))
 	if err != nil {
 		return err
@@ -535,6 +593,8 @@ func main() {
 
 	viper.SetDefault("me.lat", 59.8396)
 	viper.SetDefault("me.lon", 31.0213)
+	viper.SetDefault("password_file", "")
+
 	viper.SetDefault("me.zoom", 10)
 
 	err := viper.ReadInConfig()
@@ -554,14 +614,18 @@ func main() {
 	logger, _ := cfg.Build()
 	defer logger.Sync()
 
-	ca, tlsCert, err := processCert()
+	certPool, tlsCert, err := processCert()
 
 	if err != nil {
 		panic(err)
 	}
 
-	cert, err := getServerCert()
+	cert, err := loadCert("ssl.cert")
+	if err != nil {
+		panic(err)
+	}
 
+	ca, err := loadCert("ssl.ca")
 	if err != nil {
 		panic(err)
 	}
@@ -575,13 +639,13 @@ func main() {
 		sslPort:     viper.GetInt("ssl_port"),
 		useSsl:      viper.GetBool("ssl.use_ssl"),
 		logging:     *logging,
-		ca:          ca,
+		certPool:    certPool,
 		tlsCert:     tlsCert,
-		cert:        cert,
-		sendAll:     viper.GetBool("send_all"),
+		cert:        cert[0],
+		ca:          ca,
 		debug:       *debug,
 		connections: viper.GetStringSlice("connections"),
-		users:       viper.GetStringSlice("valid_users"),
+		usersFile:   viper.GetString("password_file"),
 	}
 
 	app := NewApp(config, logger.Sugar())
