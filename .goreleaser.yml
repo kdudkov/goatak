@@ -15,12 +15,8 @@ builds:
       - -trimpath
     ldflags:
       - '-s -w -X main.gitRevision={{.Version}} -X main.gitCommit={{.Commit}}'
-    goos:
-      - windows
-      - linux
-      - darwin
-    goarch:
-      - amd64
+    goos: [ windows, linux, darwin ]
+    goarch: [ amd64, arm64 ]
     ignore:
       - goos: darwin
         goarch: '386'
@@ -34,23 +30,26 @@ builds:
       - -trimpath
     ldflags:
       - '-s -w -X main.gitRevision={{.Version}} -X main.gitCommit={{.Commit}}'
-    goos:
-      - windows
-      - linux
-      - darwin
-    goarch:
-      - amd64
-      - arm64
+    goos: [ windows, linux, darwin ]
+    goarch: [ amd64, arm64 ]
     ignore:
       - goos: darwin
         goarch: '386'
 archives:
-  - format: zip
-    name_template: '{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}'
+  - id: server
+    builds: [ server ]
+    format: zip
+    name_template: 'server_{{ .Version }}_{{ .Os }}_{{ .Arch }}'
     files:
-      - goatak_*.yml
+      - goatak_server.yml
       - htpasswd
       - cert/*
+  - id: client
+    builds: [ client ]
+    format: zip
+    name_template: 'client_{{ .Version }}_{{ .Os }}_{{ .Arch }}'
+    files:
+      - goatak_client_*.yml
 release:
 # If you want to manually examine the release before its live, uncomment this line:
 # draft: true
