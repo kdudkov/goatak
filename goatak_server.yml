@@ -5,7 +5,7 @@ cert_addr: ":8446"
 tcp_port: 8999
 udp_port: 8999
 ssl_port: 8089
-send_all: true
+password_file: htpasswd
 
 me:
   lat: 35.462939
@@ -16,5 +16,3 @@ ssl:
   ca: cert/cacert.pem
   cert: cert/server.pem
   key: cert/server.key
-
-valid_users: [ "test" ]

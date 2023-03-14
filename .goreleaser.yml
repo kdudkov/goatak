@@ -40,6 +40,7 @@ builds:
       - darwin
     goarch:
       - amd64
+      - arm64
     ignore:
       - goos: darwin
         goarch: '386'
@@ -48,6 +49,8 @@ archives:
     name_template: '{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}'
     files:
       - goatak_*.yml
+      - htpasswd
+      - cert/*
 release:
 # If you want to manually examine the release before its live, uncomment this line:
 # draft: true
