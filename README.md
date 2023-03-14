@@ -22,7 +22,10 @@ from [actions](https://github.com/kdudkov/goatak/actions?query=is%3Acompleted+wo
 
 ## GoATAK server features
 
-* same features as client, but... with embedded server!
+* v1 (XML) and v2 (protobuf) CoT protocol support
+* certificate enrollment (v1 and v2) support
+
+[Server fast start](wiki/Setting-up-server)
 
 ## Web client setup
 
