@@ -25,7 +25,7 @@ from [actions](https://github.com/kdudkov/goatak/actions?query=is%3Acompleted+wo
 * v1 (XML) and v2 (protobuf) CoT protocol support
 * certificate enrollment (v1 and v2) support
 
-[Server fast start](wiki/Setting-up-server)
+[Server fast start](https://github.com/kdudkov/goatak/wiki)
 
 ## Web client setup
 
