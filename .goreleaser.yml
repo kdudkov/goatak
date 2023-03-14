@@ -49,7 +49,7 @@ archives:
     format: zip
     name_template: 'client_{{ .Version }}_{{ .Os }}_{{ .Arch }}'
     files:
-      - goatak_client_*.yml
+      - goatak_client*.yml
 release:
 # If you want to manually examine the release before its live, uncomment this line:
 # draft: true
