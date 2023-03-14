@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
+	"go.uber.org/zap"
 	"net"
 
 	"github.com/kdudkov/goatak/cot"
@@ -39,9 +40,10 @@ func (app *App) ListenSSl(addr string) error {
 	app.Logger.Infof("listening TCP SSL at %s", addr)
 
 	tlsCfg := &tls.Config{
-		Certificates: []tls.Certificate{*app.config.tlsCert},
-		ClientCAs:    app.config.certPool,
-		ClientAuth:   tls.RequireAndVerifyClientCert,
+		Certificates:     []tls.Certificate{*app.config.tlsCert},
+		ClientCAs:        app.config.certPool,
+		ClientAuth:       tls.RequireAndVerifyClientCert,
+		VerifyConnection: app.verifyConnection,
 	}
 
 	listener, err := tls.Listen("tcp4", addr, tlsCfg)
@@ -65,19 +67,14 @@ func (app *App) ListenSSl(addr string) error {
 			continue
 		}
 
-		app.logCert(c1.ConnectionState().PeerCertificates)
-		user, serial := getUser(c1)
+		st := c1.ConnectionState()
+		user, serial := getUser(&st)
 
-		if !app.UserIsValid(user) {
-			app.Logger.Warnf("bad user %s", user)
-			continue
-		}
-
-		app.Logger.Infof("user: %s, sn: %s", user, serial)
 		name := "ssl:" + conn.RemoteAddr().String()
 		h := cot.NewClientHandler(name, conn, &cot.HandlerConfig{
-			Logger:    app.Logger,
+			Logger:    app.Logger.With(zap.String("user", user), zap.String("addr", name)),
 			User:      user,
+			Serial:    serial,
 			MessageCb: app.NewCotMessage,
 			RemoveCb:  app.RemoveHandlerCb})
 		app.handlers.Store(name, h)
@@ -85,8 +82,20 @@ func (app *App) ListenSSl(addr string) error {
 	}
 }
 
-func getUser(conn *tls.Conn) (string, string) {
-	for _, cert := range conn.ConnectionState().PeerCertificates {
+func (app *App) verifyConnection(st tls.ConnectionState) error {
+	user, _ := getUser(&st)
+	app.logCert(st.PeerCertificates)
+
+	if !app.UserIsValid(user) {
+		app.Logger.Warnf("bad user %s", user)
+		return fmt.Errorf("bad user %s", user)
+	}
+
+	return nil
+}
+
+func getUser(st *tls.ConnectionState) (string, string) {
+	for _, cert := range st.PeerCertificates {
 		if cert.Subject.CommonName != "" {
 			return cert.Subject.CommonName, fmt.Sprintf("%x", cert.SerialNumber)
 		}

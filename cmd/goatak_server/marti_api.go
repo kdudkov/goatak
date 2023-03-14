@@ -3,10 +3,8 @@ package main
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"os"
-	"path/filepath"
 	"strings"
 	"time"
 
@@ -184,7 +182,7 @@ func getMetadataGetHandler(app *App) func(req *air.Request, res *air.Response) e
 
 		if pi, ok := app.packageManager.Get(hash); ok {
 			res.Header.Set("Content-type", pi.MIMEType)
-			return res.WriteFile(app.packageManager.GetFile(hash))
+			return res.WriteFile(app.packageManager.GetFilePath(hash))
 		} else {
 			app.Logger.Infof("not found - %s", hash)
 			res.Status = http.StatusNotFound
@@ -203,7 +201,7 @@ func getMetadataPutHandler(app *App) func(req *air.Request, res *air.Response) e
 			return res.WriteString("no hash")
 		}
 
-		s, _ := ioutil.ReadAll(req.Body)
+		s, _ := io.ReadAll(req.Body)
 
 		if pi, ok := app.packageManager.Get(hash); ok {
 			pi.Tool = string(s)
@@ -243,28 +241,6 @@ func getSearchHandler(app *App) func(req *air.Request, res *air.Response) error 
 		result["resultCount"] = len(packages)
 		return res.WriteJSON(result)
 	}
-}
-
-func saveFile(dir string, fname string, reader io.Reader) (int64, error) {
-	if !exists(dir) {
-		if err := os.MkdirAll(dir, 0777); err != nil {
-			return 0, err
-		}
-	}
-
-	var n int64
-	fn, err := os.Create(filepath.Join(dir, fname))
-	if err != nil {
-		return 0, err
-	}
-	if n, err = io.Copy(fn, reader); err != nil {
-		return n, err
-	}
-	if err := fn.Close(); err != nil {
-		return n, err
-	}
-
-	return n, nil
 }
 
 func getStringParam(req *air.Request, name string) string {

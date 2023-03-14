@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"sync"
@@ -46,7 +45,7 @@ type PackageInfo struct {
 }
 
 func (pm *PackageManager) Init() error {
-	files, err := ioutil.ReadDir(pm.baseDir)
+	files, err := os.ReadDir(pm.baseDir)
 	if err != nil {
 		return err
 	}
@@ -129,7 +128,7 @@ func loadInfo(baseDir, hash string) (*PackageInfo, error) {
 	return pi, nil
 }
 
-func (pm *PackageManager) GetFile(hash string) string {
+func (pm *PackageManager) GetFilePath(hash string) string {
 	if pi, ok := pm.Get(hash); ok {
 		return filepath.Join(pm.baseDir, hash, pi.Name)
 	}
@@ -144,17 +143,11 @@ func (pm *PackageManager) SaveFile(hash, fname string, reader io.Reader) (int64,
 		}
 	}
 
-	var n int64
 	fn, err := os.Create(filepath.Join(dir, fname))
 	if err != nil {
 		return 0, err
 	}
-	if n, err = io.Copy(fn, reader); err != nil {
-		return n, err
-	}
-	if err := fn.Close(); err != nil {
-		return n, err
-	}
+	defer fn.Close()
 
-	return n, nil
+	return io.Copy(fn, reader)
 }

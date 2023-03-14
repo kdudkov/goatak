@@ -47,11 +47,11 @@ type AppConfig struct {
 
 	usersFile string
 
-	logging  bool
-	tlsCert  *tls.Certificate
-	certPool *x509.CertPool
-	cert     *x509.Certificate
-	ca       []*x509.Certificate
+	logging    bool
+	tlsCert    *tls.Certificate
+	certPool   *x509.CertPool
+	serverCert *x509.Certificate
+	ca         []*x509.Certificate
 
 	useSsl bool
 
@@ -147,9 +147,7 @@ func (app *App) CheckUserAuth(user, password string) bool {
 		return false
 	}
 	ok := myauth.Match(user, password)
-	if ok {
-		app.Logger.Infof("successfully auth user %s", user)
-	} else {
+	if !ok {
 		app.Logger.Warnf("bad auth user %s", user)
 	}
 
@@ -402,6 +400,7 @@ func (app *App) MessageProcessor() {
 			break
 		case msg.GetType() == "t-x-d-d":
 			app.removeByLink(msg)
+			break
 		case msg.IsChat():
 			if c := model.MsgToChat(msg); c != nil {
 				if c.From == "" {
@@ -411,11 +410,11 @@ func (app *App) MessageProcessor() {
 				app.messages = append(app.messages, c)
 				app.logMessage(c)
 			}
+			break
 		case strings.HasPrefix(msg.GetType(), "a-"):
 			app.ProcessItem(msg)
 		case strings.HasPrefix(msg.GetType(), "b-"):
 			app.Logger.Infof("point %s (%s) %s", msg.GetUid(), msg.GetCallsign(), msg.GetType())
-			app.Logger.Infof("%s", msg.TakMessage.GetCotEvent().GetDetail().GetXmlDetail())
 			app.ProcessItem(msg)
 		default:
 			app.Logger.Warnf("msg: %s", msg)
@@ -569,8 +568,7 @@ func loadCerts(cp *x509.CertPool, name string) error {
 		return err
 	}
 
-	ok := cp.AppendCertsFromPEM(caCertPEM)
-	if !ok {
+	if !cp.AppendCertsFromPEM(caCertPEM) {
 		return fmt.Errorf("failed to parse root certificate %s", name)
 	}
 	return nil
@@ -630,6 +628,8 @@ func main() {
 		panic(err)
 	}
 
+	ca = append(ca, cert...)
+
 	config := &AppConfig{
 		tcpPort:     viper.GetInt("tcp_port"),
 		udpPort:     viper.GetInt("udp_port"),
@@ -641,7 +641,7 @@ func main() {
 		logging:     *logging,
 		certPool:    certPool,
 		tlsCert:     tlsCert,
-		cert:        cert[0],
+		serverCert:  cert[0],
 		ca:          ca,
 		debug:       *debug,
 		connections: viper.GetStringSlice("connections"),

@@ -25,6 +25,7 @@ const (
 
 type HandlerConfig struct {
 	User      string
+	Serial    string
 	Uid       string
 	IsClient  bool
 	MessageCb func(msg *CotMessage)
@@ -37,7 +38,7 @@ type ClientHandler struct {
 	cancel       context.CancelFunc
 	conn         net.Conn
 	addr         string
-	uid          string
+	localUid     string
 	ver          int32
 	isClient     bool
 	uids         sync.Map
@@ -46,6 +47,7 @@ type ClientHandler struct {
 	sendChan     chan []byte
 	active       int32
 	user         string
+	serial       string
 	messageCb    func(msg *CotMessage)
 	removeCb     func(ch *ClientHandler)
 	logger       *zap.SugaredLogger
@@ -65,7 +67,8 @@ func NewClientHandler(name string, conn net.Conn, config *HandlerConfig) *Client
 
 	if config != nil {
 		c.user = config.User
-		c.uid = config.Uid
+		c.serial = config.Serial
+		c.localUid = config.Uid
 		if config.Logger != nil {
 			c.logger = config.Logger.Named("client " + name)
 		}
@@ -119,7 +122,7 @@ func (h *ClientHandler) pinger() {
 		select {
 		case <-ticker.C:
 			h.logger.Debugf("ping")
-			if err := h.SendMsg(MakePing(h.uid)); err != nil {
+			if err := h.SendMsg(MakePing(h.localUid)); err != nil {
 				h.logger.Debugf("sendMsg error: %v", err)
 			}
 		case <-h.ctx.Done():

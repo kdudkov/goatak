@@ -145,7 +145,7 @@ func getSignHandler(app *App) func(req *air.Request, res *air.Response) error {
 			return fmt.Errorf("bad user")
 		}
 
-		signedCert, err := signClientCert(clientCSR, app.config.cert, app.config.tlsCert.PrivateKey)
+		signedCert, err := signClientCert(clientCSR, app.config.serverCert, app.config.tlsCert.PrivateKey)
 		if err != nil {
 			app.Logger.Errorf("error signing cert: %v", err)
 			return err
@@ -191,7 +191,7 @@ func getSignHandlerV2(app *App) func(req *air.Request, res *air.Response) error 
 			return fmt.Errorf("bad user")
 		}
 
-		signedCert, err := signClientCert(clientCSR, app.config.cert, app.config.tlsCert.PrivateKey)
+		signedCert, err := signClientCert(clientCSR, app.config.serverCert, app.config.tlsCert.PrivateKey)
 		if err != nil {
 			app.Logger.Errorf("error signing cert: %v", err)
 			return err
@@ -218,7 +218,6 @@ func getSignHandlerV2(app *App) func(req *air.Request, res *air.Response) error 
 				buf.WriteString("</ca>")
 			}
 			buf.WriteString("</enrollment>")
-
 			res.Header.Set("Content-Type", "application/xml; charset=utf-8")
 			return res.Write(strings.NewReader(buf.String()))
 		default:

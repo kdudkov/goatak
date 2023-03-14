@@ -1,7 +1,6 @@
 #!/bin/bash
 
-cert_name=$1
-shift
+cert_name=server
 server_name=$1
 shift
 names=$*
@@ -21,6 +20,7 @@ openssl req -sha256 -nodes -newkey rsa:2048 -out ${cert_name}.csr -keyout ${cert
   -subj "/C=RU/O=${server_name}/CN=${server_name}"
 
 cat >ext.cfg <<-EOT
+basicConstraints=critical,CA:TRUE
 keyUsage = critical,digitalSignature,keyEncipherment,cRLSign,keyCertSign
 extendedKeyUsage = critical,clientAuth,serverAuth
 EOT
@@ -36,7 +36,6 @@ if [[ -n "$names" ]]; then
     fi
   done
   echo "subjectAltName=$s" >>ext.cfg
-
 fi
 
 cat ext.cfg
