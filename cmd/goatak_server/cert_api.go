@@ -19,15 +19,26 @@ import (
 	"software.sslmate.com/src/go-pkcs12"
 )
 
-const certTtl = time.Hour * 24 * 60
+const (
+	certTtl     = time.Hour * 24 * 60
+	usernameKey = "username"
+)
+
+func getUsername(req *air.Request) string {
+	if u := req.Value(usernameKey); u != nil {
+		return u.(string)
+	}
+	return ""
+}
 
 func getCertApi(app *App, addr string) *air.Air {
 	certApi := air.New()
 	certApi.Address = addr
 
 	auth := authenticator.BasicAuthGas(authenticator.BasicAuthGasConfig{
-		Validator: func(username string, password string, _ *air.Request, _ *air.Response) (bool, error) {
+		Validator: func(username string, password string, req *air.Request, _ *air.Response) (bool, error) {
 			app.Logger.Infof("tls api login with user %s", username)
+			req.SetValue(usernameKey, username)
 			return app.CheckUserAuth(username, password), nil
 		},
 	})
@@ -121,33 +132,47 @@ func certToPem(cert *x509.Certificate) []byte {
 	return pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: cert.Raw})
 }
 
+func (app *App) processSignRequest(req *air.Request) (*x509.Certificate, error) {
+	user := getUsername(req)
+	uid := getStringParamIgnoreCaps(req, "clientUid")
+	ver := getStringParam(req, "version")
+
+	app.Logger.Infof("cert sign req from %s %s ver %s", user, uid, ver)
+	b, err := io.ReadAll(req.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	clientCSR, err := parseCsr(b)
+	if err != nil {
+		return nil, fmt.Errorf("empty csr block")
+	}
+
+	if user != clientCSR.Subject.CommonName {
+		return nil, fmt.Errorf("bad user in csr")
+	}
+
+	if !app.UserIsValid(user) {
+		return nil, fmt.Errorf("bad user")
+	}
+
+	signedCert, err := signClientCert(clientCSR, app.config.serverCert, app.config.tlsCert.PrivateKey)
+	if err != nil {
+		return nil, err
+	}
+
+	app.newCert(user, uid, ver, signedCert.SerialNumber.String())
+
+	return signedCert, nil
+}
+
 func getSignHandler(app *App) func(req *air.Request, res *air.Response) error {
 	return func(req *air.Request, res *air.Response) error {
 		app.Logger.Infof("%s %s", req.Method, req.Path)
 
-		uid := getStringParamIgnoreCaps(req, "clientUid")
-		ver := getStringParam(req, "version")
-
-		app.Logger.Infof("cert sign req from %s ver %s", uid, ver)
-		b, err := io.ReadAll(req.Body)
+		signedCert, err := app.processSignRequest(req)
 		if err != nil {
-			return err
-		}
-
-		clientCSR, err := parseCsr(b)
-		if err != nil {
-			app.Logger.Warnf("empry csr block")
-			return fmt.Errorf("empty csr block")
-		}
-
-		if !app.UserIsValid(clientCSR.Subject.CommonName) {
-			app.Logger.Warnf("bad user %s", clientCSR.Subject.CommonName)
-			return fmt.Errorf("bad user")
-		}
-
-		signedCert, err := signClientCert(clientCSR, app.config.serverCert, app.config.tlsCert.PrivateKey)
-		if err != nil {
-			app.Logger.Errorf("error signing cert: %v", err)
+			app.Logger.Errorf(err.Error())
 			return err
 		}
 
@@ -171,29 +196,9 @@ func getSignHandlerV2(app *App) func(req *air.Request, res *air.Response) error 
 	return func(req *air.Request, res *air.Response) error {
 		app.Logger.Infof("%s %s", req.Method, req.Path)
 
-		uid := getStringParamIgnoreCaps(req, "clientUid")
-		ver := getStringParam(req, "version")
-
-		app.Logger.Infof("cert sign reqv2 from %s ver %s", uid, ver)
-		b, err := io.ReadAll(req.Body)
+		signedCert, err := app.processSignRequest(req)
 		if err != nil {
-			return err
-		}
-
-		clientCSR, err := parseCsr(b)
-		if err != nil {
-			app.Logger.Warnf("empry csr block")
-			return fmt.Errorf("empty csr block")
-		}
-
-		if !app.UserIsValid(clientCSR.Subject.CommonName) {
-			app.Logger.Warnf("bad user %s", clientCSR.Subject.CommonName)
-			return fmt.Errorf("bad user")
-		}
-
-		signedCert, err := signClientCert(clientCSR, app.config.serverCert, app.config.tlsCert.PrivateKey)
-		if err != nil {
-			app.Logger.Errorf("error signing cert: %v", err)
+			app.Logger.Errorf(err.Error())
 			return err
 		}
 
@@ -229,10 +234,25 @@ func getSignHandlerV2(app *App) func(req *air.Request, res *air.Response) error 
 
 func getProfileEnrollmentHandler(app *App) func(req *air.Request, res *air.Response) error {
 	return func(req *air.Request, res *air.Response) error {
-		app.Logger.Infof("%s %s", req.Method, req.Path)
+		user := getUsername(req)
 		uid := getStringParamIgnoreCaps(req, "clientUid")
-		app.Logger.Infof("Profile enrollment req from %s", uid)
+		app.Logger.Infof("%s %s %s %s", req.Method, req.Path, user, uid)
 
 		return nil
 	}
+}
+
+func (app *App) newCert(user, uid, version, serial string) {
+	app.Logger.Infof("new cert signed for user %s uid %s ver %s serial %s", user, uid, version, serial)
+}
+
+func formatPrefFile(data map[string]string) string {
+	sb := strings.Builder{}
+	sb.WriteString("<?xml version='1.0' standalone='yes'?>\n")
+	sb.WriteString("<preferences>\n<preference version=\"1\" name=\"com.atakmap.app.civ_preferences\">\n")
+	for k, v := range data {
+		sb.WriteString(fmt.Sprintf("<entry key=\"%s\" class=\"class java.lang.String\">%s</entry>", k, v))
+	}
+	sb.WriteString("</preference></preferences>")
+	return sb.String()
 }
