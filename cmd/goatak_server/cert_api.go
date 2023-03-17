@@ -238,6 +238,7 @@ func getProfileEnrollmentHandler(app *App) func(req *air.Request, res *air.Respo
 		uid := getStringParamIgnoreCaps(req, "clientUid")
 		app.Logger.Infof("%s %s %s %s", req.Method, req.Path, user, uid)
 
+		res.Status = http.StatusNoContent
 		return nil
 	}
 }
