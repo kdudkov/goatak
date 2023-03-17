@@ -8,6 +8,7 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
+	"github.com/google/uuid"
 	"io"
 	"math/big"
 	"net/http"
@@ -237,23 +238,31 @@ func getProfileEnrollmentHandler(app *App) func(req *air.Request, res *air.Respo
 		user := getUsername(req)
 		uid := getStringParamIgnoreCaps(req, "clientUid")
 		app.Logger.Infof("%s %s %s %s", req.Method, req.Path, user, uid)
+		files := app.profileProvider.GetProfile(user, uid)
+		if len(files) == 0 {
+			res.Status = http.StatusNoContent
+			return nil
+		}
 
-		res.Status = http.StatusNoContent
+		mp := NewMissionPackage("ProfileMissionPackage-"+uuid.New().String(), "Enrollment")
+		mp.Param("onReceiveImport", "true")
+		mp.Param("onReceiveDelete", "true")
+
+		for i, f := range files {
+			f.SetName(fmt.Sprintf("file%d/%s", i, f.Name()))
+			mp.AddFile(f)
+		}
+
+		res.Header.Set("Content-Disposition", "attachment; filename=profile.zip")
+		dat, err := mp.Create()
+		if err != nil {
+			return err
+		}
+		res.Write(bytes.NewReader(dat))
 		return nil
 	}
 }
 
 func (app *App) newCert(user, uid, version, serial string) {
 	app.Logger.Infof("new cert signed for user %s uid %s ver %s serial %s", user, uid, version, serial)
-}
-
-func formatPrefFile(data map[string]string) string {
-	sb := strings.Builder{}
-	sb.WriteString("<?xml version='1.0' standalone='yes'?>\n")
-	sb.WriteString("<preferences>\n<preference version=\"1\" name=\"com.atakmap.app.civ_preferences\">\n")
-	for k, v := range data {
-		sb.WriteString(fmt.Sprintf("<entry key=\"%s\" class=\"class java.lang.String\">%s</entry>", k, v))
-	}
-	sb.WriteString("</preference></preferences>")
-	return sb.String()
 }

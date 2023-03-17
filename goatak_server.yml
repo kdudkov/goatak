@@ -2,9 +2,9 @@
 admin_addr: ":8080"
 api_addr: ":8889"
 cert_addr: ":8446"
-tcp_port: 8999
-udp_port: 8999
-ssl_port: 8089
+tcp_addr: ":8999"
+udp_addr: ":8999"
+ssl_addr: ":8089"
 password_file: htpasswd
 
 me:

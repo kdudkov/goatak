@@ -149,8 +149,6 @@ func (h *ClientHandler) handleRead() {
 			msg, d, err = h.processProtoRead(pr)
 		}
 
-		h.setActivity()
-
 		if err != nil {
 			if err == io.EOF {
 				h.logger.Info("EOF")
@@ -215,6 +213,8 @@ func (h *ClientHandler) processXMLRead(er *TagReader) (*cotproto.TakMessage, *No
 		return nil, nil, fmt.Errorf("xml decode error: %v, data: %s", err, string(dat))
 	}
 
+	h.setActivity()
+
 	if ev.IsTakControlRequest() {
 		ver := ev.Detail.GetFirst("TakControl").GetFirst("TakRequest").GetAttr("version")
 		if ver == "1" {
@@ -263,6 +263,8 @@ func (h *ClientHandler) processProtoRead(r *ProtoReader) (*cotproto.TakMessage, 
 	if err := proto.Unmarshal(buf, msg); err != nil {
 		return nil, nil, fmt.Errorf("failed to decode protobuf: %v", err)
 	}
+
+	h.setActivity()
 
 	var d *Node
 	d, err = DetailsFromString(msg.GetCotEvent().GetDetail().GetXmlDetail())

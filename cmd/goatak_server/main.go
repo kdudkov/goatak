@@ -38,12 +38,12 @@ var (
 )
 
 type AppConfig struct {
-	tcpPort   int
-	udpPort   int
+	udpAddr   string
+	tcpAddr   string
 	adminAddr string
 	apiAddr   string
 	certAddr  string
-	sslPort   int
+	sslAddr   string
 
 	usersFile string
 
@@ -72,6 +72,8 @@ type App struct {
 	units    sync.Map
 	messages []*model.ChatMessage
 
+	profileProvider *ProfileProvider
+
 	ctx context.Context
 	uid string
 	ch  chan *cot.CotMessage
@@ -79,13 +81,14 @@ type App struct {
 
 func NewApp(config *AppConfig, logger *zap.SugaredLogger) *App {
 	app := &App{
-		Logger:         logger,
-		config:         config,
-		packageManager: NewPackageManager(logger),
-		ch:             make(chan *cot.CotMessage, 20),
-		handlers:       sync.Map{},
-		units:          sync.Map{},
-		uid:            uuid.New().String(),
+		Logger:          logger,
+		config:          config,
+		packageManager:  NewPackageManager(logger),
+		profileProvider: NewProfileProvider(),
+		ch:              make(chan *cot.CotMessage, 20),
+		handlers:        sync.Map{},
+		units:           sync.Map{},
+		uid:             uuid.New().String(),
 	}
 
 	return app
@@ -100,21 +103,25 @@ func (app *App) Run() {
 
 	app.ctx, cancel = context.WithCancel(context.Background())
 
-	go func() {
-		if err := app.ListenUDP(fmt.Sprintf(":%d", app.config.udpPort)); err != nil {
-			panic(err)
-		}
-	}()
-
-	go func() {
-		if err := app.ListenTCP(fmt.Sprintf(":%d", app.config.tcpPort)); err != nil {
-			panic(err)
-		}
-	}()
-
-	if app.config.tlsCert != nil {
+	if app.config.udpAddr != "" {
 		go func() {
-			if err := app.ListenSSl(fmt.Sprintf(":%d", app.config.sslPort)); err != nil {
+			if err := app.ListenUDP(app.config.udpAddr); err != nil {
+				panic(err)
+			}
+		}()
+	}
+
+	if app.config.tcpAddr != "" {
+		go func() {
+			if err := app.ListenTCP(app.config.tcpAddr); err != nil {
+				panic(err)
+			}
+		}()
+	}
+
+	if app.config.tlsCert != nil && app.config.sslAddr != "" {
+		go func() {
+			if err := app.ListenSSl(app.config.sslAddr); err != nil {
 				panic(err)
 			}
 		}()
@@ -583,9 +590,9 @@ func main() {
 
 	viper.SetConfigFile(*conf)
 
-	viper.SetDefault("tcp_port", 8999)
-	viper.SetDefault("udp_port", 8999)
-	viper.SetDefault("ssl_port", 8089)
+	viper.SetDefault("udp_addr", ":8999")
+	viper.SetDefault("tcp_addr", ":8999")
+	viper.SetDefault("ssl_addr", ":8089")
 	viper.SetDefault("admin_addr", ":8080")
 	viper.SetDefault("api_addr", ":8889")
 
@@ -631,12 +638,12 @@ func main() {
 	ca = append(ca, cert...)
 
 	config := &AppConfig{
-		tcpPort:     viper.GetInt("tcp_port"),
-		udpPort:     viper.GetInt("udp_port"),
+		udpAddr:     viper.GetString("udp_addr"),
+		tcpAddr:     viper.GetString("tcp_addr"),
 		adminAddr:   viper.GetString("admin_addr"),
 		apiAddr:     viper.GetString("api_addr"),
 		certAddr:    viper.GetString("cert_addr"),
-		sslPort:     viper.GetInt("ssl_port"),
+		sslAddr:     viper.GetString("ssl_addr"),
 		useSsl:      viper.GetBool("ssl.use_ssl"),
 		logging:     *logging,
 		certPool:    certPool,
