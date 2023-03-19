@@ -143,6 +143,7 @@ func getMissionUploadHandler(app *App) func(req *air.Request, res *air.Response)
 		if f, fh, err := req.HTTPRequest().FormFile("assetfile"); err == nil {
 			n, err := app.packageManager.SaveFile(hash, fh.Filename, f)
 			if err != nil {
+				app.Logger.Errorf("%v", err)
 				return err
 			}
 
@@ -154,6 +155,7 @@ func getMissionUploadHandler(app *App) func(req *air.Request, res *air.Response)
 			app.Logger.Infof("save packege %s %s", fname, hash)
 			return res.WriteString(fmt.Sprintf("/Marti/api/sync/metadata/%s/tool", hash))
 		} else {
+			app.Logger.Errorf("%v", err)
 			return err
 		}
 	}
