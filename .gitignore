@@ -1,6 +1,5 @@
 .idea/
 dist/
-data/
 *.log
 *.tmp
 *.out

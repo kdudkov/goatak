@@ -13,9 +13,6 @@ import (
 	"github.com/kdudkov/goatak/model"
 )
 
-// /Marti/api/device/profile/connection?syncSecago=1644830591&clientUid=ANDROID-xxx
-//
-
 func getMartiApi(app *App, addr string) *air.Air {
 	api := air.New()
 	api.Address = addr
@@ -26,6 +23,7 @@ func getMartiApi(app *App, addr string) *air.Air {
 	api.GET("/Marti/api/sync/metadata/:hash/tool", getMetadataGetHandler(app))
 	api.PUT("/Marti/api/sync/metadata/:hash/tool", getMetadataPutHandler(app))
 
+	api.GET("/Marti/api/device/profile/connection", getProfileConnectionHandler(app))
 	api.GET("/Marti/sync/content", getMetadataGetHandler(app))
 	api.GET("/Marti/sync/search", getSearchHandler(app))
 	api.GET("/Marti/sync/missionquery", getMissionQueryHandler(app))
@@ -247,6 +245,16 @@ func getSearchHandler(app *App) func(req *air.Request, res *air.Response) error 
 	}
 }
 
+func getProfileConnectionHandler(app *App) func(req *air.Request, res *air.Response) error {
+	return func(req *air.Request, res *air.Response) error {
+		app.Logger.Infof("%s %s", req.Method, req.Path)
+		//uid := getStringParamIgnoreCaps(req, "clientUid")
+
+		res.Status = http.StatusNoContent
+		return nil
+	}
+}
+
 func getStringParam(req *air.Request, name string) string {
 	p := req.Param(name)
 	if p == nil {
@@ -270,8 +278,9 @@ func getIntParam(req *air.Request, name string, def int) int {
 }
 
 func getStringParamIgnoreCaps(req *air.Request, name string) string {
+	nn := strings.ToLower(name)
 	for _, p := range req.Params() {
-		if strings.ToLower(p.Name) == strings.ToLower(name) {
+		if strings.ToLower(p.Name) == nn {
 			return p.Value().String()
 		}
 	}
