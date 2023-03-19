@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bufio"
 	"context"
 	"crypto"
 	"crypto/tls"
@@ -9,7 +8,6 @@ import (
 	"encoding/pem"
 	"flag"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"log"
 	"net"
@@ -23,7 +21,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/kdudkov/goatak/cot"
 	"github.com/spf13/viper"
-	htpasswd "github.com/tg123/go-htpasswd"
 	"go.uber.org/zap"
 	"software.sslmate.com/src/go-pkcs12"
 
@@ -72,7 +69,7 @@ type App struct {
 	units    sync.Map
 	messages []*model.ChatMessage
 
-	profileProvider *ProfileProvider
+	userManager *UserManager
 
 	ctx context.Context
 	uid string
@@ -81,14 +78,14 @@ type App struct {
 
 func NewApp(config *AppConfig, logger *zap.SugaredLogger) *App {
 	app := &App{
-		Logger:          logger,
-		config:          config,
-		packageManager:  NewPackageManager(logger),
-		profileProvider: NewProfileProvider(),
-		ch:              make(chan *cot.CotMessage, 20),
-		handlers:        sync.Map{},
-		units:           sync.Map{},
-		uid:             uuid.New().String(),
+		Logger:         logger,
+		config:         config,
+		packageManager: NewPackageManager(logger.Named("packageManager")),
+		userManager:    NewUserManager(logger.Named("userManager"), config.usersFile),
+		ch:             make(chan *cot.CotMessage, 20),
+		handlers:       sync.Map{},
+		units:          sync.Map{},
+		uid:            uuid.New().String(),
 	}
 
 	return app
@@ -142,55 +139,6 @@ func (app *App) Run() {
 	<-c
 	app.Logger.Info("exiting...")
 	cancel()
-}
-
-func (app *App) CheckUserAuth(user, password string) bool {
-	if app.config.usersFile == "" {
-		return false
-	}
-	myauth, err := htpasswd.New(app.config.usersFile, htpasswd.DefaultSystems, nil)
-	if err != nil {
-		app.Logger.Errorf("%v", err)
-		return false
-	}
-	ok := myauth.Match(user, password)
-	if !ok {
-		app.Logger.Warnf("bad auth user %s", user)
-	}
-
-	return ok
-}
-
-func (app *App) UserIsValid(user string) bool {
-	if app.config.usersFile == "" {
-		return true
-	}
-
-	f, err := os.Open(app.config.usersFile)
-	if err != nil {
-		app.Logger.Errorf("%v", err)
-		return false
-	}
-	defer f.Close()
-
-	rd := bufio.NewReader(f)
-
-	for {
-		line, err := rd.ReadString('\n')
-		if err != nil {
-			if err == io.EOF {
-				break
-			}
-			app.Logger.Errorf("read file line error: %v", err)
-			return false
-		}
-		s := strings.SplitN(line, ":", 2)
-		if s[0] == user {
-			return true
-		}
-	}
-
-	return false
 }
 
 func (app *App) NewCotMessage(msg *cot.CotMessage) {

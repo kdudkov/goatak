@@ -62,6 +62,8 @@ func getVersionConfigHandler(app *App) func(req *air.Request, res *air.Response)
 func getEndpointsHandler(app *App) func(req *air.Request, res *air.Response) error {
 	return func(req *air.Request, res *air.Response) error {
 		app.Logger.Infof("%s %s", req.Method, req.Path)
+		//secAgo := getIntParam(req, "secAgo", 0)
+
 		result := make(map[string]interface{}, 0)
 		data := make([]map[string]interface{}, 0)
 		result["Matcher"] = "com.bbn.marti.remote.ClientEndpoint"
@@ -250,6 +252,19 @@ func getStringParam(req *air.Request, name string) string {
 	}
 
 	return p.Value().String()
+}
+
+func getIntParam(req *air.Request, name string, def int) int {
+	p := req.Param(name)
+	if p == nil {
+		return def
+	}
+
+	if n, err := p.Value().Int(); err == nil {
+		return n
+	}
+
+	return def
 }
 
 func getStringParamIgnoreCaps(req *air.Request, name string) string {

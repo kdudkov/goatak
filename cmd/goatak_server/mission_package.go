@@ -4,12 +4,43 @@ import (
 	"archive/zip"
 	"bytes"
 	"fmt"
+	"os"
+	"path/filepath"
 )
+
+const baseDir = "./data"
 
 type ZipFile interface {
 	SetName(name string)
 	Name() string
 	Content() []byte
+}
+
+type FsFile struct {
+	name string
+	data []byte
+}
+
+func NewFsFile(fname string) (*FsFile, error) {
+	dat, err := os.ReadFile(filepath.Join(baseDir, fname))
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &FsFile{name: fname, data: dat}, nil
+}
+
+func (f *FsFile) Name() string {
+	return f.name
+}
+
+func (f *FsFile) SetName(name string) {
+	f.name = name
+}
+
+func (f *FsFile) Content() []byte {
+	return f.data
 }
 
 type PrefFile struct {
@@ -19,20 +50,6 @@ type PrefFile struct {
 
 func NewUserProfilePrefFile() *PrefFile {
 	return NewPrefFile("user-profile.pref")
-}
-
-func NewDefaultPrefFile() *PrefFile {
-	f := NewPrefFile("defaults.pref")
-	f.AddParam("speed_unit_pref", "1")
-	f.AddParam("alt_unit_pref", "1")
-	f.AddBoolParam("saHasPhoneNumber", false)
-	f.AddParam("locationUnitType", "a-f-G-U-C")
-	f.AddParam("alt_display_pref", "MSL")
-	f.AddParam("coord_display_pref", "DM")
-	f.AddParam("rab_north_ref_pref", "1")
-	f.AddParam("rab_brg_units", "0")
-	f.AddParam("rab_nrg_units", "1")
-	return f
 }
 
 func NewPrefFile(name string) *PrefFile {

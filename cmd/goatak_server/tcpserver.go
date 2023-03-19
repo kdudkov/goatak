@@ -83,10 +83,10 @@ func (app *App) ListenSSl(addr string) error {
 }
 
 func (app *App) verifyConnection(st tls.ConnectionState) error {
-	user, _ := getUser(&st)
+	user, sn := getUser(&st)
 	app.logCert(st.PeerCertificates)
 
-	if !app.UserIsValid(user) {
+	if !app.userManager.UserIsValid(user, sn) {
 		app.Logger.Warnf("bad user %s", user)
 		return fmt.Errorf("bad user %s", user)
 	}

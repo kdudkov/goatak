@@ -20,6 +20,21 @@ builds:
     ignore:
       - goos: darwin
         goarch: '386'
+  - id: ctl
+    main: ./cmd/userctl
+    binary: userctl
+    env:
+      - CGO_ENABLED=0
+    mod_timestamp: '{{ .CommitTimestamp }}'
+    flags:
+      - -trimpath
+    ldflags:
+      - '-s -w -X main.gitRevision={{.Version}} -X main.gitCommit={{.Commit}}'
+    goos: [ windows, linux, darwin ]
+    goarch: [ amd64, arm64 ]
+    ignore:
+      - goos: darwin
+        goarch: '386'
   - id: client
     main: ./cmd/webclient
     binary: goatak_client
@@ -37,13 +52,14 @@ builds:
         goarch: '386'
 archives:
   - id: server
-    builds: [ server ]
+    builds: [ server, ctl ]
     format: zip
     name_template: 'server_{{ .Version }}_{{ .Os }}_{{ .Arch }}'
     files:
       - goatak_server.yml
-      - htpasswd
+      - users.yml
       - cert/*
+      - data/*
   - id: client
     builds: [ client ]
     format: zip
