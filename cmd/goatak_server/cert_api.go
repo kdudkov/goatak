@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"crypto"
 	"crypto/rand"
-	"crypto/tls"
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
@@ -53,17 +52,6 @@ func getCertApi(app *App, addr string) *air.Air {
 
 	certApi.NotFoundHandler = getNotFoundHandler(app)
 
-	if app.config.useSsl {
-		tlsCfg := &tls.Config{
-			Certificates: []tls.Certificate{*app.config.tlsCert},
-			ClientCAs:    app.config.certPool,
-			RootCAs:      app.config.certPool,
-			ClientAuth:   tls.NoClientCert,
-			MinVersion:   tls.VersionTLS10,
-		}
-
-		certApi.TLSConfig = tlsCfg
-	}
 	return certApi
 }
 

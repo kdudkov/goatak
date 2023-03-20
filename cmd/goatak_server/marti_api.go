@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/tls"
 	"fmt"
 	"io"
 	"net/http"
@@ -30,6 +31,18 @@ func getMartiApi(app *App, addr string) *air.Air {
 	api.POST("/Marti/sync/missionupload", getMissionUploadHandler(app))
 
 	api.NotFoundHandler = getNotFoundHandler(app)
+
+	if app.config.useSsl {
+		tlsCfg := &tls.Config{
+			Certificates: []tls.Certificate{*app.config.tlsCert},
+			ClientCAs:    app.config.certPool,
+			RootCAs:      app.config.certPool,
+			ClientAuth:   tls.NoClientCert,
+			MinVersion:   tls.VersionTLS10,
+		}
+
+		api.TLSConfig = tlsCfg
+	}
 
 	return api
 }
