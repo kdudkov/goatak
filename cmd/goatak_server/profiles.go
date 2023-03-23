@@ -12,6 +12,7 @@ type UserInfo struct {
 	Callsign string `yaml:"callsign"`
 	Team     string `yaml:"team"`
 	Role     string `yaml:"role"`
+	Typ      string `yaml:"type"`
 	Password string `yaml:"password"`
 }
 
@@ -70,9 +71,11 @@ func (um *UserManager) GetProfile(user, uid string) []ZipFile {
 	}
 	res := make([]ZipFile, 0)
 
-	if user, ok := um.users[user]; ok {
-		if user.Callsign != "" || user.Team != "" || user.Role != "" {
-			res = append(res, NewUserFrefsFile(user.Callsign, user.Team, user.Role))
+	if user != "" {
+		if user, ok := um.users[user]; ok {
+			if user.Callsign != "" || user.Team != "" || user.Role != "" || user.Typ != "" {
+				res = append(res, NewUserPrefsFile(user.Callsign, user.Team, user.Role, user.Typ))
+			}
 		}
 	}
 
@@ -82,7 +85,7 @@ func (um *UserManager) GetProfile(user, uid string) []ZipFile {
 	return res
 }
 
-func NewUserFrefsFile(callsign, team, role string) *PrefFile {
+func NewUserPrefsFile(callsign, team, role, typ string) *PrefFile {
 	conf := NewUserProfilePrefFile()
 	if callsign != "" {
 		conf.AddParam("locationCallsign", callsign)
@@ -93,14 +96,8 @@ func NewUserFrefsFile(callsign, team, role string) *PrefFile {
 	if role != "" {
 		conf.AddParam("atakRoleType", role)
 	}
-	return conf
-}
-
-func NewUserFrefsFileWithType(callsign, team, role, typ string) *PrefFile {
-	conf := NewUserProfilePrefFile()
-	conf.AddParam("locationCallsign", callsign)
-	conf.AddParam("locationTeam", team)
-	conf.AddParam("atakRoleType", role)
-	conf.AddParam("locationUnitType", typ)
+	if typ != "" {
+		conf.AddParam("locationUnitType", typ)
+	}
 	return conf
 }

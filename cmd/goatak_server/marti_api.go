@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"crypto/tls"
 	"fmt"
 	"io"
@@ -261,9 +262,30 @@ func getSearchHandler(app *App) func(req *air.Request, res *air.Response) error 
 func getProfileConnectionHandler(app *App) func(req *air.Request, res *air.Response) error {
 	return func(req *air.Request, res *air.Response) error {
 		app.Logger.Infof("%s %s", req.Method, req.Path)
-		//uid := getStringParamIgnoreCaps(req, "clientUid")
+		_ = getIntParam(req, "syncSecago", 0)
+		uid := getStringParamIgnoreCaps(req, "clientUid")
 
-		res.Status = http.StatusNoContent
+		files := app.userManager.GetProfile("", uid)
+		if len(files) == 0 {
+			res.Status = http.StatusNoContent
+			return nil
+		}
+
+		mp := NewMissionPackage("ProfileMissionPackage-"+uuid.New().String(), "Connection")
+		mp.Param("onReceiveImport", "true")
+		mp.Param("onReceiveDelete", "true")
+
+		for i, f := range files {
+			f.SetName(fmt.Sprintf("file%d/%s", i, f.Name()))
+			mp.AddFile(f)
+		}
+
+		res.Header.Set("Content-Disposition", "attachment; filename=profile.zip")
+		dat, err := mp.Create()
+		if err != nil {
+			return err
+		}
+		res.Write(bytes.NewReader(dat))
 		return nil
 	}
 }

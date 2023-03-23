@@ -4,7 +4,6 @@
 		<entry key="speed_unit_pref" class="class java.lang.String">1</entry>
 		<entry key="alt_unit_pref" class="class java.lang.String">1</entry>
 		<entry key="saHasPhoneNumber" class="class java.lang.Boolean">false</entry>
-		<entry key="locationUnitType" class="class java.lang.String">a-f-G-U-C</entry>
 		<entry key="alt_display_pref" class="class java.lang.String">MSL</entry>
 		<entry key="coord_display_pref" class="class java.lang.String">DM</entry>
 		<entry key="rab_north_ref_pref" class="class java.lang.String">1</entry>
