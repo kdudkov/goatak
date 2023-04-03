@@ -83,7 +83,7 @@ func (pm *PackageManager) Get(hash string) (*PackageInfo, bool) {
 }
 
 func (pm *PackageManager) Range(f func(key string, pi *PackageInfo) bool) {
-	pm.data.Range(func(key, value interface{}) bool {
+	pm.data.Range(func(key, value any) bool {
 		return f(key.(string), value.(*PackageInfo))
 	})
 }

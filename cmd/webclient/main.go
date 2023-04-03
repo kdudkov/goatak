@@ -40,14 +40,15 @@ type Pos struct {
 
 type App struct {
 	dialTimeout time.Duration
-	addr        string
+	host        string
+	tcpPort     string
 	webPort     int
 	Logger      *zap.SugaredLogger
 	ch          chan []byte
 	units       sync.Map
 	messages    *model.Messages
 	tls         bool
-	cl          *cot.ClientHandler
+	cl          *cot.ConnClientHandler
 	listeners   sync.Map
 
 	callsign string
@@ -89,7 +90,8 @@ func NewApp(uid string, callsign string, connectStr string, webPort int, logger 
 		Logger:      logger,
 		callsign:    callsign,
 		uid:         uid,
-		addr:        fmt.Sprintf("%s:%s", parts[0], parts[1]),
+		host:        parts[0],
+		tcpPort:     parts[1],
 		tls:         tlsConn,
 		webPort:     webPort,
 		units:       sync.Map{},
@@ -125,10 +127,10 @@ func (app *App) Run(ctx context.Context) {
 		wg.Add(1)
 		ctx1, cancel := context.WithCancel(ctx)
 
-		app.cl = cot.NewClientHandler(app.addr, conn, &cot.HandlerConfig{
+		app.cl = cot.NewConnClientHandler(fmt.Sprintf("%s:%s", app.host, app.tcpPort), conn, &cot.HandlerConfig{
 			Logger:    app.Logger,
 			MessageCb: app.ProcessEvent,
-			RemoveCb: func(ch *cot.ClientHandler) {
+			RemoveCb: func(ch cot.ClientHandler) {
 				wg.Done()
 				cancel()
 				app.Logger.Info("disconnected")
@@ -355,7 +357,7 @@ func (app *App) cleaner() {
 func (app *App) cleanOldUnits() {
 	toDelete := make([]string, 0)
 
-	app.units.Range(func(key, value interface{}) bool {
+	app.units.Range(func(key, value any) bool {
 		val := value.(*model.Item)
 
 		switch val.GetClass() {
@@ -383,7 +385,7 @@ func (app *App) cleanOldUnits() {
 }
 
 func (app *App) sendMyPoints() {
-	app.units.Range(func(key, value interface{}) bool {
+	app.units.Range(func(key, value any) bool {
 		val := value.(*model.Item)
 		if val.IsSend() {
 			app.SendMsg(val.GetMsg().TakMessage)
@@ -426,8 +428,8 @@ func main() {
 	viper.SetDefault("server_address", "204.48.30.216:8087:tcp")
 	viper.SetDefault("web_port", 8080)
 	viper.SetDefault("me.callsign", RandString(10))
-	viper.SetDefault("me.lat", 35.462939)
-	viper.SetDefault("me.lon", -97.537283)
+	viper.SetDefault("me.lat", 0.0)
+	viper.SetDefault("me.lon", 0.0)
 	viper.SetDefault("me.zoom", 5)
 	viper.SetDefault("me.type", "a-f-G-U-C")
 	viper.SetDefault("me.team", "Blue")
@@ -436,6 +438,7 @@ func main() {
 	viper.SetDefault("me.version", fmt.Sprintf("%s:%s", gitBranch, gitRevision))
 	viper.SetDefault("me.os", runtime.GOOS)
 	viper.SetDefault("ssl.password", "atakatak")
+	viper.SetDefault("ssl.enroll", false)
 
 	err := viper.ReadInConfig()
 	if err != nil {
@@ -481,8 +484,21 @@ func main() {
 	app.Logger.Infof("uid: %s", app.uid)
 	app.Logger.Infof("team: %s", app.team)
 	app.Logger.Infof("role: %s", app.role)
-	app.Logger.Infof("server: %s", app.addr)
+	app.Logger.Infof("server: %s", viper.GetString("server_address"))
 
+	if viper.GetBool("ssl.enroll") {
+		user := viper.GetString("ssl.enroll_user")
+		passw := viper.GetString("ssl.enroll_password")
+		if user == "" || passw == "" {
+			fmt.Println("no enroll_user or enroll_password")
+			return
+		}
+
+		if err := app.enrollCert(user, passw); err != nil {
+			fmt.Println(err.Error())
+			return
+		}
+	}
 	go app.Run(ctx)
 
 	c := make(chan os.Signal, 1)

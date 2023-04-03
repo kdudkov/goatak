@@ -1,6 +1,6 @@
 ---
-admin_addr: ":8080"
-api_addr: ":8889"
+admin_addr: ":8088"
+api_addr: ":8080"
 cert_addr: ":8446"
 tcp_addr: ":8999"
 udp_addr: ":8999"

@@ -40,7 +40,7 @@ type AppConfig struct {
 	adminAddr string
 	apiAddr   string
 	certAddr  string
-	sslAddr   string
+	tlsAddr   string
 
 	usersFile string
 
@@ -116,9 +116,9 @@ func (app *App) Run() {
 		}()
 	}
 
-	if app.config.tlsCert != nil && app.config.sslAddr != "" {
+	if app.config.tlsCert != nil && app.config.tlsAddr != "" {
 		go func() {
-			if err := app.ListenSSl(app.config.sslAddr); err != nil {
+			if err := app.listenTls(app.config.tlsAddr); err != nil {
 				panic(err)
 			}
 		}()
@@ -145,19 +145,33 @@ func (app *App) NewCotMessage(msg *cot.CotMessage) {
 	app.ch <- msg
 }
 
-func (app *App) RemoveHandlerCb(cl *cot.ClientHandler) {
-	cl.ForAllUid(func(uid string, callsign string) bool {
+func (app *App) AddClientHandler(ch cot.ClientHandler) {
+	app.handlers.Store(ch.GetName(), ch)
+}
+
+func (app *App) RemoveClientHandler(name string) {
+	if _, ok := app.handlers.Load(name); ok {
+		app.Logger.Infof("remove handler: %s", name)
+		app.handlers.Delete(name)
+	}
+}
+
+func (app *App) ForAllClients(f func(ch cot.ClientHandler) bool) {
+	app.handlers.Range(func(_, value any) bool {
+		h := value.(cot.ClientHandler)
+		return f(h)
+	})
+}
+
+func (app *App) RemoveHandlerCb(cl cot.ClientHandler) {
+	for uid := range cl.GetUids() {
 		if c := app.GetItem(uid); c != nil {
 			c.SetOffline()
 		}
 		app.SendToAllOther(cot.MakeOfflineMsg(uid, ""), cl.GetName())
-		return true
-	})
-
-	if _, ok := app.handlers.Load(cl.GetName()); ok {
-		app.Logger.Infof("remove handler: %s", cl.GetName())
-		app.handlers.Delete(cl.GetName())
 	}
+
+	app.RemoveClientHandler(cl.GetName())
 }
 
 func (app *App) ConnectTo(addr string) {
@@ -174,10 +188,10 @@ func (app *App) ConnectTo(addr string) {
 		wg := &sync.WaitGroup{}
 		wg.Add(1)
 
-		h := cot.NewClientHandler(name, conn, &cot.HandlerConfig{
+		h := cot.NewConnClientHandler(name, conn, &cot.HandlerConfig{
 			Logger:    app.Logger,
 			MessageCb: app.NewCotMessage,
-			RemoveCb: func(ch *cot.ClientHandler) {
+			RemoveCb: func(ch cot.ClientHandler) {
 				wg.Done()
 				app.handlers.Delete(name)
 				app.Logger.Info("disconnected")
@@ -187,7 +201,7 @@ func (app *App) ConnectTo(addr string) {
 		})
 
 		go h.Start()
-		app.handlers.Store(name, h)
+		app.AddClientHandler(h)
 
 		wg.Wait()
 	}
@@ -398,7 +412,7 @@ func (app *App) cleaner() {
 func (app *App) cleanOldUnits() {
 	toDelete := make([]string, 0)
 
-	app.units.Range(func(key, value interface{}) bool {
+	app.units.Range(func(key, value any) bool {
 		val := value.(*model.Item)
 
 		switch val.GetClass() {
@@ -426,11 +440,10 @@ func (app *App) cleanOldUnits() {
 }
 
 func (app *App) SendToAllOther(msg *cotproto.TakMessage, author string) {
-	app.handlers.Range(func(_, value interface{}) bool {
-		h := value.(*cot.ClientHandler)
-		if h.GetName() != author {
-			if err := h.SendMsg(msg); err != nil {
-				app.Logger.Errorf("error sending to %s: %v", h.GetName(), err)
+	app.ForAllClients(func(ch cot.ClientHandler) bool {
+		if ch.GetName() != author {
+			if err := ch.SendMsg(msg); err != nil {
+				app.Logger.Errorf("error sending to %s: %v", ch.GetName(), err)
 			}
 		}
 		return true
@@ -438,11 +451,10 @@ func (app *App) SendToAllOther(msg *cotproto.TakMessage, author string) {
 }
 
 func (app *App) SendTo(addr string, msg *cotproto.TakMessage) {
-	app.handlers.Range(func(_, value interface{}) bool {
-		h := value.(*cot.ClientHandler)
-		if h.GetName() == addr {
-			if err := h.SendMsg(msg); err != nil {
-				app.Logger.Errorf("error sending to %s: %v", h.GetName(), err)
+	app.ForAllClients(func(ch cot.ClientHandler) bool {
+		if ch.GetName() == addr {
+			if err := ch.SendMsg(msg); err != nil {
+				app.Logger.Errorf("error sending to %s: %v", ch.GetName(), err)
 			}
 			return false
 		}
@@ -451,10 +463,9 @@ func (app *App) SendTo(addr string, msg *cotproto.TakMessage) {
 }
 
 func (app *App) SendToCallsign(callsign string, msg *cotproto.TakMessage) {
-	app.handlers.Range(func(key, value interface{}) bool {
-		h := value.(*cot.ClientHandler)
-		if h.GetUid(callsign) != "" {
-			if err := h.SendMsg(msg); err != nil {
+	app.ForAllClients(func(ch cot.ClientHandler) bool {
+		if _, ok := ch.GetUids()[callsign]; ok {
+			if err := ch.SendMsg(msg); err != nil {
 				app.Logger.Errorf("error: %v", err)
 			}
 			return false
@@ -591,7 +602,7 @@ func main() {
 		adminAddr:   viper.GetString("admin_addr"),
 		apiAddr:     viper.GetString("api_addr"),
 		certAddr:    viper.GetString("cert_addr"),
-		sslAddr:     viper.GetString("ssl_addr"),
+		tlsAddr:     viper.GetString("ssl_addr"),
 		useSsl:      viper.GetBool("ssl.use_ssl"),
 		logging:     *logging,
 		certPool:    certPool,

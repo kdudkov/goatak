@@ -3,6 +3,7 @@ package main
 import (
 	"crypto"
 	"crypto/tls"
+	"fmt"
 	"net"
 	"os"
 	"strings"
@@ -12,9 +13,10 @@ import (
 )
 
 func (app *App) connect() (net.Conn, error) {
+	addr := fmt.Sprintf("%s:%d", app.host, app.tcpPort)
 	if app.tls {
-		app.Logger.Infof("connecting with SSL to %s...", app.addr)
-		conn, err := tls.Dial("tcp", app.addr, app.getTlsConfig())
+		app.Logger.Infof("connecting with SSL to %s...", addr)
+		conn, err := tls.Dial("tcp", addr, app.getTlsConfig())
 		if err != nil {
 			return nil, err
 		}
@@ -34,8 +36,8 @@ func (app *App) connect() (net.Conn, error) {
 		}
 		return conn, nil
 	} else {
-		app.Logger.Infof("connecting to %s...", app.addr)
-		return net.DialTimeout("tcp", app.addr, app.dialTimeout)
+		app.Logger.Infof("connecting to %s...", addr)
+		return net.DialTimeout("tcp", addr, app.dialTimeout)
 	}
 }
 

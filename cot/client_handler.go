@@ -2,7 +2,6 @@ package cot
 
 import (
 	"context"
-	"encoding/binary"
 	"encoding/xml"
 	"fmt"
 	"io"
@@ -29,11 +28,19 @@ type HandlerConfig struct {
 	Uid       string
 	IsClient  bool
 	MessageCb func(msg *CotMessage)
-	RemoveCb  func(ch *ClientHandler)
+	RemoveCb  func(ch ClientHandler)
 	Logger    *zap.SugaredLogger
 }
 
-type ClientHandler struct {
+type ClientHandler interface {
+	GetName() string
+	GetUids() map[string]string
+	GetUser() string
+	GetVersion() int32
+	SendMsg(msg *cotproto.TakMessage) error
+}
+
+type ConnClientHandler struct {
 	ctx          context.Context
 	cancel       context.CancelFunc
 	conn         net.Conn
@@ -49,12 +56,12 @@ type ClientHandler struct {
 	user         string
 	serial       string
 	messageCb    func(msg *CotMessage)
-	removeCb     func(ch *ClientHandler)
+	removeCb     func(ch ClientHandler)
 	logger       *zap.SugaredLogger
 }
 
-func NewClientHandler(name string, conn net.Conn, config *HandlerConfig) *ClientHandler {
-	c := &ClientHandler{
+func NewConnClientHandler(name string, conn net.Conn, config *HandlerConfig) *ConnClientHandler {
+	c := &ConnClientHandler{
 		addr:     name,
 		conn:     conn,
 		ver:      0,
@@ -79,28 +86,28 @@ func NewClientHandler(name string, conn net.Conn, config *HandlerConfig) *Client
 	return c
 }
 
-func (h *ClientHandler) GetName() string {
+func (h *ConnClientHandler) GetName() string {
 	return h.addr
 }
 
-func (h *ClientHandler) GetUser() string {
+func (h *ConnClientHandler) GetUser() string {
 	return h.user
 }
 
-func (h *ClientHandler) GetUids() map[string]string {
+func (h *ConnClientHandler) GetUids() map[string]string {
 	res := make(map[string]string)
-	h.uids.Range(func(key, value interface{}) bool {
+	h.uids.Range(func(key, value any) bool {
 		res[key.(string)] = value.(string)
 		return true
 	})
 	return res
 }
 
-func (h *ClientHandler) IsActive() bool {
+func (h *ConnClientHandler) IsActive() bool {
 	return atomic.LoadInt32(&h.active) == 1
 }
 
-func (h *ClientHandler) Start() {
+func (h *ConnClientHandler) Start() {
 	h.logger.Info("starting")
 	go h.handleWrite()
 	go h.handleRead()
@@ -111,11 +118,11 @@ func (h *ClientHandler) Start() {
 
 	if !h.isClient {
 		h.logger.Infof("send version msg")
-		_ = h.SendEvent(VersionSupportMsg(1))
+		_ = h.sendEvent(VersionSupportMsg(1))
 	}
 }
 
-func (h *ClientHandler) pinger() {
+func (h *ConnClientHandler) pinger() {
 	ticker := time.NewTicker(pingTimeout)
 	defer ticker.Stop()
 	for h.ctx.Err() == nil {
@@ -131,7 +138,7 @@ func (h *ClientHandler) pinger() {
 	}
 }
 
-func (h *ClientHandler) handleRead() {
+func (h *ConnClientHandler) handleRead() {
 	defer h.stopHandle()
 
 	er := NewTagReader(h.conn)
@@ -194,7 +201,7 @@ func (h *ClientHandler) handleRead() {
 	}
 }
 
-func (h *ClientHandler) processXMLRead(er *TagReader) (*cotproto.TakMessage, *Node, error) {
+func (h *ConnClientHandler) processXMLRead(er *TagReader) (*cotproto.TakMessage, *Node, error) {
 	tag, dat, err := er.ReadTag()
 	if err != nil {
 		return nil, nil, err
@@ -218,7 +225,7 @@ func (h *ClientHandler) processXMLRead(er *TagReader) (*cotproto.TakMessage, *No
 	if ev.IsTakControlRequest() {
 		ver := ev.Detail.GetFirst("TakControl").GetFirst("TakRequest").GetAttr("version")
 		if ver == "1" {
-			if err := h.SendEvent(ProtoChangeOkMsg()); err == nil {
+			if err := h.sendEvent(ProtoChangeOkMsg()); err == nil {
 				h.logger.Infof("client %s switch to v.1", h.addr)
 				h.SetVersion(1)
 				return nil, nil, nil
@@ -232,7 +239,7 @@ func (h *ClientHandler) processXMLRead(er *TagReader) (*cotproto.TakMessage, *No
 		v := ev.Detail.GetFirst("TakControl").GetFirst("TakProtocolSupport").GetAttr("version")
 		h.logger.Infof("server supports protocol v%s", v)
 		if v == "1" {
-			_ = h.SendEvent(VersionReqMsg(1))
+			_ = h.sendEvent(VersionReqMsg(1))
 		}
 		return nil, nil, nil
 	}
@@ -253,7 +260,7 @@ func (h *ClientHandler) processXMLRead(er *TagReader) (*cotproto.TakMessage, *No
 	return msg, d, nil
 }
 
-func (h *ClientHandler) processProtoRead(r *ProtoReader) (*cotproto.TakMessage, *Node, error) {
+func (h *ConnClientHandler) processProtoRead(r *ProtoReader) (*cotproto.TakMessage, *Node, error) {
 	buf, err := r.ReadProtoBuf()
 	if err != nil {
 		return nil, nil, err
@@ -272,15 +279,15 @@ func (h *ClientHandler) processProtoRead(r *ProtoReader) (*cotproto.TakMessage, 
 	return msg, d, err
 }
 
-func (h *ClientHandler) SetVersion(n int32) {
+func (h *ConnClientHandler) SetVersion(n int32) {
 	atomic.StoreInt32(&h.ver, n)
 }
 
-func (h *ClientHandler) GetVersion() int32 {
+func (h *ConnClientHandler) GetVersion() int32 {
 	return atomic.LoadInt32(&h.ver)
 }
 
-func (h *ClientHandler) checkContact(msg *CotMessage) {
+func (h *ConnClientHandler) checkContact(msg *CotMessage) {
 	if msg.IsContact() {
 		uid := msg.TakMessage.CotEvent.Uid
 		if strings.HasSuffix(uid, "-ping") {
@@ -295,9 +302,9 @@ func (h *ClientHandler) checkContact(msg *CotMessage) {
 	}
 }
 
-func (h *ClientHandler) GetUid(callsign string) string {
+func (h *ConnClientHandler) GetUid(callsign string) string {
 	res := ""
-	h.uids.Range(func(key, value interface{}) bool {
+	h.uids.Range(func(key, value any) bool {
 		if callsign == value.(string) {
 			res = key.(string)
 			return false
@@ -308,13 +315,13 @@ func (h *ClientHandler) GetUid(callsign string) string {
 	return res
 }
 
-func (h *ClientHandler) ForAllUid(fn func(string, string) bool) {
-	h.uids.Range(func(key, value interface{}) bool {
+func (h *ConnClientHandler) ForAllUid(fn func(string, string) bool) {
+	h.uids.Range(func(key, value any) bool {
 		return fn(key.(string), value.(string))
 	})
 }
 
-func (h *ClientHandler) handleWrite() {
+func (h *ConnClientHandler) handleWrite() {
 	for msg := range h.sendChan {
 		if _, err := h.conn.Write(msg); err != nil {
 			h.logger.Debugf("client %s write error %v", h.addr, err)
@@ -324,7 +331,7 @@ func (h *ClientHandler) handleWrite() {
 	}
 }
 
-func (h *ClientHandler) stopHandle() {
+func (h *ConnClientHandler) stopHandle() {
 	if atomic.CompareAndSwapInt32(&h.active, 1, 0) {
 		h.logger.Info("stopping")
 		h.cancel()
@@ -344,7 +351,7 @@ func (h *ClientHandler) stopHandle() {
 	return
 }
 
-func (h *ClientHandler) setActivity() {
+func (h *ConnClientHandler) setActivity() {
 	h.lastActivity = time.Now()
 
 	if h.closeTimer == nil {
@@ -354,7 +361,7 @@ func (h *ClientHandler) setActivity() {
 	}
 }
 
-func (h *ClientHandler) closeIdle() {
+func (h *ConnClientHandler) closeIdle() {
 	idle := time.Now().Sub(h.lastActivity)
 
 	if idle >= idleTimeout {
@@ -363,7 +370,7 @@ func (h *ClientHandler) closeIdle() {
 	}
 }
 
-func (h *ClientHandler) SendEvent(evt *Event) error {
+func (h *ConnClientHandler) sendEvent(evt *Event) error {
 	if h.GetVersion() != 0 {
 		return fmt.Errorf("bad client version")
 	}
@@ -380,7 +387,7 @@ func (h *ClientHandler) SendEvent(evt *Event) error {
 	return fmt.Errorf("client is off")
 }
 
-func (h *ClientHandler) SendMsg(msg *cotproto.TakMessage) error {
+func (h *ConnClientHandler) SendMsg(msg *cotproto.TakMessage) error {
 	switch h.GetVersion() {
 	case 0:
 		buf, err := xml.Marshal(ProtoToEvent(msg))
@@ -391,16 +398,11 @@ func (h *ClientHandler) SendMsg(msg *cotproto.TakMessage) error {
 			return nil
 		}
 	case 1:
-		buf1, err := proto.Marshal(msg)
+		buf, err := MakeProto(msg)
 		if err != nil {
 			return err
 		}
-
-		buf := make([]byte, len(buf1)+5)
-		buf[0] = 0xbf
-		n := binary.PutUvarint(buf[1:], uint64(len(buf1)))
-		copy(buf[n+1:], buf1)
-		if h.tryAddPacket(buf[:n+len(buf1)+2]) {
+		if h.tryAddPacket(buf) {
 			return nil
 		}
 	}
@@ -408,7 +410,7 @@ func (h *ClientHandler) SendMsg(msg *cotproto.TakMessage) error {
 	return fmt.Errorf("client is off")
 }
 
-func (h *ClientHandler) tryAddPacket(msg []byte) bool {
+func (h *ConnClientHandler) tryAddPacket(msg []byte) bool {
 	if !h.IsActive() {
 		return false
 	}

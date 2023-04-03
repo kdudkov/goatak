@@ -1,11 +1,15 @@
 package cot
 
 import (
+	"encoding/binary"
+	"google.golang.org/protobuf/proto"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/kdudkov/goatak/cotproto"
 )
+
+const magic byte = 0xbf
 
 func BasicMsg(typ string, uid string, stale time.Duration) *cotproto.TakMessage {
 	return &cotproto.TakMessage{
@@ -60,4 +64,17 @@ func MakeDpMsg(uid string, typ string, name string, lat float64, lon float64) *c
 		Contact:   &cotproto.Contact{Callsign: name},
 	}
 	return msg
+}
+
+func MakeProto(msg *cotproto.TakMessage) ([]byte, error) {
+	buf1, err := proto.Marshal(msg)
+	if err != nil {
+		return nil, err
+	}
+
+	buf := make([]byte, len(buf1)+5)
+	buf[0] = magic
+	n := binary.PutUvarint(buf[1:], uint64(len(buf1)))
+	copy(buf[n+1:], buf1)
+	return buf[:n+len(buf1)+2], nil
 }

@@ -50,7 +50,7 @@ func NewHttp(app *App, address string) *air.Air {
 
 func getIndexHandler(app *App, r *staticfiles.Renderer) func(req *air.Request, res *air.Response) error {
 	return func(req *air.Request, res *air.Response) error {
-		data := map[string]interface{}{
+		data := map[string]any{
 			"js": []string{"map.js"},
 		}
 		s, err := r.Render(data, "map.html", "header.html")
@@ -63,7 +63,7 @@ func getIndexHandler(app *App, r *staticfiles.Renderer) func(req *air.Request, r
 
 func getUnitsHandler(app *App) func(req *air.Request, res *air.Response) error {
 	return func(req *air.Request, res *air.Response) error {
-		r := make(map[string]interface{}, 0)
+		r := make(map[string]any, 0)
 		r["units"] = getUnits(app)
 		r["messages"] = app.messages.Chats
 		return res.WriteJSON(r)
@@ -72,7 +72,7 @@ func getUnitsHandler(app *App) func(req *air.Request, res *air.Response) error {
 
 func getConfigHandler(app *App) func(req *air.Request, res *air.Response) error {
 	return func(req *air.Request, res *air.Response) error {
-		m := make(map[string]interface{}, 0)
+		m := make(map[string]any, 0)
 		m["version"] = gitRevision
 		m["uid"] = app.uid
 		lat, lon := app.pos.Get()
@@ -161,7 +161,7 @@ func addItemHandler(app *App) func(req *air.Request, res *air.Response) error {
 			//app.ProcessItem(msg)
 		}
 
-		r := make(map[string]interface{}, 0)
+		r := make(map[string]any, 0)
 		r["units"] = getUnits(app)
 		r["messages"] = app.messages
 		return res.WriteJSON(r)
@@ -255,7 +255,7 @@ func deleteItemHandler(app *App) func(req *air.Request, res *air.Response) error
 		uid := getStringParam(req, "uid")
 		app.units.Delete(uid)
 
-		r := make(map[string]interface{}, 0)
+		r := make(map[string]any, 0)
 		r["units"] = getUnits(app)
 		r["messages"] = app.messages
 		return res.WriteJSON(r)
@@ -271,7 +271,7 @@ func getStackHandler() func(req *air.Request, res *air.Response) error {
 func getUnits(app *App) []*model.WebUnit {
 	units := make([]*model.WebUnit, 0)
 
-	app.units.Range(func(key, value interface{}) bool {
+	app.units.Range(func(key, value any) bool {
 		v := value.(*model.Item)
 		units = append(units, v.ToWeb())
 		return true

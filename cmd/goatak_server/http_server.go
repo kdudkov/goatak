@@ -65,6 +65,8 @@ func getAdminApi(app *App, addr string, renderer *staticfiles.Renderer) *air.Air
 	adminApi.GET("/unit", getUnitsHandler(app))
 	adminApi.DELETE("/unit/:uid", deleteItemHandler(app))
 
+	adminApi.GET("/takproto/1", getWsHandler(app))
+
 	adminApi.GET("/stack", getStackHandler())
 
 	adminApi.RendererTemplateLeftDelim = "[["
@@ -86,7 +88,7 @@ func (h *HttpServer) Start() {
 
 func getIndexHandler(app *App, r *staticfiles.Renderer) func(req *air.Request, res *air.Response) error {
 	return func(req *air.Request, res *air.Response) error {
-		data := map[string]interface{}{
+		data := map[string]any{
 			"js": []string{"main.js"},
 		}
 		s, err := r.Render(data, "index.html", "header.html")
@@ -99,7 +101,7 @@ func getIndexHandler(app *App, r *staticfiles.Renderer) func(req *air.Request, r
 
 func getMapHandler(_ *App, r *staticfiles.Renderer) func(req *air.Request, res *air.Response) error {
 	return func(req *air.Request, res *air.Response) error {
-		data := map[string]interface{}{
+		data := map[string]any{
 			"js": []string{"map.js"},
 		}
 		s, err := r.Render(data, "map.html", "header.html")
@@ -119,7 +121,7 @@ func getNotFoundHandler(app *App) func(req *air.Request, res *air.Response) erro
 }
 
 func getConfigHandler(app *App) func(req *air.Request, res *air.Response) error {
-	m := make(map[string]interface{}, 0)
+	m := make(map[string]any, 0)
 	m["lat"] = app.lat
 	m["lon"] = app.lon
 	m["zoom"] = app.zoom
@@ -131,7 +133,7 @@ func getConfigHandler(app *App) func(req *air.Request, res *air.Response) error 
 
 func getUnitsHandler(app *App) func(req *air.Request, res *air.Response) error {
 	return func(req *air.Request, res *air.Response) error {
-		r := make(map[string]interface{}, 0)
+		r := make(map[string]any, 0)
 		r["units"] = getUnits(app)
 		r["messages"] = app.messages
 
@@ -148,7 +150,7 @@ func getStackHandler() func(req *air.Request, res *air.Response) error {
 func getUnits(app *App) []*model.WebUnit {
 	units := make([]*model.WebUnit, 0)
 
-	app.units.Range(func(key, value interface{}) bool {
+	app.units.Range(func(key, value any) bool {
 		v := value.(*model.Item)
 		units = append(units, v.ToWeb())
 		return true
@@ -162,7 +164,7 @@ func deleteItemHandler(app *App) func(req *air.Request, res *air.Response) error
 		uid := getStringParam(req, "uid")
 		app.units.Delete(uid)
 
-		r := make(map[string]interface{}, 0)
+		r := make(map[string]any, 0)
 		r["units"] = getUnits(app)
 		r["messages"] = app.messages
 		return res.WriteJSON(r)
@@ -173,16 +175,14 @@ func getConnHandler(app *App) func(req *air.Request, res *air.Response) error {
 	return func(req *air.Request, res *air.Response) error {
 		conn := make([]*Connection, 0)
 
-		app.handlers.Range(func(key, value interface{}) bool {
-			if v, ok := value.(*cot.ClientHandler); ok {
-				c := &Connection{
-					Uids: v.GetUids(),
-					User: v.GetUser(),
-					Ver:  v.GetVersion(),
-					Addr: v.GetName(),
-				}
-				conn = append(conn, c)
+		app.ForAllClients(func(ch cot.ClientHandler) bool {
+			c := &Connection{
+				Uids: ch.GetUids(),
+				User: ch.GetUser(),
+				Ver:  ch.GetVersion(),
+				Addr: ch.GetName(),
 			}
+			conn = append(conn, c)
 			return true
 		})
 

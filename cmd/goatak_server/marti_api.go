@@ -56,8 +56,8 @@ func getVersionHandler(app *App) func(req *air.Request, res *air.Response) error
 }
 
 func getVersionConfigHandler(app *App) func(req *air.Request, res *air.Response) error {
-	result := make(map[string]interface{}, 0)
-	data := make(map[string]interface{}, 0)
+	result := make(map[string]any, 0)
+	data := make(map[string]any, 0)
 	result["version"] = "2"
 	result["type"] = "ServerConfig"
 	result["nodeId"] = "1"
@@ -76,18 +76,18 @@ func getEndpointsHandler(app *App) func(req *air.Request, res *air.Response) err
 		app.Logger.Infof("%s %s", req.Method, req.Path)
 		//secAgo := getIntParam(req, "secAgo", 0)
 
-		result := make(map[string]interface{}, 0)
-		data := make([]map[string]interface{}, 0)
+		result := make(map[string]any, 0)
+		data := make([]map[string]any, 0)
 		result["Matcher"] = "com.bbn.marti.remote.ClientEndpoint"
 		result["BaseUrl"] = ""
 		result["ServerConnectString"] = ""
 		result["NotificationId"] = ""
 		result["type"] = "com.bbn.marti.remote.ClientEndpoint"
 
-		app.units.Range(func(key, value interface{}) bool {
+		app.units.Range(func(key, value any) bool {
 			c := value.(*model.Item)
 			if c.GetClass() == model.CONTACT {
-				info := make(map[string]interface{}, 0)
+				info := make(map[string]any, 0)
 				info["uid"] = c.GetUID()
 				info["callsign"] = c.GetCallsign()
 				info["lastEventTime"] = c.GetLastSeen()
@@ -236,7 +236,7 @@ func getSearchHandler(app *App) func(req *air.Request, res *air.Response) error 
 
 		//tool := getStringParam(req, "tool")
 
-		result := make(map[string]interface{}, 0)
+		result := make(map[string]any, 0)
 		packages := make([]*PackageInfo, 0)
 
 		app.packageManager.Range(func(key string, pi *PackageInfo) bool {
