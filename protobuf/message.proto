@@ -1,0 +1,29 @@
+syntax = "proto3";
+option optimize_for = LITE_RUNTIME;
+option go_package = "github.com/kdudkov/goatak/cotproto";
+
+import "takmessage.proto";
+
+// Container for TakMessage and metadata, such as groups
+message Message {
+  TakMessage payload = 1;
+
+  string source = 2;
+
+  string clientId = 3;
+
+  repeated string groups = 4;
+
+  repeated string destClientUids = 5;
+
+  repeated string destCallsigns = 6;
+
+  repeated string provenance = 7;
+
+  bool archive = 8;
+
+  string feedUuid = 9;
+
+  string connectionId = 10;
+
+}

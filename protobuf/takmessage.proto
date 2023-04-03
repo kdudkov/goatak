@@ -14,4 +14,3 @@ message TakMessage {
     // Optional - if omitted, no event data in this message
     CotEvent cotEvent = 2;
 }
-
