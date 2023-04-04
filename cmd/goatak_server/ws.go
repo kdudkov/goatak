@@ -1,19 +1,17 @@
 package main
 
 import (
-	"encoding/binary"
+	"bufio"
+	"bytes"
 	"fmt"
 	"github.com/aofei/air"
 	"github.com/kdudkov/goatak/cot"
 	"github.com/kdudkov/goatak/cotproto"
 	"go.uber.org/zap"
-	"google.golang.org/protobuf/proto"
 	"strings"
 	"sync"
 	"sync/atomic"
 )
-
-const magic byte = 0xbf
 
 type WsClientHandler struct {
 	name      string
@@ -56,7 +54,7 @@ func NewWsClient(name string, ws *air.WebSocket, log *zap.SugaredLogger, mc func
 }
 
 func (w *WsClientHandler) SendMsg(msg *cotproto.TakMessage) error {
-	dat, err := cot.MakeProto(msg)
+	dat, err := cot.MakeProtoPacket(msg)
 	if err != nil {
 		return err
 	}
@@ -101,7 +99,7 @@ func (w *WsClientHandler) stop() {
 
 func (w *WsClientHandler) Listen() {
 	w.ws.BinaryHandler = func(b []byte) error {
-		msg, err := ReadProtoBuf(b)
+		msg, err := cot.ReadProto(bufio.NewReader(bytes.NewReader(b)))
 		if err != nil {
 			w.logger.Errorf("read: %s", err.Error())
 			return err
@@ -161,24 +159,4 @@ func getWsHandler(app *App) func(req *air.Request, res *air.Response) error {
 		app.Logger.Infof("ws disconnected")
 		return nil
 	}
-}
-
-func ReadProtoBuf(data []byte) (*cotproto.TakMessage, error) {
-	if data[0] != magic {
-		return nil, fmt.Errorf("no magic byte")
-	}
-
-	size, n := binary.Uvarint(data[1:])
-
-	if len(data) < int(size)+n+1 {
-		return nil, fmt.Errorf("wrong size")
-	}
-
-	msg := new(cotproto.TakMessage)
-
-	if err := proto.Unmarshal(data[n+1:], msg); err != nil {
-		return nil, err
-	}
-
-	return msg, nil
 }

@@ -22,8 +22,11 @@ func getMartiApi(app *App, addr string) *air.Air {
 	api.GET("/Marti/api/version", getVersionHandler(app))
 	api.GET("/Marti/api/version/config", getVersionConfigHandler(app))
 	api.GET("/Marti/api/clientEndPoints", getEndpointsHandler(app))
+	api.GET("/Marti/api/contacts/all", getContactsHandler(app))
 	api.GET("/Marti/api/sync/metadata/:hash/tool", getMetadataGetHandler(app))
 	api.PUT("/Marti/api/sync/metadata/:hash/tool", getMetadataPutHandler(app))
+
+	api.GET("/Marti/api/util/user/roles", getUserRolesHandler(app))
 
 	api.GET("/Marti/api/device/profile/connection", getProfileConnectionHandler(app))
 	api.GET("/Marti/sync/content", getMetadataGetHandler(app))
@@ -76,7 +79,7 @@ func getEndpointsHandler(app *App) func(req *air.Request, res *air.Response) err
 		app.Logger.Infof("%s %s", req.Method, req.Path)
 		//secAgo := getIntParam(req, "secAgo", 0)
 
-		result := make(map[string]any, 0)
+		result := make(map[string]any)
 		data := make([]map[string]any, 0)
 		result["Matcher"] = "com.bbn.marti.remote.ClientEndpoint"
 		result["BaseUrl"] = ""
@@ -87,7 +90,7 @@ func getEndpointsHandler(app *App) func(req *air.Request, res *air.Response) err
 		app.units.Range(func(key, value any) bool {
 			c := value.(*model.Item)
 			if c.GetClass() == model.CONTACT {
-				info := make(map[string]any, 0)
+				info := make(map[string]any)
 				info["uid"] = c.GetUID()
 				info["callsign"] = c.GetCallsign()
 				info["lastEventTime"] = c.GetLastSeen()
@@ -102,6 +105,32 @@ func getEndpointsHandler(app *App) func(req *air.Request, res *air.Response) err
 			return true
 		})
 		result["data"] = data
+		return res.WriteJSON(result)
+	}
+}
+
+func getContactsHandler(app *App) func(req *air.Request, res *air.Response) error {
+	return func(req *air.Request, res *air.Response) error {
+		app.Logger.Infof("%s %s", req.Method, req.Path)
+
+		result := make([]map[string]any, 0)
+
+		app.units.Range(func(key, value any) bool {
+			c := value.(*model.Item)
+			if c.GetClass() == model.CONTACT {
+				info := make(map[string]any)
+				info["uid"] = c.GetUID()
+				info["callsign"] = c.GetCallsign()
+				info["team"] = c.GetMsg().GetTeam()
+				info["role"] = c.GetMsg().GetRole()
+				info["takv"] = ""
+				info["notes"] = ""
+				info["filterGroups"] = ""
+				result = append(result, info)
+			}
+
+			return true
+		})
 		return res.WriteJSON(result)
 	}
 }
@@ -256,6 +285,13 @@ func getSearchHandler(app *App) func(req *air.Request, res *air.Response) error 
 		result["results"] = packages
 		result["resultCount"] = len(packages)
 		return res.WriteJSON(result)
+	}
+}
+
+func getUserRolesHandler(app *App) func(req *air.Request, res *air.Response) error {
+	return func(req *air.Request, res *air.Response) error {
+		app.Logger.Infof("%s %s", req.Method, req.Path)
+		return res.WriteJSON([]string{"user", "webuser"})
 	}
 }
 

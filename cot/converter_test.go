@@ -1,6 +1,8 @@
 package cot
 
 import (
+	"encoding/xml"
+	"fmt"
 	"reflect"
 	"testing"
 
@@ -19,7 +21,7 @@ func TestConvert(t *testing.T) {
 		Ce:        9999999,
 		Le:        9999999,
 		Detail: &cotproto.Detail{
-			XmlDetail: "<uid Droid=\"callsign\"></uid>",
+			XmlDetail: "<uid Droid=\"callsign\"></uid><remarks>remark text</remarks>",
 			Contact: &cotproto.Contact{
 				Endpoint: "*:-1:stcp",
 				Callsign: "callsign",
@@ -43,6 +45,10 @@ func TestConvert(t *testing.T) {
 	}}
 
 	evt := ProtoToEvent(msg)
+
+	b, _ := xml.Marshal(evt)
+	fmt.Println(string(b))
+
 	msg1, _ := EventToProto(evt)
 
 	if !reflect.DeepEqual(msg.CotEvent, msg1.CotEvent) {

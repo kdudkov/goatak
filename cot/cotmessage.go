@@ -38,6 +38,22 @@ func (m *CotMessage) GetCallsign() string {
 	return m.TakMessage.GetCotEvent().GetDetail().GetContact().GetCallsign()
 }
 
+func (m *CotMessage) GetTeam() string {
+	if m == nil || m.TakMessage == nil {
+		return ""
+	}
+
+	return m.TakMessage.GetCotEvent().GetDetail().GetGroup().GetName()
+}
+
+func (m *CotMessage) GetRole() string {
+	if m == nil || m.TakMessage == nil {
+		return ""
+	}
+
+	return m.TakMessage.GetCotEvent().GetDetail().GetGroup().GetRole()
+}
+
 func (m *CotMessage) GetEndpoint() string {
 	if m == nil || m.TakMessage == nil {
 		return ""

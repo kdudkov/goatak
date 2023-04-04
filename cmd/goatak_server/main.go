@@ -464,11 +464,13 @@ func (app *App) SendTo(addr string, msg *cotproto.TakMessage) {
 
 func (app *App) SendToCallsign(callsign string, msg *cotproto.TakMessage) {
 	app.ForAllClients(func(ch cot.ClientHandler) bool {
-		if _, ok := ch.GetUids()[callsign]; ok {
-			if err := ch.SendMsg(msg); err != nil {
-				app.Logger.Errorf("error: %v", err)
+		for _, c := range ch.GetUids() {
+			if c == callsign {
+				if err := ch.SendMsg(msg); err != nil {
+					app.Logger.Errorf("error: %v", err)
+				}
+				return false
 			}
-			return false
 		}
 		return true
 	})

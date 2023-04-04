@@ -11,7 +11,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/golang/protobuf/proto"
 	"go.uber.org/zap"
 
 	"github.com/kdudkov/goatak/cotproto"
@@ -261,14 +260,9 @@ func (h *ConnClientHandler) processXMLRead(er *TagReader) (*cotproto.TakMessage,
 }
 
 func (h *ConnClientHandler) processProtoRead(r *ProtoReader) (*cotproto.TakMessage, *Node, error) {
-	buf, err := r.ReadProtoBuf()
+	msg, err := r.ReadProtoBuf()
 	if err != nil {
 		return nil, nil, err
-	}
-
-	msg := new(cotproto.TakMessage)
-	if err := proto.Unmarshal(buf, msg); err != nil {
-		return nil, nil, fmt.Errorf("failed to decode protobuf: %v", err)
 	}
 
 	h.setActivity()
@@ -398,7 +392,7 @@ func (h *ConnClientHandler) SendMsg(msg *cotproto.TakMessage) error {
 			return nil
 		}
 	case 1:
-		buf, err := MakeProto(msg)
+		buf, err := MakeProtoPacket(msg)
 		if err != nil {
 			return err
 		}
