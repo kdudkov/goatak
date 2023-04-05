@@ -52,6 +52,8 @@ type AppConfig struct {
 
 	useSsl bool
 
+	webtakRoot string
+
 	debug bool
 
 	connections []string
@@ -614,6 +616,7 @@ func main() {
 		debug:       *debug,
 		connections: viper.GetStringSlice("connections"),
 		usersFile:   viper.GetString("password_file"),
+		webtakRoot:  viper.GetString("webtak_root"),
 	}
 
 	app := NewApp(config, logger.Sugar())

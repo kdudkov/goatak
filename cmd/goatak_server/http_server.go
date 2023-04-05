@@ -4,6 +4,7 @@ import (
 	"embed"
 	"errors"
 	"net/http"
+	"path/filepath"
 	"runtime/pprof"
 
 	"github.com/aofei/air"
@@ -42,7 +43,7 @@ func NewHttp(app *App) *HttpServer {
 	}
 
 	if app.config.adminAddr != "" {
-		srv.listeners["admin api calls"] = getAdminApi(app, app.config.adminAddr, renderer)
+		srv.listeners["admin api calls"] = getAdminApi(app, app.config.adminAddr, renderer, app.config.webtakRoot)
 	}
 	if app.config.certAddr != "" {
 		srv.listeners["cert api calls"] = getCertApi(app, app.config.certAddr)
@@ -52,7 +53,7 @@ func NewHttp(app *App) *HttpServer {
 	return srv
 }
 
-func getAdminApi(app *App, addr string, renderer *staticfiles.Renderer) *air.Air {
+func getAdminApi(app *App, addr string, renderer *staticfiles.Renderer, webtakRoot string) *air.Air {
 	adminApi := air.New()
 	adminApi.Address = addr
 
@@ -66,6 +67,12 @@ func getAdminApi(app *App, addr string, renderer *staticfiles.Renderer) *air.Air
 	adminApi.DELETE("/unit/:uid", deleteItemHandler(app))
 
 	adminApi.GET("/takproto/1", getWsHandler(app))
+
+	if webtakRoot != "" {
+		adminApi.FILE("/webtak/", filepath.Join(webtakRoot, "index.html"))
+		adminApi.FILES("/webtak", webtakRoot)
+		addMartiRoutes(app, adminApi)
+	}
 
 	adminApi.GET("/stack", getStackHandler())
 

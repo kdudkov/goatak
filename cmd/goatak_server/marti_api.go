@@ -19,20 +19,7 @@ func getMartiApi(app *App, addr string) *air.Air {
 	api := air.New()
 	api.Address = addr
 
-	api.GET("/Marti/api/version", getVersionHandler(app))
-	api.GET("/Marti/api/version/config", getVersionConfigHandler(app))
-	api.GET("/Marti/api/clientEndPoints", getEndpointsHandler(app))
-	api.GET("/Marti/api/contacts/all", getContactsHandler(app))
-	api.GET("/Marti/api/sync/metadata/:hash/tool", getMetadataGetHandler(app))
-	api.PUT("/Marti/api/sync/metadata/:hash/tool", getMetadataPutHandler(app))
-
-	api.GET("/Marti/api/util/user/roles", getUserRolesHandler(app))
-
-	api.GET("/Marti/api/device/profile/connection", getProfileConnectionHandler(app))
-	api.GET("/Marti/sync/content", getMetadataGetHandler(app))
-	api.GET("/Marti/sync/search", getSearchHandler(app))
-	api.GET("/Marti/sync/missionquery", getMissionQueryHandler(app))
-	api.POST("/Marti/sync/missionupload", getMissionUploadHandler(app))
+	addMartiRoutes(app, api)
 
 	api.NotFoundHandler = getNotFoundHandler(app)
 
@@ -49,6 +36,23 @@ func getMartiApi(app *App, addr string) *air.Air {
 	}
 
 	return api
+}
+
+func addMartiRoutes(app *App, api *air.Air) {
+	api.GET("/Marti/api/version", getVersionHandler(app))
+	api.GET("/Marti/api/version/config", getVersionConfigHandler(app))
+	api.GET("/Marti/api/clientEndPoints", getEndpointsHandler(app))
+	api.GET("/Marti/api/contacts/all", getContactsHandler(app))
+	api.GET("/Marti/api/sync/metadata/:hash/tool", getMetadataGetHandler(app))
+	api.PUT("/Marti/api/sync/metadata/:hash/tool", getMetadataPutHandler(app))
+
+	api.GET("/Marti/api/util/user/roles", getUserRolesHandler(app))
+
+	api.GET("/Marti/api/device/profile/connection", getProfileConnectionHandler(app))
+	api.GET("/Marti/sync/content", getMetadataGetHandler(app))
+	api.GET("/Marti/sync/search", getSearchHandler(app))
+	api.GET("/Marti/sync/missionquery", getMissionQueryHandler(app))
+	api.POST("/Marti/sync/missionupload", getMissionUploadHandler(app))
 }
 
 func getVersionHandler(app *App) func(req *air.Request, res *air.Response) error {
