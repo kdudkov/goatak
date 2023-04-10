@@ -13,7 +13,7 @@ import (
 )
 
 func (app *App) connect() (net.Conn, error) {
-	addr := fmt.Sprintf("%s:%d", app.host, app.tcpPort)
+	addr := fmt.Sprintf("%s:%s", app.host, app.tcpPort)
 	if app.tls {
 		app.Logger.Infof("connecting with SSL to %s...", addr)
 		conn, err := tls.Dial("tcp", addr, app.getTlsConfig())

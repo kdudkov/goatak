@@ -17,7 +17,7 @@ import (
 )
 
 const (
-	idleTimeout = 1 * time.Minute
+	idleTimeout = 5 * time.Minute
 	pingTimeout = time.Second * 15
 )
 
@@ -82,6 +82,7 @@ func NewConnClientHandler(name string, conn net.Conn, config *HandlerConfig) *Co
 		c.messageCb = config.MessageCb
 		c.removeCb = config.RemoveCb
 	}
+	c.closeTimer = time.AfterFunc(idleTimeout, c.closeIdle)
 	return c
 }
 
@@ -191,6 +192,7 @@ func (h *ConnClientHandler) handleRead() {
 
 		// ping
 		if cotmsg.GetType() == "t-x-c-t" {
+			h.logger.Debugf("ping from %s %s", h.addr, cotmsg.GetUid())
 			if err := h.SendMsg(MakePong()); err != nil {
 				h.logger.Errorf("SendMsg error: %v", err)
 			}

@@ -148,7 +148,7 @@ func getMissionQueryHandler(app *App) func(req *air.Request, res *air.Response) 
 			return res.WriteString("no hash")
 		}
 		if _, ok := app.packageManager.Get(hash); ok {
-			return res.WriteString(fmt.Sprintf("/Marti/api/sync/metadata/%s/tool", hash))
+			return res.WriteString(fmt.Sprintf("/Marti/sync/content?hash=%s", hash))
 		} else {
 			res.Status = http.StatusNotFound
 			return res.WriteString("not found")
@@ -198,7 +198,7 @@ func getMissionUploadHandler(app *App) func(req *air.Request, res *air.Response)
 			app.packageManager.Put(hash, info)
 
 			app.Logger.Infof("save packege %s %s", fname, hash)
-			return res.WriteString(fmt.Sprintf("/Marti/api/sync/metadata/%s/tool", hash))
+			return res.WriteString(fmt.Sprintf("/Marti/sync/content?hash=%s", hash))
 		} else {
 			app.Logger.Errorf("%v", err)
 			return err

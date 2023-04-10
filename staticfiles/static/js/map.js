@@ -76,6 +76,14 @@ function getMilIcon(item, withText) {
     return {uri: symb.toDataURL(), x: symb.getAnchor().x, y: symb.getAnchor().y}
 }
 
+function needUpdate(oldUnit, newUnit) {
+    if (oldUnit.sidc !== newUnit.sidc || oldUnit.status !== newUnit.status) return true;
+    if (oldUnit.speed !== newUnit.speed || oldUnit.direction !== newUnit.direction) return true;
+
+    if (item.sidc.charAt(2) === 'A' && oldUnit.altitudeDepth !== newUnit.altitudeDepth) return true;
+    return false;
+}
+
 let app = new Vue({
     el: '#app',
     data: {
@@ -113,15 +121,20 @@ let app = new Vue({
             subdomains: ['mt1', 'mt2', 'mt3'],
             maxZoom: 20
         });
-        let sputnik = L.tileLayer('https://{s}.tilessputnik.ru/{z}/{x}/{y}.png', {
+        let ya_map = L.tileLayer('https://core-renderer-tiles.maps.yandex.net/tiles?l=map&x={x}&y={y}&z={z}&scale=1&lang=ru_RU&projection=web_mercator', {
             maxZoom: 20
+        });
+        let ya_sat = L.tileLayer('https://core-sat.maps.yandex.net/tiles?l=sat&x={x}&y={y}&z={z}&scale=1&lang=ru_RU&g=Gagari', {
+            crs: L.CRS.EPSG3395,
+            maxZoom: 21
         });
         osm.addTo(this.map);
 
         L.control.scale({metric: true}).addTo(this.map);
         L.control.layers({
             "OSM": osm,
-            "Telesputnik": sputnik,
+            "Yandex map": ya_map,
+            // "Yandex sat": ya_sat,
             "OpenTopoMap": opentopo,
             "Google sat": google
         }, null, {hideSingleBase: true}).addTo(this.map);
@@ -216,7 +229,7 @@ let app = new Vue({
                     oldUnit = u;
                     updateMarker = true;
                 } else {
-                    updateMarker = (oldUnit.sidc !== u.sidc || oldUnit.status !== u.status);
+                    updateMarker = needUpdate(oldUnit, u);
                     for (const k of Object.keys(u)) {
                         oldUnit[k] = u[k];
                     }
