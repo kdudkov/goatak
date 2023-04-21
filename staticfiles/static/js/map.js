@@ -139,7 +139,7 @@ let app = new Vue({
         L.control.layers({
             "OSM": osm,
             "OpenTopoMap.ru": opentopo,
-            "OpenTopoMap.cz": opentopocz,
+            "OpenTopoMap.cz": topoCz,
             "Yandex map": ya_map,
             // "Yandex sat": ya_sat,
             "Google sat": google
