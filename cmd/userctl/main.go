@@ -46,8 +46,8 @@ func write(users []*UserInfo) error {
 func main() {
 	users := read()
 
-	passwd := flag.String("password", "", "password")
 	user := flag.String("user", "", "user")
+	passwd := flag.String("password", "", "password")
 
 	flag.Parse()
 
