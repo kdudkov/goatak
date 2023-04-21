@@ -117,6 +117,11 @@ let app = new Vue({
             attribution: topoAttribution,
             maxZoom: 17
         });
+        let topoCzAttribution = 'Map data: &copy; <a href="https://openstreetmap.org/copyright">OpenStreetMap</a> contributors, <a href="http://viewfinderpanoramas.org">SRTM</a> | Map style: &copy; <a href="https://opentopomap.org">OpenTopoMap</a>, <a href="https://opentopomap.cz">OpenTopoMap.cz</a> (<a href="https://creativecommons.org/licenses/by-sa/3.0/">CC-BY-SA</a>)';
+        let topoCz = L.tileLayer('https://tile-{s}.opentopomap.cz/{z}/{x}/{y}.png', {
+            maxZoom: 18,
+            attribution: topoAttribution
+        });
         let google = L.tileLayer('http://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}&s=Galileo', {
             subdomains: ['mt1', 'mt2', 'mt3'],
             maxZoom: 20
@@ -133,9 +138,10 @@ let app = new Vue({
         L.control.scale({metric: true}).addTo(this.map);
         L.control.layers({
             "OSM": osm,
+            "OpenTopoMap.ru": opentopo,
+            "OpenTopoMap.cz": opentopocz,
             "Yandex map": ya_map,
             // "Yandex sat": ya_sat,
-            "OpenTopoMap": opentopo,
             "Google sat": google
         }, null, {hideSingleBase: true}).addTo(this.map);
 
