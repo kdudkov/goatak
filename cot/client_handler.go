@@ -23,6 +23,7 @@ const (
 
 type HandlerConfig struct {
 	User      string
+	Scope     string
 	Serial    string
 	Uid       string
 	IsClient  bool
@@ -35,6 +36,8 @@ type ClientHandler interface {
 	GetName() string
 	GetUids() map[string]string
 	GetUser() string
+	GetScope() string
+	CanSeeScope(scope string) bool
 	GetVersion() int32
 	SendMsg(msg *cotproto.TakMessage) error
 }
@@ -53,6 +56,7 @@ type ConnClientHandler struct {
 	sendChan     chan []byte
 	active       int32
 	user         string
+	scope        string
 	serial       string
 	messageCb    func(msg *CotMessage)
 	removeCb     func(ch ClientHandler)
@@ -73,6 +77,7 @@ func NewConnClientHandler(name string, conn net.Conn, config *HandlerConfig) *Co
 
 	if config != nil {
 		c.user = config.User
+		c.scope = config.Scope
 		c.serial = config.Serial
 		c.localUid = config.Uid
 		if config.Logger != nil {
@@ -92,6 +97,14 @@ func (h *ConnClientHandler) GetName() string {
 
 func (h *ConnClientHandler) GetUser() string {
 	return h.user
+}
+
+func (h *ConnClientHandler) GetScope() string {
+	return h.scope
+}
+
+func (h *ConnClientHandler) CanSeeScope(scope string) bool {
+	return h.scope == "" || h.scope == scope
 }
 
 func (h *ConnClientHandler) GetUids() map[string]string {
@@ -171,6 +184,7 @@ func (h *ConnClientHandler) handleRead() {
 
 		cotmsg := &CotMessage{
 			From:       h.addr,
+			Scope:      h.scope,
 			TakMessage: msg,
 			Detail:     d,
 		}

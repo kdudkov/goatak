@@ -206,19 +206,6 @@ func getMissionUploadHandler(app *App) func(req *air.Request, res *air.Response)
 	}
 }
 
-func getContentGetHandler(app *App) func(req *air.Request, res *air.Response) error {
-	return func(req *air.Request, res *air.Response) error {
-		app.Logger.Infof("%s %s", req.Method, req.Path)
-		uid := getStringParam(req, "uid")
-		if uid == "" {
-			res.Status = http.StatusNotAcceptable
-			return res.WriteString("no uid")
-		}
-
-		return nil
-	}
-}
-
 func getMetadataGetHandler(app *App) func(req *air.Request, res *air.Response) error {
 	return func(req *air.Request, res *air.Response) error {
 		app.Logger.Infof("%s %s", req.Method, req.Path)

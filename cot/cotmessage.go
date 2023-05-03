@@ -10,6 +10,7 @@ import (
 
 type CotMessage struct {
 	From       string
+	Scope      string
 	TakMessage *cotproto.TakMessage
 	Detail     *Node
 }

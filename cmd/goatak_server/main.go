@@ -170,7 +170,12 @@ func (app *App) RemoveHandlerCb(cl cot.ClientHandler) {
 		if c := app.GetItem(uid); c != nil {
 			c.SetOffline()
 		}
-		app.SendToAllOther(cot.MakeOfflineMsg(uid, ""), cl.GetName())
+		msg := &cot.CotMessage{
+			From:       cl.GetName(),
+			Scope:      cl.GetScope(),
+			TakMessage: cot.MakeOfflineMsg(uid, ""),
+		}
+		app.SendToAllOther(msg)
 	}
 
 	app.RemoveClientHandler(cl.GetName())
@@ -401,7 +406,7 @@ func (app *App) route(msg *cot.CotMessage) {
 			app.SendToCallsign(s, msg.TakMessage)
 		}
 	} else {
-		app.SendToAllOther(msg.TakMessage, msg.From)
+		app.SendToAllOther(msg)
 	}
 }
 
@@ -441,24 +446,12 @@ func (app *App) cleanOldUnits() {
 	}
 }
 
-func (app *App) SendToAllOther(msg *cotproto.TakMessage, author string) {
+func (app *App) SendToAllOther(msg *cot.CotMessage) {
 	app.ForAllClients(func(ch cot.ClientHandler) bool {
-		if ch.GetName() != author {
-			if err := ch.SendMsg(msg); err != nil {
+		if ch.GetName() != msg.From && ch.CanSeeScope(msg.Scope) {
+			if err := ch.SendMsg(msg.TakMessage); err != nil {
 				app.Logger.Errorf("error sending to %s: %v", ch.GetName(), err)
 			}
-		}
-		return true
-	})
-}
-
-func (app *App) SendTo(addr string, msg *cotproto.TakMessage) {
-	app.ForAllClients(func(ch cot.ClientHandler) bool {
-		if ch.GetName() == addr {
-			if err := ch.SendMsg(msg); err != nil {
-				app.Logger.Errorf("error sending to %s: %v", ch.GetName(), err)
-			}
-			return false
 		}
 		return true
 	})
@@ -489,7 +482,10 @@ func (app *App) logMessage(c *model.ChatMessage) {
 }
 
 func loadCert(name string) ([]*x509.Certificate, error) {
-	pemBytes, err := os.ReadFile(viper.GetString(name))
+	if name == "" {
+		return nil, nil
+	}
+	pemBytes, err := os.ReadFile(name)
 	if err != nil {
 		return nil, err
 	}
@@ -588,17 +584,15 @@ func main() {
 		panic(err)
 	}
 
-	cert, err := loadCert("ssl.cert")
+	ca, err := loadCert(viper.GetString("ssl.ca"))
 	if err != nil {
 		panic(err)
 	}
 
-	ca, err := loadCert("ssl.ca")
+	cert, err := loadCert(viper.GetString("ssl.cert"))
 	if err != nil {
 		panic(err)
 	}
-
-	ca = append(ca, cert...)
 
 	config := &AppConfig{
 		udpAddr:     viper.GetString("udp_addr"),

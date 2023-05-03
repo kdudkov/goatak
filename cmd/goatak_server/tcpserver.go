@@ -68,12 +68,17 @@ func (app *App) listenTls(addr string) error {
 		}
 
 		st := c1.ConnectionState()
-		user, serial := getUser(&st)
+		username, serial := getUser(&st)
+		var scope string
+		if user := app.userManager.GetUser(username); user != nil {
+			scope = user.Scope
+		}
 
 		name := "ssl:" + conn.RemoteAddr().String()
 		h := cot.NewConnClientHandler(name, conn, &cot.HandlerConfig{
-			Logger:    app.Logger.With(zap.String("user", user), zap.String("addr", name)),
-			User:      user,
+			Logger:    app.Logger.With(zap.String("user", username), zap.String("addr", name)),
+			User:      username,
+			Scope:     scope,
 			Serial:    serial,
 			MessageCb: app.NewCotMessage,
 			RemoveCb:  app.RemoveHandlerCb})

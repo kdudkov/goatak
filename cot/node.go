@@ -10,7 +10,7 @@ import (
 type Node struct {
 	XMLName xml.Name
 	Attrs   []xml.Attr `xml:",any,attr"`
-	Content string     `xml:",innerxml"`
+	Content string     `xml:",chardata"`
 	Nodes   []*Node    `xml:",any"`
 }
 

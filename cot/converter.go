@@ -39,7 +39,6 @@ func ProtoToEvent(msg *cotproto.TakMessage) *Event {
 			b := bytes.Buffer{}
 			b.WriteString("<detail>" + d.XmlDetail + "</detail>")
 			xml.NewDecoder(&b).Decode(&ev.Detail)
-			ev.Detail.Content = ""
 		}
 
 		if d.Contact != nil {

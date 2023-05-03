@@ -54,5 +54,4 @@ func TestConvert(t *testing.T) {
 	if !reflect.DeepEqual(msg.CotEvent, msg1.CotEvent) {
 		t.Fail()
 	}
-
 }

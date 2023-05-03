@@ -14,6 +14,7 @@ type UserInfo struct {
 	Role     string `yaml:"role"`
 	Typ      string `yaml:"type"`
 	Password string `yaml:"password"`
+	Scope    string `yaml:"scope"`
 }
 
 type UserManager struct {
@@ -63,6 +64,10 @@ func (um *UserManager) CheckUserAuth(user, password string) bool {
 func (um *UserManager) UserIsValid(user, sn string) bool {
 	_, ok := um.users[user]
 	return ok
+}
+
+func (um *UserManager) GetUser(username string) *UserInfo {
+	return um.users[username]
 }
 
 func (um *UserManager) GetProfile(user, uid string) []ZipFile {
