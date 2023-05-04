@@ -15,10 +15,11 @@ type UserInfo struct {
 	Team     string `yaml:"team,omitempty"`
 	Role     string `yaml:"role,omitempty"`
 	Password string `yaml:"password"`
+	Scope    string `yaml:"scope,omitempty"`
 }
 
-func read() []*UserInfo {
-	dat, err := os.ReadFile("users.yml")
+func read(fn string) []*UserInfo {
+	dat, err := os.ReadFile(fn)
 	if err != nil {
 		return nil
 	}
@@ -31,8 +32,8 @@ func read() []*UserInfo {
 	return users
 }
 
-func write(users []*UserInfo) error {
-	f, err := os.Create("users.yml")
+func write(fn string, users []*UserInfo) error {
+	f, err := os.Create(fn)
 	if err != nil {
 		return err
 	}
@@ -44,10 +45,12 @@ func write(users []*UserInfo) error {
 }
 
 func main() {
-	users := read()
-
+	file := flag.String("file", "users.yml", "file")
 	user := flag.String("user", "", "user")
 	passwd := flag.String("password", "", "password")
+	scope := flag.String("scope", "", "scope")
+
+	users := read(*file)
 
 	flag.Parse()
 
@@ -81,15 +84,18 @@ func main() {
 		if u.User == *user {
 			found = true
 			u.Password = string(bpass)
+			if *scope != "" {
+				u.Scope = *scope
+			}
 			break
 		}
 	}
 
 	if !found {
-		users = append(users, &UserInfo{User: *user, Password: string(bpass)})
+		users = append(users, &UserInfo{User: *user, Password: string(bpass), Scope: *scope})
 	}
 
-	if err := write(users); err != nil {
+	if err := write(*file, users); err != nil {
 		fmt.Println(err.Error())
 	}
 }
