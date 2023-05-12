@@ -80,7 +80,7 @@ function needUpdate(oldUnit, newUnit) {
     if (oldUnit.sidc !== newUnit.sidc || oldUnit.status !== newUnit.status) return true;
     if (oldUnit.speed !== newUnit.speed || oldUnit.direction !== newUnit.direction) return true;
 
-    if (newUnit.sidc.charAt(2) === 'A' && oldUnit.altitudeDepth !== newUnit.altitudeDepth) return true;
+    if (newUnit.sidc.charAt(2) === 'A' && oldUnit.hae !== newUnit.hae) return true;
     return false;
 }
 
