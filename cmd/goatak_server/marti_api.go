@@ -316,8 +316,7 @@ func getProfileConnectionHandler(app *App) func(req *air.Request, res *air.Respo
 		if err != nil {
 			return err
 		}
-		res.Write(bytes.NewReader(dat))
-		return nil
+		return res.Write(bytes.NewReader(dat))
 	}
 }
 

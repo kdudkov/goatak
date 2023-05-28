@@ -1,0 +1,10 @@
+<customMapSource>
+    <name>Google hybrid</name>
+    <minZoom>1</minZoom>
+    <maxZoom>20</maxZoom>
+    <tileType>JPG</tileType>
+    <tileUpdate>IfNoneMatch</tileUpdate>
+    <serverParts>0 1 2 3</serverParts>
+    <url>http://mt{$serverpart}.google.com/vt/lyrs=y&amp;hl=en&amp;x={$x}&amp;y={$y}&amp;z={$z}</url>
+    <backgroundColor>#000000</backgroundColor>
+</customMapSource>

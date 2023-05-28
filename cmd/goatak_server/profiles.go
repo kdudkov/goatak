@@ -5,6 +5,8 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	"gopkg.in/yaml.v3"
 	"os"
+	"path/filepath"
+	"strings"
 )
 
 type UserInfo struct {
@@ -87,6 +89,17 @@ func (um *UserManager) GetProfile(user, uid string) []ZipFile {
 	if f, err := NewFsFile("defaults.pref"); err == nil {
 		res = append(res, f)
 	}
+
+	if paths, err := os.ReadDir(filepath.Join(baseDir, "maps")); err == nil {
+		for _, p := range paths {
+			if !p.IsDir() && strings.HasSuffix(p.Name(), ".xml") {
+				if f, err := NewFsFile(filepath.Join("maps", p.Name())); err == nil {
+					res = append(res, f)
+				}
+			}
+		}
+	}
+
 	return res
 }
 

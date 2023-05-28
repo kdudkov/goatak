@@ -1,0 +1,9 @@
+<customMapSource>
+    <name>Yandex map</name>
+    <minZoom>3</minZoom>
+    <maxZoom>20</maxZoom>
+    <tileType>PNG</tileType>
+    <tileUpdate>IfNoneMatch</tileUpdate>
+    <url>https://core-renderer-tiles.maps.yandex.net/tiles?l=map&amp;x={$x}&amp;y={$y}&amp;z={$z}&amp;scale=1&amp;projection=web_mercator&amp;lang=ru_RU</url>
+    <backgroundColor>#000000</backgroundColor>
+</customMapSource>

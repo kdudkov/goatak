@@ -1,0 +1,10 @@
+<customMapSource>
+    <name>OpenStreetMap</name>
+    <minZoom>1</minZoom>
+    <maxZoom>19</maxZoom>
+    <tileType>PNG</tileType>
+    <tileUpdate>IfNoneMatch</tileUpdate>
+    <serverParts>a b c</serverParts>
+    <url>https://{$serverpart}.tile.openstreetmap.org/{$z}/{$x}/{$y}.png</url>
+    <backgroundColor>#000000</backgroundColor>
+</customMapSource>
