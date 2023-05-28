@@ -581,7 +581,7 @@ func processCerts(conf *AppConfig) error {
 	if len(cert) > 0 {
 		conf.serverCert = cert[0]
 	}
-	for _, c := range ca {
+	for _, c := range cert {
 		roots.AddCert(c)
 	}
 

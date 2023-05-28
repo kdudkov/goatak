@@ -4,7 +4,7 @@ api_addr: ":8080"
 cert_addr: ":8446"
 tcp_addr: ":8999"
 udp_addr: ":8999"
-.#ssl_addr: ":8089"
+#ssl_addr: ":8089"
 
 me:
   lat: 35.462939
