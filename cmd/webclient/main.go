@@ -3,6 +3,8 @@ package main
 import (
 	"context"
 	"crypto/md5"
+	"encoding/json"
+	"encoding/xml"
 	"flag"
 	"fmt"
 	"math/rand"
@@ -185,6 +187,16 @@ func (app *App) SendMsg(msg *cotproto.TakMessage) {
 func (app *App) ProcessEvent(msg *cot.CotMessage) {
 	if c := app.GetItem(msg.GetUid()); c != nil {
 		c.Update(nil)
+	}
+
+	if b, err := json.Marshal(msg.TakMessage); err == nil {
+		fmt.Println(string(b))
+	}
+
+	ev := cot.ProtoToEvent(msg.TakMessage)
+
+	if b, err := xml.Marshal(ev); err == nil {
+		fmt.Println(string(b))
 	}
 
 	switch {

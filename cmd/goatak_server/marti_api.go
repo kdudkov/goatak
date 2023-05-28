@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"crypto/tls"
+	"encoding/xml"
 	"fmt"
 	"io"
 	"net/http"
@@ -53,6 +54,9 @@ func addMartiRoutes(app *App, api *air.Air) {
 	api.GET("/Marti/sync/search", getSearchHandler(app))
 	api.GET("/Marti/sync/missionquery", getMissionQueryHandler(app))
 	api.POST("/Marti/sync/missionupload", getMissionUploadHandler(app))
+
+	api.GET("/Marti/vcm", getVideoListHandler(app))
+	api.POST("/Marti/vcm", getVideoPostHandler(app))
 }
 
 func getVersionHandler(app *App) func(req *air.Request, res *air.Response) error {
@@ -313,6 +317,39 @@ func getProfileConnectionHandler(app *App) func(req *air.Request, res *air.Respo
 			return err
 		}
 		res.Write(bytes.NewReader(dat))
+		return nil
+	}
+}
+
+func getVideoListHandler(app *App) func(req *air.Request, res *air.Response) error {
+	return func(req *air.Request, res *air.Response) error {
+		app.Logger.Infof("%s %s", req.Method, req.Path)
+
+		r := new(VideoConnections)
+		r.XMLName = xml.Name{Local: "videoConnections"}
+		app.feeds.Range(func(_, value any) bool {
+			if feed, ok := value.(*Feed); ok {
+				r.Feeds = append(r.Feeds, feed)
+			}
+			return true
+		})
+		return res.WriteXML(r)
+	}
+}
+
+func getVideoPostHandler(app *App) func(req *air.Request, res *air.Response) error {
+	return func(req *air.Request, res *air.Response) error {
+		app.Logger.Infof("%s %s", req.Method, req.Path)
+
+		r := new(VideoConnections)
+
+		decoder := xml.NewDecoder(req.Body)
+		if err := decoder.Decode(r); err != nil {
+			return err
+		}
+		for _, f := range r.Feeds {
+			app.feeds.Store(f.Uid, f)
+		}
 		return nil
 	}
 }

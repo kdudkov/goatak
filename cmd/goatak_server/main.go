@@ -8,6 +8,7 @@ import (
 	"encoding/pem"
 	"flag"
 	"fmt"
+	"gopkg.in/yaml.v3"
 	"io/ioutil"
 	"log"
 	"net"
@@ -70,6 +71,7 @@ type App struct {
 	handlers sync.Map
 	units    sync.Map
 	messages []*model.ChatMessage
+	feeds    sync.Map
 
 	userManager *UserManager
 
@@ -87,6 +89,7 @@ func NewApp(config *AppConfig, logger *zap.SugaredLogger) *App {
 		ch:             make(chan *cot.CotMessage, 20),
 		handlers:       sync.Map{},
 		units:          sync.Map{},
+		feeds:          sync.Map{},
 		uid:            uuid.New().String(),
 	}
 
@@ -94,6 +97,8 @@ func NewApp(config *AppConfig, logger *zap.SugaredLogger) *App {
 }
 
 func (app *App) Run() {
+	app.loadFeeds()
+
 	if err := app.packageManager.Init(); err != nil {
 		log.Fatal(err)
 	}
@@ -141,6 +146,8 @@ func (app *App) Run() {
 	<-c
 	app.Logger.Info("exiting...")
 	cancel()
+	app.Logger.Info("save feeds")
+	app.saveFeeds()
 }
 
 func (app *App) NewCotMessage(msg *cot.CotMessage) {
@@ -481,13 +488,50 @@ func (app *App) logMessage(c *model.ChatMessage) {
 	fmt.Fprintf(fd, "%s %s (%s) -> %s (%s) \"%s\"\n", c.Time, c.From, c.FromUid, c.Chatroom, c.ToUid, c.Text)
 }
 
-func loadCert(name string) ([]*x509.Certificate, error) {
+func (app *App) loadFeeds() {
+	f, err := os.Open("feeds.yml")
+	if err != nil {
+		return
+	}
+	defer f.Close()
+
+	r := make([]*Feed, 0)
+	if err := yaml.NewDecoder(f).Decode(&r); err != nil {
+		app.Logger.Errorf("error reading feeds: %s", err.Error())
+		return
+	}
+	for _, feed := range r {
+		app.feeds.Store(feed.Uid, feed)
+	}
+}
+
+func (app *App) saveFeeds() error {
+	r := make([]*Feed, 0)
+	app.feeds.Range(func(_, value any) bool {
+		if f, ok := value.(*Feed); ok {
+			r = append(r, f)
+		}
+
+		return true
+	})
+
+	f, err := os.Create("feeds.yml")
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	enc := yaml.NewEncoder(f)
+	return enc.Encode(r)
+}
+
+func loadPem(name string) ([]*x509.Certificate, error) {
 	if name == "" {
 		return nil, nil
 	}
 	pemBytes, err := os.ReadFile(name)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error loading %s: %s", name, err.Error())
 	}
 	var certs []*x509.Certificate
 	var pemBlock *pem.Block
@@ -511,32 +555,42 @@ func loadCert(name string) ([]*x509.Certificate, error) {
 	return certs, nil
 }
 
-func processCert() (*x509.CertPool, *tls.Certificate, error) {
+func processCerts(conf *AppConfig) error {
+	for _, k := range []string{"ssl.ca", "ssl.cert", "ssl.key"} {
+		if viper.GetString(k) == "" {
+			return nil
+		}
+	}
+
 	roots := x509.NewCertPool()
-	if err := loadCerts(roots, "ssl.ca"); err != nil {
-		panic(err)
-	}
-	if err := loadCerts(roots, "ssl.cert"); err != nil {
-		panic(err)
-	}
+	conf.certPool = roots
 
-	cert, err := tls.LoadX509KeyPair(viper.GetString("ssl.cert"), viper.GetString("ssl.key"))
+	ca, err := loadPem(viper.GetString("ssl.ca"))
 	if err != nil {
-		return nil, nil, err
+		return err
+	}
+	for _, c := range ca {
+		roots.AddCert(c)
+	}
+	conf.ca = ca
+
+	cert, err := loadPem(viper.GetString("ssl.cert"))
+	if err != nil {
+		return err
+	}
+	if len(cert) > 0 {
+		conf.serverCert = cert[0]
+	}
+	for _, c := range ca {
+		roots.AddCert(c)
 	}
 
-	return roots, &cert, nil
-}
-
-func loadCerts(cp *x509.CertPool, name string) error {
-	caCertPEM, err := os.ReadFile(viper.GetString(name))
+	tlsCert, err := tls.LoadX509KeyPair(viper.GetString("ssl.cert"), viper.GetString("ssl.key"))
 	if err != nil {
 		return err
 	}
 
-	if !cp.AppendCertsFromPEM(caCertPEM) {
-		return fmt.Errorf("failed to parse root certificate %s", name)
-	}
+	conf.tlsCert = &tlsCert
 	return nil
 }
 
@@ -578,22 +632,6 @@ func main() {
 	logger, _ := cfg.Build()
 	defer logger.Sync()
 
-	certPool, tlsCert, err := processCert()
-
-	if err != nil {
-		panic(err)
-	}
-
-	ca, err := loadCert(viper.GetString("ssl.ca"))
-	if err != nil {
-		panic(err)
-	}
-
-	cert, err := loadCert(viper.GetString("ssl.cert"))
-	if err != nil {
-		panic(err)
-	}
-
 	config := &AppConfig{
 		udpAddr:     viper.GetString("udp_addr"),
 		tcpAddr:     viper.GetString("tcp_addr"),
@@ -603,14 +641,14 @@ func main() {
 		tlsAddr:     viper.GetString("ssl_addr"),
 		useSsl:      viper.GetBool("ssl.use_ssl"),
 		logging:     *logging,
-		certPool:    certPool,
-		tlsCert:     tlsCert,
-		serverCert:  cert[0],
-		ca:          ca,
 		debug:       *debug,
 		connections: viper.GetStringSlice("connections"),
 		usersFile:   viper.GetString("password_file"),
 		webtakRoot:  viper.GetString("webtak_root"),
+	}
+
+	if err := processCerts(config); err != nil {
+		logger.Error(err.Error())
 	}
 
 	app := NewApp(config, logger.Sugar())
