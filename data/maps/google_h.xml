@@ -1,7 +1,8 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <customMapSource>
-    <name>Google hybrid</name>
+    <name>Google Hybrid</name>
     <minZoom>1</minZoom>
-    <maxZoom>20</maxZoom>
+    <maxZoom>21</maxZoom>
     <tileType>JPG</tileType>
     <tileUpdate>IfNoneMatch</tileUpdate>
     <serverParts>0 1 2 3</serverParts>

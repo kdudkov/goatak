@@ -1,11 +1,10 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <customMapSource>
-    <name>OpenStreetMap</name>
+    <name>OpenTopoMap.CZ</name>
     <minZoom>1</minZoom>
-    <maxZoom>19</maxZoom>
+    <maxZoom>18</maxZoom>
     <tileType>PNG</tileType>
     <tileUpdate>IfNoneMatch</tileUpdate>
     <serverParts>a b c</serverParts>
-    <url>https://{$serverpart}.tile.openstreetmap.org/{$z}/{$x}/{$y}.png</url>
-    <backgroundColor>#000000</backgroundColor>
+    <url>https://tile-{$serverpart}.opentopomap.cz/{$z}/{$x}/{$y}.png</url>
 </customMapSource>

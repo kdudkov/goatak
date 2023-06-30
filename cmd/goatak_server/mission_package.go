@@ -45,14 +45,19 @@ func (f *FsFile) Content() []byte {
 
 type PrefFile struct {
 	name string
+	cls  string
 	data map[string]any
 }
 
 func NewUserProfilePrefFile() *PrefFile {
-	return NewPrefFile("user-profile.pref")
+	return NewPrefFile("user-profile.pref", "com.atakmap.app.civ_preferences")
 }
 
-func NewPrefFile(name string) *PrefFile {
+func NewAppPrefFile() *PrefFile {
+	return NewPrefFile("atak.pref", "com.atakmap.app_preferences")
+}
+
+func NewPrefFile(name, cls string) *PrefFile {
 	return &PrefFile{name: name, data: make(map[string]any)}
 }
 
@@ -75,7 +80,8 @@ func (p *PrefFile) SetName(name string) {
 func (p *PrefFile) Content() []byte {
 	var sb bytes.Buffer
 	sb.WriteString("<?xml version='1.0' standalone='yes'?>\n")
-	sb.WriteString("<preferences>\n<preference version=\"1\" name=\"com.atakmap.app.civ_preferences\">\n")
+	sb.WriteString("<preferences>")
+	sb.WriteString(fmt.Sprintf("<preference version=\"1\" name=\"%s\">\n", p.cls))
 	for k, v := range p.data {
 		var cl string
 		switch v.(type) {
@@ -84,7 +90,7 @@ func (p *PrefFile) Content() []byte {
 		default:
 			cl = "class java.lang.String"
 		}
-		sb.WriteString(fmt.Sprintf("<entry key=\"%s\" class=\"%s\">%v</entry>", k, cl, v))
+		sb.WriteString(fmt.Sprintf("<entry key=\"%s\" class=\"%s\">%v</entry>\n", k, cl, v))
 	}
 	sb.WriteString("</preference></preferences>")
 	return sb.Bytes()

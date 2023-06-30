@@ -1,5 +1,6 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <customMapSource>
-    <name>Yandex map</name>
+    <name>Yandex Map</name>
     <minZoom>3</minZoom>
     <maxZoom>20</maxZoom>
     <tileType>PNG</tileType>
