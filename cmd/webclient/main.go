@@ -508,7 +508,7 @@ func main() {
 			}
 
 			enr := NewEnroller(app.host, user, passw)
-			if app.tlsCert, err = enr.enrollCert(); err != nil {
+			if app.tlsCert, err = enr.enrollCert(app.uid, "ATAK v4.9.0.7 [ba1c30ed]"); err != nil {
 				app.Logger.Errorf("error while enroll cert: %s", err.Error())
 				return
 			}

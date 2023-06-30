@@ -21,7 +21,8 @@ import (
 )
 
 const (
-	certTtl     = time.Hour * 24 * 60
+	daysTtl     = 60
+	certTtl     = time.Hour * daysTtl
 	usernameKey = "username"
 	p12Password = "atakatak"
 )
@@ -61,13 +62,17 @@ func getTlsConfigHandler(app *App) func(req *air.Request, res *air.Response) err
 	return func(req *air.Request, res *air.Response) error {
 		app.Logger.Infof("%s %s", req.Method, req.Path)
 
-		s := strings.Builder{}
-		s.WriteString("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n")
-		s.WriteString("<certificateConfig><nameEntries>")
-		s.WriteString("<nameEntry name=\"C\" value=\"RU\"/>")
-		s.WriteString("</nameEntries></certificateConfig>")
+		names := map[string]string{"C": "RU"}
+		buf := strings.Builder{}
+		buf.WriteString("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n")
+		buf.WriteString(fmt.Sprintf("<certificateConfig validityDays=\"%d\"><nameEntries>", daysTtl))
+		for k, v := range names {
+			buf.WriteString(fmt.Sprintf("<nameEntry name=\"%s\" value=\"%s\"/>", k, v))
+		}
+		buf.WriteString("</nameEntries></certificateConfig>")
 
-		return res.WriteString(s.String())
+		res.Header.Set("Content-Type", "application/xml")
+		return res.Write(strings.NewReader(buf.String()))
 	}
 }
 
@@ -84,7 +89,7 @@ func signClientCert(clientCSR *x509.CertificateRequest, serverCert *x509.Certifi
 		SerialNumber: serialNumber,
 		Issuer:       serverCert.Subject,
 		Subject:      clientCSR.Subject,
-		NotBefore:    time.Now().Add(-5 * time.Minute),
+		NotBefore:    time.Now(),
 		NotAfter:     time.Now().Add(certTtl),
 		KeyUsage:     x509.KeyUsageDigitalSignature,
 		ExtKeyUsage:  []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth},

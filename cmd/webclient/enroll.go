@@ -16,60 +16,81 @@ import (
 )
 
 type Enroller struct {
-	host    string
-	port    int
-	timeout time.Duration
-	user    string
-	passwd  string
+	host   string
+	port   int
+	cl     *http.Client
+	user   string
+	passwd string
 }
 
 func NewEnroller(host, user, passwd string) *Enroller {
+	tlsConf := &tls.Config{InsecureSkipVerify: true}
+
 	return &Enroller{
-		host:    host,
-		user:    user,
-		passwd:  passwd,
-		port:    8446,
-		timeout: time.Second * 10,
+		host:   host,
+		user:   user,
+		passwd: passwd,
+		port:   8446,
+		cl:     &http.Client{Timeout: time.Second * 30, Transport: &http.Transport{TLSClientConfig: tlsConf}},
 	}
-}
-
-func getBody(res *http.Response) ([]byte, error) {
-	if res == nil {
-		return nil, fmt.Errorf("empty response")
-	}
-	if res.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("bad status: %d", res.StatusCode)
-	}
-
-	if res.Body == nil {
-		return nil, fmt.Errorf("empty response")
-	}
-
-	defer res.Body.Close()
-
-	return io.ReadAll(res.Body)
 }
 
 func (e *Enroller) baseUrl() string {
 	return fmt.Sprintf("https://%s:%d", e.host, e.port)
 }
 
-func (e *Enroller) enrollCert() (*tls.Certificate, error) {
-	cl := http.Client{Timeout: e.timeout}
+func (e *Enroller) getConfig() (string, error) {
+	req, err := http.NewRequest(http.MethodGet, e.baseUrl()+"/Marti/api/tls/config", http.NoBody)
+	if err != nil {
+		return "", err
+	}
+	req.Header.Del("User-Agent")
+	req.SetBasicAuth(e.user, e.passwd)
+	res, err := e.cl.Do(req)
 
-	csr, key := makeCsr(e.user)
-	csr, _ = bytes.CutPrefix(csr, []byte("-----BEGIN CERTIFICATE REQUEST-----\n"))
-	csr, _ = bytes.CutSuffix(csr, []byte("\n-----END CERTIFICATE REQUEST-----"))
+	if err != nil {
+		return "", err
+	}
 
-	req, err := http.NewRequest(http.MethodPost, e.baseUrl()+"/Marti/api/tls/signClient/v2", bytes.NewReader(csr))
+	if res.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("bad status: %d", res.StatusCode)
+	}
 
+	if res.Body == nil {
+		return "", nil
+	}
+
+	defer res.Body.Close()
+
+	d, err := io.ReadAll(res.Body)
+	return string(d), err
+}
+
+func (e *Enroller) enrollCert(uid, version string) (*tls.Certificate, error) {
+	conf, err := e.getConfig()
 	if err != nil {
 		return nil, err
 	}
+	fmt.Println(conf)
+
+	csr, key := makeCsr(e.user)
+	csr, _ = bytes.CutPrefix(csr, []byte("-----BEGIN CERTIFICATE REQUEST-----\n"))
+	csr, _ = bytes.CutSuffix(csr, []byte("\n-----END CERTIFICATE REQUEST-----\n"))
+
+	req, err := http.NewRequest(http.MethodPost, e.baseUrl()+"/Marti/api/tls/signClient/v2", bytes.NewReader(csr))
+	if err != nil {
+		return nil, err
+	}
+	q := req.URL.Query()
+	q.Add("clientUID", uid)
+	q.Add("version", version)
+	req.URL.RawQuery = q.Encode()
 
 	req.Header.Set("Accept", "application/json")
+	req.Header.Set("Content-Type", "application/octet-stream")
+	req.Header.Set("User-Agent", "")
 	req.SetBasicAuth(e.user, e.passwd)
-	res, err := cl.Do(req)
+	res, err := e.cl.Do(req)
 
 	if err != nil {
 		return nil, err
