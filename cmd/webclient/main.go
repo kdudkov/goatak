@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"crypto/md5"
+	"crypto/tls"
 	"encoding/json"
 	"encoding/xml"
 	"flag"
@@ -50,6 +51,7 @@ type App struct {
 	units       sync.Map
 	messages    *model.Messages
 	tls         bool
+	tlsCert     *tls.Certificate
 	cl          *cot.ConnClientHandler
 	listeners   sync.Map
 
@@ -450,7 +452,6 @@ func main() {
 	viper.SetDefault("me.version", fmt.Sprintf("%s:%s", gitBranch, gitRevision))
 	viper.SetDefault("me.os", runtime.GOOS)
 	viper.SetDefault("ssl.password", "atakatak")
-	viper.SetDefault("ssl.enroll", false)
 
 	err := viper.ReadInConfig()
 	if err != nil {
@@ -498,17 +499,22 @@ func main() {
 	app.Logger.Infof("role: %s", app.role)
 	app.Logger.Infof("server: %s", viper.GetString("server_address"))
 
-	if viper.GetBool("ssl.enroll") {
-		user := viper.GetString("ssl.enroll_user")
-		passw := viper.GetString("ssl.enroll_password")
-		if user == "" || passw == "" {
-			fmt.Println("no enroll_user or enroll_password")
-			return
-		}
+	if app.tls {
+		if user := viper.GetString("ssl.enroll_user"); user != "" {
+			passw := viper.GetString("ssl.enroll_password")
+			if passw == "" {
+				fmt.Println("no enroll_password")
+				return
+			}
 
-		if err := app.enrollCert(user, passw); err != nil {
-			fmt.Println(err.Error())
-			return
+			enr := NewEnroller(app.host, user, passw)
+			if app.tlsCert, err = enr.enrollCert(); err != nil {
+				app.Logger.Errorf("error while enroll cert: %s", err.Error())
+				return
+			}
+			app.Logger.Infof("cert enrollment successful")
+		} else {
+			app.loadCerts()
 		}
 	}
 	go app.Run(ctx)

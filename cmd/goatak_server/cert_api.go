@@ -5,6 +5,7 @@ import (
 	"crypto"
 	"crypto/rand"
 	"crypto/x509"
+	"encoding/base64"
 	"encoding/pem"
 	"fmt"
 	"github.com/google/uuid"
@@ -22,6 +23,7 @@ import (
 const (
 	certTtl     = time.Hour * 24 * 60
 	usernameKey = "username"
+	p12Password = "atakatak"
 )
 
 func getUsername(req *air.Request) string {
@@ -114,11 +116,15 @@ func makeP12(certs map[string]*x509.Certificate) ([]byte, error) {
 		entries = append(entries, pkcs12.TrustStoreEntry{Cert: v, FriendlyName: k})
 	}
 
-	return pkcs12.EncodeTrustStoreEntries(rand.Reader, entries, "atakatak")
+	return pkcs12.EncodeTrustStoreEntries(rand.Reader, entries, p12Password)
 }
 
 func certToPem(cert *x509.Certificate) []byte {
 	return pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: cert.Raw})
+}
+
+func certToStr(cert *x509.Certificate) string {
+	return base64.StdEncoding.EncodeToString(cert.Raw)
 }
 
 func (app *App) processSignRequest(req *air.Request) (*x509.Certificate, error) {
@@ -194,9 +200,9 @@ func getSignHandlerV2(app *App) func(req *air.Request, res *air.Response) error 
 		accept := req.Header.Get("Accept")
 		switch {
 		case accept == "", strings.Contains(accept, "*/*"), strings.Contains(accept, "application/json"):
-			certs := map[string]string{"signedCert": string(certToPem(signedCert))}
+			certs := map[string]string{"signedCert": certToStr(signedCert)}
 			for i, c := range app.config.ca {
-				certs[fmt.Sprintf("ca%d", i)] = string(certToPem(c))
+				certs[fmt.Sprintf("ca%d", i)] = certToStr(c)
 			}
 			return res.WriteJSON(certs)
 		case strings.Contains(accept, "application/xml"):
@@ -204,11 +210,11 @@ func getSignHandlerV2(app *App) func(req *air.Request, res *air.Response) error 
 			buf.WriteString("<?xml version=\"1.0\" encoding=\"UTF-8\"?>")
 			buf.WriteString("<enrollment>")
 			buf.WriteString("<signedCert>")
-			buf.WriteString(string(certToPem(signedCert)))
+			buf.WriteString(certToStr(signedCert))
 			buf.WriteString("</signedCert>")
 			for _, c := range app.config.ca {
 				buf.WriteString("<ca>")
-				buf.WriteString(string(certToPem(c)))
+				buf.WriteString(certToStr(c))
 				buf.WriteString("</ca>")
 			}
 			buf.WriteString("</enrollment>")

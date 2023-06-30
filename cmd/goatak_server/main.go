@@ -5,6 +5,7 @@ import (
 	"crypto"
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/json"
 	"encoding/pem"
 	"flag"
 	"fmt"
@@ -358,8 +359,11 @@ func (app *App) MessageProcessor() {
 
 		if app.config.logging {
 			if f, err := os.OpenFile(msg.GetType()+".log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666); err == nil {
-				f.WriteString(msg.TakMessage.String())
-				f.Close()
+				if b, err := json.Marshal(msg.TakMessage); err == nil {
+					_, _ = f.WriteString(string(b))
+					_, _ = f.WriteString("\n")
+				}
+				_ = f.Close()
 			} else {
 				fmt.Println(err)
 			}
@@ -495,21 +499,21 @@ func (app *App) loadFeeds() {
 	}
 	defer f.Close()
 
-	r := make([]*Feed, 0)
+	r := make([]*Feed2, 0)
 	if err := yaml.NewDecoder(f).Decode(&r); err != nil {
 		app.Logger.Errorf("error reading feeds: %s", err.Error())
 		return
 	}
 	for _, feed := range r {
-		app.feeds.Store(feed.Uid, feed)
+		app.feeds.Store(feed.Uid, feed.ToFeed())
 	}
 }
 
 func (app *App) saveFeeds() error {
-	r := make([]*Feed, 0)
+	r := make([]*Feed2, 0)
 	app.feeds.Range(func(_, value any) bool {
 		if f, ok := value.(*Feed); ok {
-			r = append(r, f)
+			r = append(r, f.ToFeed2())
 		}
 
 		return true

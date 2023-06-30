@@ -42,6 +42,11 @@ func (app *App) connect() (net.Conn, error) {
 }
 
 func (app *App) getTlsConfig() *tls.Config {
+	return &tls.Config{Certificates: []tls.Certificate{*app.tlsCert}, InsecureSkipVerify: true}
+}
+
+func (app *App) loadCerts() {
+	app.Logger.Infof("load cert from %s", viper.GetString("ssl.cert"))
 	p12Data, err := os.ReadFile(viper.GetString("ssl.cert"))
 	if err != nil {
 		app.Logger.Fatal(err)
@@ -52,11 +57,9 @@ func (app *App) getTlsConfig() *tls.Config {
 		app.Logger.Fatal(err)
 	}
 
-	tlsCert := tls.Certificate{
+	app.tlsCert = &tls.Certificate{
 		Certificate: [][]byte{cert.Raw},
 		PrivateKey:  key.(crypto.PrivateKey),
 		Leaf:        cert,
 	}
-
-	return &tls.Config{Certificates: []tls.Certificate{tlsCert}, InsecureSkipVerify: true}
 }
