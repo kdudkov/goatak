@@ -5,10 +5,9 @@ import (
 	"crypto"
 	"crypto/rand"
 	"crypto/x509"
-	"encoding/base64"
-	"encoding/pem"
 	"fmt"
 	"github.com/google/uuid"
+	"github.com/kdudkov/goatak/tlsutil"
 	"io"
 	"math/big"
 	"net/http"
@@ -17,7 +16,6 @@ import (
 
 	"github.com/air-gases/authenticator"
 	"github.com/aofei/air"
-	"software.sslmate.com/src/go-pkcs12"
 )
 
 const (
@@ -104,34 +102,6 @@ func signClientCert(clientCSR *x509.CertificateRequest, serverCert *x509.Certifi
 	return x509.ParseCertificate(certBytes)
 }
 
-func parseCsr(b []byte) (*x509.CertificateRequest, error) {
-	bb := bytes.Buffer{}
-	bb.WriteString("-----BEGIN CERTIFICATE REQUEST-----\n")
-	bb.Write(b)
-	bb.WriteString("\n-----END CERTIFICATE REQUEST-----")
-	csrBlock, _ := pem.Decode(bb.Bytes())
-
-	return x509.ParseCertificateRequest(csrBlock.Bytes)
-}
-
-func makeP12(certs map[string]*x509.Certificate) ([]byte, error) {
-	var entries []pkcs12.TrustStoreEntry
-
-	for k, v := range certs {
-		entries = append(entries, pkcs12.TrustStoreEntry{Cert: v, FriendlyName: k})
-	}
-
-	return pkcs12.EncodeTrustStoreEntries(rand.Reader, entries, p12Password)
-}
-
-func certToPem(cert *x509.Certificate) []byte {
-	return pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: cert.Raw})
-}
-
-func certToStr(cert *x509.Certificate) string {
-	return base64.StdEncoding.EncodeToString(cert.Raw)
-}
-
 func (app *App) processSignRequest(req *air.Request) (*x509.Certificate, error) {
 	user := getUsername(req)
 	uid := getStringParamIgnoreCaps(req, "clientUid")
@@ -143,7 +113,7 @@ func (app *App) processSignRequest(req *air.Request) (*x509.Certificate, error) 
 		return nil, err
 	}
 
-	clientCSR, err := parseCsr(b)
+	clientCSR, err := tlsutil.ParseCsr(b)
 	if err != nil {
 		return nil, fmt.Errorf("empty csr block")
 	}
@@ -181,7 +151,7 @@ func getSignHandler(app *App) func(req *air.Request, res *air.Response) error {
 			certs[fmt.Sprintf("ca%d", i)] = c
 		}
 
-		p12Bytes, err := makeP12(certs)
+		p12Bytes, err := tlsutil.MakeP12(certs, p12Password)
 
 		if err != nil {
 			app.Logger.Errorf("error making p12: %v", err)
@@ -205,9 +175,9 @@ func getSignHandlerV2(app *App) func(req *air.Request, res *air.Response) error 
 		accept := req.Header.Get("Accept")
 		switch {
 		case accept == "", strings.Contains(accept, "*/*"), strings.Contains(accept, "application/json"):
-			certs := map[string]string{"signedCert": certToStr(signedCert)}
+			certs := map[string]string{"signedCert": tlsutil.CertToStr(signedCert, false)}
 			for i, c := range app.config.ca {
-				certs[fmt.Sprintf("ca%d", i)] = certToStr(c)
+				certs[fmt.Sprintf("ca%d", i)] = tlsutil.CertToStr(c, false)
 			}
 			return res.WriteJSON(certs)
 		case strings.Contains(accept, "application/xml"):
@@ -215,11 +185,11 @@ func getSignHandlerV2(app *App) func(req *air.Request, res *air.Response) error 
 			buf.WriteString("<?xml version=\"1.0\" encoding=\"UTF-8\"?>")
 			buf.WriteString("<enrollment>")
 			buf.WriteString("<signedCert>")
-			buf.WriteString(certToStr(signedCert))
+			buf.WriteString(tlsutil.CertToStr(signedCert, false))
 			buf.WriteString("</signedCert>")
 			for _, c := range app.config.ca {
 				buf.WriteString("<ca>")
-				buf.WriteString(certToStr(c))
+				buf.WriteString(tlsutil.CertToStr(c, false))
 				buf.WriteString("</ca>")
 			}
 			buf.WriteString("</enrollment>")

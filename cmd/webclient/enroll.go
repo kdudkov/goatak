@@ -10,6 +10,7 @@ import (
 	"encoding/json"
 	"encoding/pem"
 	"fmt"
+	"github.com/kdudkov/goatak/tlsutil"
 	"io"
 	"net/http"
 	"time"
@@ -113,7 +114,7 @@ func (e *Enroller) enrollCert(uid, version string) (*tls.Certificate, error) {
 	defer res.Body.Close()
 
 	if c, ok := certs["signedCert"]; ok {
-		cert, err := parseCert(c)
+		cert, err := tlsutil.ParseCert(c)
 
 		if err != nil {
 			return nil, err
@@ -143,14 +144,4 @@ func makeCsr(login string) ([]byte, *rsa.PrivateKey) {
 
 	csrBytes, _ := x509.CreateCertificateRequest(rand.Reader, &template, keyBytes)
 	return pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE REQUEST", Bytes: csrBytes}), keyBytes
-}
-
-func parseCert(s string) (*x509.Certificate, error) {
-	bb := bytes.Buffer{}
-	bb.WriteString("-----BEGIN CERTIFICATE-----\n")
-	bb.WriteString(s)
-	bb.WriteString("\n-----END CERTIFICATE-----")
-	csrBlock, _ := pem.Decode(bb.Bytes())
-
-	return x509.ParseCertificate(csrBlock.Bytes)
 }

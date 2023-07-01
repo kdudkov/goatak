@@ -51,7 +51,7 @@ type ConnClientHandler struct {
 	ver          int32
 	isClient     bool
 	uids         sync.Map
-	lastActivity time.Time
+	lastActivity atomic.Pointer[time.Time]
 	closeTimer   *time.Timer
 	sendChan     chan []byte
 	active       int32
@@ -65,12 +65,13 @@ type ConnClientHandler struct {
 
 func NewConnClientHandler(name string, conn net.Conn, config *HandlerConfig) *ConnClientHandler {
 	c := &ConnClientHandler{
-		addr:     name,
-		conn:     conn,
-		ver:      0,
-		sendChan: make(chan []byte, 10),
-		active:   1,
-		uids:     sync.Map{},
+		addr:         name,
+		conn:         conn,
+		ver:          0,
+		sendChan:     make(chan []byte, 10),
+		active:       1,
+		uids:         sync.Map{},
+		lastActivity: atomic.Pointer[time.Time]{},
 	}
 
 	c.ctx, c.cancel = context.WithCancel(context.Background())
@@ -201,6 +202,7 @@ func (h *ConnClientHandler) handleRead() {
 		// remove contact
 		if cotmsg.GetType() == "t-x-d-d" && cotmsg.Detail != nil && cotmsg.Detail.Has("link") {
 			uid := cotmsg.Detail.GetFirst("link").GetAttr("uid")
+			h.logger.Debugf("delete uid %s by message", uid)
 			h.uids.Delete(uid)
 		}
 
@@ -362,7 +364,8 @@ func (h *ConnClientHandler) stopHandle() {
 }
 
 func (h *ConnClientHandler) setActivity() {
-	h.lastActivity = time.Now()
+	now := time.Now()
+	h.lastActivity.Store(&now)
 
 	if h.closeTimer == nil {
 		h.closeTimer = time.AfterFunc(idleTimeout, h.closeIdle)
@@ -372,7 +375,13 @@ func (h *ConnClientHandler) setActivity() {
 }
 
 func (h *ConnClientHandler) closeIdle() {
-	idle := time.Now().Sub(h.lastActivity)
+	last := h.lastActivity.Load()
+	if last == nil {
+		h.logger.Infof("closing connection due to idle")
+		_ = h.conn.Close()
+		return
+	}
+	idle := time.Now().Sub(*last)
 
 	if idle >= idleTimeout {
 		h.logger.Infof("closing connection due to idle timeout: %v", idle)
