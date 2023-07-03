@@ -100,6 +100,10 @@ func NewApp(config *AppConfig, logger *zap.SugaredLogger) *App {
 func (app *App) Run() {
 	app.loadFeeds()
 
+	if app.userManager != nil {
+		app.userManager.Start()
+	}
+
 	if err := app.packageManager.Init(); err != nil {
 		log.Fatal(err)
 	}
@@ -615,7 +619,7 @@ func main() {
 
 	viper.SetDefault("me.lat", 59.8396)
 	viper.SetDefault("me.lon", 31.0213)
-	viper.SetDefault("password_file", "")
+	viper.SetDefault("users_file", "users.yml")
 
 	viper.SetDefault("me.zoom", 10)
 
@@ -647,7 +651,7 @@ func main() {
 		logging:     *logging,
 		debug:       *debug,
 		connections: viper.GetStringSlice("connections"),
-		usersFile:   viper.GetString("password_file"),
+		usersFile:   viper.GetString("users_file"),
 		webtakRoot:  viper.GetString("webtak_root"),
 	}
 
