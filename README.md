@@ -11,7 +11,7 @@ from [releases page](https://github.com/kdudkov/goatak/releases)
 
 * v1 (XML) and v2 (protobuf) CoT protocol support
 * SSL connection support, tested with [FreeTakServer](https://github.com/FreeTAKTeam/FreeTakServer)
-  and [Argustak](https://argustak.com/)
+  , [Argustak](https://argustak.com/) and [urpc.info](https://urpc.info/)
 * web-ui, ideal for big screen situation awareness center usage
 * unit track - your target unit is always in the center of map
 * RedX tool - to measure distance and bearing
@@ -22,6 +22,13 @@ from [releases page](https://github.com/kdudkov/goatak/releases)
 
 * v1 (XML) and v2 (protobuf) CoT protocol support
 * certificate enrollment (v1 and v2) support
+
+## Test server
+
+* address: `takserver.ru`
+* set `Enroll for Client Certificate` marked
+* user `test`
+* password `111111`
 
 [Server fast start](https://github.com/kdudkov/goatak/wiki/Setting-up-server)
 
@@ -45,16 +52,35 @@ simple config to connect to [Argustak](https://argustak.com/) cloud based TAK se
 server_address: argustak.com:4444:ssl
 web_port: 8080
 me:
-   callsign: username
-   uid: auto
-   type: a-f-G-U-C
-   team: Blue
-   role: Team Member
-   lat: 0
-   lon: 0
+  callsign: username
+  uid: auto
+  type: a-f-G-U-C
+  team: Blue
+  role: Team Member
+  lat: 0
+  lon: 0
 ssl:
-   cert: username.p12
-   password: password
+  cert: username.p12
+  password: password
+```
+
+simple config to connect to [urpc.info](https://urpc.info/) TAK server:
+
+```yaml
+---
+server_address: "tak.urpc.info:8089:ssl"
+web_port: 8080
+me:
+  callsign: TestCallsign
+  uid: auto
+  type: a-f-G-U-C
+  team: Blue
+  role: Team Member
+  lat: 0
+  lon: 0
+ssl:
+  enroll_user: <your_email>
+  enroll_password: <your_password>
 ```
 
 ## Libraries used
