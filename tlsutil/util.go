@@ -56,7 +56,7 @@ func CertToStr(cert *x509.Certificate, header bool) string {
 			continue
 		}
 		sb.WriteString(s1)
-		sb.WriteByte(0x10)
+		sb.WriteByte(10)
 	}
 	return sb.String()
 }

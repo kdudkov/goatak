@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/tls"
@@ -9,10 +8,11 @@ import (
 	"crypto/x509/pkix"
 	"encoding/json"
 	"encoding/pem"
+	"encoding/xml"
 	"fmt"
 	"github.com/kdudkov/goatak/tlsutil"
-	"io"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -22,6 +22,17 @@ type Enroller struct {
 	cl     *http.Client
 	user   string
 	passwd string
+}
+
+type CertificateConfig struct {
+	XMLName      xml.Name `xml:"certificateConfig"`
+	ValidityDays string   `xml:"validityDays,attr"`
+	NameEntries  struct {
+		NameEntry []struct {
+			Value string `xml:"value,attr"`
+			Name  string `xml:"name,attr"`
+		} `xml:"nameEntry"`
+	} `xml:"nameEntries"`
 }
 
 func NewEnroller(host, user, passwd string) *Enroller {
@@ -40,31 +51,34 @@ func (e *Enroller) baseUrl() string {
 	return fmt.Sprintf("https://%s:%d", e.host, e.port)
 }
 
-func (e *Enroller) getConfig() (string, error) {
+func (e *Enroller) getConfig() (*CertificateConfig, error) {
 	req, err := http.NewRequest(http.MethodGet, e.baseUrl()+"/Marti/api/tls/config", http.NoBody)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	req.Header.Del("User-Agent")
 	req.SetBasicAuth(e.user, e.passwd)
 	res, err := e.cl.Do(req)
 
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	if res.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("bad status: %d", res.StatusCode)
+		return nil, fmt.Errorf("bad status: %d", res.StatusCode)
 	}
 
 	if res.Body == nil {
-		return "", nil
+		return nil, nil
 	}
 
 	defer res.Body.Close()
 
-	d, err := io.ReadAll(res.Body)
-	return string(d), err
+	dec := xml.NewDecoder(res.Body)
+	conf := new(CertificateConfig)
+	err = dec.Decode(conf)
+
+	return conf, err
 }
 
 func (e *Enroller) enrollCert(uid, version string) (*tls.Certificate, error) {
@@ -72,13 +86,25 @@ func (e *Enroller) enrollCert(uid, version string) (*tls.Certificate, error) {
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println(conf)
+	subj := new(pkix.Name)
+	subj.CommonName = e.user
 
-	csr, key := makeCsr(e.user)
-	csr, _ = bytes.CutPrefix(csr, []byte("-----BEGIN CERTIFICATE REQUEST-----\n"))
-	csr, _ = bytes.CutSuffix(csr, []byte("\n-----END CERTIFICATE REQUEST-----\n"))
+	if conf != nil {
+		for _, c := range conf.NameEntries.NameEntry {
+			switch c.Name {
+			case "C":
+				subj.Country = append(subj.Country, c.Value)
+			case "O":
+				subj.Organization = append(subj.Organization, c.Value)
+			case "OU":
+				subj.OrganizationalUnit = append(subj.OrganizationalUnit, c.Value)
+			}
+		}
+	}
 
-	req, err := http.NewRequest(http.MethodPost, e.baseUrl()+"/Marti/api/tls/signClient/v2", bytes.NewReader(csr))
+	csr, key := makeCsr(subj)
+
+	req, err := http.NewRequest(http.MethodPost, e.baseUrl()+"/Marti/api/tls/signClient/v2", strings.NewReader(csr))
 	if err != nil {
 		return nil, err
 	}
@@ -130,18 +156,20 @@ func (e *Enroller) enrollCert(uid, version string) (*tls.Certificate, error) {
 	return nil, fmt.Errorf("no signed cert in responce")
 }
 
-func makeCsr(login string) ([]byte, *rsa.PrivateKey) {
+func makeCsr(subj *pkix.Name) (string, *rsa.PrivateKey) {
 	keyBytes, _ := rsa.GenerateKey(rand.Reader, 4096)
 
-	subj := pkix.Name{
-		CommonName: login,
-	}
-
 	template := x509.CertificateRequest{
-		Subject:            subj,
+		Subject:            *subj,
 		SignatureAlgorithm: x509.SHA256WithRSA,
 	}
 
 	csrBytes, _ := x509.CreateCertificateRequest(rand.Reader, &template, keyBytes)
-	return pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE REQUEST", Bytes: csrBytes}), keyBytes
+
+	csr := string(pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE REQUEST", Bytes: csrBytes}))
+
+	csr = strings.ReplaceAll(csr, "-----BEGIN CERTIFICATE REQUEST-----\n", "")
+	csr = strings.ReplaceAll(csr, "\n-----END CERTIFICATE REQUEST-----", "")
+
+	return csr, keyBytes
 }
