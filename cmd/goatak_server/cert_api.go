@@ -20,7 +20,7 @@ import (
 
 const (
 	daysTtl     = 60
-	certTtl     = time.Hour * daysTtl
+	certTtl     = time.Hour * 24 * daysTtl
 	usernameKey = "username"
 	p12Password = "atakatak"
 )

@@ -5,6 +5,7 @@ go 1.19
 require (
 	github.com/air-gases/authenticator v0.11.0
 	github.com/aofei/air v0.22.0
+	github.com/fsnotify/fsnotify v1.6.0
 	github.com/google/uuid v1.3.0
 	github.com/spf13/viper v1.15.0
 	go.uber.org/zap v1.24.0
@@ -19,7 +20,6 @@ require (
 	github.com/VictoriaMetrics/fastcache v1.5.8 // indirect
 	github.com/aofei/mimesniffer v1.1.6 // indirect
 	github.com/cespare/xxhash/v2 v2.1.1 // indirect
-	github.com/fsnotify/fsnotify v1.6.0 // indirect
 	github.com/golang/snappy v0.0.3 // indirect
 	github.com/gorilla/websocket v1.4.2 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
