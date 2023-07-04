@@ -11,6 +11,7 @@ import (
 	"strings"
 	"sync"
 	"sync/atomic"
+	"time"
 )
 
 type WsClientHandler struct {
@@ -41,6 +42,7 @@ func (w *WsClientHandler) CanSeeScope(scope string) bool {
 func (w *WsClientHandler) GetVersion() int32 {
 	return 0
 }
+
 func (w *WsClientHandler) GetUids() map[string]string {
 	res := make(map[string]string)
 	w.uids.Range(func(key, value any) bool {
@@ -48,6 +50,10 @@ func (w *WsClientHandler) GetUids() map[string]string {
 		return true
 	})
 	return res
+}
+
+func (w *WsClientHandler) GetLastSeen() *time.Time {
+	return nil
 }
 
 func NewWsClient(name string, ws *air.WebSocket, log *zap.SugaredLogger, mc func(msg *cot.CotMessage)) *WsClientHandler {

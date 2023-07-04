@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"path/filepath"
 	"runtime/pprof"
+	"time"
 
 	"github.com/aofei/air"
 	"github.com/kdudkov/goatak/cot"
@@ -17,11 +18,12 @@ import (
 var templates embed.FS
 
 type Connection struct {
-	Addr string            `json:"addr"`
-	User string            `json:"user"`
-	Ssl  bool              `json:"ssl"`
-	Ver  int32             `json:"ver"`
-	Uids map[string]string `json:"uids"`
+	Addr     string            `json:"addr"`
+	User     string            `json:"user"`
+	Ssl      bool              `json:"ssl"`
+	Ver      int32             `json:"ver"`
+	Uids     map[string]string `json:"uids"`
+	LastSeen *time.Time        `json:"last_seen"`
 }
 
 type HttpServer struct {
@@ -184,10 +186,11 @@ func getConnHandler(app *App) func(req *air.Request, res *air.Response) error {
 
 		app.ForAllClients(func(ch cot.ClientHandler) bool {
 			c := &Connection{
-				Uids: ch.GetUids(),
-				User: ch.GetUser(),
-				Ver:  ch.GetVersion(),
-				Addr: ch.GetName(),
+				Uids:     ch.GetUids(),
+				User:     ch.GetUser(),
+				Ver:      ch.GetVersion(),
+				Addr:     ch.GetName(),
+				LastSeen: ch.GetLastSeen(),
 			}
 			conn = append(conn, c)
 			return true

@@ -36,6 +36,7 @@ func (app *App) ListenUDP(addr string) error {
 		app.NewCotMessage(&cot.CotMessage{
 			TakMessage: msg,
 			Detail:     xd,
+			Scope:      "broadcast",
 		})
 	}
 

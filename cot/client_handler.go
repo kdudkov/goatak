@@ -40,6 +40,7 @@ type ClientHandler interface {
 	CanSeeScope(scope string) bool
 	GetVersion() int32
 	SendMsg(msg *cotproto.TakMessage) error
+	GetLastSeen() *time.Time
 }
 
 type ConnClientHandler struct {
@@ -105,7 +106,7 @@ func (h *ConnClientHandler) GetScope() string {
 }
 
 func (h *ConnClientHandler) CanSeeScope(scope string) bool {
-	return h.scope == "" || h.scope == scope
+	return h.scope == "" || scope == "broadcast" || h.scope == scope
 }
 
 func (h *ConnClientHandler) GetUids() map[string]string {
@@ -119,6 +120,10 @@ func (h *ConnClientHandler) GetUids() map[string]string {
 
 func (h *ConnClientHandler) IsActive() bool {
 	return atomic.LoadInt32(&h.active) == 1
+}
+
+func (h *ConnClientHandler) GetLastSeen() *time.Time {
+	return h.lastActivity.Load()
 }
 
 func (h *ConnClientHandler) Start() {

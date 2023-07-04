@@ -15,7 +15,8 @@
                                 <th>addr</th>
                                 <th>UIDS</th>
                                 <th>user</th>
-                                <th>ver.</th>
+                                <th>proto</th>
+                                <th>last seen</th>
                             </tr>
                             <tr v-for="c in all_conns">
                                 <td>{{ c.addr }}</td>
@@ -26,6 +27,7 @@
                                 </td>
                                 <td>{{ c.user }}</td>
                                 <td>{{ c.ver }}</td>
+                                <td>{{ c.last_seen }}</td>
                             </tr>
                         </table>
                     </div>
