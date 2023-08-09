@@ -115,7 +115,7 @@ func (e *Enroller) enrollCert(uid, version string) (*tls.Certificate, error) {
 
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("Content-Type", "application/octet-stream")
-	req.Header.Set("User-Agent", "")
+	req.Header.Del("User-Agent")
 	req.SetBasicAuth(e.user, e.passwd)
 	res, err := e.cl.Do(req)
 

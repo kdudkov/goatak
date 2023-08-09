@@ -103,13 +103,15 @@ func NewApp(uid string, callsign string, connectStr string, webPort int, logger 
 }
 
 func (app *App) Run(ctx context.Context) {
-	go func() {
-		addr := fmt.Sprintf(":%d", app.webPort)
-		app.Logger.Infof("listening %s", addr)
-		if err := NewHttp(app, addr).Serve(); err != nil {
-			panic(err)
-		}
-	}()
+	if app.webPort != 0 {
+		go func() {
+			addr := fmt.Sprintf(":%d", app.webPort)
+			app.Logger.Infof("listening %s", addr)
+			if err := NewHttp(app, addr).Serve(); err != nil {
+				panic(err)
+			}
+		}()
+	}
 
 	go app.cleaner()
 
@@ -341,6 +343,10 @@ func (app *App) MakeMe() *cotproto.TakMessage {
 	return ev
 }
 
+func (app *App) GetVersion() string {
+	return fmt.Sprintf("%s %s", app.platform, app.version)
+}
+
 func RandString(strlen int) string {
 	result := make([]byte, strlen)
 	for i := 0; i < strlen; i++ {
@@ -421,6 +427,7 @@ func (p *Pos) Get() (float64, float64) {
 
 func main() {
 	var conf = flag.String("config", "goatak_client.yml", "name of config file")
+	var noweb = flag.Bool("noweb", false, "do not start web server")
 	var debug = flag.Bool("debug", false, "debug")
 	flag.Parse()
 
@@ -469,6 +476,10 @@ func main() {
 		logger.Sugar(),
 	)
 
+	if *noweb {
+		app.webPort = 0
+	}
+
 	app.pos = NewPos(viper.GetFloat64("me.lat"), viper.GetFloat64("me.lon"))
 	app.zoom = int8(viper.GetInt("me.zoom"))
 	app.typ = viper.GetString("me.type")
@@ -495,7 +506,7 @@ func main() {
 			}
 
 			enr := NewEnroller(app.host, user, passw)
-			if app.tlsCert, err = enr.enrollCert(app.uid, "ATAK v4.9.0.7 [ba1c30ed]"); err != nil {
+			if app.tlsCert, err = enr.enrollCert(app.uid, app.GetVersion()); err != nil {
 				app.Logger.Errorf("error while enroll cert: %s", err.Error())
 				return
 			}
@@ -507,7 +518,7 @@ func main() {
 	go app.Run(ctx)
 
 	c := make(chan os.Signal, 1)
-	signal.Notify(c, syscall.SIGINT, syscall.SIGTERM, syscall.SIGKILL)
+	signal.Notify(c, syscall.SIGINT, syscall.SIGTERM)
 	<-c
 	cancel()
 }
