@@ -22,7 +22,7 @@ function ne(s) {
 function getIcon(item, withText) {
     if (item.category === "contact" || (ne(item.team) && ne(item.role))) {
         let col = "#555";
-        if (item.status === "Online") {
+        if (item.status !== "Offline") {
             col = colors.get(item.team);
         }
         return {uri: toUri(roleCircle(24, col, '#000', item.role)), x: 12, y: 12};
