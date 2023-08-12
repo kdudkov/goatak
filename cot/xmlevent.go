@@ -11,14 +11,16 @@ type Event struct {
 	XMLName xml.Name  `xml:"event"`
 	Version string    `xml:"version,attr"`
 	Type    string    `xml:"type,attr"`
+	Access  string    `xml:"access,attr"`
+	Qos     string    `xml:"qos,attr"`
+	Opex    string    `xml:"opex,attr"`
 	Uid     string    `xml:"uid,attr"`
 	Time    time.Time `xml:"time,attr"`
 	Start   time.Time `xml:"start,attr"`
 	Stale   time.Time `xml:"stale,attr"`
 	How     string    `xml:"how,attr"`
-
-	Point  Point `xml:"point"`
-	Detail *Node `xml:"detail"`
+	Detail  *Node     `xml:"detail"`
+	Point   Point     `xml:"point"`
 }
 
 func (e *Event) String() string {

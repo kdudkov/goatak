@@ -11,78 +11,81 @@ import (
 )
 
 func ProtoToEvent(msg *cotproto.TakMessage) *Event {
-	if msg == nil || msg.CotEvent == nil {
+	if msg == nil || msg.GetCotEvent() == nil {
 		return nil
 	}
 
 	ev := &Event{
 		XMLName: xml.Name{Local: "event"},
 		Version: "2.0",
-		Type:    msg.CotEvent.Type,
-		Uid:     msg.CotEvent.Uid,
-		Time:    TimeFromMillis(msg.CotEvent.SendTime).UTC(),
-		Start:   TimeFromMillis(msg.CotEvent.StartTime).UTC(),
-		Stale:   TimeFromMillis(msg.CotEvent.StaleTime).UTC(),
-		How:     msg.CotEvent.How,
+		Type:    msg.GetCotEvent().GetType(),
+		Access:  msg.GetCotEvent().GetAccess(),
+		Qos:     msg.GetCotEvent().GetQos(),
+		Opex:    msg.GetCotEvent().GetOpex(),
+		Uid:     msg.GetCotEvent().GetUid(),
+		Time:    TimeFromMillis(msg.GetCotEvent().GetSendTime()).UTC(),
+		Start:   TimeFromMillis(msg.GetCotEvent().GetStartTime()).UTC(),
+		Stale:   TimeFromMillis(msg.GetCotEvent().GetStaleTime()).UTC(),
+		How:     msg.GetCotEvent().GetHow(),
 		Point: Point{
-			Lat: msg.CotEvent.Lat,
-			Lon: msg.CotEvent.Lon,
-			Hae: msg.CotEvent.Hae,
-			Ce:  msg.CotEvent.Ce,
-			Le:  msg.CotEvent.Le,
+			Lat: msg.GetCotEvent().GetLat(),
+			Lon: msg.GetCotEvent().GetLon(),
+			Hae: msg.GetCotEvent().GetHae(),
+			Ce:  msg.GetCotEvent().GetCe(),
+			Le:  msg.GetCotEvent().GetLe(),
 		},
 		Detail: NewXmlDetails(),
 	}
 
-	if d := msg.CotEvent.Detail; d != nil {
-		if d.XmlDetail != "" {
+	if d := msg.GetCotEvent().GetDetail(); d != nil {
+		if d.GetXmlDetail() != "" {
 			b := bytes.Buffer{}
-			b.WriteString("<detail>" + d.XmlDetail + "</detail>")
+			b.WriteString("<detail>" + d.GetXmlDetail() + "</detail>")
 			xml.NewDecoder(&b).Decode(&ev.Detail)
 		}
 
-		if d.Contact != nil {
+		if d.GetContact() != nil {
 			attrs := map[string]string{
-				"endpoint": d.Contact.Endpoint,
-				"callsign": d.Contact.Callsign,
+				"endpoint": d.GetContact().GetEndpoint(),
+				"callsign": d.GetContact().GetCallsign(),
 			}
 			ev.Detail.AddChild("contact", attrs, "")
 		}
 
-		if d.Status != nil {
-			ev.Detail.AddChild("status", map[string]string{"battery": strconv.Itoa(int(d.Status.Battery))}, "")
+		if d.GetStatus() != nil {
+			ev.Detail.AddChild("status", map[string]string{"battery": strconv.Itoa(int(d.GetStatus().GetBattery()))}, "")
 		}
 
-		if d.Track != nil {
+		if d.GetTrack() != nil {
 			attrs := map[string]string{
-				"course": fmt.Sprintf("%f", d.Track.Course),
-				"speed":  fmt.Sprintf("%f", d.Track.Speed),
+				"course": fmt.Sprintf("%f", d.GetTrack().GetCourse()),
+				"speed":  fmt.Sprintf("%f", d.GetTrack().GetSpeed()),
 			}
 			ev.Detail.AddChild("track", attrs, "")
 		}
 
-		if d.Takv != nil {
+		if tv := d.GetTakv(); tv != nil {
 			attrs := map[string]string{
-				"os":       d.Takv.Os,
-				"version":  d.Takv.Version,
-				"device":   d.Takv.Device,
-				"platform": d.Takv.Platform,
+				"os":       tv.GetOs(),
+				"version":  tv.GetVersion(),
+				"device":   tv.GetDevice(),
+				"platform": tv.GetPlatform(),
 			}
 			ev.Detail.AddChild("takv", attrs, "")
 		}
 
-		if d.Group != nil {
+		if d.GetGroup() != nil {
 			attrs := map[string]string{
-				"name": d.Group.Name,
-				"role": d.Group.Role,
+				"name": d.GetGroup().GetName(),
+				"role": d.GetGroup().GetRole(),
 			}
 			ev.Detail.AddChild("__group", attrs, "")
 		}
 
-		if d.PrecisionLocation != nil {
+		if d.GetPrecisionLocation() != nil {
 			attrs := map[string]string{
-				"altsrc":      d.PrecisionLocation.Altsrc,
-				"geopointsrc": d.PrecisionLocation.Geopointsrc,
+				"altsrc":      d.GetPrecisionLocation().GetAltsrc(),
+				"geopointsrc": d.GetPrecisionLocation().GetGeopointsrc(),
 			}
 			ev.Detail.AddChild("precisionlocation", attrs, "")
 		}
@@ -98,6 +101,9 @@ func EventToProto(ev *Event) (*cotproto.TakMessage, *Node) {
 
 	msg := &cotproto.TakMessage{CotEvent: &cotproto.CotEvent{
 		Type:      ev.Type,
+		Access:    ev.Access,
+		Qos:       ev.Qos,
+		Opex:      ev.Opex,
 		Uid:       ev.Uid,
 		SendTime:  TimeToMillis(ev.Time),
 		StartTime: TimeToMillis(ev.Start),

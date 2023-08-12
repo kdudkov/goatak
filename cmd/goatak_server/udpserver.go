@@ -46,10 +46,14 @@ func (app *App) ListenUDP(addr string) error {
 					app.Logger.Errorf("protobuf detail extract error: %s", err.Error())
 					continue
 				}
+				scope := msg.GetCotEvent().GetAccess()
+				if scope == "" {
+					scope = "broadcast"
+				}
 				app.NewCotMessage(&cot.CotMessage{
 					TakMessage: msg,
 					Detail:     xd,
-					Scope:      "broadcast",
+					Scope:      scope,
 				})
 			} else {
 				ev := &cot.Event{}
@@ -60,10 +64,14 @@ func (app *App) ListenUDP(addr string) error {
 				}
 
 				msg, xd := cot.EventToProto(ev)
+				scope := msg.GetCotEvent().GetAccess()
+				if scope == "" {
+					scope = "broadcast"
+				}
 				app.NewCotMessage(&cot.CotMessage{
 					TakMessage: msg,
 					Detail:     xd,
-					Scope:      "broadcast",
+					Scope:      scope,
 				})
 			}
 		} else {
