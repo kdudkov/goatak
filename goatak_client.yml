@@ -1,5 +1,5 @@
 ---
-server_address: 204.48.30.216:8087:tcp
+server_address: 137.184.101.250:8087:tcp
 web_port: 8080
 me:
   callsign: TestUser
