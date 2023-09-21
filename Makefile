@@ -16,6 +16,10 @@ clean:
 dep:
 	go mod tidy
 
+.PHONE: update
+update:
+	rm go.sum; go get -t -u ./...
+
 .PHONY: protoc
 protoc:
 	protoc -I=./protobuf --go_out=./cotproto --go_opt=module=github.com/kdudkov/goatak/cotproto ./protobuf/*.proto
