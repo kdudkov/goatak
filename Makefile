@@ -19,7 +19,7 @@ dep:
 
 .PHONE: update
 update:
-	rm go.sum; go get -t -u ./...
+	rm go.sum; go get -u ./...
 
 .PHONY: protoc
 protoc:
