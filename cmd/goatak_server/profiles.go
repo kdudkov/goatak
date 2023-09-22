@@ -23,12 +23,12 @@ func NewUserPrefsFile(callsign, team, role, typ string) *PrefFile {
 	return conf
 }
 
-func (app *App) GetProfile(user, uid string) []ZipFile {
+func (app *App) GetProfileFiles(user, uid string) []FileContent {
 	if app.users == nil {
 		return nil
 	}
 
-	res := make([]ZipFile, 0)
+	res := make([]FileContent, 0)
 
 	if user != "" {
 		if userInfo := app.users.GetUser(user); userInfo != nil {

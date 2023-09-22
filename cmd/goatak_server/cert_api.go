@@ -208,7 +208,7 @@ func getProfileEnrollmentHandler(app *App) func(req *air.Request, res *air.Respo
 		user := getUsername(req)
 		uid := getStringParamIgnoreCaps(req, "clientUid")
 		app.Logger.Infof("%s %s %s %s", req.Method, req.Path, user, uid)
-		files := app.GetProfile(user, uid)
+		files := app.GetProfileFiles(user, uid)
 		if len(files) == 0 {
 			res.Status = http.StatusNoContent
 			return nil

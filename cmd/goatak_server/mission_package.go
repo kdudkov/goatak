@@ -8,9 +8,9 @@ import (
 	"path/filepath"
 )
 
-const baseDir = "./data"
+const baseDir = "./data/mp"
 
-type ZipFile interface {
+type FileContent interface {
 	SetName(name string)
 	Name() string
 	Content() []byte
@@ -98,7 +98,7 @@ func (p *PrefFile) Content() []byte {
 
 type MissionPackage struct {
 	params map[string]string
-	files  []ZipFile
+	files  []FileContent
 }
 
 func NewMissionPackage(uuid, name string) *MissionPackage {
@@ -109,7 +109,7 @@ func (m *MissionPackage) Param(k, v string) {
 	m.params[k] = v
 }
 
-func (m *MissionPackage) AddFile(f ZipFile) {
+func (m *MissionPackage) AddFile(f FileContent) {
 	m.files = append(m.files, f)
 }
 

@@ -294,7 +294,7 @@ func getProfileConnectionHandler(app *App) func(req *air.Request, res *air.Respo
 		_ = getIntParam(req, "syncSecago", 0)
 		uid := getStringParamIgnoreCaps(req, "clientUid")
 
-		files := app.GetProfile("", uid)
+		files := app.GetProfileFiles("", uid)
 		if len(files) == 0 {
 			res.Status = http.StatusNoContent
 			return nil
