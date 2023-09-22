@@ -9,8 +9,9 @@ import (
 	"time"
 
 	"github.com/aofei/air"
-	"github.com/kdudkov/goatak/cot"
-	"github.com/kdudkov/goatak/model"
+
+	"github.com/kdudkov/goatak/pkg/cot"
+	"github.com/kdudkov/goatak/pkg/model"
 	"github.com/kdudkov/goatak/staticfiles"
 )
 

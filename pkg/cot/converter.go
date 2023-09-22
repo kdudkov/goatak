@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/kdudkov/goatak/cotproto"
+	"github.com/kdudkov/goatak/pkg/cotproto"
 )
 
 func ProtoToEvent(msg *cotproto.TakMessage) *Event {

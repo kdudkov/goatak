@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kdudkov/goatak/cotproto"
+	"github.com/kdudkov/goatak/pkg/cotproto"
 )
 
 type CotMessage struct {

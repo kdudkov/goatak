@@ -4,14 +4,16 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
-	"github.com/aofei/air"
-	"github.com/kdudkov/goatak/cot"
-	"github.com/kdudkov/goatak/cotproto"
-	"go.uber.org/zap"
 	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/aofei/air"
+	"go.uber.org/zap"
+
+	"github.com/kdudkov/goatak/pkg/cot"
+	"github.com/kdudkov/goatak/pkg/cotproto"
 )
 
 type WsClientHandler struct {

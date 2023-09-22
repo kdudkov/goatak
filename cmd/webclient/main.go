@@ -16,11 +16,13 @@ import (
 	"time"
 
 	"github.com/jroimartin/gocui"
-	"github.com/kdudkov/goatak/cot"
-	"github.com/kdudkov/goatak/cotproto"
-	"github.com/kdudkov/goatak/model"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
+
+	"github.com/kdudkov/goatak/internal/repository"
+	"github.com/kdudkov/goatak/pkg/cot"
+	"github.com/kdudkov/goatak/pkg/cotproto"
+	"github.com/kdudkov/goatak/pkg/model"
 )
 
 const (
@@ -49,7 +51,7 @@ type App struct {
 	webPort     int
 	Logger      *zap.SugaredLogger
 	ch          chan []byte
-	items       *ItemsRepo
+	items       repository.ItemsRepository
 	messages    *model.Messages
 	tls         bool
 	tlsCert     *tls.Certificate
@@ -102,7 +104,7 @@ func NewApp(uid string, callsign string, connectStr string, webPort int, logger 
 		tcpPort:     parts[1],
 		tls:         tlsConn,
 		webPort:     webPort,
-		items:       NewItemsRepo(),
+		items:       repository.NewItemsFileRepo(),
 		dialTimeout: time.Second * 5,
 		listeners:   sync.Map{},
 		messages:    model.NewMessages(uid),

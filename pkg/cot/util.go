@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/kdudkov/goatak/cotproto"
+	"github.com/kdudkov/goatak/pkg/cotproto"
 )
 
 func BasicMsg(typ string, uid string, stale time.Duration) *cotproto.TakMessage {

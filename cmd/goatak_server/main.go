@@ -9,7 +9,6 @@ import (
 	"encoding/pem"
 	"flag"
 	"fmt"
-	"gopkg.in/yaml.v3"
 	"io/ioutil"
 	"log"
 	"net"
@@ -21,13 +20,15 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/kdudkov/goatak/cot"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
+	"gopkg.in/yaml.v3"
 	"software.sslmate.com/src/go-pkcs12"
 
-	"github.com/kdudkov/goatak/cotproto"
-	"github.com/kdudkov/goatak/model"
+	"github.com/kdudkov/goatak/internal/repository"
+	"github.com/kdudkov/goatak/pkg/cot"
+	"github.com/kdudkov/goatak/pkg/cotproto"
+	"github.com/kdudkov/goatak/pkg/model"
 )
 
 var (
@@ -70,11 +71,11 @@ type App struct {
 	zoom           int8
 
 	handlers sync.Map
-	items    *ItemsRepo
+	items    repository.ItemsRepository
 	messages []*model.ChatMessage
 	feeds    sync.Map
 
-	userManager *UserManager
+	users repository.UserRepository
 
 	ctx context.Context
 	uid string
@@ -86,10 +87,10 @@ func NewApp(config *AppConfig, logger *zap.SugaredLogger) *App {
 		Logger:         logger,
 		config:         config,
 		packageManager: NewPackageManager(logger.Named("packageManager")),
-		userManager:    NewUserManager(logger.Named("userManager"), config.usersFile),
+		users:          repository.NewFileUserRepo(logger.Named("userManager"), config.usersFile),
 		ch:             make(chan *cot.CotMessage, 20),
 		handlers:       sync.Map{},
-		items:          NewItemsRepo(),
+		items:          repository.NewItemsFileRepo(),
 		feeds:          sync.Map{},
 		uid:            uuid.New().String(),
 	}
@@ -100,8 +101,8 @@ func NewApp(config *AppConfig, logger *zap.SugaredLogger) *App {
 func (app *App) Run() {
 	app.loadFeeds()
 
-	if app.userManager != nil {
-		app.userManager.Start()
+	if app.users != nil {
+		_ = app.users.Start()
 	}
 
 	if err := app.packageManager.Init(); err != nil {

@@ -4,7 +4,7 @@ import (
 	"encoding/xml"
 	"testing"
 
-	"github.com/kdudkov/goatak/cot"
+	"github.com/kdudkov/goatak/pkg/cot"
 )
 
 func TestParseEvent(t *testing.T) {

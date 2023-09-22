@@ -2,12 +2,12 @@ package model
 
 import (
 	"fmt"
-	"github.com/kdudkov/goatak/cotproto"
+	"github.com/kdudkov/goatak/pkg/cotproto"
 	"golang.org/x/net/html"
 	"sync"
 	"time"
 
-	"github.com/kdudkov/goatak/cot"
+	"github.com/kdudkov/goatak/pkg/cot"
 )
 
 type Messages struct {

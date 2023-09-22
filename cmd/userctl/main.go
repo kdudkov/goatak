@@ -4,27 +4,21 @@ import (
 	"bufio"
 	"flag"
 	"fmt"
+	"os"
+
 	"golang.org/x/crypto/bcrypt"
 	"gopkg.in/yaml.v3"
-	"os"
+
+	"github.com/kdudkov/goatak/internal/model"
 )
 
-type UserInfo struct {
-	User     string `yaml:"user"`
-	Callsign string `yaml:"callsign,omitempty"`
-	Team     string `yaml:"team,omitempty"`
-	Role     string `yaml:"role,omitempty"`
-	Password string `yaml:"password"`
-	Scope    string `yaml:"scope,omitempty"`
-}
-
-func read(fn string) []*UserInfo {
+func read(fn string) []*model.UserInfo {
 	dat, err := os.ReadFile(fn)
 	if err != nil {
 		return nil
 	}
 
-	users := make([]*UserInfo, 0)
+	users := make([]*model.UserInfo, 0)
 	if err := yaml.Unmarshal(dat, &users); err != nil {
 		panic(err.Error())
 	}
@@ -32,7 +26,7 @@ func read(fn string) []*UserInfo {
 	return users
 }
 
-func write(fn string, users []*UserInfo) error {
+func write(fn string, users []*model.UserInfo) error {
 	f, err := os.Create(fn)
 	if err != nil {
 		return err
@@ -92,7 +86,7 @@ func main() {
 	}
 
 	if !found {
-		users = append(users, &UserInfo{User: *user, Password: string(bpass), Scope: *scope})
+		users = append(users, &model.UserInfo{User: *user, Password: string(bpass), Scope: *scope})
 	}
 
 	if err := write(*file, users); err != nil {

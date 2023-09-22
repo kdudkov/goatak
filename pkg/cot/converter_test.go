@@ -6,7 +6,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/kdudkov/goatak/cotproto"
+	"github.com/kdudkov/goatak/pkg/cotproto"
 )
 
 func TestConvert(t *testing.T) {

@@ -6,8 +6,6 @@ import (
 	"crypto/rand"
 	"crypto/x509"
 	"fmt"
-	"github.com/google/uuid"
-	"github.com/kdudkov/goatak/tlsutil"
 	"io"
 	"math/big"
 	"net/http"
@@ -16,6 +14,9 @@ import (
 
 	"github.com/air-gases/authenticator"
 	"github.com/aofei/air"
+	"github.com/google/uuid"
+
+	"github.com/kdudkov/goatak/pkg/tlsutil"
 )
 
 const (
@@ -40,7 +41,7 @@ func getCertApi(app *App, addr string) *air.Air {
 		Validator: func(username string, password string, req *air.Request, _ *air.Response) (bool, error) {
 			app.Logger.Infof("tls api login with user %s", username)
 			req.SetValue(usernameKey, username)
-			return app.userManager.CheckUserAuth(username, password), nil
+			return app.users.CheckUserAuth(username, password), nil
 		},
 	})
 
@@ -122,7 +123,7 @@ func (app *App) processSignRequest(req *air.Request) (*x509.Certificate, error) 
 		return nil, fmt.Errorf("bad user in csr")
 	}
 
-	if !app.userManager.UserIsValid(user, "") {
+	if !app.users.UserIsValid(user, "") {
 		return nil, fmt.Errorf("bad user")
 	}
 
@@ -207,7 +208,7 @@ func getProfileEnrollmentHandler(app *App) func(req *air.Request, res *air.Respo
 		user := getUsername(req)
 		uid := getStringParamIgnoreCaps(req, "clientUid")
 		app.Logger.Infof("%s %s %s %s", req.Method, req.Path, user, uid)
-		files := app.userManager.GetProfile(user, uid)
+		files := app.GetProfile(user, uid)
 		if len(files) == 0 {
 			res.Status = http.StatusNoContent
 			return nil

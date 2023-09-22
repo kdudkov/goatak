@@ -10,7 +10,7 @@ import (
 	"encoding/pem"
 	"encoding/xml"
 	"fmt"
-	"github.com/kdudkov/goatak/tlsutil"
+	"github.com/kdudkov/goatak/pkg/tlsutil"
 	"net/http"
 	"strings"
 	"time"

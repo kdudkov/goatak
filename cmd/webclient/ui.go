@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/jroimartin/gocui"
-	"github.com/kdudkov/goatak/model"
+	"github.com/kdudkov/goatak/pkg/model"
 )
 
 func (app *App) layout(g *gocui.Gui) error {

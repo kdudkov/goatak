@@ -13,7 +13,7 @@ import (
 
 	"github.com/aofei/air"
 	"github.com/google/uuid"
-	"github.com/kdudkov/goatak/model"
+	"github.com/kdudkov/goatak/pkg/model"
 )
 
 func getMartiApi(app *App, addr string) *air.Air {
@@ -294,7 +294,7 @@ func getProfileConnectionHandler(app *App) func(req *air.Request, res *air.Respo
 		_ = getIntParam(req, "syncSecago", 0)
 		uid := getStringParamIgnoreCaps(req, "clientUid")
 
-		files := app.userManager.GetProfile("", uid)
+		files := app.GetProfile("", uid)
 		if len(files) == 0 {
 			res.Status = http.StatusNoContent
 			return nil

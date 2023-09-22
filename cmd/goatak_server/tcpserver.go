@@ -7,7 +7,7 @@ import (
 	"go.uber.org/zap"
 	"net"
 
-	"github.com/kdudkov/goatak/cot"
+	"github.com/kdudkov/goatak/pkg/cot"
 )
 
 func (app *App) ListenTCP(addr string) (err error) {
@@ -70,7 +70,7 @@ func (app *App) listenTls(addr string) error {
 		st := c1.ConnectionState()
 		username, serial := getUser(&st)
 		var scope string
-		if user := app.userManager.GetUser(username); user != nil {
+		if user := app.users.GetUser(username); user != nil {
 			scope = user.Scope
 		}
 
@@ -91,7 +91,7 @@ func (app *App) verifyConnection(st tls.ConnectionState) error {
 	user, sn := getUser(&st)
 	app.logCert(st.PeerCertificates)
 
-	if !app.userManager.UserIsValid(user, sn) {
+	if !app.users.UserIsValid(user, sn) {
 		app.Logger.Warnf("bad user %s", user)
 		return fmt.Errorf("bad user %s", user)
 	}

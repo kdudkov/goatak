@@ -7,12 +7,11 @@ import (
 
 	"github.com/aofei/air"
 	"github.com/google/uuid"
-	"github.com/kdudkov/goatak/cot"
-	"github.com/kdudkov/goatak/staticfiles"
-
 	"runtime/pprof"
 
-	"github.com/kdudkov/goatak/model"
+	"github.com/kdudkov/goatak/pkg/cot"
+	"github.com/kdudkov/goatak/pkg/model"
+	"github.com/kdudkov/goatak/staticfiles"
 )
 
 //go:embed templates

@@ -6,7 +6,7 @@ import (
 	"google.golang.org/protobuf/proto"
 	"io"
 
-	"github.com/kdudkov/goatak/cotproto"
+	"github.com/kdudkov/goatak/pkg/cotproto"
 )
 
 const magic byte = 0xbf

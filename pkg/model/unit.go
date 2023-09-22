@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/kdudkov/goatak/cot"
+	"github.com/kdudkov/goatak/pkg/cot"
 )
 
 const (
