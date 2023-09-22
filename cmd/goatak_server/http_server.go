@@ -10,7 +10,7 @@ import (
 
 	"github.com/aofei/air"
 
-	"github.com/kdudkov/goatak/pkg/cot"
+	"github.com/kdudkov/goatak/internal/client"
 	"github.com/kdudkov/goatak/pkg/model"
 	"github.com/kdudkov/goatak/staticfiles"
 )
@@ -184,7 +184,7 @@ func getConnHandler(app *App) func(req *air.Request, res *air.Response) error {
 	return func(req *air.Request, res *air.Response) error {
 		conn := make([]*Connection, 0)
 
-		app.ForAllClients(func(ch cot.ClientHandler) bool {
+		app.ForAllClients(func(ch client.ClientHandler) bool {
 			c := &Connection{
 				Uids:     ch.GetUids(),
 				User:     ch.GetUser(),

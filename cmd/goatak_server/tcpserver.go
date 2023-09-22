@@ -4,10 +4,11 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
-	"go.uber.org/zap"
 	"net"
 
-	"github.com/kdudkov/goatak/pkg/cot"
+	"go.uber.org/zap"
+
+	"github.com/kdudkov/goatak/internal/client"
 )
 
 func (app *App) ListenTCP(addr string) (err error) {
@@ -27,7 +28,7 @@ func (app *App) ListenTCP(addr string) (err error) {
 		}
 		app.Logger.Infof("TCP connection from %s", conn.RemoteAddr())
 		name := "tcp:" + conn.RemoteAddr().String()
-		h := cot.NewConnClientHandler(name, conn, &cot.HandlerConfig{
+		h := client.NewConnClientHandler(name, conn, &client.HandlerConfig{
 			Logger:    app.Logger.With(zap.String("addr", name)),
 			MessageCb: app.NewCotMessage,
 			RemoveCb:  app.RemoveHandlerCb})
@@ -75,7 +76,7 @@ func (app *App) listenTls(addr string) error {
 		}
 
 		name := "ssl:" + conn.RemoteAddr().String()
-		h := cot.NewConnClientHandler(name, conn, &cot.HandlerConfig{
+		h := client.NewConnClientHandler(name, conn, &client.HandlerConfig{
 			Logger:    app.Logger.With(zap.String("user", username), zap.String("addr", name)),
 			User:      username,
 			Scope:     scope,

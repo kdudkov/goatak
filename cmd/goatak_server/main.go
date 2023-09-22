@@ -25,6 +25,7 @@ import (
 	"gopkg.in/yaml.v3"
 	"software.sslmate.com/src/go-pkcs12"
 
+	"github.com/kdudkov/goatak/internal/client"
 	"github.com/kdudkov/goatak/internal/repository"
 	"github.com/kdudkov/goatak/pkg/cot"
 	"github.com/kdudkov/goatak/pkg/cotproto"
@@ -160,7 +161,7 @@ func (app *App) NewCotMessage(msg *cot.CotMessage) {
 	app.ch <- msg
 }
 
-func (app *App) AddClientHandler(ch cot.ClientHandler) {
+func (app *App) AddClientHandler(ch client.ClientHandler) {
 	app.handlers.Store(ch.GetName(), ch)
 }
 
@@ -171,14 +172,14 @@ func (app *App) RemoveClientHandler(name string) {
 	}
 }
 
-func (app *App) ForAllClients(f func(ch cot.ClientHandler) bool) {
+func (app *App) ForAllClients(f func(ch client.ClientHandler) bool) {
 	app.handlers.Range(func(_, value any) bool {
-		h := value.(cot.ClientHandler)
+		h := value.(client.ClientHandler)
 		return f(h)
 	})
 }
 
-func (app *App) RemoveHandlerCb(cl cot.ClientHandler) {
+func (app *App) RemoveHandlerCb(cl client.ClientHandler) {
 	for uid := range cl.GetUids() {
 		if c := app.items.Get(uid); c != nil {
 			c.SetOffline()
@@ -208,10 +209,10 @@ func (app *App) ConnectTo(addr string) {
 		wg := &sync.WaitGroup{}
 		wg.Add(1)
 
-		h := cot.NewConnClientHandler(name, conn, &cot.HandlerConfig{
+		h := client.NewConnClientHandler(name, conn, &client.HandlerConfig{
 			Logger:    app.Logger,
 			MessageCb: app.NewCotMessage,
-			RemoveCb: func(ch cot.ClientHandler) {
+			RemoveCb: func(ch client.ClientHandler) {
 				wg.Done()
 				app.handlers.Delete(name)
 				app.Logger.Info("disconnected")
@@ -441,7 +442,7 @@ func (app *App) cleanOldUnits() {
 }
 
 func (app *App) SendToAllOther(msg *cot.CotMessage) {
-	app.ForAllClients(func(ch cot.ClientHandler) bool {
+	app.ForAllClients(func(ch client.ClientHandler) bool {
 		if ch.GetName() != msg.From && ch.CanSeeScope(msg.Scope) {
 			if err := ch.SendMsg(msg.TakMessage); err != nil {
 				app.Logger.Errorf("error sending to %s: %v", ch.GetName(), err)
@@ -452,7 +453,7 @@ func (app *App) SendToAllOther(msg *cot.CotMessage) {
 }
 
 func (app *App) SendToCallsign(callsign string, msg *cotproto.TakMessage) {
-	app.ForAllClients(func(ch cot.ClientHandler) bool {
+	app.ForAllClients(func(ch client.ClientHandler) bool {
 		for _, c := range ch.GetUids() {
 			if c == callsign {
 				if err := ch.SendMsg(msg); err != nil {

@@ -19,6 +19,7 @@ import (
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
 
+	"github.com/kdudkov/goatak/internal/client"
 	"github.com/kdudkov/goatak/internal/repository"
 	"github.com/kdudkov/goatak/pkg/cot"
 	"github.com/kdudkov/goatak/pkg/cotproto"
@@ -55,7 +56,7 @@ type App struct {
 	messages    *model.Messages
 	tls         bool
 	tlsCert     *tls.Certificate
-	cl          *cot.ConnClientHandler
+	cl          *client.ConnClientHandler
 	listeners   sync.Map
 	textLogger  *TextLogger
 
@@ -160,10 +161,10 @@ func (app *App) Run(ctx context.Context) {
 		wg.Add(1)
 		ctx1, cancel1 := context.WithCancel(ctx)
 
-		app.cl = cot.NewConnClientHandler(fmt.Sprintf("%s:%s", app.host, app.tcpPort), conn, &cot.HandlerConfig{
+		app.cl = client.NewConnClientHandler(fmt.Sprintf("%s:%s", app.host, app.tcpPort), conn, &client.HandlerConfig{
 			Logger:    app.Logger,
 			MessageCb: app.ProcessEvent,
-			RemoveCb: func(ch cot.ClientHandler) {
+			RemoveCb: func(ch client.ClientHandler) {
 				app.SetConnected(false)
 				wg.Done()
 				cancel1()
