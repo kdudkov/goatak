@@ -20,7 +20,7 @@ func (m *CotMessage) GetUid() string {
 		return ""
 	}
 
-	return m.TakMessage.GetCotEvent().Uid
+	return m.TakMessage.GetCotEvent().GetUid()
 }
 
 func (m *CotMessage) GetType() string {
@@ -28,7 +28,7 @@ func (m *CotMessage) GetType() string {
 		return ""
 	}
 
-	return m.TakMessage.GetCotEvent().Type
+	return m.TakMessage.GetCotEvent().GetType()
 }
 
 func (m *CotMessage) GetCallsign() string {

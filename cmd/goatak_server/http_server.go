@@ -144,7 +144,7 @@ func getConfigHandler(app *App) func(req *air.Request, res *air.Response) error 
 func getUnitsHandler(app *App) func(req *air.Request, res *air.Response) error {
 	return func(req *air.Request, res *air.Response) error {
 		r := make(map[string]any, 0)
-		r["items"] = getUnits(app)
+		r["units"] = getUnits(app)
 		r["messages"] = app.messages
 
 		return res.WriteJSON(r)
@@ -174,7 +174,7 @@ func deleteItemHandler(app *App) func(req *air.Request, res *air.Response) error
 		app.items.Remove(uid)
 
 		r := make(map[string]any, 0)
-		r["items"] = getUnits(app)
+		r["units"] = getUnits(app)
 		r["messages"] = app.messages
 		return res.WriteJSON(r)
 	}
