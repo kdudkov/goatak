@@ -167,9 +167,9 @@ func FromMsg(msg *cot.CotMessage) *Item {
 
 	i := &Item{
 		class:     cls,
-		uid:       msg.TakMessage.GetCotEvent().GetUid(),
-		cottype:   msg.TakMessage.GetCotEvent().GetType(),
-		callsign:  msg.TakMessage.GetCotEvent().GetDetail().GetContact().GetCallsign(),
+		uid:       msg.GetUid(),
+		cottype:   msg.GetType(),
+		callsign:  msg.GetCallsign(),
 		staleTime: cot.TimeFromMillis(msg.TakMessage.GetCotEvent().GetStaleTime()),
 		startTime: cot.TimeFromMillis(msg.TakMessage.GetCotEvent().GetStartTime()),
 		sendTime:  cot.TimeFromMillis(msg.TakMessage.GetCotEvent().GetSendTime()),

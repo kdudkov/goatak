@@ -11,9 +11,11 @@ import (
 	"os/signal"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"syscall"
 	"time"
 
+	"github.com/jroimartin/gocui"
 	"github.com/kdudkov/goatak/cot"
 	"github.com/kdudkov/goatak/cotproto"
 	"github.com/kdudkov/goatak/model"
@@ -39,18 +41,23 @@ type Pos struct {
 }
 
 type App struct {
+	g           *gocui.Gui
+	ui          bool
 	dialTimeout time.Duration
 	host        string
 	tcpPort     string
 	webPort     int
 	Logger      *zap.SugaredLogger
 	ch          chan []byte
-	units       sync.Map
+	items       *ItemsRepo
 	messages    *model.Messages
 	tls         bool
 	tlsCert     *tls.Certificate
 	cl          *cot.ConnClientHandler
 	listeners   sync.Map
+	textLogger  *TextLogger
+
+	connected uint32
 
 	callsign string
 	uid      string
@@ -95,14 +102,38 @@ func NewApp(uid string, callsign string, connectStr string, webPort int, logger 
 		tcpPort:     parts[1],
 		tls:         tlsConn,
 		webPort:     webPort,
-		units:       sync.Map{},
+		items:       NewItemsRepo(),
 		dialTimeout: time.Second * 5,
 		listeners:   sync.Map{},
 		messages:    model.NewMessages(uid),
 	}
 }
 
+func (app *App) Init(cancel context.CancelFunc) {
+	if app.ui {
+		var err error
+		app.g, err = gocui.NewGui(gocui.OutputNormal)
+		if err != nil {
+			panic(err)
+		}
+
+		app.g.SetManagerFunc(app.layout)
+
+		if err := app.g.SetKeybinding("", gocui.KeyCtrlC, gocui.ModNone,
+			func(_ *gocui.Gui, _ *gocui.View) error { cancel(); return gocui.ErrQuit }); err != nil {
+			panic(err)
+		}
+		app.textLogger = NewTextLogger()
+	}
+
+	app.ch = make(chan []byte, 20)
+}
+
 func (app *App) Run(ctx context.Context) {
+	if app.ui {
+		defer app.g.Close()
+	}
+
 	if app.webPort != 0 {
 		go func() {
 			addr := fmt.Sprintf(":%d", app.webPort)
@@ -112,10 +143,7 @@ func (app *App) Run(ctx context.Context) {
 			}
 		}()
 	}
-
 	go app.cleaner()
-
-	app.ch = make(chan []byte, 20)
 
 	for ctx.Err() == nil {
 		conn, err := app.connect()
@@ -124,18 +152,19 @@ func (app *App) Run(ctx context.Context) {
 			time.Sleep(time.Second * 5)
 			continue
 		}
-
+		app.SetConnected(true)
 		app.Logger.Info("connected")
-		wg := &sync.WaitGroup{}
+		wg := new(sync.WaitGroup)
 		wg.Add(1)
-		ctx1, cancel := context.WithCancel(ctx)
+		ctx1, cancel1 := context.WithCancel(ctx)
 
 		app.cl = cot.NewConnClientHandler(fmt.Sprintf("%s:%s", app.host, app.tcpPort), conn, &cot.HandlerConfig{
 			Logger:    app.Logger,
 			MessageCb: app.ProcessEvent,
 			RemoveCb: func(ch cot.ClientHandler) {
+				app.SetConnected(false)
 				wg.Done()
-				cancel()
+				cancel1()
 				app.Logger.Info("disconnected")
 			},
 			IsClient: true,
@@ -147,6 +176,19 @@ func (app *App) Run(ctx context.Context) {
 
 		wg.Wait()
 	}
+}
+
+func (app *App) SetConnected(connected bool) {
+	if connected {
+		atomic.StoreUint32(&app.connected, 1)
+	} else {
+		atomic.StoreUint32(&app.connected, 0)
+	}
+	app.redraw()
+}
+
+func (app *App) IsConnected() bool {
+	return atomic.LoadUint32(&app.connected) != 0
 }
 
 func makeUid(callsign string) string {
@@ -186,25 +228,28 @@ func (app *App) SendMsg(msg *cotproto.TakMessage) {
 }
 
 func (app *App) ProcessEvent(msg *cot.CotMessage) {
-	if c := app.GetItem(msg.GetUid()); c != nil {
+	app.textLogger.AddLine(fmt.Sprintf("%s %s (%s)", msg.GetType(), msg.GetUid(), msg.GetCallsign()))
+	app.redraw()
+
+	if c := app.items.Get(msg.GetUid()); c != nil {
 		c.Update(nil)
 	}
 
 	switch {
 	case msg.GetType() == "t-x-c-t":
 		app.Logger.Debugf("ping from %s", msg.GetUid())
-		if i := app.GetItem(msg.GetUid()); i != nil {
+		if i := app.items.Get(msg.GetUid()); i != nil {
 			i.SetOnline()
 		}
 	case msg.GetType() == "t-x-c-t-r":
 		app.Logger.Debugf("pong from %s", msg.GetUid())
-		if i := app.GetItem(msg.GetUid()); i != nil {
+		if i := app.items.Get(msg.GetUid()); i != nil {
 			i.SetOnline()
 		}
 	case msg.GetType() == "t-x-d-d":
 		app.removeByLink(msg)
 	case msg.IsChat():
-		fmt.Println(msg.TakMessage.GetCotEvent().Detail.XmlDetail)
+		//fmt.Println(msg.TakMessage.GetCotEvent().Detail.XmlDetail)
 		if c := model.MsgToChat(msg); c != nil {
 			if c.From == "" {
 				c.From = app.GetCallsign(c.FromUid)
@@ -242,39 +287,17 @@ func (app *App) ProcessItem(msg *cot.CotMessage) {
 	if cl == model.CONTACT {
 		app.messages.CheckCallsing(msg.GetUid(), msg.GetCallsign())
 	}
-	if c := app.GetItem(msg.GetUid()); c != nil {
+	if c := app.items.Get(msg.GetUid()); c != nil {
 		app.Logger.Debugf("update %s %s (%s) %s", cl, msg.GetUid(), msg.GetCallsign(), msg.GetType())
 		c.Update(msg)
 	} else {
 		app.Logger.Infof("new %s %s (%s) %s", cl, msg.GetUid(), msg.GetCallsign(), msg.GetType())
-		app.units.Store(msg.GetUid(), model.FromMsg(msg))
+		app.items.Store(model.FromMsg(msg))
 	}
-}
-
-func (app *App) AddItem(uid string, u *model.Item) {
-	if u == nil {
-		return
-	}
-	app.units.Store(uid, u)
-}
-
-func (app *App) Remove(uid string) {
-	if _, ok := app.units.Load(uid); ok {
-		app.units.Delete(uid)
-	}
-}
-
-func (app *App) GetItem(uid string) *model.Item {
-	if v, ok := app.units.Load(uid); ok {
-		if i, ok := v.(*model.Item); ok {
-			return i
-		}
-	}
-	return nil
 }
 
 func (app *App) GetCallsign(uid string) string {
-	i := app.GetItem(uid)
+	i := app.items.Get(uid)
 	if i != nil {
 		return i.GetCallsign()
 	}
@@ -289,7 +312,7 @@ func (app *App) removeByLink(msg *cot.CotMessage) {
 			app.Logger.Warnf("invalid remove message: %s", msg.Detail)
 			return
 		}
-		if v := app.GetItem(uid); v != nil {
+		if v := app.items.Get(uid); v != nil {
 			switch v.GetClass() {
 			case model.CONTACT:
 				app.Logger.Debugf("remove %s by message", uid)
@@ -364,22 +387,20 @@ func (app *App) cleaner() {
 func (app *App) cleanOldUnits() {
 	toDelete := make([]string, 0)
 
-	app.units.Range(func(key, value any) bool {
-		val := value.(*model.Item)
-
-		switch val.GetClass() {
+	app.items.ForEach(func(item *model.Item) bool {
+		switch item.GetClass() {
 		case model.UNIT, model.POINT:
-			if val.IsOld() {
-				toDelete = append(toDelete, key.(string))
-				app.Logger.Debugf("removing %s %s", val.GetClass(), key)
+			if item.IsOld() {
+				toDelete = append(toDelete, item.GetUID())
+				app.Logger.Debugf("removing %s %s", item.GetClass(), item.GetUID())
 			}
 		case model.CONTACT:
-			if val.IsOld() {
-				toDelete = append(toDelete, key.(string))
-				app.Logger.Debugf("removing contact %s", key)
+			if item.IsOld() {
+				toDelete = append(toDelete, item.GetUID())
+				app.Logger.Debugf("removing contact %s", item.GetUID())
 			} else {
-				if val.IsOnline() && val.GetLastSeen().Add(lastSeenOfflineTimeout).Before(time.Now()) {
-					val.SetOffline()
+				if item.IsOnline() && item.GetLastSeen().Add(lastSeenOfflineTimeout).Before(time.Now()) {
+					item.SetOffline()
 				}
 			}
 		}
@@ -387,15 +408,14 @@ func (app *App) cleanOldUnits() {
 	})
 
 	for _, uid := range toDelete {
-		app.units.Delete(uid)
+		app.items.Remove(uid)
 	}
 }
 
 func (app *App) sendMyPoints() {
-	app.units.Range(func(key, value any) bool {
-		val := value.(*model.Item)
-		if val.IsSend() {
-			app.SendMsg(val.GetMsg().TakMessage)
+	app.items.ForEach(func(item *model.Item) bool {
+		if item.IsSend() {
+			app.SendMsg(item.GetMsg().TakMessage)
 		}
 
 		return true
@@ -428,6 +448,7 @@ func (p *Pos) Get() (float64, float64) {
 func main() {
 	var conf = flag.String("config", "goatak_client.yml", "name of config file")
 	var noweb = flag.Bool("noweb", false, "do not start web server")
+	var ui = flag.Bool("ui", false, "do not start web server")
 	var debug = flag.Bool("debug", false, "debug")
 	flag.Parse()
 
@@ -452,13 +473,15 @@ func main() {
 		panic(fmt.Errorf("Fatal error config file: %s \n", err))
 	}
 
-	ctx, cancel := context.WithCancel(context.Background())
 	var cfg zap.Config
 	if *debug {
 		cfg = zap.NewDevelopmentConfig()
 	} else {
 		cfg = zap.NewProductionConfig()
 		cfg.Encoding = "console"
+	}
+	if *ui {
+		cfg.OutputPaths = []string{"webclient.log"}
 	}
 	logger, _ := cfg.Build()
 	defer logger.Sync()
@@ -475,6 +498,8 @@ func main() {
 		viper.GetInt("web_port"),
 		logger.Sugar(),
 	)
+
+	app.ui = *ui
 
 	if *noweb {
 		app.webPort = 0
@@ -515,10 +540,19 @@ func main() {
 			app.loadCerts()
 		}
 	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	app.Init(cancel)
 	go app.Run(ctx)
 
-	c := make(chan os.Signal, 1)
-	signal.Notify(c, syscall.SIGINT, syscall.SIGTERM)
-	<-c
+	if app.ui {
+		if err := app.g.MainLoop(); err != nil && err != gocui.ErrQuit {
+			app.Logger.Errorf(err.Error())
+		}
+	} else {
+		c := make(chan os.Signal, 1)
+		signal.Notify(c, syscall.SIGINT, syscall.SIGTERM)
+		<-c
+	}
 	cancel()
 }

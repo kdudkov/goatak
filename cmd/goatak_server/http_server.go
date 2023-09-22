@@ -143,7 +143,7 @@ func getConfigHandler(app *App) func(req *air.Request, res *air.Response) error 
 func getUnitsHandler(app *App) func(req *air.Request, res *air.Response) error {
 	return func(req *air.Request, res *air.Response) error {
 		r := make(map[string]any, 0)
-		r["units"] = getUnits(app)
+		r["items"] = getUnits(app)
 		r["messages"] = app.messages
 
 		return res.WriteJSON(r)
@@ -159,9 +159,8 @@ func getStackHandler() func(req *air.Request, res *air.Response) error {
 func getUnits(app *App) []*model.WebUnit {
 	units := make([]*model.WebUnit, 0)
 
-	app.units.Range(func(key, value any) bool {
-		v := value.(*model.Item)
-		units = append(units, v.ToWeb())
+	app.items.ForEach(func(item *model.Item) bool {
+		units = append(units, item.ToWeb())
 		return true
 	})
 
@@ -171,10 +170,10 @@ func getUnits(app *App) []*model.WebUnit {
 func deleteItemHandler(app *App) func(req *air.Request, res *air.Response) error {
 	return func(req *air.Request, res *air.Response) error {
 		uid := getStringParam(req, "uid")
-		app.units.Delete(uid)
+		app.items.Remove(uid)
 
 		r := make(map[string]any, 0)
-		r["units"] = getUnits(app)
+		r["items"] = getUnits(app)
 		r["messages"] = app.messages
 		return res.WriteJSON(r)
 	}

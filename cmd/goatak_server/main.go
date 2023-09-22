@@ -70,7 +70,7 @@ type App struct {
 	zoom           int8
 
 	handlers sync.Map
-	units    sync.Map
+	items    *ItemsRepo
 	messages []*model.ChatMessage
 	feeds    sync.Map
 
@@ -89,7 +89,7 @@ func NewApp(config *AppConfig, logger *zap.SugaredLogger) *App {
 		userManager:    NewUserManager(logger.Named("userManager"), config.usersFile),
 		ch:             make(chan *cot.CotMessage, 20),
 		handlers:       sync.Map{},
-		units:          sync.Map{},
+		items:          NewItemsRepo(),
 		feeds:          sync.Map{},
 		uid:            uuid.New().String(),
 	}
@@ -179,7 +179,7 @@ func (app *App) ForAllClients(f func(ch cot.ClientHandler) bool) {
 
 func (app *App) RemoveHandlerCb(cl cot.ClientHandler) {
 	for uid := range cl.GetUids() {
-		if c := app.GetItem(uid); c != nil {
+		if c := app.items.Get(uid); c != nil {
 			c.SetOffline()
 		}
 		msg := &cot.CotMessage{
@@ -293,42 +293,22 @@ func (app *App) getTlsConfig() *tls.Config {
 	return &tls.Config{Certificates: []tls.Certificate{tlsCert}, InsecureSkipVerify: true}
 }
 
-func (app *App) AddItem(uid string, u *model.Item) {
-	if u == nil {
-		return
-	}
-	app.units.Store(uid, u)
-}
-
-func (app *App) GetItem(uid string) *model.Item {
-	if v, ok := app.units.Load(uid); ok {
-		return v.(*model.Item)
-	}
-	return nil
-}
-
 func (app *App) GetCallsign(uid string) string {
-	i := app.GetItem(uid)
+	i := app.items.Get(uid)
 	if i != nil {
 		return i.GetCallsign()
 	}
 	return ""
 }
 
-func (app *App) RemoveItem(uid string) {
-	if _, ok := app.units.Load(uid); ok {
-		app.units.Delete(uid)
-	}
-}
-
 func (app *App) ProcessItem(msg *cot.CotMessage) {
 	cl := model.GetClass(msg)
-	if c := app.GetItem(msg.GetUid()); c != nil {
+	if c := app.items.Get(msg.GetUid()); c != nil {
 		app.Logger.Debugf("update %s %s (%s) %s", cl, msg.GetUid(), msg.GetCallsign(), msg.GetType())
 		c.Update(msg)
 	} else {
 		app.Logger.Infof("new %s %s (%s) %s", cl, msg.GetUid(), msg.GetCallsign(), msg.GetType())
-		app.units.Store(msg.GetUid(), model.FromMsg(msg))
+		app.items.Store(model.FromMsg(msg))
 	}
 }
 
@@ -340,7 +320,7 @@ func (app *App) removeByLink(msg *cot.CotMessage) {
 			app.Logger.Warnf("invalid remove message: %s", msg.Detail)
 			return
 		}
-		if v := app.GetItem(uid); v != nil {
+		if v := app.items.Get(uid); v != nil {
 			switch v.GetClass() {
 			case model.CONTACT:
 				app.Logger.Debugf("remove %s by message", uid)
@@ -348,7 +328,7 @@ func (app *App) removeByLink(msg *cot.CotMessage) {
 				return
 			case model.UNIT, model.POINT:
 				app.Logger.Debugf("remove unit/point %s type %s by message", uid, typ)
-				//app.units.Delete(uid)
+				app.items.Remove(uid)
 				return
 			}
 		}
@@ -385,7 +365,7 @@ func (app *App) MessageProcessor() {
 			if strings.HasSuffix(uid, "-ping") {
 				uid = uid[:len(uid)-5]
 			}
-			if c := app.GetItem(uid); c != nil {
+			if c := app.items.Get(uid); c != nil {
 				c.Update(nil)
 			}
 			break
@@ -434,22 +414,20 @@ func (app *App) cleaner() {
 func (app *App) cleanOldUnits() {
 	toDelete := make([]string, 0)
 
-	app.units.Range(func(key, value any) bool {
-		val := value.(*model.Item)
-
-		switch val.GetClass() {
+	app.items.ForEach(func(item *model.Item) bool {
+		switch item.GetClass() {
 		case model.UNIT, model.POINT:
-			if val.IsOld() {
-				toDelete = append(toDelete, key.(string))
-				app.Logger.Debugf("removing %s %s", val.GetClass(), key)
+			if item.IsOld() {
+				toDelete = append(toDelete, item.GetUID())
+				app.Logger.Debugf("removing %s %s", item.GetClass(), item.GetUID())
 			}
 		case model.CONTACT:
-			if val.IsOld() {
-				toDelete = append(toDelete, key.(string))
-				app.Logger.Debugf("removing contact %s", key)
+			if item.IsOld() {
+				toDelete = append(toDelete, item.GetUID())
+				app.Logger.Debugf("removing contact %s", item.GetUID())
 			} else {
-				if val.IsOnline() && val.GetLastSeen().Add(lastSeenOfflineTimeout).Before(time.Now()) {
-					val.SetOffline()
+				if item.IsOnline() && item.GetLastSeen().Add(lastSeenOfflineTimeout).Before(time.Now()) {
+					item.SetOffline()
 				}
 			}
 		}
@@ -457,7 +435,7 @@ func (app *App) cleanOldUnits() {
 	})
 
 	for _, uid := range toDelete {
-		app.units.Delete(uid)
+		app.items.Remove(uid)
 	}
 }
 

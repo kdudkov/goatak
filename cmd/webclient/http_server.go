@@ -151,11 +151,10 @@ func addItemHandler(app *App) func(req *air.Request, res *air.Response) error {
 		}
 
 		if wu.Category == "unit" || wu.Category == "point" {
-			if u := app.GetItem(msg.GetUid()); u != nil {
+			if u := app.items.Get(msg.GetUid()); u != nil {
 				u.UpdateFromWeb(wu, msg)
 			} else {
-				unit := model.FromMsgLocal(msg, wu.Send)
-				app.units.Store(msg.GetUid(), unit)
+				app.items.Store(model.FromMsgLocal(msg, wu.Send))
 			}
 
 			//app.ProcessItem(msg)
@@ -253,7 +252,7 @@ func getWsHandler(app *App) func(req *air.Request, res *air.Response) error {
 func deleteItemHandler(app *App) func(req *air.Request, res *air.Response) error {
 	return func(req *air.Request, res *air.Response) error {
 		uid := getStringParam(req, "uid")
-		app.units.Delete(uid)
+		app.items.Remove(uid)
 
 		r := make(map[string]any, 0)
 		r["units"] = getUnits(app)
@@ -271,9 +270,8 @@ func getStackHandler() func(req *air.Request, res *air.Response) error {
 func getUnits(app *App) []*model.WebUnit {
 	units := make([]*model.WebUnit, 0)
 
-	app.units.Range(func(key, value any) bool {
-		v := value.(*model.Item)
-		units = append(units, v.ToWeb())
+	app.items.ForEach(func(item *model.Item) bool {
+		units = append(units, item.ToWeb())
 		return true
 	})
 

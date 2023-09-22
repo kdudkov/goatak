@@ -95,14 +95,13 @@ func getEndpointsHandler(app *App) func(req *air.Request, res *air.Response) err
 		result["NotificationId"] = ""
 		result["type"] = "com.bbn.marti.remote.ClientEndpoint"
 
-		app.units.Range(func(key, value any) bool {
-			c := value.(*model.Item)
-			if c.GetClass() == model.CONTACT {
+		app.items.ForEach(func(item *model.Item) bool {
+			if item.GetClass() == model.CONTACT {
 				info := make(map[string]any)
-				info["uid"] = c.GetUID()
-				info["callsign"] = c.GetCallsign()
-				info["lastEventTime"] = c.GetLastSeen()
-				if c.IsOnline() {
+				info["uid"] = item.GetUID()
+				info["callsign"] = item.GetCallsign()
+				info["lastEventTime"] = item.GetLastSeen()
+				if item.IsOnline() {
 					info["lastStatus"] = "Connected"
 				} else {
 					info["lastStatus"] = "Disconnected"
@@ -123,14 +122,13 @@ func getContactsHandler(app *App) func(req *air.Request, res *air.Response) erro
 
 		result := make([]map[string]any, 0)
 
-		app.units.Range(func(key, value any) bool {
-			c := value.(*model.Item)
-			if c.GetClass() == model.CONTACT {
+		app.items.ForEach(func(item *model.Item) bool {
+			if item.GetClass() == model.CONTACT {
 				info := make(map[string]any)
-				info["uid"] = c.GetUID()
-				info["callsign"] = c.GetCallsign()
-				info["team"] = c.GetMsg().GetTeam()
-				info["role"] = c.GetMsg().GetRole()
+				info["uid"] = item.GetUID()
+				info["callsign"] = item.GetCallsign()
+				info["team"] = item.GetMsg().GetTeam()
+				info["role"] = item.GetMsg().GetRole()
 				info["takv"] = ""
 				info["notes"] = ""
 				info["filterGroups"] = ""

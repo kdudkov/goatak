@@ -28,7 +28,7 @@ func (app *App) ListenTCP(addr string) (err error) {
 		app.Logger.Infof("TCP connection from %s", conn.RemoteAddr())
 		name := "tcp:" + conn.RemoteAddr().String()
 		h := cot.NewConnClientHandler(name, conn, &cot.HandlerConfig{
-			Logger:    app.Logger,
+			Logger:    app.Logger.With(zap.String("addr", name)),
 			MessageCb: app.NewCotMessage,
 			RemoveCb:  app.RemoveHandlerCb})
 		app.AddClientHandler(h)

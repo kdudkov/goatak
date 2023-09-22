@@ -233,6 +233,11 @@ func (h *ConnClientHandler) processXMLRead(er *TagReader) (*cotproto.TakMessage,
 		return nil, nil, nil
 	}
 
+	if tag == "auth" {
+		// <auth><cot username=\"test\" password=\"111111\" uid=\"ANDROID-xxxx\ callsign=\"zzz\""/></auth>
+		return nil, nil, nil
+	}
+
 	if tag != "event" {
 		return nil, nil, fmt.Errorf("bad tag: %s", dat)
 	}
