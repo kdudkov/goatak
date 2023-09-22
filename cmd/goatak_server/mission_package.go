@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 )
 
-const baseDir = "./data/mp"
+const baseDir = "./data"
 
 type FileContent interface {
 	SetName(name string)

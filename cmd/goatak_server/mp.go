@@ -25,7 +25,7 @@ type PackageManager struct {
 func NewPackageManager(logger *zap.SugaredLogger) *PackageManager {
 	return &PackageManager{
 		logger:  logger,
-		baseDir: "./data",
+		baseDir: "./data/mp",
 		data:    sync.Map{},
 	}
 }
