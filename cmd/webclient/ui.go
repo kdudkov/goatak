@@ -75,26 +75,34 @@ func (app *App) redraw() {
 }
 
 func (app *App) LogMessage(msg *cot.CotMessage) {
+
+	var col []byte
+	var extra string
+
 	switch {
 	case msg.GetType() == "t-x-c-t":
-		app.textLogger.AddLine(fmt.Sprintf("%s ping from %s", msg.GetType(), msg.GetUid()))
+		extra = "ping"
+		col = []byte{FgBlack, Bold}
 	case msg.GetType() == "t-x-c-t-r":
-		app.textLogger.AddLine(fmt.Sprintf("%s pong from %s", msg.GetType(), msg.GetUid()))
+		extra = "pong"
+		col = []byte{FgBlack, Bold}
 	case msg.GetType() == "t-x-d-d":
-		app.textLogger.AddLineColor(fmt.Sprintf("%s remove msg", msg.GetType()), FgRed)
+		extra = "remove msg"
+		col = []byte{FgRed}
 	case msg.IsChat():
 		if c := model.MsgToChat(msg); c != nil {
-			app.textLogger.AddLineColor(fmt.Sprintf("%s chat msg %s (%s)-> %s room %s", msg.GetType(),
-				c.From, c.FromUid, c.ToUid, c.Chatroom), FgYellow, Bold)
+			extra = c.String()
 		} else {
-			app.textLogger.AddLineColor(fmt.Sprintf("%s invalid chat msg", msg.GetType()), FgYellow, Bold)
+			extra = "invalid chat message"
 		}
+		col = []byte{FgYellow, Bold}
 		break
 	case msg.IsChatReceipt():
-		app.Logger.Infof("got receipt %s", msg.GetType())
+		extra = "chat receipt"
+		col = []byte{FgYellow, Bold}
 		break
 	case strings.HasPrefix(msg.GetType(), "a-"):
-		var col []byte
+		extra = msg.GetCallsign()
 		switch msg.GetType()[2] {
 		case 'f':
 			col = []byte{FgBlue, Bold}
@@ -103,17 +111,19 @@ func (app *App) LogMessage(msg *cot.CotMessage) {
 		case 'n':
 			col = []byte{FgGreen, Bold}
 		default:
-			col = []byte{FgWhite}
+			col = []byte{FgWhite, Bold}
 		}
-		app.textLogger.AddLineColor(fmt.Sprintf("%s %s", msg.GetType(), msg.GetCallsign()), col...)
 	case strings.HasPrefix(msg.GetType(), "b-"):
-		app.textLogger.AddLineColor(fmt.Sprintf("%s %s", msg.GetType(), msg.GetCallsign()), BgCyan)
+		extra = msg.GetCallsign()
+		col = []byte{FgCyan, Bold}
 	case strings.HasPrefix(msg.GetType(), "u-"):
-		app.textLogger.AddLine(fmt.Sprintf("%s %s", msg.GetType(), msg.GetCallsign()))
+		col = []byte{FgMagenta, Bold}
 	case msg.GetType() == "tak registration":
-		app.textLogger.AddLine(fmt.Sprintf("%s %s", msg.GetType(), msg.GetCallsign()))
+		extra = ""
 	default:
-		app.textLogger.AddLine(fmt.Sprintf("%s ???", msg.GetType()))
+		extra = "unknown"
 	}
+
+	app.textLogger.AddLineColor(fmt.Sprintf("%s %s", msg.GetType(), extra), col...)
 	app.redraw()
 }
