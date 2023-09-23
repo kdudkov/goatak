@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"github.com/kdudkov/goatak/pkg/cot"
 	"github.com/kdudkov/goatak/pkg/model"
 	"strings"
@@ -18,6 +19,20 @@ func (app *App) InitMessageProcessors() {
 	app.eventProcessors["a-"] = app.aProcessor
 	app.eventProcessors["b-"] = app.bProcessor
 	app.eventProcessors["u-"] = app.logInterestingProcessor
+	// video feed
+	app.eventProcessors["b-i-v"] = app.logInterestingProcessor
+	// photo
+	app.eventProcessors["b-f-t-r"] = app.logInterestingProcessor
+	// b-r-f-h-c casevac
+	app.eventProcessors["b-r-f-h-c"] = app.logInterestingProcessor
+
+	// u-rb-a Range & Bearing – Line
+	// u-r-b-c-c R&b - Circle
+	// u-d-c-c Drawing Shapes – Circle
+	// u-d-r Drawing Shapes – Rectangle
+	// u-d-f Drawing Shapes - Free Form
+	// u-d-c-e Drawing Shapes – Ellipse
+	// b-r-f-h-c casevac
 }
 
 func (app *App) GetProcessor(t string) (string, EventProcessor) {
@@ -43,7 +58,12 @@ func (app *App) justLogProcessor(msg *cot.CotMessage) {
 }
 
 func (app *App) logInterestingProcessor(msg *cot.CotMessage) {
-	app.Logger.Infof("%s %s", msg.GetType(), msg.GetUid())
+
+	b, err := json.Marshal(msg.TakMessage)
+	if err == nil {
+		app.Logger.Info(string(b))
+		app.Logger.Info(msg.TakMessage.GetCotEvent().GetDetail().GetXmlDetail())
+	}
 }
 
 func (app *App) removeItemProcessor(msg *cot.CotMessage) {

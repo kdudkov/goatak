@@ -11,8 +11,19 @@ func TestGetProcessor(t *testing.T) {
 	app := NewApp(&AppConfig{}, logger.Sugar())
 	app.InitMessageProcessors()
 
-	k, _ := app.GetProcessor("a-b-c-d")
-	if k != "a-" {
-		t.Fail()
+	data := map[string]string{
+		"a-b-c-d":   "a-",
+		"b-t-f":     "b-t-f",
+		"b-t-f-a":   "b-t-f-",
+		"b-t-f-a-b": "b-t-f-",
+		"b-t-b-a":   "b-",
 	}
+
+	for k, v := range data {
+		p, _ := app.GetProcessor(k)
+		if p != v {
+			t.Errorf("got %s, must be %s", p, v)
+		}
+	}
+
 }
