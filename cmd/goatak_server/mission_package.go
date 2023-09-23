@@ -5,10 +5,7 @@ import (
 	"bytes"
 	"fmt"
 	"os"
-	"path/filepath"
 )
-
-const baseDir = "./data"
 
 type FileContent interface {
 	SetName(name string)
@@ -22,7 +19,7 @@ type FsFile struct {
 }
 
 func NewFsFile(fname string) (*FsFile, error) {
-	dat, err := os.ReadFile(filepath.Join(baseDir, fname))
+	dat, err := os.ReadFile(fname)
 
 	if err != nil {
 		return nil, err
@@ -139,7 +136,13 @@ func (m *MissionPackage) Create() ([]byte, error) {
 		return nil, err
 	}
 
-	_, _ = f.Write(m.Manifest())
+	defer zipW.Close()
+
+	_, err = f.Write(m.Manifest())
+
+	if err != nil {
+		return nil, err
+	}
 
 	for _, zf := range m.files {
 		f1, err := zipW.Create(zf.Name())
@@ -147,9 +150,11 @@ func (m *MissionPackage) Create() ([]byte, error) {
 			return nil, err
 		}
 
-		_, _ = f1.Write(zf.Content())
+		_, err = f1.Write(zf.Content())
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	zipW.Close()
 	return buff.Bytes(), nil
 }

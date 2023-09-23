@@ -13,6 +13,7 @@ import (
 	"net"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"strings"
 	"sync"
 	"syscall"
@@ -48,6 +49,8 @@ type AppConfig struct {
 	tlsAddr   string
 
 	usersFile string
+
+	dataDir string
 
 	logging    bool
 	tlsCert    *tls.Certificate
@@ -89,7 +92,7 @@ func NewApp(config *AppConfig, logger *zap.SugaredLogger) *App {
 	app := &App{
 		Logger:          logger,
 		config:          config,
-		packageManager:  NewPackageManager(logger.Named("packageManager")),
+		packageManager:  NewPackageManager(logger.Named("packageManager"), filepath.Join(config.dataDir, "mp")),
 		users:           repository.NewFileUserRepo(logger.Named("userManager"), config.usersFile),
 		ch:              make(chan *cot.CotMessage, 20),
 		handlers:        sync.Map{},
@@ -107,7 +110,9 @@ func (app *App) Run() {
 	app.loadFeeds()
 
 	if app.users != nil {
-		_ = app.users.Start()
+		if err := app.users.Start(); err != nil {
+			log.Fatal(err)
+		}
 	}
 
 	if err := app.packageManager.Init(); err != nil {
@@ -533,6 +538,7 @@ func main() {
 	viper.SetDefault("admin_addr", ":8080")
 	viper.SetDefault("api_addr", ":8889")
 	viper.SetDefault("log", false)
+	viper.SetDefault("data_dir", "data")
 
 	viper.SetDefault("me.lat", 59.8396)
 	viper.SetDefault("me.lon", 31.0213)
@@ -566,6 +572,7 @@ func main() {
 		tlsAddr:     viper.GetString("ssl_addr"),
 		useSsl:      viper.GetBool("ssl.use_ssl"),
 		logging:     viper.GetBool("log"),
+		dataDir:     viper.GetString("data_dir"),
 		debug:       *debug,
 		connections: viper.GetStringSlice("connections"),
 		usersFile:   viper.GetString("users_file"),

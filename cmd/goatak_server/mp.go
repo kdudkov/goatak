@@ -22,10 +22,10 @@ type PackageManager struct {
 	data    sync.Map
 }
 
-func NewPackageManager(logger *zap.SugaredLogger) *PackageManager {
+func NewPackageManager(logger *zap.SugaredLogger, basedir string) *PackageManager {
 	return &PackageManager{
 		logger:  logger,
-		baseDir: "./data/mp",
+		baseDir: basedir,
 		data:    sync.Map{},
 	}
 }
@@ -45,6 +45,10 @@ type PackageInfo struct {
 }
 
 func (pm *PackageManager) Init() error {
+	if err := os.MkdirAll(pm.baseDir, 0777); err != nil {
+		return err
+	}
+
 	files, err := os.ReadDir(pm.baseDir)
 	if err != nil {
 		return err
