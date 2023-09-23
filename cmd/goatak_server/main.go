@@ -5,7 +5,6 @@ import (
 	"crypto"
 	"crypto/tls"
 	"crypto/x509"
-	"encoding/json"
 	"encoding/pem"
 	"flag"
 	"fmt"
@@ -37,6 +36,8 @@ var (
 	gitBranch              = "unknown"
 	lastSeenOfflineTimeout = time.Minute * 5
 )
+
+type EventProcessor func(msg *cot.CotMessage)
 
 type AppConfig struct {
 	udpAddr   string
@@ -78,28 +79,31 @@ type App struct {
 
 	users repository.UserRepository
 
-	ctx context.Context
-	uid string
-	ch  chan *cot.CotMessage
+	ctx             context.Context
+	uid             string
+	ch              chan *cot.CotMessage
+	eventProcessors map[string]EventProcessor
 }
 
 func NewApp(config *AppConfig, logger *zap.SugaredLogger) *App {
 	app := &App{
-		Logger:         logger,
-		config:         config,
-		packageManager: NewPackageManager(logger.Named("packageManager")),
-		users:          repository.NewFileUserRepo(logger.Named("userManager"), config.usersFile),
-		ch:             make(chan *cot.CotMessage, 20),
-		handlers:       sync.Map{},
-		items:          repository.NewItemsFileRepo(),
-		feeds:          sync.Map{},
-		uid:            uuid.New().String(),
+		Logger:          logger,
+		config:          config,
+		packageManager:  NewPackageManager(logger.Named("packageManager")),
+		users:           repository.NewFileUserRepo(logger.Named("userManager"), config.usersFile),
+		ch:              make(chan *cot.CotMessage, 20),
+		handlers:        sync.Map{},
+		items:           repository.NewItemsMemoryRepo(),
+		feeds:           sync.Map{},
+		uid:             uuid.New().String(),
+		eventProcessors: make(map[string]EventProcessor),
 	}
 
 	return app
 }
 
 func (app *App) Run() {
+	app.InitMessageProcessors()
 	app.loadFeeds()
 
 	if app.users != nil {
@@ -303,94 +307,27 @@ func (app *App) GetCallsign(uid string) string {
 	return ""
 }
 
-func (app *App) ProcessItem(msg *cot.CotMessage) {
-	cl := model.GetClass(msg)
-	if c := app.items.Get(msg.GetUid()); c != nil {
-		app.Logger.Debugf("update %s %s (%s) %s", cl, msg.GetUid(), msg.GetCallsign(), msg.GetType())
-		c.Update(msg)
-	} else {
-		app.Logger.Infof("new %s %s (%s) %s", cl, msg.GetUid(), msg.GetCallsign(), msg.GetType())
-		app.items.Store(model.FromMsg(msg))
-	}
-}
-
-func (app *App) removeByLink(msg *cot.CotMessage) {
-	if msg.Detail != nil && msg.Detail.Has("link") {
-		uid := msg.Detail.GetFirst("link").GetAttr("uid")
-		typ := msg.Detail.GetFirst("link").GetAttr("type")
-		if uid == "" {
-			app.Logger.Warnf("invalid remove message: %s", msg.Detail)
-			return
-		}
-		if v := app.items.Get(uid); v != nil {
-			switch v.GetClass() {
-			case model.CONTACT:
-				app.Logger.Debugf("remove %s by message", uid)
-				v.SetOffline()
-				return
-			case model.UNIT, model.POINT:
-				app.Logger.Debugf("remove unit/point %s type %s by message", uid, typ)
-				app.items.Remove(uid)
-				return
-			}
-		}
-	}
-}
-
 func (app *App) MessageProcessor() {
 	for msg := range app.ch {
 		if msg.TakMessage.CotEvent == nil {
 			continue
 		}
 
-		if app.config.logging {
-			if f, err := os.OpenFile(msg.GetType()+".log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666); err == nil {
-				if b, err := json.Marshal(msg.TakMessage); err == nil {
-					_, _ = f.WriteString(string(b))
-					_, _ = f.WriteString("\n")
-				}
-				_ = f.Close()
-			} else {
-				fmt.Println(err)
-			}
+		if c := app.items.Get(msg.GetUid()); c != nil {
+			c.Update(nil)
 		}
 
-		if app.config.debug && msg.TakMessage.GetCotEvent().GetDetail().GetXmlDetail() != "" {
-			app.Logger.Debugf("details: %s", msg.TakMessage.GetCotEvent().GetDetail().GetXmlDetail())
-		}
+		_, processor := app.GetProcessor(msg.GetType())
 
-		switch {
-		case msg.GetType() == "t-x-c-t", msg.GetType() == "t-x-c-t-r":
-			// ping, pong
-			app.Logger.Debugf("ping from %s", msg.GetUid())
-			uid := msg.GetUid()
-			if strings.HasSuffix(uid, "-ping") {
-				uid = uid[:len(uid)-5]
-			}
-			if c := app.items.Get(uid); c != nil {
-				c.Update(nil)
-			}
-			break
-		case msg.GetType() == "t-x-d-d":
-			app.removeByLink(msg)
-			break
-		case msg.IsChat():
-			if c := model.MsgToChat(msg); c != nil {
-				if c.From == "" {
-					c.From = app.GetCallsign(c.FromUid)
+		if processor != nil {
+			processor(msg)
+		} else {
+			app.Logger.Warn("unknown message %s", msg.GetType())
+			if app.config.logging {
+				if err := logToFile(msg); err != nil {
+					app.Logger.Errorf("%v", err)
 				}
-				app.Logger.Infof("Chat %s (%s) -> %s (%s) \"%s\"", c.From, c.FromUid, c.Chatroom, c.ToUid, c.Text)
-				app.messages = append(app.messages, c)
-				app.logMessage(c)
 			}
-			break
-		case strings.HasPrefix(msg.GetType(), "a-"):
-			app.ProcessItem(msg)
-		case strings.HasPrefix(msg.GetType(), "b-"):
-			app.Logger.Infof("point %s (%s) %s", msg.GetUid(), msg.GetCallsign(), msg.GetType())
-			app.ProcessItem(msg)
-		default:
-			app.Logger.Warnf("msg: %s", msg)
 		}
 
 		app.route(msg)

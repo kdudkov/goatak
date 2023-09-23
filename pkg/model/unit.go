@@ -217,6 +217,7 @@ func (i *Item) GetLanLon() (float64, float64) {
 
 func (i *Item) Update(msg *cot.CotMessage) {
 	if msg == nil {
+		i.SetOnline()
 		return
 	}
 
@@ -244,19 +245,18 @@ func (i *Item) Update(msg *cot.CotMessage) {
 
 	if i.class == UNIT || i.class == CONTACT {
 		i.online = true
-		if i.class == UNIT || i.class == CONTACT {
-			if msg.TakMessage.GetCotEvent().GetLat() != 0 || msg.TakMessage.GetCotEvent().GetLat() != 0 {
-				pos := &Pos{
-					time:  cot.TimeFromMillis(msg.TakMessage.GetCotEvent().GetSendTime()),
-					lat:   msg.TakMessage.GetCotEvent().GetLat(),
-					lon:   msg.TakMessage.GetCotEvent().GetLon(),
-					speed: msg.TakMessage.GetCotEvent().GetDetail().GetTrack().GetSpeed(),
-				}
 
-				i.track = append(i.track, pos)
-				if len(i.track) > MAX_TRACK_POINTS {
-					i.track = i.track[len(i.track)-MAX_TRACK_POINTS:]
-				}
+		if msg.TakMessage.GetCotEvent().GetLat() != 0 || msg.TakMessage.GetCotEvent().GetLat() != 0 {
+			pos := &Pos{
+				time:  cot.TimeFromMillis(msg.TakMessage.GetCotEvent().GetSendTime()),
+				lat:   msg.TakMessage.GetCotEvent().GetLat(),
+				lon:   msg.TakMessage.GetCotEvent().GetLon(),
+				speed: msg.TakMessage.GetCotEvent().GetDetail().GetTrack().GetSpeed(),
+			}
+
+			i.track = append(i.track, pos)
+			if len(i.track) > MAX_TRACK_POINTS {
+				i.track = i.track[len(i.track)-MAX_TRACK_POINTS:]
 			}
 		}
 	}

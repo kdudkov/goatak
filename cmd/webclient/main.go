@@ -43,22 +43,25 @@ type Pos struct {
 	mx  sync.RWMutex
 }
 
+type EventProcessor func(msg *cot.CotMessage)
+
 type App struct {
-	g           *gocui.Gui
-	ui          bool
-	dialTimeout time.Duration
-	host        string
-	tcpPort     string
-	webPort     int
-	Logger      *zap.SugaredLogger
-	ch          chan []byte
-	items       repository.ItemsRepository
-	messages    *model.Messages
-	tls         bool
-	tlsCert     *tls.Certificate
-	cl          *client.ConnClientHandler
-	listeners   sync.Map
-	textLogger  *TextLogger
+	g               *gocui.Gui
+	ui              bool
+	dialTimeout     time.Duration
+	host            string
+	tcpPort         string
+	webPort         int
+	Logger          *zap.SugaredLogger
+	ch              chan []byte
+	items           repository.ItemsRepository
+	messages        *model.Messages
+	tls             bool
+	tlsCert         *tls.Certificate
+	cl              *client.ConnClientHandler
+	listeners       sync.Map
+	textLogger      *TextLogger
+	eventProcessors map[string]EventProcessor
 
 	connected uint32
 
@@ -98,17 +101,18 @@ func NewApp(uid string, callsign string, connectStr string, webPort int, logger 
 	}
 
 	return &App{
-		Logger:      logger,
-		callsign:    callsign,
-		uid:         uid,
-		host:        parts[0],
-		tcpPort:     parts[1],
-		tls:         tlsConn,
-		webPort:     webPort,
-		items:       repository.NewItemsFileRepo(),
-		dialTimeout: time.Second * 5,
-		listeners:   sync.Map{},
-		messages:    model.NewMessages(uid),
+		Logger:          logger,
+		callsign:        callsign,
+		uid:             uid,
+		host:            parts[0],
+		tcpPort:         parts[1],
+		tls:             tlsConn,
+		webPort:         webPort,
+		items:           repository.NewItemsMemoryRepo(),
+		dialTimeout:     time.Second * 5,
+		listeners:       sync.Map{},
+		messages:        model.NewMessages(uid),
+		eventProcessors: make(map[string]EventProcessor),
 	}
 }
 
@@ -130,6 +134,7 @@ func (app *App) Init(cancel context.CancelFunc) {
 	}
 
 	app.ch = make(chan []byte, 20)
+	app.InitMessageProcessors()
 }
 
 func (app *App) Run(ctx context.Context) {
@@ -237,50 +242,12 @@ func (app *App) ProcessEvent(msg *cot.CotMessage) {
 		c.Update(nil)
 	}
 
-	switch {
-	case msg.GetType() == "t-x-c-t":
-		app.Logger.Debugf("ping from %s", msg.GetUid())
-		if i := app.items.Get(msg.GetUid()); i != nil {
-			i.SetOnline()
-		}
-	case msg.GetType() == "t-x-c-t-r":
-		app.Logger.Debugf("pong from %s", msg.GetUid())
-		if i := app.items.Get(msg.GetUid()); i != nil {
-			i.SetOnline()
-		}
-	case msg.GetType() == "t-x-d-d":
-		app.removeByLink(msg)
-	case msg.IsChat():
-		//fmt.Println(msg.TakMessage.GetCotEvent().Detail.XmlDetail)
-		if c := model.MsgToChat(msg); c != nil {
-			if c.From == "" {
-				c.From = app.GetCallsign(c.FromUid)
-			}
-			app.Logger.Infof("%s", c)
-			app.messages.Add(c)
-		}
-		break
-	case msg.IsChatReceipt():
-		app.Logger.Infof("got receipt %s", msg.GetType())
-		break
-	case strings.HasPrefix(msg.GetType(), "a-"):
-		if msg.GetUid() == app.uid {
-			break
-		}
-		app.ProcessItem(msg)
-	case strings.HasPrefix(msg.GetType(), "b-"):
-		if uid, _ := msg.GetParent(); uid != app.uid {
-			app.Logger.Debugf("point %s (%s) %s", msg.GetUid(), msg.GetCallsign(), msg.GetType())
-			app.ProcessItem(msg)
-		} else {
-			app.Logger.Debugf("my own point %s (%s) %s", msg.GetUid(), msg.GetCallsign(), msg.GetType())
-		}
-	case strings.HasPrefix(msg.GetType(), "u-"):
-		fmt.Println(msg.GetType())
-	case msg.GetType() == "tak registration":
-		app.Logger.Debugf("registration %s %s", msg.GetUid(), msg.GetCallsign())
-	default:
-		app.Logger.Debugf("unknown event: %s", msg.GetType())
+	_, processor := app.GetProcessor(msg.GetType())
+
+	if processor != nil {
+		processor(msg)
+	} else {
+		app.Logger.Warn("unknown message %s", msg.GetType())
 	}
 }
 
@@ -304,30 +271,6 @@ func (app *App) GetCallsign(uid string) string {
 		return i.GetCallsign()
 	}
 	return uid
-}
-
-func (app *App) removeByLink(msg *cot.CotMessage) {
-	if msg.Detail != nil && msg.Detail.Has("link") {
-		uid := msg.Detail.GetFirst("link").GetAttr("uid")
-		typ := msg.Detail.GetFirst("link").GetAttr("type")
-		if uid == "" {
-			app.Logger.Warnf("invalid remove message: %s", msg.Detail)
-			return
-		}
-		if v := app.items.Get(uid); v != nil {
-			switch v.GetClass() {
-			case model.CONTACT:
-				app.Logger.Debugf("remove %s by message", uid)
-				v.SetOffline()
-				app.processChange(v)
-				return
-			case model.UNIT, model.POINT:
-				app.Logger.Debugf("remove unit/point %s type %s by message", uid, typ)
-				//app.units.Delete(uid)
-				return
-			}
-		}
-	}
 }
 
 func (app *App) processChange(u *model.Item) {

@@ -5,6 +5,7 @@ import (
 	"github.com/jroimartin/gocui"
 	"github.com/kdudkov/goatak/pkg/cot"
 	"github.com/kdudkov/goatak/pkg/model"
+	"sort"
 	"strings"
 )
 
@@ -41,18 +42,25 @@ func (app *App) redraw() {
 				fmt.Fprintf(v, WithColors("Disconnected\n\n", FgWhite))
 			}
 
+			res := make([]*model.WebUnit, 0)
 			app.items.ForEach(func(i *model.Item) bool {
 				if i.GetClass() == model.CONTACT {
-					u := i.ToWeb()
-					if u.Status == "Online" {
-						fmt.Fprintf(v, WithColors("%s %s %s [%s] %.5f,%.5f\n", FgGreen, Bold), u.Callsign, u.Team, u.Role, u.Status, u.Lat, u.Lon)
-					} else {
-						fmt.Fprintf(v, WithColors("%s %s %s [%s]\n", FgWhite), u.Callsign, u.Team, u.Role, u.Status)
-					}
+					res = append(res, i.ToWeb())
 				}
 				return true
 			})
 
+			sort.Slice(res, func(i, j int) bool {
+				return res[i].Callsign > res[j].Callsign
+			})
+
+			for _, u := range res {
+				if u.Status == "Online" {
+					fmt.Fprintf(v, WithColors("%s %s %s [%s] %.5f,%.5f\n", FgGreen, Bold), u.Callsign, u.Team, u.Role, u.Status, u.Lat, u.Lon)
+				} else {
+					fmt.Fprintf(v, WithColors("%s %s %s [%s]\n", FgWhite), u.Callsign, u.Team, u.Role, u.Status)
+				}
+			}
 		}
 		if v, err := gui.View("log"); err == nil {
 			v.Clear()

@@ -6,39 +6,39 @@ import (
 	"github.com/kdudkov/goatak/pkg/model"
 )
 
-type ItemsFileRepo struct {
+type ItemsMemoryRepo struct {
 	items sync.Map
 }
 
-func NewItemsFileRepo() *ItemsFileRepo {
-	return new(ItemsFileRepo)
+func NewItemsMemoryRepo() *ItemsMemoryRepo {
+	return new(ItemsMemoryRepo)
 }
 
-func (r *ItemsFileRepo) Start() error {
+func (r *ItemsMemoryRepo) Start() error {
 	return nil
 }
 
-func (r *ItemsFileRepo) Stop() {
+func (r *ItemsMemoryRepo) Stop() {
 	// no-op
 }
 
-func (r *ItemsFileRepo) Store(i *model.Item) {
+func (r *ItemsMemoryRepo) Store(i *model.Item) {
 	if i != nil {
 		r.items.Store(i.GetUID(), i)
 	}
 }
-func (r *ItemsFileRepo) Get(uid string) *model.Item {
+func (r *ItemsMemoryRepo) Get(uid string) *model.Item {
 	if v, ok := r.items.Load(uid); ok {
 		return v.(*model.Item)
 	}
 	return nil
 }
 
-func (r *ItemsFileRepo) Remove(uid string) {
+func (r *ItemsMemoryRepo) Remove(uid string) {
 	r.items.Delete(uid)
 }
 
-func (r *ItemsFileRepo) ForEach(f func(item *model.Item) bool) {
+func (r *ItemsMemoryRepo) ForEach(f func(item *model.Item) bool) {
 	r.items.Range(func(_, value any) bool {
 		i := value.(*model.Item)
 		return f(i)
