@@ -22,7 +22,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
-	"gopkg.in/yaml.v3"
 	"software.sslmate.com/src/go-pkcs12"
 
 	"github.com/kdudkov/goatak/internal/client"
@@ -78,7 +77,7 @@ type App struct {
 	handlers sync.Map
 	items    repository.ItemsRepository
 	messages []*model.ChatMessage
-	feeds    sync.Map
+	feeds    repository.FeedsRepository
 
 	users repository.UserRepository
 
@@ -97,7 +96,7 @@ func NewApp(config *AppConfig, logger *zap.SugaredLogger) *App {
 		ch:              make(chan *cot.CotMessage, 20),
 		handlers:        sync.Map{},
 		items:           repository.NewItemsMemoryRepo(),
-		feeds:           sync.Map{},
+		feeds:           repository.NewFeedsFileRepo(logger.Named("feedsRepo"), filepath.Join(config.dataDir, "feeds")),
 		uid:             uuid.New().String(),
 		eventProcessors: make(map[string]EventProcessor),
 	}
@@ -107,10 +106,15 @@ func NewApp(config *AppConfig, logger *zap.SugaredLogger) *App {
 
 func (app *App) Run() {
 	app.InitMessageProcessors()
-	app.loadFeeds()
 
 	if app.users != nil {
 		if err := app.users.Start(); err != nil {
+			log.Fatal(err)
+		}
+	}
+
+	if app.feeds != nil {
+		if err := app.feeds.Start(); err != nil {
 			log.Fatal(err)
 		}
 	}
@@ -162,8 +166,6 @@ func (app *App) Run() {
 	<-c
 	app.Logger.Info("exiting...")
 	cancel()
-	app.Logger.Info("save feeds")
-	app.saveFeeds()
 }
 
 func (app *App) NewCotMessage(msg *cot.CotMessage) {
@@ -416,43 +418,6 @@ func (app *App) logMessage(c *model.ChatMessage) {
 	}
 	defer fd.Close()
 	fmt.Fprintf(fd, "%s %s (%s) -> %s (%s) \"%s\"\n", c.Time, c.From, c.FromUid, c.Chatroom, c.ToUid, c.Text)
-}
-
-func (app *App) loadFeeds() {
-	f, err := os.Open("feeds.yml")
-	if err != nil {
-		return
-	}
-	defer f.Close()
-
-	r := make([]*Feed2, 0)
-	if err := yaml.NewDecoder(f).Decode(&r); err != nil {
-		app.Logger.Errorf("error reading feeds: %s", err.Error())
-		return
-	}
-	for _, feed := range r {
-		app.feeds.Store(feed.Uid, feed.ToFeed())
-	}
-}
-
-func (app *App) saveFeeds() error {
-	r := make([]*Feed2, 0)
-	app.feeds.Range(func(_, value any) bool {
-		if f, ok := value.(*Feed); ok {
-			r = append(r, f.ToFeed2())
-		}
-
-		return true
-	})
-
-	f, err := os.Create("feeds.yml")
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-
-	enc := yaml.NewEncoder(f)
-	return enc.Encode(r)
 }
 
 func loadPem(name string) ([]*x509.Certificate, error) {

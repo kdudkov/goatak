@@ -21,3 +21,12 @@ type ItemsRepository interface {
 	Remove(uid string)
 	ForEach(f func(item *model.Item) bool)
 }
+
+type FeedsRepository interface {
+	Start() error
+	Stop()
+	Store(i *model.Feed2)
+	Get(uid string) *model.Feed2
+	Remove(uid string)
+	ForEach(f func(item *model.Feed2) bool)
+}

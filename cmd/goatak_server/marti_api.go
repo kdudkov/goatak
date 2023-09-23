@@ -322,12 +322,10 @@ func getVideoListHandler(app *App) func(req *air.Request, res *air.Response) err
 	return func(req *air.Request, res *air.Response) error {
 		app.Logger.Infof("%s %s", req.Method, req.Path)
 
-		r := new(VideoConnections)
+		r := new(model.VideoConnections)
 		r.XMLName = xml.Name{Local: "videoConnections"}
-		app.feeds.Range(func(_, value any) bool {
-			if feed, ok := value.(*Feed); ok {
-				r.Feeds = append(r.Feeds, feed)
-			}
+		app.feeds.ForEach(func(f *model.Feed2) bool {
+			r.Feeds = append(r.Feeds, f.ToFeed())
 			return true
 		})
 		return res.WriteXML(r)
@@ -338,14 +336,14 @@ func getVideoPostHandler(app *App) func(req *air.Request, res *air.Response) err
 	return func(req *air.Request, res *air.Response) error {
 		app.Logger.Infof("%s %s", req.Method, req.Path)
 
-		r := new(VideoConnections)
+		r := new(model.VideoConnections)
 
 		decoder := xml.NewDecoder(req.Body)
 		if err := decoder.Decode(r); err != nil {
 			return err
 		}
 		for _, f := range r.Feeds {
-			app.feeds.Store(f.Uid, f)
+			app.feeds.Store(f.ToFeed2())
 		}
 		return nil
 	}
