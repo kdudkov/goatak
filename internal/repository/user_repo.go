@@ -49,6 +49,16 @@ func (r *UserFileRepository) loadUsersFile() error {
 	r.mx.Lock()
 	defer r.mx.Unlock()
 
+	if _, err := os.Lstat(r.userFile); os.IsNotExist(err) {
+		// create empty file
+		f, err := os.Create(r.userFile)
+		if err != nil {
+			return err
+		}
+		f.Close()
+		return nil
+	}
+
 	dat, err := os.ReadFile(r.userFile)
 
 	if err != nil {
