@@ -521,7 +521,6 @@ func processCerts(conf *AppConfig) error {
 
 func main() {
 	fmt.Printf("version %s %s\n", gitRevision, gitBranch)
-	var logging = flag.Bool("logging", false, "save all events to files")
 	var debug = flag.Bool("debug", false, "debug node")
 	var conf = flag.String("config", "goatak_server.yml", "name of config file")
 	flag.Parse()
@@ -533,6 +532,7 @@ func main() {
 	viper.SetDefault("ssl_addr", ":8089")
 	viper.SetDefault("admin_addr", ":8080")
 	viper.SetDefault("api_addr", ":8889")
+	viper.SetDefault("log", false)
 
 	viper.SetDefault("me.lat", 59.8396)
 	viper.SetDefault("me.lon", 31.0213)
@@ -565,7 +565,7 @@ func main() {
 		certAddr:    viper.GetString("cert_addr"),
 		tlsAddr:     viper.GetString("ssl_addr"),
 		useSsl:      viper.GetBool("ssl.use_ssl"),
-		logging:     *logging,
+		logging:     viper.GetBool("log"),
 		debug:       *debug,
 		connections: viper.GetStringSlice("connections"),
 		usersFile:   viper.GetString("users_file"),
