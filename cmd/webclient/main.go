@@ -231,8 +231,7 @@ func (app *App) SendMsg(msg *cotproto.TakMessage) {
 }
 
 func (app *App) ProcessEvent(msg *cot.CotMessage) {
-	app.textLogger.AddLine(fmt.Sprintf("%s %s (%s)", msg.GetType(), msg.GetUid(), msg.GetCallsign()))
-	app.redraw()
+	app.LogMessage(msg)
 
 	if c := app.items.Get(msg.GetUid()); c != nil {
 		c.Update(nil)

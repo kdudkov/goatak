@@ -42,6 +42,22 @@ func (l *TextLogger) AddLine(s string) {
 	}
 }
 
+func (l *TextLogger) AddLineColor(s string, col ...byte) {
+	if l == nil {
+		return
+	}
+	l.mx.Lock()
+
+	l.lines = append(l.lines, WithColors(s, col...))
+	if len(l.lines) > l.n {
+		l.lines = l.lines[len(l.lines)-l.n:]
+	}
+	l.mx.Unlock()
+	if l.cb != nil {
+		l.cb()
+	}
+}
+
 func (l *TextLogger) GetLines(n int) []string {
 	if l == nil {
 		return []string{}

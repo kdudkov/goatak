@@ -3,7 +3,9 @@ package main
 import (
 	"fmt"
 	"github.com/jroimartin/gocui"
+	"github.com/kdudkov/goatak/pkg/cot"
 	"github.com/kdudkov/goatak/pkg/model"
+	"strings"
 )
 
 func (app *App) layout(g *gocui.Gui) error {
@@ -20,6 +22,7 @@ func (app *App) layout(g *gocui.Gui) error {
 			return err
 		}
 		v.Frame = true
+		v.Title = "Log"
 	}
 	return nil
 }
@@ -33,15 +36,19 @@ func (app *App) redraw() {
 		if v, err := gui.View("info"); err == nil {
 			v.Clear()
 			if app.IsConnected() {
-				fmt.Fprintf(v, "Connected to %s:%s as %s\n", app.host, app.tcpPort, app.callsign)
+				fmt.Fprintf(v, WithColors("Connected to %s:%s as %s\n\n", FgGreen, Bold), app.host, app.tcpPort, app.callsign)
 			} else {
-				fmt.Fprintf(v, "Disconnected\n")
+				fmt.Fprintf(v, WithColors("Disconnected\n\n", FgWhite))
 			}
 
 			app.items.ForEach(func(i *model.Item) bool {
 				if i.GetClass() == model.CONTACT {
 					u := i.ToWeb()
-					fmt.Fprintf(v, "%s %s %s [%s]\n", u.Callsign, u.Team, u.Role, u.Status)
+					if u.Status == "Online" {
+						fmt.Fprintf(v, WithColors("%s %s %s [%s] %.5f,%.5f\n", FgGreen, Bold), u.Callsign, u.Team, u.Role, u.Status, u.Lat, u.Lon)
+					} else {
+						fmt.Fprintf(v, WithColors("%s %s %s [%s]\n", FgWhite), u.Callsign, u.Team, u.Role, u.Status)
+					}
 				}
 				return true
 			})
@@ -57,4 +64,48 @@ func (app *App) redraw() {
 
 		return nil
 	})
+}
+
+func (app *App) LogMessage(msg *cot.CotMessage) {
+	switch {
+	case msg.GetType() == "t-x-c-t":
+		app.textLogger.AddLine(fmt.Sprintf("%s ping from %s", msg.GetType(), msg.GetUid()))
+	case msg.GetType() == "t-x-c-t-r":
+		app.textLogger.AddLine(fmt.Sprintf("%s pong from %s", msg.GetType(), msg.GetUid()))
+	case msg.GetType() == "t-x-d-d":
+		app.textLogger.AddLineColor(fmt.Sprintf("%s remove msg", msg.GetType()), FgRed)
+	case msg.IsChat():
+		if c := model.MsgToChat(msg); c != nil {
+			app.textLogger.AddLineColor(fmt.Sprintf("%s chat msg %s (%s)-> %s room %s", msg.GetType(),
+				c.From, c.FromUid, c.ToUid, c.Chatroom), FgYellow, Bold)
+		} else {
+			app.textLogger.AddLineColor(fmt.Sprintf("%s invalid chat msg", msg.GetType()), FgYellow, Bold)
+		}
+		break
+	case msg.IsChatReceipt():
+		app.Logger.Infof("got receipt %s", msg.GetType())
+		break
+	case strings.HasPrefix(msg.GetType(), "a-"):
+		var col []byte
+		switch msg.GetType()[2] {
+		case 'f':
+			col = []byte{FgBlue, Bold}
+		case 'h':
+			col = []byte{FgRed, Bold}
+		case 'n':
+			col = []byte{FgGreen, Bold}
+		default:
+			col = []byte{FgWhite}
+		}
+		app.textLogger.AddLineColor(fmt.Sprintf("%s %s", msg.GetType(), msg.GetCallsign()), col...)
+	case strings.HasPrefix(msg.GetType(), "b-"):
+		app.textLogger.AddLineColor(fmt.Sprintf("%s %s", msg.GetType(), msg.GetCallsign()), BgCyan)
+	case strings.HasPrefix(msg.GetType(), "u-"):
+		app.textLogger.AddLine(fmt.Sprintf("%s %s", msg.GetType(), msg.GetCallsign()))
+	case msg.GetType() == "tak registration":
+		app.textLogger.AddLine(fmt.Sprintf("%s %s", msg.GetType(), msg.GetCallsign()))
+	default:
+		app.textLogger.AddLine(fmt.Sprintf("%s ???", msg.GetType()))
+	}
+	app.redraw()
 }
