@@ -50,6 +50,7 @@ func addMartiRoutes(app *App, api *air.Air) {
 	api.GET("/Marti/api/util/user/roles", getUserRolesHandler(app))
 
 	api.GET("/Marti/api/device/profile/connection", getProfileConnectionHandler(app))
+
 	api.GET("/Marti/sync/content", getMetadataGetHandler(app))
 	api.GET("/Marti/sync/search", getSearchHandler(app))
 	api.GET("/Marti/sync/missionquery", getMissionQueryHandler(app))
@@ -197,7 +198,7 @@ func getMissionUploadHandler(app *App) func(req *air.Request, res *air.Response)
 			info.Size = n
 			info.MIMEType = fh.Header.Get("Content-type")
 
-			app.packageManager.Put(hash, info)
+			app.packageManager.Store(hash, info)
 
 			app.Logger.Infof("save packege %s %s", fname, hash)
 			return res.WriteString(fmt.Sprintf("/Marti/sync/content?hash=%s", hash))
@@ -243,7 +244,7 @@ func getMetadataPutHandler(app *App) func(req *air.Request, res *air.Response) e
 
 		if pi, ok := app.packageManager.Get(hash); ok {
 			pi.Tool = string(s)
-			app.packageManager.Put(hash, pi)
+			app.packageManager.Store(hash, pi)
 		}
 		app.Logger.Infof("body: %s", s)
 
@@ -261,7 +262,7 @@ func getSearchHandler(app *App) func(req *air.Request, res *air.Response) error 
 		result := make(map[string]any, 0)
 		packages := make([]*PackageInfo, 0)
 
-		app.packageManager.Range(func(key string, pi *PackageInfo) bool {
+		app.packageManager.ForEach(func(key string, pi *PackageInfo) bool {
 			if kw != "" {
 				for _, s := range pi.Keywords {
 					if s == kw {

@@ -119,7 +119,7 @@ func (app *App) Run() {
 		}
 	}
 
-	if err := app.packageManager.Init(); err != nil {
+	if err := app.packageManager.Start(); err != nil {
 		log.Fatal(err)
 	}
 

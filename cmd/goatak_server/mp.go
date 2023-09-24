@@ -44,7 +44,7 @@ type PackageInfo struct {
 	Tool               string    `json:"Tool"`
 }
 
-func (pm *PackageManager) Init() error {
+func (pm *PackageManager) Start() error {
 	if err := os.MkdirAll(pm.baseDir, 0777); err != nil {
 		return err
 	}
@@ -69,7 +69,7 @@ func (pm *PackageManager) Init() error {
 	return nil
 }
 
-func (pm *PackageManager) Put(hash string, pi *PackageInfo) {
+func (pm *PackageManager) Store(hash string, pi *PackageInfo) {
 	pm.data.Store(hash, pi)
 
 	if err := saveInfo(pm.baseDir, hash, pi); err != nil {
@@ -86,7 +86,7 @@ func (pm *PackageManager) Get(hash string) (*PackageInfo, bool) {
 	}
 }
 
-func (pm *PackageManager) Range(f func(key string, pi *PackageInfo) bool) {
+func (pm *PackageManager) ForEach(f func(key string, pi *PackageInfo) bool) {
 	pm.data.Range(func(key, value any) bool {
 		return f(key.(string), value.(*PackageInfo))
 	})
