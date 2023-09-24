@@ -92,6 +92,31 @@ func (pm *PackageManager) ForEach(f func(key string, pi *PackageInfo) bool) {
 	})
 }
 
+func (pm *PackageManager) GetList(kw, tool string) []*PackageInfo {
+	res := make([]*PackageInfo, 0)
+
+	pm.ForEach(func(key string, pi *PackageInfo) bool {
+		if tool != "" && tool != pi.Tool {
+			return true
+		}
+
+		if kw == "" {
+			res = append(res, pi)
+			return true
+		}
+
+		for _, k := range pi.Keywords {
+			if kw == k {
+				res = append(res, pi)
+				return true
+			}
+		}
+		return true
+	})
+
+	return res
+}
+
 func saveInfo(baseDir, hash string, finfo *PackageInfo) error {
 	fn, err := os.Create(filepath.Join(baseDir, hash, infoFileName))
 	if err != nil {

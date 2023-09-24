@@ -165,6 +165,13 @@ func getMissionUploadHandler(app *App) func(req *air.Request, res *air.Response)
 		hash := getStringParam(req, "hash")
 		fname := getStringParam(req, "filename")
 
+		params := []string{}
+		for _, r := range req.Params() {
+			params = append(params, r.Name+"="+r.Value().String())
+		}
+
+		app.Logger.Infof("params: %s", strings.Join(params, ","))
+
 		if hash == "" {
 			app.Logger.Errorf("no hash: %s", req.RawQuery())
 			res.Status = http.StatusNotAcceptable
@@ -246,7 +253,7 @@ func getMetadataPutHandler(app *App) func(req *air.Request, res *air.Response) e
 			pi.Tool = string(s)
 			app.packageManager.Store(hash, pi)
 		}
-		app.Logger.Infof("body: %s", s)
+		app.Logger.Debugf("body: %s", s)
 
 		return nil
 	}
@@ -256,25 +263,10 @@ func getSearchHandler(app *App) func(req *air.Request, res *air.Response) error 
 	return func(req *air.Request, res *air.Response) error {
 		app.Logger.Infof("%s %s", req.Method, req.Path)
 		kw := getStringParam(req, "keywords")
+		tool := getStringParam(req, "tool")
 
-		//tool := getStringParam(req, "tool")
-
-		result := make(map[string]any, 0)
-		packages := make([]*PackageInfo, 0)
-
-		app.packageManager.ForEach(func(key string, pi *PackageInfo) bool {
-			if kw != "" {
-				for _, s := range pi.Keywords {
-					if s == kw {
-						packages = append(packages, pi)
-						break
-					}
-				}
-			} else {
-				packages = append(packages, pi)
-			}
-			return true
-		})
+		result := make(map[string]any)
+		packages := app.packageManager.GetList(kw, tool)
 
 		result["results"] = packages
 		result["resultCount"] = len(packages)
