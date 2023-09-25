@@ -11,7 +11,7 @@ func SslCheckHandler(app *App) air.Gas {
 		return func(req *air.Request, res *air.Response) error {
 			if h := req.HTTPRequest(); h != nil {
 				if h.TLS != nil {
-					user, serial := getUser(h.TLS)
+					user, serial := getCertUser(h.TLS)
 					if app.users.UserIsValid(user, serial) {
 						req.SetValue("user", user)
 						return next(req, res)

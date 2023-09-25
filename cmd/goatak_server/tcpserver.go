@@ -69,7 +69,7 @@ func (app *App) listenTls(addr string) error {
 		}
 
 		st := c1.ConnectionState()
-		username, serial := getUser(&st)
+		username, serial := getCertUser(&st)
 		var scope string
 		if user := app.users.GetUser(username); user != nil {
 			scope = user.Scope
@@ -89,7 +89,7 @@ func (app *App) listenTls(addr string) error {
 }
 
 func (app *App) verifyConnection(st tls.ConnectionState) error {
-	user, sn := getUser(&st)
+	user, sn := getCertUser(&st)
 	app.logCert(st.PeerCertificates)
 
 	if !app.users.UserIsValid(user, sn) {
@@ -100,7 +100,7 @@ func (app *App) verifyConnection(st tls.ConnectionState) error {
 	return nil
 }
 
-func getUser(st *tls.ConnectionState) (string, string) {
+func getCertUser(st *tls.ConnectionState) (string, string) {
 	for _, cert := range st.PeerCertificates {
 		if cert.Subject.CommonName != "" {
 			return cert.Subject.CommonName, fmt.Sprintf("%x", cert.SerialNumber)
