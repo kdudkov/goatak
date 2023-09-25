@@ -7,6 +7,16 @@ from [releases page](https://github.com/kdudkov/goatak/releases)
 
 ![Alt text](client.png?raw=true "Title")
 
+## GoATAK server features
+
+* v1 (XML) and v2 (protobuf) CoT protocol support
+* certificate enrollment (v1 and v2) support
+* user management with command-line tool
+* package management
+* video feeds management
+* visibility scopes for users
+* default preferences and maps provisioning to connected devices
+
 ## Web-based client features
 
 * v1 (XML) and v2 (protobuf) CoT protocol support
@@ -18,11 +28,6 @@ from [releases page](https://github.com/kdudkov/goatak/releases)
 * Digital Pointer - send DP position to all other contacts
 * Add and edit units on map
 
-## GoATAK server features
-
-* v1 (XML) and v2 (protobuf) CoT protocol support
-* certificate enrollment (v1 and v2) support
-
 ## Test server
 
 * address: `takserver.ru`
@@ -30,58 +35,7 @@ from [releases page](https://github.com/kdudkov/goatak/releases)
 * user `test`
 * password `111111`
 
-[Server fast start](https://github.com/kdudkov/goatak/wiki/Setting-up-server)
-
-## Web client setup
-
-1. Download latest binary build
-   from [releases page](https://github.com/kdudkov/goatak/releases)
-1. Unzip it to local directory
-1. edit `goatak_client.yml` (default values are for community server).
-1. run `webclient`
-1. open [http://localhost:8080](http://localhost:8080) in your browser
-
-You can use as many config files as you want and run with specific config with `webclient -config <your_config.yml>`
-
-### Web client config examples
-
-simple config to connect to [Argustak](https://argustak.com/) cloud based TAK server:
-
-```yaml
----
-server_address: argustak.com:4444:ssl
-web_port: 8080
-me:
-  callsign: username
-  uid: auto
-  type: a-f-G-U-C
-  team: Blue
-  role: Team Member
-  lat: 0
-  lon: 0
-ssl:
-  cert: username.p12
-  password: password
-```
-
-simple config to connect to [urpc.info](https://urpc.info/) TAK server:
-
-```yaml
----
-server_address: "tak.urpc.info:8089:ssl"
-web_port: 8080
-me:
-  callsign: TestCallsign
-  uid: auto
-  type: a-f-G-U-C
-  team: Blue
-  role: Team Member
-  lat: 0
-  lon: 0
-ssl:
-  enroll_user: <your_email>
-  enroll_password: <your_password>
-```
+[Wiki](https://github.com/kdudkov/goatak/wiki)
 
 ## Libraries used
 
