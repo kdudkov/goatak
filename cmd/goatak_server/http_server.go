@@ -3,6 +3,7 @@ package main
 import (
 	"embed"
 	"errors"
+	"go.uber.org/zap"
 	"net/http"
 	"path/filepath"
 	"runtime/pprof"
@@ -59,7 +60,7 @@ func NewHttp(app *App) *HttpServer {
 func getAdminApi(app *App, addr string, renderer *staticfiles.Renderer, webtakRoot string) *air.Air {
 	adminApi := air.New()
 	adminApi.Address = addr
-	adminApi.NotFoundHandler = getNotFoundHandler(app)
+	adminApi.NotFoundHandler = getNotFoundHandler(app, "admin")
 
 	staticfiles.EmbedFiles(adminApi, "/static")
 	adminApi.GET("/", getIndexHandler(app, renderer))
@@ -75,7 +76,7 @@ func getAdminApi(app *App, addr string, renderer *staticfiles.Renderer, webtakRo
 	if webtakRoot != "" {
 		adminApi.FILE("/webtak/", filepath.Join(webtakRoot, "index.html"))
 		adminApi.FILES("/webtak", webtakRoot)
-		addMartiRoutes(app, adminApi)
+		addMartiRoutes(app, adminApi, "admin")
 	}
 
 	adminApi.GET("/stack", getStackHandler())
@@ -123,9 +124,9 @@ func getMapHandler(_ *App, r *staticfiles.Renderer) func(req *air.Request, res *
 	}
 }
 
-func getNotFoundHandler(app *App) func(req *air.Request, res *air.Response) error {
+func getNotFoundHandler(app *App, name string) func(req *air.Request, res *air.Response) error {
 	return func(req *air.Request, res *air.Response) error {
-		app.Logger.Infof("404 - %s %s", req.Method, req.Path)
+		app.Logger.With(zap.String("api", name)).Infof("404 - %s %s", req.Method, req.Path)
 		res.Status = http.StatusNotFound
 		return errors.New(http.StatusText(res.Status))
 	}

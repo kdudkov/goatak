@@ -52,7 +52,7 @@ func getCertApi(app *App, addr string) *air.Air {
 	certApi.POST("/Marti/api/tls/signClient/v2", getSignHandlerV2(app))
 	certApi.GET("/Marti/api/tls/profile/enrollment", getProfileEnrollmentHandler(app))
 
-	certApi.NotFoundHandler = getNotFoundHandler(app)
+	certApi.NotFoundHandler = getNotFoundHandler(app, "cert")
 
 	return certApi
 }
