@@ -12,7 +12,7 @@ from [releases page](https://github.com/kdudkov/goatak/releases)
 * v1 (XML) and v2 (protobuf) CoT protocol support
 * certificate enrollment (v1 and v2) support
 * user management with command-line tool
-* package management
+* mission packs management
 * video feeds management
 * visibility scopes for users
 * default preferences and maps provisioning to connected devices
