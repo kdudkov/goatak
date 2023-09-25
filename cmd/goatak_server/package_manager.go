@@ -69,6 +69,10 @@ func (pm *PackageManager) Start() error {
 	return nil
 }
 
+func (pm *PackageManager) Stop() {
+	// noop
+}
+
 func (pm *PackageManager) Store(hash string, pi *PackageInfo) {
 	pm.data.Store(hash, pi)
 
@@ -149,9 +153,6 @@ func loadInfo(baseDir, hash string) (*PackageInfo, error) {
 
 	if err != nil {
 		return pi, err
-	}
-	if pi.Tool == "" {
-		pi.Tool = "public"
 	}
 
 	return pi, nil

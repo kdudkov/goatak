@@ -7,6 +7,72 @@ import (
 	"os"
 )
 
+type MissionPackage struct {
+	params map[string]string
+	files  []FileContent
+}
+
+func NewMissionPackage(uuid, name string) *MissionPackage {
+	return &MissionPackage{params: map[string]string{"uid": uuid, "name": name}}
+}
+
+func (m *MissionPackage) Param(k, v string) {
+	m.params[k] = v
+}
+
+func (m *MissionPackage) AddFile(f FileContent) {
+	m.files = append(m.files, f)
+}
+
+func (m *MissionPackage) Manifest() []byte {
+	buf := bytes.Buffer{}
+	buf.WriteString("<MissionPackageManifest version=\"2\">\n")
+	buf.WriteString("<Configuration>")
+	for k, v := range m.params {
+		buf.WriteString(fmt.Sprintf("<Parameter name=\"%s\" value=\"%s\"/>", k, v))
+	}
+	buf.WriteString("</Configuration>")
+	buf.WriteString("<Contents>")
+	for _, v := range m.files {
+		buf.WriteString(fmt.Sprintf("<Content ignore=\"false\" zipEntry=\"%s\"/>", v))
+	}
+	buf.WriteString("</Contents>")
+	return buf.Bytes()
+}
+
+func (m *MissionPackage) Create() ([]byte, error) {
+	var buff bytes.Buffer
+	zipW := zip.NewWriter(&buff)
+
+	f, err := zipW.Create("MANIFEST/manifest.xml")
+
+	if err != nil {
+		return nil, err
+	}
+
+	defer zipW.Close()
+
+	_, err = f.Write(m.Manifest())
+
+	if err != nil {
+		return nil, err
+	}
+
+	for _, zf := range m.files {
+		f1, err := zipW.Create(zf.Name())
+		if err != nil {
+			return nil, err
+		}
+
+		_, err = f1.Write(zf.Content())
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return buff.Bytes(), nil
+}
+
 type FileContent interface {
 	SetName(name string)
 	Name() string
@@ -91,70 +157,4 @@ func (p *PrefFile) Content() []byte {
 	}
 	sb.WriteString("</preference></preferences>")
 	return sb.Bytes()
-}
-
-type MissionPackage struct {
-	params map[string]string
-	files  []FileContent
-}
-
-func NewMissionPackage(uuid, name string) *MissionPackage {
-	return &MissionPackage{params: map[string]string{"uid": uuid, "name": name}}
-}
-
-func (m *MissionPackage) Param(k, v string) {
-	m.params[k] = v
-}
-
-func (m *MissionPackage) AddFile(f FileContent) {
-	m.files = append(m.files, f)
-}
-
-func (m *MissionPackage) Manifest() []byte {
-	buf := bytes.Buffer{}
-	buf.WriteString("<MissionPackageManifest version=\"2\">\n")
-	buf.WriteString("<Configuration>")
-	for k, v := range m.params {
-		buf.WriteString(fmt.Sprintf("<Parameter name=\"%s\" value=\"%s\"/>", k, v))
-	}
-	buf.WriteString("</Configuration>")
-	buf.WriteString("<Contents>")
-	for _, v := range m.files {
-		buf.WriteString(fmt.Sprintf("<Content ignore=\"false\" zipEntry=\"%s\"/>", v))
-	}
-	buf.WriteString("</Contents>")
-	return buf.Bytes()
-}
-
-func (m *MissionPackage) Create() ([]byte, error) {
-	var buff bytes.Buffer
-	zipW := zip.NewWriter(&buff)
-
-	f, err := zipW.Create("MANIFEST/manifest.xml")
-
-	if err != nil {
-		return nil, err
-	}
-
-	defer zipW.Close()
-
-	_, err = f.Write(m.Manifest())
-
-	if err != nil {
-		return nil, err
-	}
-
-	for _, zf := range m.files {
-		f1, err := zipW.Create(zf.Name())
-		if err != nil {
-			return nil, err
-		}
-
-		_, err = f1.Write(zf.Content())
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	return buff.Bytes(), nil
 }

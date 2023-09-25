@@ -29,11 +29,12 @@ func getMartiApi(app *App, addr string) *air.Air {
 			Certificates: []tls.Certificate{*app.config.tlsCert},
 			ClientCAs:    app.config.certPool,
 			RootCAs:      app.config.certPool,
-			ClientAuth:   tls.NoClientCert,
+			ClientAuth:   tls.RequireAndVerifyClientCert,
 			MinVersion:   tls.VersionTLS10,
 		}
 
 		api.TLSConfig = tlsCfg
+		api.Gases = append(api.Gases, SslCheckHandler(app))
 	}
 
 	return api
@@ -85,7 +86,8 @@ func getVersionConfigHandler(app *App) func(req *air.Request, res *air.Response)
 
 func getEndpointsHandler(app *App) func(req *air.Request, res *air.Response) error {
 	return func(req *air.Request, res *air.Response) error {
-		app.Logger.Infof("%s %s", req.Method, req.Path)
+		user := req.Value("user").(string)
+		app.Logger.Infof("%s %s user %s", req.Method, req.Path, user)
 		//secAgo := getIntParam(req, "secAgo", 0)
 
 		result := make(map[string]any)
@@ -119,7 +121,8 @@ func getEndpointsHandler(app *App) func(req *air.Request, res *air.Response) err
 
 func getContactsHandler(app *App) func(req *air.Request, res *air.Response) error {
 	return func(req *air.Request, res *air.Response) error {
-		app.Logger.Infof("%s %s", req.Method, req.Path)
+		user := req.Value("user").(string)
+		app.Logger.Infof("%s %s user %s", req.Method, req.Path, user)
 
 		result := make([]map[string]any, 0)
 
@@ -144,7 +147,8 @@ func getContactsHandler(app *App) func(req *air.Request, res *air.Response) erro
 
 func getMissionQueryHandler(app *App) func(req *air.Request, res *air.Response) error {
 	return func(req *air.Request, res *air.Response) error {
-		app.Logger.Infof("%s %s", req.Method, req.Path)
+		user := req.Value("user").(string)
+		app.Logger.Infof("%s %s user %s", req.Method, req.Path, user)
 		hash := getStringParam(req, "hash")
 		if hash == "" {
 			res.Status = http.StatusNotAcceptable
@@ -161,7 +165,8 @@ func getMissionQueryHandler(app *App) func(req *air.Request, res *air.Response) 
 
 func getMissionUploadHandler(app *App) func(req *air.Request, res *air.Response) error {
 	return func(req *air.Request, res *air.Response) error {
-		app.Logger.Infof("%s %s", req.Method, req.Path)
+		user := req.Value("user").(string)
+		app.Logger.Infof("%s %s user %s", req.Method, req.Path, user)
 		hash := getStringParam(req, "hash")
 		fname := getStringParam(req, "filename")
 
@@ -190,7 +195,7 @@ func getMissionUploadHandler(app *App) func(req *air.Request, res *air.Response)
 			Hash:               hash,
 			Name:               fname,
 			CreatorUID:         getStringParam(req, "creatorUid"),
-			SubmissionUser:     "somebody",
+			SubmissionUser:     user,
 			Tool:               "public",
 			Keywords:           []string{"missionpackage"},
 		}
@@ -218,7 +223,8 @@ func getMissionUploadHandler(app *App) func(req *air.Request, res *air.Response)
 
 func getMetadataGetHandler(app *App) func(req *air.Request, res *air.Response) error {
 	return func(req *air.Request, res *air.Response) error {
-		app.Logger.Infof("%s %s", req.Method, req.Path)
+		user := req.Value("user").(string)
+		app.Logger.Infof("%s %s user %s", req.Method, req.Path, user)
 		hash := getStringParam(req, "hash")
 
 		if hash == "" {
@@ -239,7 +245,8 @@ func getMetadataGetHandler(app *App) func(req *air.Request, res *air.Response) e
 
 func getMetadataPutHandler(app *App) func(req *air.Request, res *air.Response) error {
 	return func(req *air.Request, res *air.Response) error {
-		app.Logger.Infof("%s %s", req.Method, req.Path)
+		user := req.Value("user").(string)
+		app.Logger.Infof("%s %s user %s", req.Method, req.Path, user)
 		hash := getStringParam(req, "hash")
 
 		if hash == "" {
@@ -261,7 +268,8 @@ func getMetadataPutHandler(app *App) func(req *air.Request, res *air.Response) e
 
 func getSearchHandler(app *App) func(req *air.Request, res *air.Response) error {
 	return func(req *air.Request, res *air.Response) error {
-		app.Logger.Infof("%s %s", req.Method, req.Path)
+		user := req.Value("user").(string)
+		app.Logger.Infof("%s %s user %s", req.Method, req.Path, user)
 		kw := getStringParam(req, "keywords")
 		tool := getStringParam(req, "tool")
 
@@ -276,18 +284,20 @@ func getSearchHandler(app *App) func(req *air.Request, res *air.Response) error 
 
 func getUserRolesHandler(app *App) func(req *air.Request, res *air.Response) error {
 	return func(req *air.Request, res *air.Response) error {
-		app.Logger.Infof("%s %s", req.Method, req.Path)
+		user := req.Value("user").(string)
+		app.Logger.Infof("%s %s user %s", req.Method, req.Path, user)
 		return res.WriteJSON([]string{"user", "webuser"})
 	}
 }
 
 func getProfileConnectionHandler(app *App) func(req *air.Request, res *air.Response) error {
 	return func(req *air.Request, res *air.Response) error {
-		app.Logger.Infof("%s %s", req.Method, req.Path)
+		user := req.Value("user").(string)
+		app.Logger.Infof("%s %s user %s", req.Method, req.Path, user)
 		_ = getIntParam(req, "syncSecago", 0)
 		uid := getStringParamIgnoreCaps(req, "clientUid")
 
-		files := app.GetProfileFiles("", uid)
+		files := app.GetProfileFiles(user, uid)
 		if len(files) == 0 {
 			res.Status = http.StatusNoContent
 			return nil
@@ -313,7 +323,8 @@ func getProfileConnectionHandler(app *App) func(req *air.Request, res *air.Respo
 
 func getVideoListHandler(app *App) func(req *air.Request, res *air.Response) error {
 	return func(req *air.Request, res *air.Response) error {
-		app.Logger.Infof("%s %s", req.Method, req.Path)
+		user := req.Value("user").(string)
+		app.Logger.Infof("%s %s user %s", req.Method, req.Path, user)
 
 		r := new(model.VideoConnections)
 		r.XMLName = xml.Name{Local: "videoConnections"}
@@ -327,7 +338,8 @@ func getVideoListHandler(app *App) func(req *air.Request, res *air.Response) err
 
 func getVideoPostHandler(app *App) func(req *air.Request, res *air.Response) error {
 	return func(req *air.Request, res *air.Response) error {
-		app.Logger.Infof("%s %s", req.Method, req.Path)
+		user := req.Value("user").(string)
+		app.Logger.Infof("%s %s user %s", req.Method, req.Path, user)
 
 		r := new(model.VideoConnections)
 
