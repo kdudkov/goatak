@@ -63,7 +63,8 @@ func addMartiRoutes(app *App, api *air.Air) {
 
 func getVersionHandler(app *App) func(req *air.Request, res *air.Response) error {
 	return func(req *air.Request, res *air.Response) error {
-		app.Logger.Infof("%s %s", req.Method, req.Path)
+		user := req.Value("user").(string)
+		app.Logger.Infof("%s %s user %s", req.Method, req.Path, user)
 		return res.WriteString(fmt.Sprintf("GoATAK server %s", gitRevision))
 	}
 }
@@ -79,7 +80,8 @@ func getVersionConfigHandler(app *App) func(req *air.Request, res *air.Response)
 	data["hostname"] = "0.0.0.0"
 	result["data"] = data
 	return func(req *air.Request, res *air.Response) error {
-		app.Logger.Infof("%s %s", req.Method, req.Path)
+		user := req.Value("user").(string)
+		app.Logger.Infof("%s %s user %s", req.Method, req.Path, user)
 		return res.WriteJSON(result)
 	}
 }
