@@ -59,6 +59,7 @@ func NewHttp(app *App) *HttpServer {
 func getAdminApi(app *App, addr string, renderer *staticfiles.Renderer, webtakRoot string) *air.Air {
 	adminApi := air.New()
 	adminApi.Address = addr
+	adminApi.NotFoundHandler = getNotFoundHandler(app)
 
 	staticfiles.EmbedFiles(adminApi, "/static")
 	adminApi.GET("/", getIndexHandler(app, renderer))
