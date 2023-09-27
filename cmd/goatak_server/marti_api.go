@@ -5,16 +5,15 @@ import (
 	"crypto/tls"
 	"encoding/xml"
 	"fmt"
-	"go.uber.org/zap"
 	"io"
 	"net/http"
-	"os"
 	"strings"
 	"time"
 
 	"github.com/aofei/air"
 	"github.com/google/uuid"
 	"github.com/kdudkov/goatak/pkg/model"
+	"go.uber.org/zap"
 )
 
 func getMartiApi(app *App, addr string) *air.Air {
@@ -389,7 +388,7 @@ func getVideoPostHandler(app *App, name string) func(req *air.Request, res *air.
 			return err
 		}
 		for _, f := range r.Feeds {
-			app.feeds.Store(f.ToFeed2())
+			app.feeds.Store(f.ToFeed2().WithUser(user))
 		}
 		return nil
 	}
@@ -434,11 +433,4 @@ func getStringParamIgnoreCaps(req *air.Request, name string) string {
 	}
 
 	return ""
-}
-
-func exists(path string) bool {
-	if _, err := os.Stat(path); err != nil {
-		return os.IsExist(err)
-	}
-	return true
 }

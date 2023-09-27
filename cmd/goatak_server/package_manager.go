@@ -136,7 +136,7 @@ func saveInfo(baseDir, hash string, finfo *PackageInfo) error {
 func loadInfo(baseDir, hash string) (*PackageInfo, error) {
 	fname := filepath.Join(baseDir, hash, infoFileName)
 
-	if !exists(fname) {
+	if !fileExists(fname) {
 		return nil, fmt.Errorf("info file %s does not exists", fname)
 	}
 
@@ -167,7 +167,7 @@ func (pm *PackageManager) GetFilePath(hash string) string {
 
 func (pm *PackageManager) SaveFile(hash, fname string, reader io.Reader) (int64, error) {
 	dir := filepath.Join(pm.baseDir, hash)
-	if !exists(dir) {
+	if !fileExists(dir) {
 		if err := os.MkdirAll(dir, 0777); err != nil {
 			return 0, err
 		}
@@ -180,4 +180,11 @@ func (pm *PackageManager) SaveFile(hash, fname string, reader io.Reader) (int64,
 	defer fn.Close()
 
 	return io.Copy(fn, reader)
+}
+
+func fileExists(path string) bool {
+	if _, err := os.Stat(path); err != nil {
+		return os.IsExist(err)
+	}
+	return true
 }

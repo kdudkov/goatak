@@ -45,6 +45,7 @@ type Feed struct {
 	Fov                 string  `xml:"fov" yaml:"fov,omitempty"`
 	Heading             string  `xml:"heading" yaml:"heading,omitempty"`
 	Range               string  `xml:"range" yaml:"range,omitempty"`
+	User                string  `yaml:"user"`
 }
 
 type Feed2 struct {
@@ -56,6 +57,7 @@ type Feed2 struct {
 	Fov       string  `yaml:"fov,omitempty" json:"fov,omitempty"`
 	Heading   string  `yaml:"heading,omitempty" json:"heading,omitempty"`
 	Range     string  `yaml:"range,omitempty" json:"range,omitempty"`
+	User      string  `yaml:"user"`
 }
 
 func (f *Feed2) ToFeed() *Feed {
@@ -88,7 +90,13 @@ func (f *Feed2) ToFeed() *Feed {
 		Fov:                 f.Fov,
 		Heading:             f.Heading,
 		Range:               f.Range,
+		User:                f.User,
 	}
+}
+
+func (f *Feed2) WithUser(user string) *Feed2 {
+	f.User = user
+	return f
 }
 
 func (f *Feed) ToFeed2() *Feed2 {
@@ -105,6 +113,7 @@ func (f *Feed) ToFeed2() *Feed2 {
 		Fov:       f.Fov,
 		Heading:   f.Heading,
 		Range:     f.Range,
+		User:      f.User,
 	}
 }
 
