@@ -5,7 +5,6 @@ import (
 	"github.com/kdudkov/goatak/pkg/cot"
 	"github.com/kdudkov/goatak/pkg/model"
 	"os"
-	"strings"
 )
 
 func (app *App) InitMessageProcessors() {
@@ -28,7 +27,7 @@ func (app *App) GetProcessor(t string) (string, EventProcessor) {
 		if k == t {
 			return k, v
 		}
-		if strings.HasSuffix(k, "-") && len(k) > len(found) && strings.HasPrefix(t, k) {
+		if cot.MatchPattern(t, k) && len(k) > len(found) {
 			found = k
 		}
 	}

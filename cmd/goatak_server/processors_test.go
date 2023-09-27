@@ -25,5 +25,4 @@ func TestGetProcessor(t *testing.T) {
 			t.Errorf("got %s, must be %s", p, v)
 		}
 	}
-
 }

@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"github.com/kdudkov/goatak/pkg/cot"
 	"github.com/kdudkov/goatak/pkg/model"
-	"strings"
 )
 
 func (app *App) InitMessageProcessors() {
@@ -32,7 +31,6 @@ func (app *App) InitMessageProcessors() {
 	// u-d-r Drawing Shapes – Rectangle
 	// u-d-f Drawing Shapes - Free Form
 	// u-d-c-e Drawing Shapes – Ellipse
-	// b-r-f-h-c casevac
 }
 
 func (app *App) GetProcessor(t string) (string, EventProcessor) {
@@ -41,7 +39,7 @@ func (app *App) GetProcessor(t string) (string, EventProcessor) {
 		if k == t {
 			return k, v
 		}
-		if strings.HasSuffix(k, "-") && len(k) > len(found) && strings.HasPrefix(t, k) {
+		if cot.MatchPattern(t, k) && len(k) > len(found) {
 			found = k
 		}
 	}
@@ -58,7 +56,6 @@ func (app *App) justLogProcessor(msg *cot.CotMessage) {
 }
 
 func (app *App) logInterestingProcessor(msg *cot.CotMessage) {
-
 	b, err := json.Marshal(msg.TakMessage)
 	if err == nil {
 		app.Logger.Info(string(b))
@@ -112,7 +109,34 @@ func (app *App) aProcessor(msg *cot.CotMessage) {
 
 func (app *App) bProcessor(msg *cot.CotMessage) {
 	if uid, _ := msg.GetParent(); uid != app.uid {
-		app.Logger.Debugf("point %s (%s) %s", msg.GetUid(), msg.GetCallsign(), msg.GetType())
+
+		name := "point"
+
+		switch msg.GetType() {
+		case "b-i":
+			name = "document"
+		case "b-i-x-i":
+			name = "photo"
+		case "b-m-p-w":
+			name = "checkpoint"
+		case "b-m-p-w-GOTO":
+			name = "flag"
+		case "b-m-p-a":
+			name = "aimpoint"
+		case "b-m-p-c-ip":
+			name = "initial point"
+		case "b-m-p-c-cp":
+			name = "contact point"
+		case "b-m-p-c-z":
+			name = "black triangle"
+		case "b-m-p-s-p-op":
+			name = "Observer point"
+		case "b-m-p-s-p-loc":
+			name = "sensor"
+		case "b-m-p-s-p-i":
+			name = "target point"
+		}
+		app.Logger.Debugf("%s %s (%s) %s", name, msg.GetUid(), msg.GetCallsign(), msg.GetType())
 		app.ProcessItem(msg)
 	}
 }

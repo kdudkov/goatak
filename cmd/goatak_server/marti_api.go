@@ -51,6 +51,8 @@ func addMartiRoutes(app *App, api *air.Air, name string) {
 
 	api.GET("/Marti/api/util/user/roles", getUserRolesHandler(app, name))
 
+	api.GET("/Marti/api/groups/all", getAllGroupsHandler(app, name))
+
 	api.GET("/Marti/api/device/profile/connection", getProfileConnectionHandler(app, name))
 
 	api.GET("/Marti/sync/content", getMetadataGetHandler(app, name))
@@ -72,8 +74,8 @@ func getVersionHandler(app *App, name string) func(req *air.Request, res *air.Re
 }
 
 func getVersionConfigHandler(app *App, name string) func(req *air.Request, res *air.Response) error {
-	result := make(map[string]any, 0)
-	data := make(map[string]any, 0)
+	result := make(map[string]any)
+	data := make(map[string]any)
 	result["version"] = "2"
 	result["type"] = "ServerConfig"
 	result["nodeId"] = "1"
@@ -300,6 +302,29 @@ func getUserRolesHandler(app *App, name string) func(req *air.Request, res *air.
 		logger := app.Logger.With(zap.String("api", name), zap.String("user", user))
 		logger.Infof("%s %s", req.Method, req.Path)
 		return res.WriteJSON([]string{"user", "webuser"})
+	}
+}
+
+func getAllGroupsHandler(app *App, name string) func(req *air.Request, res *air.Response) error {
+	g := make(map[string]any)
+	g["name"] = "__ANON__"
+	g["direction"] = "OUT"
+	g["created"] = "2022-05-03"
+	g["type"] = "SYSTEM"
+	g["bitpos"] = 2
+	g["active"] = true
+
+	result := make(map[string]any)
+	result["version"] = "3"
+	result["type"] = "com.bbn.marti.remote.groups.Group"
+	result["nodeId"] = "main"
+	result["data"] = []any{g}
+
+	return func(req *air.Request, res *air.Response) error {
+		user := getUserFromReq(req)
+		logger := app.Logger.With(zap.String("api", name), zap.String("user", user))
+		logger.Infof("%s %s", req.Method, req.Path)
+		return res.WriteJSON(result)
 	}
 }
 
