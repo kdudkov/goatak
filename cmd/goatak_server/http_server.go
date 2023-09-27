@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"path/filepath"
 	"runtime/pprof"
+	"sort"
 	"time"
 
 	"github.com/aofei/air"
@@ -24,6 +25,7 @@ type Connection struct {
 	User     string            `json:"user"`
 	Ssl      bool              `json:"ssl"`
 	Ver      int32             `json:"ver"`
+	Scope    string            `json:"scope"`
 	Uids     map[string]string `json:"uids"`
 	LastSeen *time.Time        `json:"last_seen"`
 }
@@ -192,10 +194,15 @@ func getConnHandler(app *App) func(req *air.Request, res *air.Response) error {
 				User:     ch.GetUser(),
 				Ver:      ch.GetVersion(),
 				Addr:     ch.GetName(),
+				Scope:    ch.GetScope(),
 				LastSeen: ch.GetLastSeen(),
 			}
 			conn = append(conn, c)
 			return true
+		})
+
+		sort.Slice(conn, func(i, j int) bool {
+			return conn[i].Addr < conn[j].Addr
 		})
 
 		return res.WriteJSON(conn)

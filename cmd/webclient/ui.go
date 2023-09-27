@@ -51,7 +51,7 @@ func (app *App) redraw() {
 			})
 
 			sort.Slice(res, func(i, j int) bool {
-				return res[i].Callsign > res[j].Callsign
+				return res[i].Callsign < res[j].Callsign
 			})
 
 			for _, u := range res {
@@ -88,6 +88,18 @@ func (app *App) LogMessage(msg *cot.CotMessage) {
 		col = []byte{FgBlack, Bold}
 	case msg.GetType() == "t-x-d-d":
 		extra = "remove msg"
+		if msg.Detail != nil && msg.Detail.Has("link") {
+			uid := msg.Detail.GetFirst("link").GetAttr("uid")
+			typ := msg.Detail.GetFirst("link").GetAttr("type")
+			extra += fmt.Sprintf(" uid: %s, type %s", uid, typ)
+			if uid != "" {
+				if i := app.items.Get(uid); i != nil {
+					extra += " callsign " + i.GetCallsign()
+				}
+			}
+		} else {
+			extra += " " + msg.TakMessage.GetCotEvent().GetDetail().GetXmlDetail()
+		}
 		col = []byte{FgRed}
 	case msg.IsChat():
 		if c := model.MsgToChat(msg); c != nil {
