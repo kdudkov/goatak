@@ -11,17 +11,22 @@ import (
 	"encoding/xml"
 	"fmt"
 	"github.com/kdudkov/goatak/pkg/tlsutil"
+	"go.uber.org/zap"
+	"io"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 )
 
 type Enroller struct {
+	logger *zap.SugaredLogger
 	host   string
 	port   int
 	cl     *http.Client
 	user   string
 	passwd string
+	save   bool
 }
 
 type CertificateConfig struct {
@@ -35,14 +40,15 @@ type CertificateConfig struct {
 	} `xml:"nameEntries"`
 }
 
-func NewEnroller(host, user, passwd string) *Enroller {
+func NewEnroller(logger *zap.SugaredLogger, host, user, passwd string, save bool) *Enroller {
 	tlsConf := &tls.Config{InsecureSkipVerify: true}
-
 	return &Enroller{
+		logger: logger,
 		host:   host,
 		user:   user,
 		passwd: passwd,
 		port:   8446,
+		save:   save,
 		cl:     &http.Client{Timeout: time.Second * 30, Transport: &http.Transport{TLSClientConfig: tlsConf}},
 	}
 }
@@ -52,6 +58,7 @@ func (e *Enroller) baseUrl() string {
 }
 
 func (e *Enroller) getConfig() (*CertificateConfig, error) {
+	e.logger.Infof("getting tls config")
 	req, err := http.NewRequest(http.MethodGet, e.baseUrl()+"/Marti/api/tls/config", http.NoBody)
 	if err != nil {
 		return nil, err
@@ -82,6 +89,13 @@ func (e *Enroller) getConfig() (*CertificateConfig, error) {
 }
 
 func (e *Enroller) enrollCert(uid, version string) (*tls.Certificate, error) {
+	if cert, err := e.loadCert(); err == nil {
+		if key, err := e.loadKey(); err == nil {
+			e.logger.Infof("loading certs from file")
+			return &tls.Certificate{Certificate: [][]byte{cert.Raw}, PrivateKey: key, Leaf: cert}, nil
+		}
+	}
+
 	conf, err := e.getConfig()
 	if err != nil {
 		return nil, err
@@ -103,7 +117,7 @@ func (e *Enroller) enrollCert(uid, version string) (*tls.Certificate, error) {
 	}
 
 	csr, key := makeCsr(subj)
-
+	e.logger.Infof("signing cert on server")
 	req, err := http.NewRequest(http.MethodPost, e.baseUrl()+"/Marti/api/tls/signClient/v2", strings.NewReader(csr))
 	if err != nil {
 		return nil, err
@@ -146,14 +160,65 @@ func (e *Enroller) enrollCert(uid, version string) (*tls.Certificate, error) {
 			return nil, err
 		}
 
-		return &tls.Certificate{
-			Certificate: [][]byte{cert.Raw},
-			PrivateKey:  key,
-			Leaf:        cert,
-		}, nil
+		if e.save {
+			_ = e.saveCert(cert)
+			_ = e.saveKey(key)
+		}
+
+		return &tls.Certificate{Certificate: [][]byte{cert.Raw}, PrivateKey: key, Leaf: cert}, nil
 	}
 
 	return nil, fmt.Errorf("no signed cert in responce")
+}
+
+func (e *Enroller) saveCert(cert *x509.Certificate) error {
+	f, err := os.Create(fmt.Sprintf("%s_%s.pem", e.host, e.user))
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	return pem.Encode(f, &pem.Block{Type: "CERTIFICATE", Bytes: cert.Raw})
+}
+
+func (e *Enroller) saveKey(key *rsa.PrivateKey) error {
+	f, err := os.Create(fmt.Sprintf("%s_%s.key", e.host, e.user))
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	return pem.Encode(f, &pem.Block{Type: "PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(key)})
+}
+
+func (e *Enroller) loadCert() (*x509.Certificate, error) {
+	f, err := os.Open(fmt.Sprintf("%s_%s.pem", e.host, e.user))
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+
+	b, err := io.ReadAll(f)
+	if err != nil {
+		return nil, err
+	}
+
+	block, _ := pem.Decode(b)
+	return x509.ParseCertificate(block.Bytes)
+}
+
+func (e *Enroller) loadKey() (*rsa.PrivateKey, error) {
+	f, err := os.Open(fmt.Sprintf("%s_%s.key", e.host, e.user))
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+
+	b, err := io.ReadAll(f)
+	if err != nil {
+		return nil, err
+	}
+
+	block, _ := pem.Decode(b)
+	return x509.ParsePKCS1PrivateKey(block.Bytes)
 }
 
 func makeCsr(subj *pkix.Name) (string, *rsa.PrivateKey) {

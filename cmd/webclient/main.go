@@ -475,7 +475,7 @@ func main() {
 				return
 			}
 
-			enr := NewEnroller(app.host, user, passw)
+			enr := NewEnroller(app.Logger.Named("enroller"), app.host, user, passw, viper.GetBool("ssl.save_cert"))
 			if app.tlsCert, err = enr.enrollCert(app.uid, app.GetVersion()); err != nil {
 				app.Logger.Errorf("error while enroll cert: %s", err.Error())
 				return
