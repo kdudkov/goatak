@@ -36,7 +36,24 @@ func (m *CotMessage) GetCallsign() string {
 		return ""
 	}
 
-	return m.TakMessage.GetCotEvent().GetDetail().GetContact().GetCallsign()
+	if s := m.TakMessage.GetCotEvent().GetDetail().GetContact().GetCallsign(); s != "" {
+		return s
+	}
+
+	// if phonenumber is in contact - contact is in xmldetails
+	return m.Detail.GetFirst("contact").GetAttr("callsign")
+}
+
+func (m *CotMessage) GetEndpoint() string {
+	if m == nil || m.TakMessage == nil {
+		return ""
+	}
+
+	if s := m.TakMessage.GetCotEvent().GetDetail().GetContact().GetEndpoint(); s != "" {
+		return s
+	}
+
+	return m.Detail.GetFirst("contact").GetAttr("endpoint")
 }
 
 func (m *CotMessage) GetTeam() string {
@@ -53,14 +70,6 @@ func (m *CotMessage) GetRole() string {
 	}
 
 	return m.TakMessage.GetCotEvent().GetDetail().GetGroup().GetRole()
-}
-
-func (m *CotMessage) GetEndpoint() string {
-	if m == nil || m.TakMessage == nil {
-		return ""
-	}
-
-	return m.TakMessage.GetCotEvent().GetDetail().GetContact().GetEndpoint()
 }
 
 func (m *CotMessage) GetStale() time.Time {

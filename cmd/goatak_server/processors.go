@@ -97,6 +97,10 @@ func (app *App) ProcessItem(msg *cot.CotMessage) {
 		c.Update(msg)
 	} else {
 		app.Logger.Infof("new %s %s (%s) %s", cl, msg.GetUid(), msg.GetCallsign(), msg.GetType())
+		if msg.GetCallsign() == "" {
+			app.Logger.Infof("%s", msg.TakMessage.GetCotEvent().GetDetail().GetXmlDetail())
+			_ = logToFile(msg)
+		}
 		app.items.Store(model.FromMsg(msg))
 	}
 }

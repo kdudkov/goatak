@@ -226,7 +226,7 @@ func (i *Item) Update(msg *cot.CotMessage) {
 
 	i.class = GetClass(msg)
 	i.cottype = msg.TakMessage.GetCotEvent().GetType()
-	i.callsign = msg.TakMessage.GetCotEvent().GetDetail().GetContact().GetCallsign()
+	i.callsign = msg.GetCallsign()
 	i.staleTime = cot.TimeFromMillis(msg.TakMessage.GetCotEvent().GetStaleTime())
 	i.startTime = cot.TimeFromMillis(msg.TakMessage.GetCotEvent().GetStartTime())
 	i.sendTime = cot.TimeFromMillis(msg.TakMessage.GetCotEvent().GetSendTime())
