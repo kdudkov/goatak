@@ -18,8 +18,10 @@ type ItemsRepository interface {
 	Stop()
 	Store(i *model.Item)
 	Get(uid string) *model.Item
+	GetByCallsign(callsign string) *model.Item
 	Remove(uid string)
 	ForEach(f func(item *model.Item) bool)
+	GetCallsign(uid string) string
 }
 
 type FeedsRepository interface {

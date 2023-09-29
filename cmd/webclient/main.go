@@ -265,14 +265,6 @@ func (app *App) ProcessItem(msg *cot.CotMessage) {
 	}
 }
 
-func (app *App) GetCallsign(uid string) string {
-	i := app.items.Get(uid)
-	if i != nil {
-		return i.GetCallsign()
-	}
-	return uid
-}
-
 func (app *App) processChange(u *model.Item) {
 
 }

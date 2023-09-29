@@ -306,14 +306,6 @@ func (app *App) getTlsConfig() *tls.Config {
 	return &tls.Config{Certificates: []tls.Certificate{tlsCert}, InsecureSkipVerify: true}
 }
 
-func (app *App) GetCallsign(uid string) string {
-	i := app.items.Get(uid)
-	if i != nil {
-		return i.GetCallsign()
-	}
-	return ""
-}
-
 func (app *App) MessageProcessor() {
 	for msg := range app.ch {
 		if msg.TakMessage.CotEvent == nil {
