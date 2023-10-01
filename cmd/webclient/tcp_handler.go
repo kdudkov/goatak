@@ -1,15 +1,10 @@
 package main
 
 import (
-	"crypto"
 	"crypto/tls"
 	"fmt"
 	"net"
-	"os"
 	"strings"
-
-	"github.com/spf13/viper"
-	"software.sslmate.com/src/go-pkcs12"
 )
 
 func (app *App) connect() (net.Conn, error) {
@@ -43,23 +38,4 @@ func (app *App) connect() (net.Conn, error) {
 
 func (app *App) getTlsConfig() *tls.Config {
 	return &tls.Config{Certificates: []tls.Certificate{*app.tlsCert}, InsecureSkipVerify: true}
-}
-
-func (app *App) loadCerts() {
-	app.Logger.Infof("load cert from %s", viper.GetString("ssl.cert"))
-	p12Data, err := os.ReadFile(viper.GetString("ssl.cert"))
-	if err != nil {
-		app.Logger.Fatal(err)
-	}
-
-	key, cert, _, err := pkcs12.DecodeChain(p12Data, viper.GetString("ssl.password"))
-	if err != nil {
-		app.Logger.Fatal(err)
-	}
-
-	app.tlsCert = &tls.Certificate{
-		Certificate: [][]byte{cert.Raw},
-		PrivateKey:  key.(crypto.PrivateKey),
-		Leaf:        cert,
-	}
 }

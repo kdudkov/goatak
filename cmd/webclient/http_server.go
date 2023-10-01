@@ -74,7 +74,7 @@ func getConfigHandler(app *App) func(req *air.Request, res *air.Response) error 
 		m := make(map[string]any, 0)
 		m["version"] = gitRevision
 		m["uid"] = app.uid
-		lat, lon := app.pos.Get()
+		lat, lon := app.pos.Load().Get()
 		m["lat"] = lat
 		m["lon"] = lon
 		m["zoom"] = app.zoom
@@ -120,7 +120,7 @@ func getPosHandler(app *App) func(req *air.Request, res *air.Response) error {
 
 		if latOk && lonOk {
 			app.Logger.Infof("new my coords: %.5f,%.5f", lat, lon)
-			app.pos.Set(lat, lon)
+			app.pos.Store(model.NewPos(lat, lon))
 		}
 
 		app.SendMsg(app.MakeMe())

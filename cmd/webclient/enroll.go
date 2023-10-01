@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/tls"
@@ -10,14 +11,19 @@ import (
 	"encoding/pem"
 	"encoding/xml"
 	"fmt"
-	"github.com/kdudkov/goatak/pkg/tlsutil"
-	"go.uber.org/zap"
-	"io"
 	"net/http"
 	"os"
 	"strings"
 	"time"
+
+	"github.com/spf13/viper"
+	"go.uber.org/zap"
+	"software.sslmate.com/src/go-pkcs12"
+
+	"github.com/kdudkov/goatak/pkg/tlsutil"
 )
+
+const minCertAge = time.Hour * 24
 
 type Enroller struct {
 	logger *zap.SugaredLogger
@@ -88,12 +94,12 @@ func (e *Enroller) getConfig() (*CertificateConfig, error) {
 	return conf, err
 }
 
-func (e *Enroller) enrollCert(uid, version string) (*tls.Certificate, error) {
-	if cert, err := e.loadCert(); err == nil {
-		if key, err := e.loadKey(); err == nil {
-			e.logger.Infof("loading certs from file")
-			return &tls.Certificate{Certificate: [][]byte{cert.Raw}, PrivateKey: key, Leaf: cert}, nil
-		}
+func (e *Enroller) getOrEnrollCert(uid, version string) (*tls.Certificate, error) {
+	fname := fmt.Sprintf("%s_%s.p12", e.host, e.user)
+	if cert, err := loadP12(fname, viper.GetString("ssl.password")); err == nil {
+		e.logger.Infof("loading cert from file %s", fname)
+		e.logger.Infof("cert is valid till %s", cert.Leaf.NotAfter)
+		return cert, nil
 	}
 
 	conf, err := e.getConfig()
@@ -151,74 +157,40 @@ func (e *Enroller) enrollCert(uid, version string) (*tls.Certificate, error) {
 		return nil, fmt.Errorf("empty response")
 	}
 
+	var cert *x509.Certificate
+	ca := make([]*x509.Certificate, 0)
+
 	defer res.Body.Close()
 
-	if c, ok := certs["signedCert"]; ok {
-		cert, err := tlsutil.ParseCert(c)
+	for name, c := range certs {
+		crt, err := tlsutil.ParseCert(c)
 
 		if err != nil {
 			return nil, err
 		}
 
-		if e.save {
-			_ = e.saveCert(cert)
-			_ = e.saveKey(key)
+		if name == "signedCert" {
+			cert = crt
+			continue
 		}
 
-		return &tls.Certificate{Certificate: [][]byte{cert.Raw}, PrivateKey: key, Leaf: cert}, nil
+		if strings.HasPrefix(name, "ca") {
+			ca = append(ca, crt)
+		}
 	}
 
-	return nil, fmt.Errorf("no signed cert in responce")
-}
-
-func (e *Enroller) saveCert(cert *x509.Certificate) error {
-	f, err := os.Create(fmt.Sprintf("%s_%s.pem", e.host, e.user))
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-	return pem.Encode(f, &pem.Block{Type: "CERTIFICATE", Bytes: cert.Raw})
-}
-
-func (e *Enroller) saveKey(key *rsa.PrivateKey) error {
-	f, err := os.Create(fmt.Sprintf("%s_%s.key", e.host, e.user))
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-	return pem.Encode(f, &pem.Block{Type: "PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(key)})
-}
-
-func (e *Enroller) loadCert() (*x509.Certificate, error) {
-	f, err := os.Open(fmt.Sprintf("%s_%s.pem", e.host, e.user))
-	if err != nil {
-		return nil, err
-	}
-	defer f.Close()
-
-	b, err := io.ReadAll(f)
-	if err != nil {
-		return nil, err
+	if cert == nil {
+		return nil, fmt.Errorf("no signed cert in answer")
 	}
 
-	block, _ := pem.Decode(b)
-	return x509.ParseCertificate(block.Bytes)
-}
-
-func (e *Enroller) loadKey() (*rsa.PrivateKey, error) {
-	f, err := os.Open(fmt.Sprintf("%s_%s.key", e.host, e.user))
-	if err != nil {
-		return nil, err
-	}
-	defer f.Close()
-
-	b, err := io.ReadAll(f)
-	if err != nil {
-		return nil, err
+	if e.save {
+		if err := e.saveP12(key, cert, ca); err != nil {
+			e.logger.Errorf("%s", err)
+		}
 	}
 
-	block, _ := pem.Decode(b)
-	return x509.ParsePKCS1PrivateKey(block.Bytes)
+	e.logger.Infof("cert enrollment successful")
+	return &tls.Certificate{Certificate: [][]byte{cert.Raw}, PrivateKey: key, Leaf: cert}, nil
 }
 
 func makeCsr(subj *pkix.Name) (string, *rsa.PrivateKey) {
@@ -237,4 +209,38 @@ func makeCsr(subj *pkix.Name) (string, *rsa.PrivateKey) {
 	csr = strings.ReplaceAll(csr, "\n-----END CERTIFICATE REQUEST-----", "")
 
 	return csr, keyBytes
+}
+
+func (e *Enroller) saveP12(key interface{}, cert *x509.Certificate, ca []*x509.Certificate) error {
+	f, err := os.Create(fmt.Sprintf("%s_%s.p12", e.host, e.user))
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	data, err := pkcs12.Encode(rand.Reader, key, cert, ca, viper.GetString("ssl.password"))
+	_, _ = f.Write(data)
+	return nil
+}
+
+func loadP12(filename, password string) (*tls.Certificate, error) {
+	p12Data, err := os.ReadFile(filename)
+	if err != nil {
+		return nil, err
+	}
+
+	key, cert, _, err := pkcs12.DecodeChain(p12Data, password)
+	if err != nil {
+		return nil, err
+	}
+
+	if cert.NotAfter.Before(time.Now().Add(minCertAge)) {
+		return nil, fmt.Errorf("cert is too old notAfter=(%s)", cert.NotAfter)
+	}
+
+	return &tls.Certificate{
+		Certificate: [][]byte{cert.Raw},
+		PrivateKey:  key.(crypto.PrivateKey),
+		Leaf:        cert,
+	}, nil
 }

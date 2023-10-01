@@ -2,6 +2,8 @@ package model
 
 import (
 	"math"
+	"sync"
+	"time"
 )
 
 func DistBea(lat1, lon1, lat2, lon2 float64) (float64, float64) {
@@ -23,4 +25,23 @@ func DistBea(lat1, lon1, lat2, lon2 float64) (float64, float64) {
 	c := 2 * math.Atan2(math.Sqrt(a), math.Sqrt(1-a))
 	dist := R * c
 	return dist, bea
+}
+
+type Pos struct {
+	time  time.Time
+	lat   float64
+	lon   float64
+	speed float64
+	mx    sync.RWMutex
+}
+
+func NewPos(lat, lon float64) *Pos {
+	return &Pos{lon: lon, lat: lat, mx: sync.RWMutex{}}
+}
+
+func (p *Pos) Get() (float64, float64) {
+	if p == nil {
+		return 0, 0
+	}
+	return p.lat, p.lon
 }

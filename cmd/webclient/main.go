@@ -37,12 +37,6 @@ var (
 	gitBranch   = "unknown"
 )
 
-type Pos struct {
-	lat float64
-	lon float64
-	mx  sync.RWMutex
-}
-
 type EventProcessor func(msg *cot.CotMessage)
 
 type App struct {
@@ -74,7 +68,7 @@ type App struct {
 	platform string
 	os       string
 	role     string
-	pos      *Pos
+	pos      atomic.Pointer[model.Pos]
 	zoom     int8
 }
 
@@ -113,6 +107,7 @@ func NewApp(uid string, callsign string, connectStr string, webPort int, logger 
 		listeners:       sync.Map{},
 		messages:        model.NewMessages(uid),
 		eventProcessors: make(map[string]EventProcessor),
+		pos:             atomic.Pointer[model.Pos]{},
 	}
 }
 
@@ -271,7 +266,7 @@ func (app *App) processChange(u *model.Item) {
 
 func (app *App) MakeMe() *cotproto.TakMessage {
 	ev := cot.BasicMsg(app.typ, app.uid, time.Minute*2)
-	lat, lon := app.pos.Get()
+	lat, lon := app.pos.Load().Get()
 	ev.CotEvent.Lat = lat
 	ev.CotEvent.Lon = lon
 	ev.CotEvent.Detail = &cotproto.Detail{
@@ -359,29 +354,6 @@ func (app *App) sendMyPoints() {
 	})
 }
 
-func NewPos(lat, lon float64) *Pos {
-	return &Pos{lon: lon, lat: lat, mx: sync.RWMutex{}}
-}
-
-func (p *Pos) Set(lat, lon float64) {
-	if p == nil {
-		return
-	}
-	p.mx.Lock()
-	defer p.mx.Unlock()
-	p.lat = lat
-	p.lon = lon
-}
-
-func (p *Pos) Get() (float64, float64) {
-	if p == nil {
-		return 0, 0
-	}
-	p.mx.RLock()
-	defer p.mx.RUnlock()
-	return p.lat, p.lon
-}
-
 func main() {
 	var conf = flag.String("config", "goatak_client.yml", "name of config file")
 	var noweb = flag.Bool("noweb", false, "do not start web server")
@@ -442,7 +414,7 @@ func main() {
 		app.webPort = 0
 	}
 
-	app.pos = NewPos(viper.GetFloat64("me.lat"), viper.GetFloat64("me.lon"))
+	app.pos.Store(model.NewPos(viper.GetFloat64("me.lat"), viper.GetFloat64("me.lon")))
 	app.zoom = int8(viper.GetInt("me.zoom"))
 	app.typ = viper.GetString("me.type")
 	app.team = viper.GetString("me.team")
@@ -468,13 +440,18 @@ func main() {
 			}
 
 			enr := NewEnroller(app.Logger.Named("enroller"), app.host, user, passw, viper.GetBool("ssl.save_cert"))
-			if app.tlsCert, err = enr.enrollCert(app.uid, app.GetVersion()); err != nil {
+			if app.tlsCert, err = enr.getOrEnrollCert(app.uid, app.GetVersion()); err != nil {
 				app.Logger.Errorf("error while enroll cert: %s", err.Error())
 				return
 			}
-			app.Logger.Infof("cert enrollment successful")
 		} else {
-			app.loadCerts()
+			app.Logger.Infof("loading cert from file %s", viper.GetString("ssl.cert"))
+			cert, err := loadP12(viper.GetString("ssl.cert"), viper.GetString("ssl.password"))
+			if err != nil {
+				app.Logger.Errorf("error while loading cert: %s", err.Error())
+				return
+			}
+			app.tlsCert = cert
 		}
 	}
 

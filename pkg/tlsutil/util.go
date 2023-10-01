@@ -5,8 +5,9 @@ import (
 	"crypto/rand"
 	"crypto/x509"
 	"encoding/pem"
-	"software.sslmate.com/src/go-pkcs12"
 	"strings"
+
+	"software.sslmate.com/src/go-pkcs12"
 )
 
 func ParseCert(s string) (*x509.Certificate, error) {

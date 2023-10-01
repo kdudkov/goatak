@@ -18,13 +18,6 @@ const (
 	MAX_TRACK_POINTS   = 5000
 )
 
-type Pos struct {
-	time  time.Time
-	lat   float64
-	lon   float64
-	speed float64
-}
-
 type Item struct {
 	mx             sync.RWMutex
 	uid            string

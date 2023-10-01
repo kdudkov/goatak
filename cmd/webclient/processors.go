@@ -81,7 +81,7 @@ func (app *App) removeItemProcessor(msg *cot.CotMessage) {
 				return
 			case model.UNIT, model.POINT:
 				app.Logger.Debugf("remove unit/point %s type %s by message", uid, typ)
-				//app.units.Delete(uid)
+				app.items.Remove(uid)
 				return
 			}
 		}
