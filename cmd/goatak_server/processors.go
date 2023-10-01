@@ -85,7 +85,7 @@ func (app *App) chatProcessor(msg *cot.CotMessage) {
 	if c.From == "" {
 		c.From = app.items.GetCallsign(c.FromUid)
 	}
-	app.Logger.Infof("Chat %s (%s) -> %s (%s) \"%s\"", c.From, c.FromUid, c.Chatroom, c.ToUid, c.Text)
+	app.Logger.Infof("Chat %s", c.String())
 	app.messages = append(app.messages, c)
 	app.logMessage(c)
 }

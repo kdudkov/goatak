@@ -139,9 +139,6 @@ func (m *ChatMessage) String() string {
 func MsgToChat(m *cot.CotMessage) *ChatMessage {
 	chat := m.Detail.GetFirst("__chat")
 	if chat == nil {
-		chat = m.Detail.GetFirst("__chatreceipt")
-	}
-	if chat == nil {
 		return nil
 	}
 
