@@ -1,0 +1,86 @@
+b-d Detection
+b-d-a Detection/Acoustic
+b-d-a-c Detection/Acoustic/Cyclostationary
+b-d-a-i Detection/Acoustic/Impulsive
+b-d-a-v Detection/Acoustic/Voice
+b-d-c Detection/CBRNE
+b-d-c-b Detection/CBRNE/BioChem
+b-d-c-b-b Detection/CBRNE/BioChem/Biological
+b-d-c-b-c Detection/CBRNE/BioChem/Chemical
+b-d-c-e Detection/CBRNE/Explosive
+b-d-c-e-d Detection/CBRNE/Explosive/Device
+b-d-c-n Detection/CBRNE/NuclearRadiological
+b-d-c-n-n Detection/CBRNE/NuclearRadiological/Nuclear
+b-d-c-n-n-b Detection/CBRNE/NuclearRadiological/Nuclear/Bomb
+b-d-c-n-n-sm Detection/CBRNE/NuclearRadiological/Nuclear/Special Nuclear Material
+b-d-c-n-r Detection/CBRNE/NuclearRadiological/Radiation
+b-d-c-n-r-dd Detection/CBRNE/NuclearRadiological/Radiological/Dispersal Device (Dirty Bomb)
+b-d-i Detection/Impact
+b-d-i-m Detection/Impact/Mortar
+b-d-l Detection/Launch
+b-d-l-b Detection/Launch/Bullet
+b-d-l-m Detection/Launch/Mortar
+b-d-m Detection/Motion
+b-d-s Detection/Seismic
+b-f-t-r Photo
+b-i Imagery
+b-i-v Video feed
+b-i-x-i photo
+b-l Alarm
+b-m Mapping
+b-m-c Chemlight
+b-m-c-b Chemlight Blue
+b-m-c-g Chemlight Green
+b-m-c-r Chemlight Red
+b-m-c-y Chemlight Yellow
+b-m-d Map drawing
+b-m-p Designated point
+b-m-p-a aimpoint
+b-m-p-c control point
+b-m-p-c-cp contact point
+b-m-p-c-ip initial point
+b-m-p-c-z black triangle
+b-m-p-i initial point
+b-m-p-s sensor point
+b-m-p-s-p-i point of interest
+b-m-p-s-p-loc sensor
+b-m-p-s-p-op Observer point
+b-m-p-t target point
+b-m-p-w waypoint
+b-m-p-w-GOTO flag
+b-m-r Route
+b-r Report
+b-r-f-h-c Casevac
+b-t-f Chat message
+b-w Weather
+c Capability
+r Area restrictions
+r-c Contaminated
+r-c-x-b Biological attack
+r-c-x-c Chemical attack
+r-f Flight restrictions
+r-o Occupied
+r-u Unsafe
+t Tasking
+t-a Air request
+t-k Strike request
+t-p Pairing request
+t-x Extended request
+t-x-c-t Ping
+t-x-c-t-r Pong
+t-x-d-d Delete by link
+u-d Drawing
+u-d-c-c Drawing Shapes – Circle
+u-d-c-e Drawing Shapes – Ellipse
+u-d-f Drawing Shapes - Free Form
+u-d-r Drawing Shapes – Rectangle
+u-r-b-c-c R&b - Circle
+u-rb-a Range & Bearing – Line
+y Task Reply
+y-a Ack
+y-a-r Rcvd
+y-a-w Wilco
+y-c Tasking Complete
+y-c-f Fail
+y-c-s Complete: Success
+y-s Status

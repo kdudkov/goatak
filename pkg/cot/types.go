@@ -11,6 +11,10 @@ var strTypes string
 var types = make(map[string]*CotType)
 var Root = new(CotType)
 
+//go:embed messages
+var strMsgs string
+var messages = make(map[string]string)
+
 type CotType struct {
 	Code string     `json:"code"`
 	Name string     `json:"name"`
@@ -63,6 +67,13 @@ func init() {
 	sort.SliceStable(Root.Next, func(i, j int) bool {
 		return strings.Compare(Root.Next[i].Code, Root.Next[j].Code) < 0
 	})
+
+	for _, s := range strings.Split(strMsgs, "\n") {
+		ss := strings.SplitN(s, " ", 2)
+		if len(ss) == 2 {
+			messages[ss[0]] = ss[1]
+		}
+	}
 }
 
 func (t *CotType) Level() int {
@@ -75,4 +86,23 @@ func (t *CotType) Level() int {
 
 func GetNext(s string) []*CotType {
 	return types[s].Next
+}
+
+func GetMsgType(typ string) (name string, exact bool) {
+	found := ""
+	for k, v := range messages {
+		if k == typ {
+			return v, true
+		}
+
+		if strings.HasPrefix(typ, k) && len(k) > len(found) {
+			found = k
+		}
+	}
+
+	if found != "" {
+		return messages[found], false
+	}
+
+	return "", false
 }

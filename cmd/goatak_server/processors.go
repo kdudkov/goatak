@@ -9,16 +9,12 @@ import (
 
 func (app *App) InitMessageProcessors() {
 	app.eventProcessors["t-x-d-d"] = app.removeItemProcessor
-	// ping
-	app.eventProcessors["t-x-c-t"] = app.justLogProcessor
-	// pong
-	app.eventProcessors["t-x-c-t-r"] = app.justLogProcessor
 	// chat
 	app.eventProcessors["b-t-f"] = app.chatProcessor
-	app.eventProcessors["b-t-f-"] = app.logInterestingProcessor
 	app.eventProcessors["a-"] = app.ProcessItem
 	app.eventProcessors["b-"] = app.ProcessItem
 	app.eventProcessors["u-"] = app.logInterestingProcessor
+	app.eventProcessors["b-t-f-"] = app.logInterestingProcessor
 }
 
 func (app *App) GetProcessor(t string) (string, EventProcessor) {

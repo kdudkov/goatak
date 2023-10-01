@@ -237,12 +237,15 @@ func (app *App) ProcessEvent(msg *cot.CotMessage) {
 		c.Update(nil)
 	}
 
-	_, processor := app.GetProcessor(msg.GetType())
-
-	if processor != nil {
+	if _, processor := app.GetProcessor(msg.GetType()); processor != nil {
 		processor(msg)
+	}
+
+	name, exact := cot.GetMsgType(msg.GetType())
+	if exact {
+		app.Logger.Infof("%s %s", msg.GetType(), name)
 	} else {
-		app.Logger.Warn("unknown message %s", msg.GetType())
+		app.Logger.Infof("%s %s (extended)", msg.GetType(), name)
 	}
 }
 
