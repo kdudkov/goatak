@@ -11,9 +11,9 @@ type Event struct {
 	XMLName xml.Name  `xml:"event"`
 	Version string    `xml:"version,attr"`
 	Type    string    `xml:"type,attr"`
-	Access  string    `xml:"access,attr"`
-	Qos     string    `xml:"qos,attr"`
-	Opex    string    `xml:"opex,attr"`
+	Access  string    `xml:"access,attr,omitempty"`
+	Qos     string    `xml:"qos,attr,omitempty"`
+	Opex    string    `xml:"opex,attr,omitempty"`
 	Uid     string    `xml:"uid,attr"`
 	Time    time.Time `xml:"time,attr"`
 	Start   time.Time `xml:"start,attr"`
@@ -119,7 +119,7 @@ func VersionSupportMsg(ver int8) *Event {
 
 func VersionReqMsg(ver int8) *Event {
 	v := strconv.Itoa(int(ver))
-	ev := XmlBasicMsg("t-x-takp-v", "protouid", time.Minute)
+	ev := XmlBasicMsg("t-x-takp-q", "protouid", time.Minute)
 	ev.How = "m-g"
 	ev.AddDetail().AddChild("TakControl", nil, "").AddChild("TakRequest", map[string]string{"version": v}, "")
 	return ev

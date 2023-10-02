@@ -241,11 +241,13 @@ func (app *App) ProcessEvent(msg *cot.CotMessage) {
 		processor(msg)
 	}
 
-	name, exact := cot.GetMsgType(msg.GetType())
-	if exact {
-		app.Logger.Infof("%s %s", msg.GetType(), name)
-	} else {
-		app.Logger.Infof("%s %s (extended)", msg.GetType(), name)
+	if !strings.HasPrefix(msg.GetType(), "a-") {
+		name, exact := cot.GetMsgType(msg.GetType())
+		if exact {
+			app.Logger.Debugf("%s %s", msg.GetType(), name)
+		} else {
+			app.Logger.Infof("%s %s (extended)", msg.GetType(), name)
+		}
 	}
 }
 
@@ -379,6 +381,7 @@ func main() {
 	viper.SetDefault("me.version", fmt.Sprintf("%s:%s", gitBranch, gitRevision))
 	//viper.SetDefault("me.os", runtime.GOOS)
 	viper.SetDefault("ssl.password", "atakatak")
+	viper.SetDefault("ssl.save_cert", true)
 
 	err := viper.ReadInConfig()
 	if err != nil {

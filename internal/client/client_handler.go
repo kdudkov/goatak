@@ -138,7 +138,9 @@ func (h *ConnClientHandler) Start() {
 
 	if !h.isClient {
 		h.logger.Infof("send version msg")
-		_ = h.sendEvent(cot.VersionSupportMsg(1))
+		if err := h.sendEvent(cot.VersionSupportMsg(1)); err != nil {
+			h.logger.Errorf("error sending ver req: %s", err.Error())
+		}
 	}
 }
 
@@ -250,6 +252,8 @@ func (h *ConnClientHandler) processXMLRead(er *cot.TagReader) (*cotproto.TakMess
 
 	h.setActivity()
 
+	h.logger.Debugf("xml event: %s", ev)
+
 	if ev.IsTakControlRequest() {
 		ver := ev.Detail.GetFirst("TakControl").GetFirst("TakRequest").GetAttr("version")
 		if ver == "1" {
@@ -267,6 +271,7 @@ func (h *ConnClientHandler) processXMLRead(er *cot.TagReader) (*cotproto.TakMess
 		v := ev.Detail.GetFirst("TakControl").GetFirst("TakProtocolSupport").GetAttr("version")
 		h.logger.Infof("server supports protocol v%s", v)
 		if v == "1" {
+			h.logger.Debugf("sending v1 req")
 			_ = h.sendEvent(cot.VersionReqMsg(1))
 		}
 		return nil, nil, nil
@@ -410,6 +415,7 @@ func (h *ConnClientHandler) sendEvent(evt *cot.Event) error {
 		return err
 	}
 
+	h.logger.Debugf("sending %s", msg)
 	if h.tryAddPacket(msg) {
 		return nil
 	}

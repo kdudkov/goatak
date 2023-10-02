@@ -320,11 +320,13 @@ func (app *App) MessageProcessor() {
 			processor(msg)
 		}
 
-		name, exact := cot.GetMsgType(msg.GetType())
-		if exact {
-			app.Logger.Debugf("%s %s", msg.GetType(), name)
-		} else {
-			app.Logger.Infof("%s %s (extended)", msg.GetType(), name)
+		if !strings.HasPrefix(msg.GetType(), "a-") {
+			name, exact := cot.GetMsgType(msg.GetType())
+			if exact {
+				app.Logger.Debugf("%s %s", msg.GetType(), name)
+			} else {
+				app.Logger.Infof("%s %s (extended)", msg.GetType(), name)
+			}
 		}
 
 		app.route(msg)
