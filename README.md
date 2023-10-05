@@ -2,6 +2,8 @@
 
 This is fast & simple implementation of ATAK server/CoT router and ATAK client with web interface.
 
+tg group: https://t.me/ru_atak
+
 binary builds can be downloaded
 from [releases page](https://github.com/kdudkov/goatak/releases)
 
