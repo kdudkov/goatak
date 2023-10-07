@@ -3,6 +3,7 @@ package main
 import (
 	"crypto/tls"
 	"fmt"
+	"github.com/spf13/viper"
 	"net"
 	"strings"
 )
@@ -37,5 +38,15 @@ func (app *App) connect() (net.Conn, error) {
 }
 
 func (app *App) getTlsConfig() *tls.Config {
-	return &tls.Config{Certificates: []tls.Certificate{*app.tlsCert}, InsecureSkipVerify: true}
+	conf := &tls.Config{
+		Certificates: []tls.Certificate{*app.tlsCert},
+		RootCAs:      app.cas,
+		//InsecureSkipVerify: true,
+	}
+
+	if !viper.GetBool("ssl.secure") {
+		conf.InsecureSkipVerify = true
+	}
+
+	return conf
 }

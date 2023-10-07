@@ -85,6 +85,7 @@ func (app *App) listenTls(addr string) error {
 			RemoveCb:  app.RemoveHandlerCb})
 		app.AddClientHandler(h)
 		h.Start()
+		app.onTlsClientConnect(username, serial)
 	}
 }
 
@@ -116,4 +117,8 @@ func (app *App) logCert(cert []*x509.Certificate) {
 		app.Logger.Infof("#%d subject: %s", i, cert.Subject.String())
 		app.Logger.Infof("#%d sn: %x", i, cert.SerialNumber)
 	}
+}
+
+func (app *App) onTlsClientConnect(username, sn string) {
+
 }

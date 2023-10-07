@@ -4,9 +4,12 @@ import (
 	"context"
 	"crypto/md5"
 	"crypto/tls"
+	"crypto/x509"
 	"flag"
 	"fmt"
+	"github.com/kdudkov/goatak/pkg/tlsutil"
 	"math/rand"
+	"net/http"
 	"os"
 	"os/signal"
 	"strings"
@@ -52,10 +55,12 @@ type App struct {
 	messages        *model.Messages
 	tls             bool
 	tlsCert         *tls.Certificate
+	cas             *x509.CertPool
 	cl              *client.ConnClientHandler
 	listeners       sync.Map
 	textLogger      *TextLogger
 	eventProcessors map[string]EventProcessor
+	client          *http.Client
 
 	connected uint32
 
@@ -128,6 +133,14 @@ func (app *App) Init(cancel context.CancelFunc) {
 		app.textLogger = NewTextLogger()
 	}
 
+	app.client = &http.Client{Timeout: time.Second * 5}
+
+	if app.tls {
+		app.client.Transport = &http.Transport{
+			TLSClientConfig: app.getTlsConfig(),
+		}
+	}
+
 	app.ch = make(chan []byte, 20)
 	app.InitMessageProcessors()
 }
@@ -175,6 +188,7 @@ func (app *App) Run(ctx context.Context) {
 		})
 
 		go app.cl.Start()
+		go app.periodicGetter(ctx1)
 		go app.myPosSender(ctx1, wg)
 
 		wg.Wait()
@@ -253,9 +267,6 @@ func (app *App) ProcessEvent(msg *cot.CotMessage) {
 
 func (app *App) ProcessItem(msg *cot.CotMessage) {
 	cl := model.GetClass(msg)
-	if cl == model.CONTACT {
-		app.messages.CheckCallsing(msg.GetUid(), msg.GetCallsign())
-	}
 	if c := app.items.Get(msg.GetUid()); c != nil {
 		app.Logger.Debugf("update %s %s (%s) %s", cl, msg.GetUid(), msg.GetCallsign(), msg.GetType())
 		c.Update(msg)
@@ -446,18 +457,22 @@ func main() {
 			}
 
 			enr := NewEnroller(app.Logger.Named("enroller"), app.host, user, passw, viper.GetBool("ssl.save_cert"))
-			if app.tlsCert, err = enr.getOrEnrollCert(app.uid, app.GetVersion()); err != nil {
+			cert, cas, err := enr.getOrEnrollCert(app.uid, app.GetVersion())
+			if err != nil {
 				app.Logger.Errorf("error while enroll cert: %s", err.Error())
 				return
 			}
+			app.tlsCert = cert
+			app.cas = tlsutil.MakeCertPool(cas...)
 		} else {
 			app.Logger.Infof("loading cert from file %s", viper.GetString("ssl.cert"))
-			cert, err := loadP12(viper.GetString("ssl.cert"), viper.GetString("ssl.password"))
+			cert, cas, err := loadP12(viper.GetString("ssl.cert"), viper.GetString("ssl.password"))
 			if err != nil {
 				app.Logger.Errorf("error while loading cert: %s", err.Error())
 				return
 			}
 			app.tlsCert = cert
+			app.cas = tlsutil.MakeCertPool(cas...)
 		}
 	}
 

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"crypto"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/tls"
@@ -94,17 +93,17 @@ func (e *Enroller) getConfig() (*CertificateConfig, error) {
 	return conf, err
 }
 
-func (e *Enroller) getOrEnrollCert(uid, version string) (*tls.Certificate, error) {
+func (e *Enroller) getOrEnrollCert(uid, version string) (*tls.Certificate, []*x509.Certificate, error) {
 	fname := fmt.Sprintf("%s_%s.p12", e.host, e.user)
-	if cert, err := loadP12(fname, viper.GetString("ssl.password")); err == nil {
+	if cert, cas, err := loadP12(fname, viper.GetString("ssl.password")); err == nil {
 		e.logger.Infof("loading cert from file %s", fname)
 		e.logger.Infof("cert is valid till %s", cert.Leaf.NotAfter)
-		return cert, nil
+		return cert, cas, nil
 	}
 
 	conf, err := e.getConfig()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	subj := new(pkix.Name)
 	subj.CommonName = e.user
@@ -126,7 +125,7 @@ func (e *Enroller) getOrEnrollCert(uid, version string) (*tls.Certificate, error
 	e.logger.Infof("signing cert on server")
 	req, err := http.NewRequest(http.MethodPost, e.baseUrl()+"/Marti/api/tls/signClient/v2", strings.NewReader(csr))
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	q := req.URL.Query()
 	q.Add("clientUID", uid)
@@ -140,21 +139,21 @@ func (e *Enroller) getOrEnrollCert(uid, version string) (*tls.Certificate, error
 	res, err := e.cl.Do(req)
 
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	if res.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("bad status: %d", res.StatusCode)
+		return nil, nil, fmt.Errorf("bad status: %d", res.StatusCode)
 	}
 
 	var certs map[string]string
 
 	if err := json.NewDecoder(res.Body).Decode(&certs); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	if res.Body == nil {
-		return nil, fmt.Errorf("empty response")
+		return nil, nil, fmt.Errorf("empty response")
 	}
 
 	var cert *x509.Certificate
@@ -166,7 +165,7 @@ func (e *Enroller) getOrEnrollCert(uid, version string) (*tls.Certificate, error
 		crt, err := tlsutil.ParseCert(c)
 
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 
 		if name == "signedCert" {
@@ -180,7 +179,7 @@ func (e *Enroller) getOrEnrollCert(uid, version string) (*tls.Certificate, error
 	}
 
 	if cert == nil {
-		return nil, fmt.Errorf("no signed cert in answer")
+		return nil, nil, fmt.Errorf("no signed cert in answer")
 	}
 
 	if e.save {
@@ -190,7 +189,7 @@ func (e *Enroller) getOrEnrollCert(uid, version string) (*tls.Certificate, error
 	}
 
 	e.logger.Infof("cert enrollment successful")
-	return &tls.Certificate{Certificate: [][]byte{cert.Raw}, PrivateKey: key, Leaf: cert}, nil
+	return &tls.Certificate{Certificate: [][]byte{cert.Raw}, PrivateKey: key, Leaf: cert}, ca, nil
 }
 
 func makeCsr(subj *pkix.Name) (string, *rsa.PrivateKey) {
@@ -219,28 +218,31 @@ func (e *Enroller) saveP12(key interface{}, cert *x509.Certificate, ca []*x509.C
 	defer f.Close()
 
 	data, err := pkcs12.Encode(rand.Reader, key, cert, ca, viper.GetString("ssl.password"))
+	if err != nil {
+		return err
+	}
 	_, _ = f.Write(data)
 	return nil
 }
 
-func loadP12(filename, password string) (*tls.Certificate, error) {
+func loadP12(filename, password string) (*tls.Certificate, []*x509.Certificate, error) {
 	p12Data, err := os.ReadFile(filename)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	key, cert, _, err := pkcs12.DecodeChain(p12Data, password)
+	key, cert, cas, err := pkcs12.DecodeChain(p12Data, password)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	if cert.NotAfter.Before(time.Now().Add(minCertAge)) {
-		return nil, fmt.Errorf("cert is too old notAfter=(%s)", cert.NotAfter)
+		return nil, nil, fmt.Errorf("cert is too old notAfter=(%s)", cert.NotAfter)
 	}
 
 	return &tls.Certificate{
 		Certificate: [][]byte{cert.Raw},
-		PrivateKey:  key.(crypto.PrivateKey),
+		PrivateKey:  key,
 		Leaf:        cert,
-	}, nil
+	}, cas, nil
 }

@@ -20,13 +20,11 @@ import (
 )
 
 const (
-	daysTtl     = 365
-	certTtl     = time.Hour * 24 * daysTtl
 	usernameKey = "username"
 	p12Password = "atakatak"
 )
 
-func getUsername(req *air.Request) string {
+func getUsernameFromReq(req *air.Request) string {
 	if u := req.Value(usernameKey); u != nil {
 		return u.(string)
 	}
@@ -64,7 +62,7 @@ func getTlsConfigHandler(app *App) func(req *air.Request, res *air.Response) err
 		names := map[string]string{"C": "RU"}
 		buf := strings.Builder{}
 		buf.WriteString("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n")
-		buf.WriteString(fmt.Sprintf("<certificateConfig validityDays=\"%d\"><nameEntries>", daysTtl))
+		buf.WriteString(fmt.Sprintf("<certificateConfig validityDays=\"%d\"><nameEntries>", app.config.certTtlDays))
 		for k, v := range names {
 			buf.WriteString(fmt.Sprintf("<nameEntry name=\"%s\" value=\"%s\"/>", k, v))
 		}
@@ -75,7 +73,7 @@ func getTlsConfigHandler(app *App) func(req *air.Request, res *air.Response) err
 	}
 }
 
-func signClientCert(clientCSR *x509.CertificateRequest, serverCert *x509.Certificate, privateKey crypto.PrivateKey) (*x509.Certificate, error) {
+func signClientCert(clientCSR *x509.CertificateRequest, serverCert *x509.Certificate, privateKey crypto.PrivateKey, days int) (*x509.Certificate, error) {
 	serialNumber, _ := rand.Int(rand.Reader, new(big.Int).Lsh(big.NewInt(1), 128))
 
 	template := x509.Certificate{
@@ -89,7 +87,7 @@ func signClientCert(clientCSR *x509.CertificateRequest, serverCert *x509.Certifi
 		Issuer:       serverCert.Subject,
 		Subject:      clientCSR.Subject,
 		NotBefore:    time.Now(),
-		NotAfter:     time.Now().Add(certTtl),
+		NotAfter:     time.Now().Add(time.Duration(days*24) * time.Hour),
 		KeyUsage:     x509.KeyUsageDigitalSignature,
 		ExtKeyUsage:  []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth},
 	}
@@ -104,7 +102,7 @@ func signClientCert(clientCSR *x509.CertificateRequest, serverCert *x509.Certifi
 }
 
 func (app *App) processSignRequest(req *air.Request) (*x509.Certificate, error) {
-	user := getUsername(req)
+	user := getUsernameFromReq(req)
 	uid := getStringParamIgnoreCaps(req, "clientUid")
 	ver := getStringParam(req, "version")
 
@@ -127,12 +125,13 @@ func (app *App) processSignRequest(req *air.Request) (*x509.Certificate, error) 
 		return nil, fmt.Errorf("bad user")
 	}
 
-	signedCert, err := signClientCert(clientCSR, app.config.serverCert, app.config.tlsCert.PrivateKey)
+	signedCert, err := signClientCert(clientCSR,
+		app.config.serverCert, app.config.tlsCert.PrivateKey, app.config.certTtlDays)
 	if err != nil {
 		return nil, err
 	}
 
-	app.newCert(user, uid, ver, signedCert.SerialNumber.String())
+	app.onNewCertCreated(user, uid, ver, signedCert.SerialNumber.String())
 
 	return signedCert, nil
 }
@@ -152,7 +151,7 @@ func getSignHandler(app *App) func(req *air.Request, res *air.Response) error {
 			certs[fmt.Sprintf("ca%d", i)] = c
 		}
 
-		p12Bytes, err := tlsutil.MakeP12(certs, p12Password)
+		p12Bytes, err := tlsutil.MakeP12TrustStore(certs, p12Password)
 
 		if err != nil {
 			app.Logger.Errorf("error making p12: %v", err)
@@ -205,7 +204,7 @@ func getSignHandlerV2(app *App) func(req *air.Request, res *air.Response) error 
 
 func getProfileEnrollmentHandler(app *App) func(req *air.Request, res *air.Response) error {
 	return func(req *air.Request, res *air.Response) error {
-		user := getUsername(req)
+		user := getUsernameFromReq(req)
 		uid := getStringParamIgnoreCaps(req, "clientUid")
 		app.Logger.Infof("%s %s %s %s", req.Method, req.Path, user, uid)
 		files := app.GetProfileFiles(user, uid)
@@ -232,6 +231,6 @@ func getProfileEnrollmentHandler(app *App) func(req *air.Request, res *air.Respo
 	}
 }
 
-func (app *App) newCert(user, uid, version, serial string) {
+func (app *App) onNewCertCreated(user, uid, version, serial string) {
 	app.Logger.Infof("new cert signed for user %s uid %s ver %s serial %s", user, uid, version, serial)
 }

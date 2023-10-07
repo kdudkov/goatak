@@ -11,9 +11,10 @@ import (
 )
 
 type Messages struct {
-	mx    sync.RWMutex
-	uid   string
-	Chats map[string]*Chat
+	mx       sync.RWMutex
+	uid      string
+	Chats    map[string]*Chat
+	Contacts sync.Map
 }
 
 type Chat struct {
@@ -28,10 +29,10 @@ type ChatMessage struct {
 	Parent   string    `json:"parent"`
 	Chatroom string    `json:"chatroom"`
 	From     string    `json:"from"`
-	Text     string    `json:"text"`
 	FromUid  string    `json:"from_uid"`
 	ToUid    string    `json:"to_uid"`
 	Direct   bool      `json:"direct"`
+	Text     string    `json:"text"`
 }
 
 func NewMessages(myUid string) *Messages {
@@ -39,7 +40,7 @@ func NewMessages(myUid string) *Messages {
 		mx:  sync.RWMutex{},
 		uid: myUid,
 		Chats: map[string]*Chat{
-			"All Chat Rooms": &Chat{
+			"All Chat Rooms": {
 				From:     "All Chat Rooms",
 				Uid:      "All Chat Rooms",
 				Messages: nil,
@@ -52,13 +53,11 @@ func (m *Messages) Add(msg *ChatMessage) {
 	m.mx.Lock()
 	defer m.mx.Unlock()
 
-	var uid, callsign string
-	if msg.FromUid == m.uid {
+	uid := msg.FromUid
+	callsign := msg.From
+	if uid == m.uid {
 		uid = msg.ToUid
 		callsign = msg.Chatroom
-	} else {
-		uid = msg.FromUid
-		callsign = msg.From
 	}
 
 	if c, ok := m.Chats[uid]; ok {
@@ -71,28 +70,6 @@ func (m *Messages) Add(msg *ChatMessage) {
 			From:     callsign,
 			Uid:      uid,
 			Messages: []*ChatMessage{msg},
-		}
-	}
-}
-
-func (m *Messages) Get(f func(map[string]*Chat)) {
-	m.mx.RLock()
-	defer m.mx.RUnlock()
-	f(m.Chats)
-}
-
-func (m *Messages) CheckCallsing(uid, callsign string) {
-	m.mx.Lock()
-	defer m.mx.Unlock()
-
-	for _, v := range m.Chats {
-		if v.Uid == uid {
-			v.From = callsign
-			for _, msg := range v.Messages {
-				if msg.FromUid == uid {
-					msg.From = callsign
-				}
-			}
 		}
 	}
 }
@@ -155,7 +132,7 @@ func MsgToChat(m *cot.CotMessage) *ChatMessage {
 		c.ToUid = cg.GetAttr("uid1")
 	}
 
-	if dest := m.Detail.GetFirst("marti").GetFirst("dest"); dest != nil {
+	for _, dest := range m.Detail.GetFirst("marti").GetAll("dest") {
 		if dest.GetAttr("callsign") != "" {
 			c.Direct = true
 		}
@@ -163,10 +140,13 @@ func MsgToChat(m *cot.CotMessage) *ChatMessage {
 
 	if rem := m.Detail.GetFirst("remarks"); rem != nil {
 		c.Text = html.UnescapeString(rem.GetText())
+	} else {
+		return nil
 	}
 
 	return c
 }
+
 func MakeChatMessage(c *ChatMessage) *cotproto.TakMessage {
 	t := time.Now().UTC().Format(time.RFC3339)
 	msgUid := fmt.Sprintf("GeoChat.%s.%s.%s", c.FromUid, c.ToUid, c.Id)

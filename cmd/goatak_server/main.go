@@ -63,6 +63,7 @@ type AppConfig struct {
 
 	debug bool
 
+	certTtlDays int
 	connections []string
 }
 
@@ -502,6 +503,7 @@ func main() {
 	viper.SetDefault("users_file", "users.yml")
 
 	viper.SetDefault("me.zoom", 10)
+	viper.SetDefault("ssl.cert_ttl_days", 365)
 
 	err := viper.ReadInConfig()
 	if err != nil {
@@ -534,6 +536,7 @@ func main() {
 		connections: viper.GetStringSlice("connections"),
 		usersFile:   viper.GetString("users_file"),
 		webtakRoot:  viper.GetString("webtak_root"),
+		certTtlDays: viper.GetInt("ssl.cert_ttl_days"),
 	}
 
 	if err := processCerts(config); err != nil {

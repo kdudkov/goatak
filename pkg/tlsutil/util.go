@@ -3,6 +3,7 @@ package tlsutil
 import (
 	"bytes"
 	"crypto/rand"
+	"crypto/rsa"
 	"crypto/x509"
 	"encoding/pem"
 	"strings"
@@ -30,7 +31,7 @@ func ParseCsr(b []byte) (*x509.CertificateRequest, error) {
 	return x509.ParseCertificateRequest(csrBlock.Bytes)
 }
 
-func MakeP12(certs map[string]*x509.Certificate, passwd string) ([]byte, error) {
+func MakeP12TrustStore(certs map[string]*x509.Certificate, passwd string) ([]byte, error) {
 	var entries []pkcs12.TrustStoreEntry
 
 	for k, v := range certs {
@@ -42,6 +43,10 @@ func MakeP12(certs map[string]*x509.Certificate, passwd string) ([]byte, error) 
 
 func CertToPem(cert *x509.Certificate) []byte {
 	return pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: cert.Raw})
+}
+
+func KeyToPem(key *rsa.PrivateKey) []byte {
+	return pem.EncodeToMemory(&pem.Block{Type: "PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(key)})
 }
 
 func CertToStr(cert *x509.Certificate, header bool) string {
@@ -60,4 +65,15 @@ func CertToStr(cert *x509.Certificate, header bool) string {
 		sb.WriteByte(10)
 	}
 	return sb.String()
+}
+
+func MakeCertPool(certs ...*x509.Certificate) *x509.CertPool {
+	cp := x509.NewCertPool()
+	for _, c := range certs {
+		if c != nil {
+			cp.AddCert(c)
+		}
+	}
+
+	return cp
 }

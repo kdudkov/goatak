@@ -13,7 +13,7 @@ func SslCheckHandler(app *App) air.Gas {
 				if h.TLS != nil {
 					user, serial := getCertUser(h.TLS)
 					if app.users.UserIsValid(user, serial) {
-						req.SetValue("user", user)
+						req.SetValue(usernameKey, user)
 						return next(req, res)
 					} else {
 						app.Logger.Warnf("invalid user %s serial %s", user, serial)

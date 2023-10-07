@@ -40,6 +40,16 @@ type WebUnit struct {
 	Send           bool      `json:"send"`
 }
 
+type Contact struct {
+	Uid          string `json:"uid"`
+	Callsign     string `json:"callsign"`
+	Team         string `json:"team"`
+	Role         string `json:"role"`
+	Takv         string `json:"takv"`
+	Notes        string `json:"notes"`
+	FilterGroups string `json:"filterGroups"`
+}
+
 type DigitalPointer struct {
 	Lat  float64 `json:"lat"`
 	Lon  float64 `json:"lon"`

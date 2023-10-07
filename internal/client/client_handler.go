@@ -137,7 +137,7 @@ func (h *ConnClientHandler) Start() {
 	}
 
 	if !h.isClient {
-		h.logger.Infof("send version msg")
+		h.logger.Debugf("send version msg")
 		if err := h.sendEvent(cot.VersionSupportMsg(1)); err != nil {
 			h.logger.Errorf("error sending ver req: %s", err.Error())
 		}
