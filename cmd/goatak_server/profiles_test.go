@@ -19,13 +19,17 @@ func TestMissionPackage_Create(t *testing.T) {
 
 	mp.AddFile(conf)
 
-	f, _ := os.Create("/tmp/profile.zip")
-
 	dat, err := mp.Create()
 
 	if err != nil {
 		t.Error(err)
 	}
+
+	if len(dat) == 0 {
+		t.Error("no data")
+	}
+
+	f, _ := os.Create("/tmp/profile.zip")
 	f.Write(dat)
 	f.Close()
 }

@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"crypto"
+	"crypto/md5"
 	"crypto/rand"
 	"crypto/x509"
 	"fmt"
@@ -213,7 +214,7 @@ func getProfileEnrollmentHandler(app *App) func(req *air.Request, res *air.Respo
 			return nil
 		}
 
-		prefix := "files"
+		prefix := fmt.Sprintf("%x", md5.Sum([]byte(user)))
 		mp := NewMissionPackage("ProfileMissionPackage-"+uuid.New().String(), "Enrollment")
 		mp.Param("onReceiveImport", "true")
 		mp.Param("onReceiveDelete", "true")

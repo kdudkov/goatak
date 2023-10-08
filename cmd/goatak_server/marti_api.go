@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"crypto/md5"
 	"crypto/tls"
 	"encoding/xml"
 	"fmt"
@@ -342,7 +343,7 @@ func getProfileConnectionHandler(app *App, name string) func(req *air.Request, r
 		mp.Param("onReceiveImport", "true")
 		mp.Param("onReceiveDelete", "true")
 
-		prefix := "files"
+		prefix := fmt.Sprintf("%x", md5.Sum([]byte(user)))
 		for _, f := range files {
 			f.SetName(fmt.Sprintf("%s/%s", prefix, f.Name()))
 			mp.AddFile(f)
