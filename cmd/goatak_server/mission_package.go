@@ -34,7 +34,7 @@ func (m *MissionPackage) Manifest() []byte {
 	buf.WriteString("</Configuration>")
 	buf.WriteString("<Contents>")
 	for _, v := range m.files {
-		buf.WriteString(fmt.Sprintf("<Content ignore=\"false\" zipEntry=\"%s\"/>", v))
+		buf.WriteString(fmt.Sprintf("<Content ignore=\"false\" zipEntry=\"%s\"/>", v.Name()))
 	}
 	buf.WriteString("</Contents>")
 	return buf.Bytes()
@@ -120,7 +120,7 @@ func NewAppPrefFile() *PrefFile {
 }
 
 func NewPrefFile(name, cls string) *PrefFile {
-	return &PrefFile{name: name, data: make(map[string]any)}
+	return &PrefFile{name: name, cls: cls, data: make(map[string]any)}
 }
 
 func (p *PrefFile) AddParam(k, v string) {

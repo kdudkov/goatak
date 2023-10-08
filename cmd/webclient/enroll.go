@@ -190,20 +190,20 @@ func (e *Enroller) getOrEnrollCert(uid, version string) (*tls.Certificate, []*x5
 	}
 
 	e.logger.Infof("cert enrollment successful")
-	if err := e.getProfile(); err != nil {
+	if err := e.getProfile(uid); err != nil {
 		e.logger.Warnf("%s", err.Error())
 	}
 
 	return &tls.Certificate{Certificate: [][]byte{cert.Raw}, PrivateKey: key, Leaf: cert}, ca, nil
 }
 
-func (e *Enroller) getProfile() error {
+func (e *Enroller) getProfile(uid string) error {
 	req, err := http.NewRequest(http.MethodGet, e.baseUrl()+"/Marti/api/tls/profile/enrollment", nil)
 	if err != nil {
 		return err
 	}
 	q := req.URL.Query()
-	//q.Add("clientUID", uid)
+	q.Add("clientUID", uid)
 	req.URL.RawQuery = q.Encode()
 	req.Header.Del("User-Agent")
 	req.SetBasicAuth(e.user, e.passwd)
@@ -221,11 +221,6 @@ func (e *Enroller) getProfile() error {
 	}
 
 	defer res.Body.Close()
-
-	//h1 := res.Header.Get("Content-Disposition")
-	//if strings.Contains(h1, "attachment") {
-	//
-	//}
 
 	f, err := os.Create(e.host + ".zip")
 	if err != nil {
