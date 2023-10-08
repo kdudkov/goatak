@@ -41,16 +41,14 @@ func (m *MissionPackage) Manifest() []byte {
 }
 
 func (m *MissionPackage) Create() ([]byte, error) {
-	var buff bytes.Buffer
-	zipW := zip.NewWriter(&buff)
+	buff := new(bytes.Buffer)
+	zipW := zip.NewWriter(buff)
 
 	f, err := zipW.Create("MANIFEST/manifest.xml")
 
 	if err != nil {
 		return nil, err
 	}
-
-	defer zipW.Close()
 
 	_, err = f.Write(m.Manifest())
 
@@ -70,7 +68,8 @@ func (m *MissionPackage) Create() ([]byte, error) {
 		}
 	}
 
-	return buff.Bytes(), nil
+	err = zipW.Close()
+	return buff.Bytes(), err
 }
 
 type FileContent interface {
@@ -84,14 +83,14 @@ type FsFile struct {
 	data []byte
 }
 
-func NewFsFile(fname string) (*FsFile, error) {
-	dat, err := os.ReadFile(fname)
+func NewFsFile(name, path string) (*FsFile, error) {
+	dat, err := os.ReadFile(path)
 
 	if err != nil {
 		return nil, err
 	}
 
-	return &FsFile{name: fname, data: dat}, nil
+	return &FsFile{name: name, data: dat}, nil
 }
 
 func (f *FsFile) Name() string {

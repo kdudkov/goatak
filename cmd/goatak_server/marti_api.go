@@ -342,11 +342,13 @@ func getProfileConnectionHandler(app *App, name string) func(req *air.Request, r
 		mp.Param("onReceiveImport", "true")
 		mp.Param("onReceiveDelete", "true")
 
-		for i, f := range files {
-			f.SetName(fmt.Sprintf("file%d/%s", i, f.Name()))
+		prefix := "files"
+		for _, f := range files {
+			f.SetName(fmt.Sprintf("%s/%s", prefix, f.Name()))
 			mp.AddFile(f)
 		}
 
+		res.Header.Set("content-type", "application/zip")
 		res.Header.Set("Content-Disposition", "attachment; filename=profile.zip")
 		dat, err := mp.Create()
 		if err != nil {

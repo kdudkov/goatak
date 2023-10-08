@@ -44,7 +44,7 @@ func (app *App) getTlsConfig() *tls.Config {
 		//InsecureSkipVerify: true,
 	}
 
-	if !viper.GetBool("ssl.secure") {
+	if !viper.GetBool("ssl.strict") {
 		conf.InsecureSkipVerify = true
 	}
 

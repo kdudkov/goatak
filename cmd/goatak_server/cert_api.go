@@ -213,15 +213,17 @@ func getProfileEnrollmentHandler(app *App) func(req *air.Request, res *air.Respo
 			return nil
 		}
 
+		prefix := "files"
 		mp := NewMissionPackage("ProfileMissionPackage-"+uuid.New().String(), "Enrollment")
 		mp.Param("onReceiveImport", "true")
 		mp.Param("onReceiveDelete", "true")
 
-		for i, f := range files {
-			f.SetName(fmt.Sprintf("file%d/%s", i, f.Name()))
+		for _, f := range files {
+			f.SetName(fmt.Sprintf("%s/%s", prefix, f.Name()))
 			mp.AddFile(f)
 		}
 
+		res.Header.Set("content-type", "application/zip")
 		res.Header.Set("Content-Disposition", "attachment; filename=profile.zip")
 		dat, err := mp.Create()
 		if err != nil {

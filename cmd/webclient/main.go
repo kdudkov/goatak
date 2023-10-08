@@ -393,6 +393,7 @@ func main() {
 	//viper.SetDefault("me.os", runtime.GOOS)
 	viper.SetDefault("ssl.password", "atakatak")
 	viper.SetDefault("ssl.save_cert", true)
+	viper.SetDefault("ssl.strict", false)
 
 	err := viper.ReadInConfig()
 	if err != nil {

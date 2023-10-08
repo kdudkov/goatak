@@ -10,6 +10,7 @@ import (
 	"encoding/pem"
 	"encoding/xml"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"strings"
@@ -189,7 +190,51 @@ func (e *Enroller) getOrEnrollCert(uid, version string) (*tls.Certificate, []*x5
 	}
 
 	e.logger.Infof("cert enrollment successful")
+	if err := e.getProfile(); err != nil {
+		e.logger.Warnf("%s", err.Error())
+	}
+
 	return &tls.Certificate{Certificate: [][]byte{cert.Raw}, PrivateKey: key, Leaf: cert}, ca, nil
+}
+
+func (e *Enroller) getProfile() error {
+	req, err := http.NewRequest(http.MethodGet, e.baseUrl()+"/Marti/api/tls/profile/enrollment", nil)
+	if err != nil {
+		return err
+	}
+	q := req.URL.Query()
+	//q.Add("clientUID", uid)
+	req.URL.RawQuery = q.Encode()
+	req.Header.Del("User-Agent")
+	req.SetBasicAuth(e.user, e.passwd)
+	res, err := e.cl.Do(req)
+	if err != nil {
+		return err
+	}
+
+	if res.StatusCode != http.StatusOK {
+		return fmt.Errorf("bad status: %d", res.StatusCode)
+	}
+
+	if res.Body == nil {
+		return fmt.Errorf("null body")
+	}
+
+	defer res.Body.Close()
+
+	//h1 := res.Header.Get("Content-Disposition")
+	//if strings.Contains(h1, "attachment") {
+	//
+	//}
+
+	f, err := os.Create(e.host + ".zip")
+	if err != nil {
+		return err
+	}
+
+	_, err = io.Copy(f, res.Body)
+	f.Close()
+	return err
 }
 
 func makeCsr(subj *pkix.Name) (string, *rsa.PrivateKey) {
