@@ -43,7 +43,7 @@ func (app *App) GetProfileFiles(user, uid string) []FileContent {
 	if paths, err := os.ReadDir(filepath.Join(app.config.dataDir, "maps")); err == nil {
 		for _, p := range paths {
 			if !p.IsDir() && strings.HasSuffix(p.Name(), ".xml") {
-				if f, err := NewFsFile(p.Name(), filepath.Join(app.config.dataDir, "maps", p.Name())); err == nil {
+				if f, err := NewFsFile("maps/"+p.Name(), filepath.Join(app.config.dataDir, "maps", p.Name())); err == nil {
 					app.Logger.Debugf("add %s", p.Name())
 					res = append(res, f)
 				}

@@ -3,7 +3,6 @@ package main
 import (
 	"bytes"
 	"crypto"
-	"crypto/md5"
 	"crypto/rand"
 	"crypto/x509"
 	"fmt"
@@ -214,15 +213,15 @@ func getProfileEnrollmentHandler(app *App) func(req *air.Request, res *air.Respo
 			return nil
 		}
 
-		prefix := fmt.Sprintf("%x", md5.Sum([]byte(user)))
 		mp := NewMissionPackage("ProfileMissionPackage-"+uuid.New().String(), "Enrollment")
 		mp.Param("onReceiveImport", "true")
 		mp.Param("onReceiveDelete", "true")
 
-		for _, f := range files {
-			f.SetName(fmt.Sprintf("%s/%s", prefix, f.Name()))
-			mp.AddFile(f)
-		}
+		//prefix := fmt.Sprintf("%x", md5.Sum([]byte(user)))
+		//for _, f := range files {
+		//	f.SetName(fmt.Sprintf("%s/%s", prefix, f.Name()))
+		//	mp.AddFile(f)
+		//}
 
 		res.Header.Set("content-type", "application/zip")
 		res.Header.Set("Content-Disposition", "attachment; filename=profile.zip")
