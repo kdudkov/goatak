@@ -1,6 +1,8 @@
 package main
 
 import (
+	"crypto/md5"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -25,17 +27,20 @@ func NewUserPrefsFile(callsign, team, role, typ string) *PrefFile {
 
 func (app *App) GetProfileFiles(user, uid string) []FileContent {
 	res := make([]FileContent, 0)
+	prefix := fmt.Sprintf("%x", md5.Sum([]byte(user))) + "/"
 
 	if app.users != nil && user != "" {
 		if userInfo := app.users.GetUser(user); userInfo != nil {
 			if userInfo.Callsign != "" || userInfo.Team != "" || userInfo.Role != "" || userInfo.Typ != "" {
 				app.Logger.Debugf("add user prefs")
-				res = append(res, NewUserPrefsFile(userInfo.Callsign, userInfo.Team, userInfo.Role, userInfo.Typ))
+				f := NewUserPrefsFile(userInfo.Callsign, userInfo.Team, userInfo.Role, userInfo.Typ)
+				f.SetName(prefix + f.Name())
+				res = append(res, f)
 			}
 		}
 	}
 
-	if f, err := NewFsFile("defaults.pref", filepath.Join(app.config.dataDir, "defaults.pref")); err == nil {
+	if f, err := NewFsFile(prefix+"defaults.pref", filepath.Join(app.config.dataDir, "defaults.pref")); err == nil {
 		app.Logger.Debugf("add default.prefs")
 		res = append(res, f)
 	}
