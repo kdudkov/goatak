@@ -216,6 +216,9 @@ func getProfileEnrollmentHandler(app *App) func(req *air.Request, res *air.Respo
 		mp := NewMissionPackage("ProfileMissionPackage-"+uuid.New().String(), "Enrollment")
 		mp.Param("onReceiveImport", "true")
 		mp.Param("onReceiveDelete", "true")
+		for _, f := range files {
+			mp.AddFile(f)
+		}
 
 		res.Header.Set("content-type", "application/zip")
 		res.Header.Set("Content-Disposition", "attachment; filename=profile.zip")

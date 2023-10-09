@@ -341,6 +341,9 @@ func getProfileConnectionHandler(app *App, name string) func(req *air.Request, r
 		mp := NewMissionPackage("ProfileMissionPackage-"+uuid.New().String(), "Connection")
 		mp.Param("onReceiveImport", "true")
 		mp.Param("onReceiveDelete", "true")
+		for _, f := range files {
+			mp.AddFile(f)
+		}
 
 		res.Header.Set("content-type", "application/zip")
 		res.Header.Set("Content-Disposition", "attachment; filename=profile.zip")
