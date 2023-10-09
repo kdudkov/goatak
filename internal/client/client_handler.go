@@ -252,9 +252,9 @@ func (h *ConnClientHandler) processXMLRead(er *cot.TagReader) (*cotproto.TakMess
 
 	h.setActivity()
 
-	h.logger.Debugf("xml event: %s", ev)
+	h.logger.Debugf("xml event: %s", dat)
 
-	if ev.IsTakControlRequest() {
+	if ev.Type == "t-x-takp-q" {
 		ver := ev.Detail.GetFirst("TakControl").GetFirst("TakRequest").GetAttr("version")
 		if ver == "1" {
 			if err := h.sendEvent(cot.ProtoChangeOkMsg()); err == nil {
@@ -267,23 +267,29 @@ func (h *ConnClientHandler) processXMLRead(er *cot.TagReader) (*cotproto.TakMess
 		}
 	}
 
-	if h.isClient && ev.Detail.GetFirst("TakControl").Has("TakProtocolSupport") {
-		v := ev.Detail.GetFirst("TakControl").GetFirst("TakProtocolSupport").GetAttr("version")
-		h.logger.Infof("server supports protocol v%s", v)
-		if v == "1" {
-			h.logger.Debugf("sending v1 req")
-			_ = h.sendEvent(cot.VersionReqMsg(1))
+	if h.isClient && ev.Type == "t-x-takp-v" {
+		if ps := ev.Detail.GetFirst("TakControl").GetFirst("TakProtocolSupport"); ps != nil {
+			v := ps.GetAttr("version")
+			h.logger.Infof("server supports protocol v%s", v)
+			if v == "1" {
+				h.logger.Debugf("sending v1 req")
+				_ = h.sendEvent(cot.VersionReqMsg(1))
+			}
+		} else {
+			h.logger.Warnf("invalid protocol support message: %s", dat)
 		}
 		return nil, nil, nil
 	}
 
-	if h.isClient && ev.Detail.GetFirst("TakControl").Has("TakResponse") {
-		status := ev.Detail.GetFirst("TakControl").GetFirst("TakResponse").GetAttr("status")
-		h.logger.Infof("server switches to v1: %v", status)
-		if status == "true" {
-			h.SetVersion(1)
-		} else {
-			h.logger.Errorf("got TakResponce with status %s: %s", status, ev.Detail)
+	if h.isClient && ev.Type == "t-x-takp-r" {
+		if n := ev.Detail.GetFirst("TakControl").GetFirst("TakResponse"); n != nil {
+			status := n.GetAttr("status")
+			h.logger.Infof("server switches to v1: %v", status)
+			if status == "true" {
+				h.SetVersion(1)
+			} else {
+				h.logger.Errorf("got TakResponce with status %s: %s", status, ev.Detail)
+			}
 		}
 		return nil, nil, nil
 	}

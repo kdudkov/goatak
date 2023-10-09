@@ -87,10 +87,6 @@ type Point struct {
 	Le      float64  `xml:"le,attr"`
 }
 
-func (e *Event) IsTakControlRequest() bool {
-	return e.Detail.GetFirst("TakControl").GetFirst("TakRequest") != nil
-}
-
 func XmlBasicMsg(typ string, uid string, stale time.Duration) *Event {
 	return &Event{
 		Version: "2.0",

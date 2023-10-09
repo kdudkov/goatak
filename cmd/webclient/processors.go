@@ -91,6 +91,13 @@ func (app *App) chatProcessor(msg *cot.CotMessage) {
 
 func (app *App) itemProcessor(msg *cot.CotMessage) {
 	if msg.GetUid() != app.uid {
-		app.ProcessItem(msg)
+		cl := model.GetClass(msg)
+		if c := app.items.Get(msg.GetUid()); c != nil {
+			app.Logger.Debugf("update %s %s (%s) %s", cl, msg.GetUid(), msg.GetCallsign(), msg.GetType())
+			c.Update(msg)
+		} else {
+			app.Logger.Infof("new %s %s (%s) %s", cl, msg.GetUid(), msg.GetCallsign(), msg.GetType())
+			app.items.Store(model.FromMsg(msg))
+		}
 	}
 }

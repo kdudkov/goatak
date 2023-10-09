@@ -14,7 +14,7 @@ func (app *App) getContacts() error {
 	if app.tls {
 		url = fmt.Sprintf("https://%s:8443/Marti/api/contacts/all", app.host)
 	} else {
-		url = fmt.Sprintf("https://%s:8080/Marti/api/contacts/all", app.host)
+		url = fmt.Sprintf("http://%s:8080/Marti/api/contacts/all", app.host)
 	}
 
 	res, err := app.client.Get(url)
