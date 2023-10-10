@@ -8,8 +8,8 @@ import (
 	"strings"
 )
 
-func NewUserPrefsFile(callsign, team, role, typ string) *PrefFile {
-	conf := NewUserProfilePrefFile()
+func NewUserPrefsFile(prefix, callsign, team, role, typ string) *PrefFile {
+	conf := NewUserProfilePrefFile(prefix)
 	if callsign != "" {
 		conf.AddParam("locationCallsign", callsign)
 	}
@@ -25,22 +25,21 @@ func NewUserPrefsFile(callsign, team, role, typ string) *PrefFile {
 	return conf
 }
 
-func (app *App) GetProfileFiles(user, uid string) []FileContent {
+func (app *App) GetProfileFiles(username, uid string) []FileContent {
 	res := make([]FileContent, 0)
-	prefix := fmt.Sprintf("%x", md5.Sum([]byte(user))) + "/"
+	prefix := fmt.Sprintf("%x", md5.Sum([]byte(username)))
 
-	if app.users != nil && user != "" {
-		if userInfo := app.users.GetUser(user); userInfo != nil {
+	if app.users != nil && username != "" {
+		if userInfo := app.users.GetUser(username); userInfo != nil {
 			if userInfo.Callsign != "" || userInfo.Team != "" || userInfo.Role != "" || userInfo.Typ != "" {
 				app.Logger.Debugf("add user prefs")
-				f := NewUserPrefsFile(userInfo.Callsign, userInfo.Team, userInfo.Role, userInfo.Typ)
-				f.SetName(prefix + f.Name())
+				f := NewUserPrefsFile(prefix, userInfo.Callsign, userInfo.Team, userInfo.Role, userInfo.Typ)
 				res = append(res, f)
 			}
 		}
 	}
 
-	if f, err := NewFsFile(prefix+"defaults.pref", filepath.Join(app.config.dataDir, "defaults.pref")); err == nil {
+	if f, err := NewFsFile(prefix+"/defaults.pref", filepath.Join(app.config.dataDir, "defaults.pref")); err == nil {
 		app.Logger.Debugf("add default.prefs")
 		res = append(res, f)
 	}

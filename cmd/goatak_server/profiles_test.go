@@ -12,7 +12,7 @@ func TestMissionPackage_Create(t *testing.T) {
 	mp.Param("onReceiveImport", "true")
 	mp.Param("onReceiveDelete", "true")
 
-	conf := NewUserProfilePrefFile()
+	conf := NewUserProfilePrefFile("aaa")
 	conf.AddParam("locationCallsign", "TestUser")
 	conf.AddParam("locationTeam", "Cyan")
 	conf.AddParam("atakRoleType", "Medic")

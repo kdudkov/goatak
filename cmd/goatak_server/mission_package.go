@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"fmt"
 	"os"
+	"strings"
 )
 
 type MissionPackage struct {
@@ -111,8 +112,8 @@ type PrefFile struct {
 	data map[string]any
 }
 
-func NewUserProfilePrefFile() *PrefFile {
-	return NewPrefFile("user-profile.pref", "com.atakmap.app.civ_preferences")
+func NewUserProfilePrefFile(prefix string) *PrefFile {
+	return NewPrefFile(strings.TrimRight(prefix, "/")+"/user-profile.pref", "com.atakmap.app.civ_preferences")
 }
 
 func NewAppPrefFile() *PrefFile {
