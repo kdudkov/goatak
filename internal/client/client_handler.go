@@ -310,6 +310,7 @@ func (h *ConnClientHandler) processProtoRead(r *cot.ProtoReader) (*cotproto.TakM
 	var d *cot.Node
 	d, err = cot.DetailsFromString(msg.GetCotEvent().GetDetail().GetXmlDetail())
 
+	h.logger.Debugf("proto msg: %s", msg)
 	return msg, d, err
 }
 
