@@ -278,7 +278,7 @@ func (app *App) logToFile(msg *cot.CotMessage) error {
 		return nil
 	}
 
-	f, err := os.OpenFile(app.saveFile, os.O_RDWR|os.O_APPEND, 0666)
+	f, err := os.OpenFile(app.saveFile, os.O_RDWR|os.O_APPEND|os.O_CREATE, 0666)
 	if err != nil {
 		return err
 	}
