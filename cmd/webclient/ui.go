@@ -75,7 +75,6 @@ func (app *App) redraw() {
 }
 
 func (app *App) LogMessage(msg *cot.CotMessage) {
-
 	var col []byte
 	var extra string
 

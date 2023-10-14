@@ -7,7 +7,6 @@ import (
 	"crypto/x509"
 	"flag"
 	"fmt"
-	"github.com/kdudkov/goatak/pkg/tlsutil"
 	"math/rand"
 	"net/http"
 	"os"
@@ -21,12 +20,14 @@ import (
 	"github.com/jroimartin/gocui"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
+	"google.golang.org/protobuf/proto"
 
 	"github.com/kdudkov/goatak/internal/client"
 	"github.com/kdudkov/goatak/internal/repository"
 	"github.com/kdudkov/goatak/pkg/cot"
 	"github.com/kdudkov/goatak/pkg/cotproto"
 	"github.com/kdudkov/goatak/pkg/model"
+	"github.com/kdudkov/goatak/pkg/tlsutil"
 )
 
 const (
@@ -61,8 +62,8 @@ type App struct {
 	textLogger      *TextLogger
 	eventProcessors map[string]EventProcessor
 	client          *http.Client
-
-	connected uint32
+	saveFile        string
+	connected       uint32
 
 	callsign string
 	uid      string
@@ -246,6 +247,9 @@ func (app *App) SendMsg(msg *cotproto.TakMessage) {
 
 func (app *App) ProcessEvent(msg *cot.CotMessage) {
 	app.LogMessage(msg)
+	if err := app.logToFile(msg); err != nil {
+		app.Logger.Warnf("%s", err.Error())
+	}
 
 	if c := app.items.Get(msg.GetUid()); c != nil {
 		c.Update(nil)
@@ -263,6 +267,31 @@ func (app *App) ProcessEvent(msg *cot.CotMessage) {
 			app.Logger.Infof("%s %s (extended)", msg.GetType(), name)
 		}
 	}
+}
+
+func (app *App) logToFile(msg *cot.CotMessage) error {
+	if app.saveFile == "" {
+		return nil
+	}
+	// don't save pings
+	if msg.GetType() == "t-x-c-t" || msg.GetType() == "t-x-c-t-r" {
+		return nil
+	}
+
+	f, err := os.OpenFile(app.saveFile, os.O_RDWR|os.O_APPEND, 0666)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	d, err := proto.Marshal(msg.TakMessage)
+	if err != nil {
+		return err
+	}
+	l := uint32(len(d))
+	_, _ = f.Write([]byte{byte(l % 256), byte(l / 256)})
+	_, _ = f.Write(d)
+	return nil
 }
 
 func (app *App) processChange(u *model.Item) {
@@ -364,6 +393,7 @@ func main() {
 	var noweb = flag.Bool("noweb", false, "do not start web server")
 	var ui = flag.Bool("ui", false, "do not start web server")
 	var debug = flag.Bool("debug", false, "debug")
+	var saveFile = flag.String("file", "", "record all events to file")
 	flag.Parse()
 
 	viper.SetConfigFile(*conf)
@@ -379,7 +409,6 @@ func main() {
 	viper.SetDefault("me.role", "HQ")
 	viper.SetDefault("me.platform", "GoATAK_client")
 	viper.SetDefault("me.version", fmt.Sprintf("%s:%s", gitBranch, gitRevision))
-	//viper.SetDefault("me.os", runtime.GOOS)
 	viper.SetDefault("ssl.password", "atakatak")
 	viper.SetDefault("ssl.save_cert", true)
 	viper.SetDefault("ssl.strict", false)
@@ -416,6 +445,7 @@ func main() {
 	)
 
 	app.ui = *ui
+	app.saveFile = *saveFile
 
 	if *noweb {
 		app.webPort = 0
