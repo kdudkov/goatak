@@ -8,6 +8,7 @@ import (
 	"encoding/pem"
 	"flag"
 	"fmt"
+	"google.golang.org/protobuf/proto"
 	"io/ioutil"
 	"log"
 	"net"
@@ -173,6 +174,12 @@ func (app *App) NewCotMessage(msg *cot.CotMessage) {
 	app.ch <- msg
 }
 
+func (app *App) AddEventProcessor(e EventProcessor, mask ...string) {
+	for _, s := range mask {
+		app.eventProcessors[s] = e
+	}
+}
+
 func (app *App) AddClientHandler(ch client.ClientHandler) {
 	app.handlers.Store(ch.GetName(), ch)
 }
@@ -309,6 +316,11 @@ func (app *App) getTlsConfig() *tls.Config {
 
 func (app *App) MessageProcessor() {
 	for msg := range app.ch {
+		if app.config.logging {
+			if err := app.logToFile(msg); err != nil {
+				app.Logger.Warnf("error logging message: %s", err.Error())
+			}
+		}
 		if msg.TakMessage.CotEvent == nil {
 			continue
 		}
@@ -479,6 +491,36 @@ func processCerts(conf *AppConfig) error {
 	}
 
 	conf.tlsCert = &tlsCert
+	return nil
+}
+
+func (app *App) logToFile(msg *cot.CotMessage) error {
+	path := filepath.Join(app.config.dataDir, "log")
+
+	if err := os.MkdirAll(path, 0777); err != nil {
+		return err
+	}
+
+	// don't save pings
+	if msg.GetType() == "t-x-c-t" || msg.GetType() == "t-x-c-t-r" {
+		return nil
+	}
+
+	fname := filepath.Join(path, time.Now().Format("2006-01-02.tak"))
+
+	f, err := os.OpenFile(fname, os.O_RDWR|os.O_APPEND|os.O_CREATE, 0666)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	d, err := proto.Marshal(msg.TakMessage)
+	if err != nil {
+		return err
+	}
+	l := uint32(len(d))
+	_, _ = f.Write([]byte{byte(l % 256), byte(l / 256)})
+	_, _ = f.Write(d)
 	return nil
 }
 

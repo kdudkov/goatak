@@ -15,6 +15,13 @@ type CotMessage struct {
 	Detail     *Node
 }
 
+func (m *CotMessage) GetSendTime() time.Time {
+	if m == nil || m.TakMessage == nil {
+		return time.Time{}
+	}
+	return TimeFromMillis(m.TakMessage.GetCotEvent().GetSendTime())
+}
+
 func (m *CotMessage) GetUid() string {
 	if m == nil || m.TakMessage == nil {
 		return ""

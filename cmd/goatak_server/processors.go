@@ -13,8 +13,6 @@ func (app *App) InitMessageProcessors() {
 	app.eventProcessors["b-t-f"] = app.chatProcessor
 	app.eventProcessors["a-"] = app.ProcessItem
 	app.eventProcessors["b-"] = app.ProcessItem
-	app.eventProcessors["u-"] = app.logInterestingProcessor
-	app.eventProcessors["b-t-f-"] = app.logInterestingProcessor
 }
 
 func (app *App) GetProcessor(t string) (string, EventProcessor) {
@@ -37,15 +35,6 @@ func (app *App) GetProcessor(t string) (string, EventProcessor) {
 
 func (app *App) justLogProcessor(msg *cot.CotMessage) {
 	app.Logger.Debugf("%s %s", msg.GetType(), msg.GetUid())
-}
-
-func (app *App) logInterestingProcessor(msg *cot.CotMessage) {
-	if app.config.logging {
-		if err := logToFile(msg); err != nil {
-			app.Logger.Errorf("%v", err)
-		}
-	}
-	app.Logger.Infof("%s %s", msg.GetType(), msg.GetUid())
 }
 
 func (app *App) removeItemProcessor(msg *cot.CotMessage) {
