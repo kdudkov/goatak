@@ -220,7 +220,7 @@ func getProfileEnrollmentHandler(app *App) func(req *air.Request, res *air.Respo
 			mp.AddFile(f)
 		}
 
-		res.Header.Set("content-type", "application/zip")
+		res.Header.Set("Content-Type", "application/zip")
 		res.Header.Set("Content-Disposition", "attachment; filename=profile.zip")
 		dat, err := mp.Create()
 		if err != nil {
