@@ -8,7 +8,6 @@ import (
 	"encoding/pem"
 	"flag"
 	"fmt"
-	"google.golang.org/protobuf/proto"
 	"io/ioutil"
 	"log"
 	"net"
@@ -37,8 +36,6 @@ var (
 	gitBranch              = "unknown"
 	lastSeenOfflineTimeout = time.Minute * 5
 )
-
-type EventProcessor func(msg *cot.CotMessage)
 
 type AppConfig struct {
 	udpAddr   string
@@ -86,7 +83,7 @@ type App struct {
 	ctx             context.Context
 	uid             string
 	ch              chan *cot.CotMessage
-	eventProcessors map[string]EventProcessor
+	eventProcessors map[string]*EventProcessor
 }
 
 func NewApp(config *AppConfig, logger *zap.SugaredLogger) *App {
@@ -100,7 +97,7 @@ func NewApp(config *AppConfig, logger *zap.SugaredLogger) *App {
 		items:           repository.NewItemsMemoryRepo(),
 		feeds:           repository.NewFeedsFileRepo(logger.Named("feedsRepo"), filepath.Join(config.dataDir, "feeds")),
 		uid:             uuid.New().String(),
-		eventProcessors: make(map[string]EventProcessor),
+		eventProcessors: make(map[string]*EventProcessor),
 	}
 
 	return app
@@ -172,12 +169,6 @@ func (app *App) Run() {
 
 func (app *App) NewCotMessage(msg *cot.CotMessage) {
 	app.ch <- msg
-}
-
-func (app *App) AddEventProcessor(e EventProcessor, mask ...string) {
-	for _, s := range mask {
-		app.eventProcessors[s] = e
-	}
 }
 
 func (app *App) AddClientHandler(ch client.ClientHandler) {
@@ -316,29 +307,10 @@ func (app *App) getTlsConfig() *tls.Config {
 
 func (app *App) MessageProcessor() {
 	for msg := range app.ch {
-		if app.config.logging {
-			if err := app.logToFile(msg); err != nil {
-				app.Logger.Warnf("error logging message: %s", err.Error())
-			}
-		}
-		if msg.TakMessage.CotEvent == nil {
-			continue
-		}
-
-		if c := app.items.Get(msg.GetUid()); c != nil {
-			c.Update(nil)
-		}
-
-		if _, processor := app.GetProcessor(msg.GetType()); processor != nil {
-			processor(msg)
-		}
-
-		if !strings.HasPrefix(msg.GetType(), "a-") {
-			name, exact := cot.GetMsgType(msg.GetType())
-			if exact {
-				app.Logger.Debugf("%s %s", msg.GetType(), name)
-			} else {
-				app.Logger.Infof("%s %s (extended)", msg.GetType(), name)
+		for name, prc := range app.eventProcessors {
+			if cot.MatchAnyPattern(msg.GetType(), prc.include...) {
+				app.Logger.Debugf("msg is processed by %s", name)
+				prc.cb(msg)
 			}
 		}
 
@@ -415,16 +387,6 @@ func (app *App) SendToCallsign(callsign string, msg *cotproto.TakMessage) {
 	})
 }
 
-func (app *App) logMessage(c *model.ChatMessage) {
-	fd, err := os.OpenFile("msg.log", os.O_RDWR|os.O_APPEND|os.O_CREATE, 0666)
-	if err != nil {
-		app.Logger.Errorf("can't write to message log: %s", err.Error())
-		return
-	}
-	defer fd.Close()
-	fmt.Fprintf(fd, "%s %s (%s) -> %s (%s) \"%s\"\n", c.Time, c.From, c.FromUid, c.Chatroom, c.ToUid, c.Text)
-}
-
 func loadPem(name string) ([]*x509.Certificate, error) {
 	if name == "" {
 		return nil, nil
@@ -491,36 +453,6 @@ func processCerts(conf *AppConfig) error {
 	}
 
 	conf.tlsCert = &tlsCert
-	return nil
-}
-
-func (app *App) logToFile(msg *cot.CotMessage) error {
-	path := filepath.Join(app.config.dataDir, "log")
-
-	if err := os.MkdirAll(path, 0777); err != nil {
-		return err
-	}
-
-	// don't save pings
-	if msg.GetType() == "t-x-c-t" || msg.GetType() == "t-x-c-t-r" {
-		return nil
-	}
-
-	fname := filepath.Join(path, time.Now().Format("2006-01-02.tak"))
-
-	f, err := os.OpenFile(fname, os.O_RDWR|os.O_APPEND|os.O_CREATE, 0666)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-
-	d, err := proto.Marshal(msg.TakMessage)
-	if err != nil {
-		return err
-	}
-	l := uint32(len(d))
-	_, _ = f.Write([]byte{byte(l % 256), byte(l / 256)})
-	_, _ = f.Write(d)
 	return nil
 }
 

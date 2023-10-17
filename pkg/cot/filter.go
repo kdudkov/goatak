@@ -3,6 +3,10 @@ package cot
 import "strings"
 
 func MatchPattern(a, pattern string) bool {
+	if pattern == "-" {
+		return true
+	}
+
 	if strings.HasPrefix(a, pattern) && strings.HasSuffix(pattern, "-") {
 		return true
 	}
@@ -25,4 +29,13 @@ func MatchPattern(a, pattern string) bool {
 	} else {
 		return len(at) == len(pt)
 	}
+}
+
+func MatchAnyPattern(a string, patterns ...string) bool {
+	for _, p := range patterns {
+		if MatchPattern(a, p) {
+			return true
+		}
+	}
+	return false
 }
