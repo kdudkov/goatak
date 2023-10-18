@@ -5,9 +5,9 @@ cert_addr: ":8446"
 tcp_addr: ":8999"
 udp_addr: ":8999"
 #ssl_addr: ":8089"
+log: true
 
 me:
   lat: 35.462939
   lon: -97.537283
   zoom: 5
-
