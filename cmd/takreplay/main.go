@@ -12,12 +12,18 @@ import (
 )
 
 func main() {
-	var file = flag.String("file", "", "record all events to file")
 	var format = flag.String("format", "", "dump format")
 	var uid = flag.String("uid", "", "uid to show")
+
 	flag.Parse()
 
-	f, err := os.Open(*file)
+	file := flag.Arg(0)
+
+	if file == "" {
+		os.Exit(1)
+	}
+
+	f, err := os.Open(file)
 
 	if err != nil {
 		panic(err)
