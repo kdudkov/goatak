@@ -199,7 +199,7 @@ func (app *App) RemoveHandlerCb(cl client.ClientHandler) {
 			Scope:      cl.GetScope(),
 			TakMessage: cot.MakeOfflineMsg(uid, ""),
 		}
-		app.SendToAllOther(msg)
+		app.NewCotMessage(msg)
 	}
 
 	app.RemoveClientHandler(cl.GetName())

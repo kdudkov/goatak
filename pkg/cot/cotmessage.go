@@ -22,6 +22,20 @@ func (m *CotMessage) GetSendTime() time.Time {
 	return TimeFromMillis(m.TakMessage.GetCotEvent().GetSendTime())
 }
 
+func (m *CotMessage) GetStartTime() time.Time {
+	if m == nil || m.TakMessage == nil {
+		return time.Time{}
+	}
+	return TimeFromMillis(m.TakMessage.GetCotEvent().GetStartTime())
+}
+
+func (m *CotMessage) GetStaleTime() time.Time {
+	if m == nil || m.TakMessage == nil {
+		return time.Time{}
+	}
+	return TimeFromMillis(m.TakMessage.GetCotEvent().GetStaleTime())
+}
+
 func (m *CotMessage) GetUid() string {
 	if m == nil || m.TakMessage == nil {
 		return ""

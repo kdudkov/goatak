@@ -155,8 +155,6 @@ func addItemHandler(app *App) func(req *air.Request, res *air.Response) error {
 			} else {
 				app.items.Store(model.FromMsgLocal(msg, wu.Send))
 			}
-
-			//app.ProcessItem(msg)
 		}
 
 		r := make(map[string]any, 0)

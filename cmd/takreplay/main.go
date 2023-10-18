@@ -1,12 +1,10 @@
 package main
 
 import (
-	"encoding/json"
 	"flag"
 	"fmt"
 	"io"
 	"os"
-	"time"
 
 	"github.com/kdudkov/goatak/pkg/cot"
 	"github.com/kdudkov/goatak/pkg/cotproto"
@@ -15,7 +13,8 @@ import (
 
 func main() {
 	var file = flag.String("file", "", "record all events to file")
-	var useJson = flag.Bool("json", false, "dump in json")
+	var format = flag.String("format", "", "dump format")
+	var uid = flag.String("uid", "", "uid to show")
 	flag.Parse()
 
 	f, err := os.Open(*file)
@@ -24,12 +23,33 @@ func main() {
 		panic(err)
 	}
 
-	if err := readFile(f, *useJson); err != io.EOF {
+	var dmp Dumper
+
+	switch *format {
+	case "":
+		dmp = new(TextDumper)
+	case "json":
+		dmp = new(JsonDumper)
+	case "gpx":
+		if *uid == "" {
+			fmt.Println("need uid to make gpx")
+			os.Exit(1)
+		}
+		dmp = &GpxDumper{name: *uid}
+	default:
+		fmt.Printf("invalid format %s\n", format)
+		os.Exit(1)
+	}
+
+	if err := readFile(f, *uid, dmp); err != io.EOF {
 		fmt.Println(err)
 	}
 }
 
-func readFile(f *os.File, useJson bool) error {
+func readFile(f *os.File, uid string, dmp Dumper) error {
+	dmp.Start()
+	defer dmp.Stop()
+
 	lenBuf := make([]byte, 2)
 	for {
 		if _, err := io.ReadFull(f, lenBuf); err != nil {
@@ -44,26 +64,18 @@ func readFile(f *os.File, useJson bool) error {
 		}
 
 		m := new(cotproto.TakMessage)
-
 		if err := proto.Unmarshal(buf, m); err != nil {
 			return err
 		}
 
-		d, err := cot.DetailsFromString(m.GetCotEvent().GetDetail().GetXmlDetail())
-
-		if err != nil {
-			return err
+		if uid != "" && m.GetCotEvent().GetUid() != uid {
+			continue
 		}
 
-		if useJson {
-			b, err := json.Marshal(m)
-			if err != nil {
-				return err
-			}
-			fmt.Println(string(b))
-		} else {
-			msg := &cot.CotMessage{TakMessage: m, Detail: d}
-			fmt.Println(msg.GetSendTime().Format(time.DateTime), msg.GetType(), msg.GetCallsign())
+		d, err := cot.DetailsFromString(m.GetCotEvent().GetDetail().GetXmlDetail())
+		msg := &cot.CotMessage{TakMessage: m, Detail: d}
+		if err = dmp.Process(msg); err != nil {
+			return err
 		}
 	}
 }
