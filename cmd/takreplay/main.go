@@ -12,8 +12,9 @@ import (
 )
 
 func main() {
-	var format = flag.String("format", "", "dump format")
+	var format = flag.String("format", "", "dump format (text|json|gpx)")
 	var uid = flag.String("uid", "", "uid to show")
+	var typ = flag.String("type", "", "type to show")
 
 	flag.Parse()
 
@@ -34,7 +35,7 @@ func main() {
 	var dmp Dumper
 
 	switch *format {
-	case "":
+	case "", "text":
 		dmp = new(TextDumper)
 	case "json":
 		dmp = new(JsonDumper)
@@ -49,12 +50,12 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err := readFile(f, *uid, dmp); err != io.EOF {
+	if err := readFile(f, *uid, *typ, dmp); err != io.EOF {
 		fmt.Println(err)
 	}
 }
 
-func readFile(f *os.File, uid string, dmp Dumper) error {
+func readFile(f *os.File, uid, typ string, dmp Dumper) error {
 	dmp.Start()
 	defer dmp.Stop()
 
@@ -77,6 +78,10 @@ func readFile(f *os.File, uid string, dmp Dumper) error {
 		}
 
 		if uid != "" && m.GetCotEvent().GetUid() != uid {
+			continue
+		}
+
+		if typ != "" && !cot.MatchPattern(m.GetCotEvent().GetType(), typ) {
 			continue
 		}
 
