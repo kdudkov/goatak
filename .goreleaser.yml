@@ -76,7 +76,7 @@ archives:
       - cert/*
       - data/*
   - id: client
-    builds: [ client ]
+    builds: [ client, takreplay ]
     format: zip
     name_template: 'client_{{ .Version }}_{{ .Os }}_{{ .Arch }}'
     files:
