@@ -1,8 +1,8 @@
-# GoATAK - free ATAK/CivTAK server & web-based client
+# GoATAK - free ATAK/CivTAK server & client
 
 This is fast & simple implementation of ATAK server/CoT router and ATAK client with web interface.
 
-tg group: https://t.me/ru_atak
+Support chat in Telegram: https://t.me/ru_atak
 
 binary builds can be downloaded
 from [releases page](https://github.com/kdudkov/goatak/releases)
@@ -13,13 +13,14 @@ from [releases page](https://github.com/kdudkov/goatak/releases)
 
 * v1 (XML) and v2 (protobuf) CoT protocol support
 * certificate enrollment (v1 and v2) support
-* user management with command-line tool
-* mission packs management
+* user management with cli tool
+* mission packages management
 * video feeds management
-* visibility scopes for users
+* visibility scopes for users (devices can communicate and see each other within one scope only)
 * default preferences and maps provisioning to connected devices
+* ability to log all cot's and cli utility to view cot's log and convert it to json or gpx
 
-## Web-based client features
+## Client features
 
 * v1 (XML) and v2 (protobuf) CoT protocol support
 * SSL connection support, tested with [FreeTakServer](https://github.com/FreeTAKTeam/FreeTakServer)
@@ -29,8 +30,11 @@ from [releases page](https://github.com/kdudkov/goatak/releases)
 * RedX tool - to measure distance and bearing
 * Digital Pointer - send DP position to all other contacts
 * Add and edit units on map
+* ability to log all cot's and cli utility to view cot's log and convert it to json or gpx
 
 ## Test server
+
+We offer a public TAK server for the community free of charge.
 
 * address: `takserver.ru`
 * set `Enroll for Client Certificate` marked
