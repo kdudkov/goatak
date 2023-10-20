@@ -46,7 +46,7 @@ func main() {
 		}
 		dmp = &GpxDumper{name: *uid}
 	default:
-		fmt.Printf("invalid format %s\n", format)
+		fmt.Printf("invalid format %s\n", *format)
 		os.Exit(1)
 	}
 
