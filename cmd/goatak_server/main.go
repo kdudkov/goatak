@@ -205,6 +205,10 @@ func (app *App) RemoveHandlerCb(cl client.ClientHandler) {
 	app.RemoveClientHandler(cl.GetName())
 }
 
+func (app *App) NewContactCb(uid, callsign string) {
+	app.Logger.Infof("new contact: %s %s", uid, callsign)
+}
+
 func (app *App) ConnectTo(addr string) {
 	name := "ext_" + addr
 	for app.ctx.Err() == nil {

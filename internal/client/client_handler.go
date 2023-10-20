@@ -23,14 +23,15 @@ const (
 )
 
 type HandlerConfig struct {
-	User      string
-	Scope     string
-	Serial    string
-	Uid       string
-	IsClient  bool
-	MessageCb func(msg *cot.CotMessage)
-	RemoveCb  func(ch ClientHandler)
-	Logger    *zap.SugaredLogger
+	User         string
+	Scope        string
+	Serial       string
+	Uid          string
+	IsClient     bool
+	MessageCb    func(msg *cot.CotMessage)
+	RemoveCb     func(ch ClientHandler)
+	NewContactCb func(uid, callsign string)
+	Logger       *zap.SugaredLogger
 }
 
 type ClientHandler interface {
@@ -62,6 +63,7 @@ type ConnClientHandler struct {
 	serial       string
 	messageCb    func(msg *cot.CotMessage)
 	removeCb     func(ch ClientHandler)
+	newContactCb func(uid, callsign string)
 	logger       *zap.SugaredLogger
 }
 
@@ -89,6 +91,7 @@ func NewConnClientHandler(name string, conn net.Conn, config *HandlerConfig) *Co
 		c.isClient = config.IsClient
 		c.messageCb = config.MessageCb
 		c.removeCb = config.RemoveCb
+		c.newContactCb = config.NewContactCb
 	}
 	c.closeTimer = time.AfterFunc(idleTimeout, c.closeIdle)
 	return c
@@ -204,7 +207,11 @@ func (h *ConnClientHandler) handleRead() {
 			if strings.HasSuffix(uid, "-ping") {
 				uid = uid[:len(uid)-5]
 			}
-			h.uids.Store(uid, cotmsg.GetCallsign())
+			if _, present := h.uids.Swap(uid, cotmsg.GetCallsign()); !present {
+				if h.newContactCb != nil {
+					h.newContactCb(uid, cotmsg.GetCallsign())
+				}
+			}
 		}
 
 		// remove contact
@@ -320,21 +327,6 @@ func (h *ConnClientHandler) SetVersion(n int32) {
 
 func (h *ConnClientHandler) GetVersion() int32 {
 	return atomic.LoadInt32(&h.ver)
-}
-
-func (h *ConnClientHandler) checkContact(msg *cot.CotMessage) {
-	if msg.IsContact() {
-		uid := msg.TakMessage.CotEvent.Uid
-		if strings.HasSuffix(uid, "-ping") {
-			uid = uid[:len(uid)-5]
-		}
-		h.uids.Store(uid, msg.GetCallsign())
-	}
-
-	if msg.GetType() == "t-x-d-d" && msg.Detail != nil && msg.Detail.Has("link") {
-		uid := msg.Detail.GetFirst("link").GetAttr("uid")
-		h.uids.Delete(uid)
-	}
 }
 
 func (h *ConnClientHandler) GetUid(callsign string) string {
