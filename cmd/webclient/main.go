@@ -18,16 +18,14 @@ import (
 	"time"
 
 	"github.com/jroimartin/gocui"
-	"github.com/spf13/viper"
-	"go.uber.org/zap"
-	"google.golang.org/protobuf/proto"
-
 	"github.com/kdudkov/goatak/internal/client"
 	"github.com/kdudkov/goatak/internal/repository"
 	"github.com/kdudkov/goatak/pkg/cot"
 	"github.com/kdudkov/goatak/pkg/cotproto"
 	"github.com/kdudkov/goatak/pkg/model"
 	"github.com/kdudkov/goatak/pkg/tlsutil"
+	"github.com/spf13/viper"
+	"go.uber.org/zap"
 )
 
 const (
@@ -40,8 +38,6 @@ var (
 	gitRevision = "unknown"
 	gitBranch   = "unknown"
 )
-
-type EventProcessor func(msg *cot.CotMessage)
 
 type App struct {
 	g               *gocui.Gui
@@ -60,7 +56,7 @@ type App struct {
 	cl              *client.ConnClientHandler
 	listeners       sync.Map
 	textLogger      *TextLogger
-	eventProcessors map[string]EventProcessor
+	eventProcessors map[string]*EventProcessor
 	client          *http.Client
 	saveFile        string
 	connected       uint32
@@ -112,7 +108,7 @@ func NewApp(uid string, callsign string, connectStr string, webPort int, logger 
 		dialTimeout:     time.Second * 5,
 		listeners:       sync.Map{},
 		messages:        model.NewMessages(uid),
-		eventProcessors: make(map[string]EventProcessor),
+		eventProcessors: make(map[string]*EventProcessor),
 		pos:             atomic.Pointer[model.Pos]{},
 	}
 }
@@ -246,52 +242,12 @@ func (app *App) SendMsg(msg *cotproto.TakMessage) {
 }
 
 func (app *App) ProcessEvent(msg *cot.CotMessage) {
-	app.LogMessage(msg)
-	if err := app.logToFile(msg); err != nil {
-		app.Logger.Warnf("%s", err.Error())
-	}
-
-	if c := app.items.Get(msg.GetUid()); c != nil {
-		c.Update(nil)
-	}
-
-	if _, processor := app.GetProcessor(msg.GetType()); processor != nil {
-		processor(msg)
-	}
-
-	if !strings.HasPrefix(msg.GetType(), "a-") {
-		name, exact := cot.GetMsgType(msg.GetType())
-		if exact {
-			app.Logger.Debugf("%s %s", msg.GetType(), name)
-		} else {
-			app.Logger.Infof("%s %s (extended)", msg.GetType(), name)
+	for name, prc := range app.eventProcessors {
+		if cot.MatchAnyPattern(msg.GetType(), prc.include...) {
+			app.Logger.Debugf("msg is processed by %s", name)
+			prc.cb(msg)
 		}
 	}
-}
-
-func (app *App) logToFile(msg *cot.CotMessage) error {
-	if app.saveFile == "" {
-		return nil
-	}
-	// don't save pings
-	if msg.GetType() == "t-x-c-t" || msg.GetType() == "t-x-c-t-r" {
-		return nil
-	}
-
-	f, err := os.OpenFile(app.saveFile, os.O_RDWR|os.O_APPEND|os.O_CREATE, 0666)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-
-	d, err := proto.Marshal(msg.TakMessage)
-	if err != nil {
-		return err
-	}
-	l := uint32(len(d))
-	_, _ = f.Write([]byte{byte(l % 256), byte(l / 256)})
-	_, _ = f.Write(d)
-	return nil
 }
 
 func (app *App) processChange(u *model.Item) {
