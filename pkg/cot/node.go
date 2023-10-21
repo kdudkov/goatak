@@ -45,7 +45,7 @@ func DetailsFromString(s string) (*Node, error) {
 	return x, err
 }
 
-func (n *Node) AddLink(uid, typ, parent string) {
+func (n *Node) AddPpLink(uid, typ, callsign string) {
 	params := make(map[string]string)
 	if uid != "" {
 		params["uid"] = uid
@@ -53,8 +53,8 @@ func (n *Node) AddLink(uid, typ, parent string) {
 	if typ != "" {
 		params["type"] = typ
 	}
-	if parent != "" {
-		params["parent_callsign"] = parent
+	if callsign != "" {
+		params["parent_callsign"] = callsign
 	}
 	//params["production_time"] = prodTime.UTC().Format(time.RFC3339)
 	params["relation"] = "p-p"

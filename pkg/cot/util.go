@@ -43,7 +43,7 @@ func MakeOfflineMsg(uid string, typ string) *cotproto.TakMessage {
 	msg := BasicMsg("t-x-d-d", uuid.New().String(), time.Minute*3)
 	msg.CotEvent.How = "h-g-i-g-o"
 	xd := NewXmlDetails()
-	xd.AddLink(uid, typ, "")
+	xd.AddPpLink(uid, typ, "")
 	msg.CotEvent.Detail = &cotproto.Detail{XmlDetail: xd.AsXMLString()}
 	return msg
 }
@@ -54,7 +54,7 @@ func MakeDpMsg(uid string, typ string, name string, lat float64, lon float64) *c
 	msg.CotEvent.Lat = lat
 	msg.CotEvent.Lon = lon
 	xd := NewXmlDetails()
-	xd.AddLink(uid, typ, "")
+	xd.AddPpLink(uid, typ, "")
 	msg.CotEvent.Detail = &cotproto.Detail{
 		XmlDetail: xd.AsXMLString(),
 		Contact:   &cotproto.Contact{Callsign: name},

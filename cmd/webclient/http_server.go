@@ -180,7 +180,7 @@ func addMessageHandler(app *App) func(req *air.Request, res *air.Response) error
 		}
 
 		if msg.Id == "" {
-			msg.Id = uuid.New().String()
+			msg.Id = uuid.NewString()
 		}
 		app.SendMsg(model.MakeChatMessage(msg))
 		app.messages.Add(msg)

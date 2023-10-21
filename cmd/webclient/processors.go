@@ -48,9 +48,9 @@ func (app *App) loggerProcessor(msg *cot.CotMessage) {
 
 func (app *App) removeItemProcessor(msg *cot.CotMessage) {
 	// t-x-d-d
-	if msg.Detail != nil && msg.Detail.Has("link") {
-		uid := msg.Detail.GetFirst("link").GetAttr("uid")
-		typ := msg.Detail.GetFirst("link").GetAttr("type")
+	if link := msg.GetFirstLink("p-p"); link != nil {
+		uid := link.GetAttr("uid")
+		typ := link.GetAttr("type")
 		if uid == "" {
 			app.Logger.Warnf("invalid remove message: %s", msg.Detail)
 			return
@@ -60,7 +60,6 @@ func (app *App) removeItemProcessor(msg *cot.CotMessage) {
 			case model.CONTACT:
 				app.Logger.Debugf("remove %s by message", uid)
 				v.SetOffline()
-				app.processChange(v)
 				return
 			case model.UNIT, model.POINT:
 				app.Logger.Debugf("remove unit/point %s type %s by message", uid, typ)

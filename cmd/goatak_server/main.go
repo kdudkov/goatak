@@ -323,12 +323,12 @@ func (app *App) MessageProcessor() {
 }
 
 func (app *App) route(msg *cot.CotMessage) {
-	if len(msg.Detail.GetDest()) > 0 {
-		for _, s := range msg.Detail.GetDest() {
+	if dest := msg.Detail.GetDest(); len(dest) > 0 {
+		for _, s := range dest {
 			app.SendToCallsign(s, msg.TakMessage)
 		}
 	} else {
-		app.SendToAllOther(msg)
+		app.SendBroadcast(msg)
 	}
 }
 
@@ -366,7 +366,7 @@ func (app *App) cleanOldUnits() {
 	}
 }
 
-func (app *App) SendToAllOther(msg *cot.CotMessage) {
+func (app *App) SendBroadcast(msg *cot.CotMessage) {
 	app.ForAllClients(func(ch client.ClientHandler) bool {
 		if ch.GetName() != msg.From && ch.CanSeeScope(msg.Scope) {
 			if err := ch.SendMsg(msg.TakMessage); err != nil {
@@ -381,6 +381,19 @@ func (app *App) SendToCallsign(callsign string, msg *cotproto.TakMessage) {
 	app.ForAllClients(func(ch client.ClientHandler) bool {
 		for _, c := range ch.GetUids() {
 			if c == callsign {
+				if err := ch.SendMsg(msg); err != nil {
+					app.Logger.Errorf("error: %v", err)
+				}
+			}
+		}
+		return true
+	})
+}
+
+func (app *App) SendToUid(uid string, msg *cotproto.TakMessage) {
+	app.ForAllClients(func(ch client.ClientHandler) bool {
+		for c := range ch.GetUids() {
+			if c == uid {
 				if err := ch.SendMsg(msg); err != nil {
 					app.Logger.Errorf("error: %v", err)
 				}

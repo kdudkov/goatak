@@ -113,14 +113,14 @@ func (m *CotMessage) IsChat() bool {
 	if m == nil || m.TakMessage == nil {
 		return false
 	}
-	return m.GetType() == "b-t-f" && m.Detail != nil && m.Detail.Has("__chat")
+	return m.GetType() == "b-t-f"
 }
 
 func (m *CotMessage) IsChatReceipt() bool {
 	if m == nil || m.TakMessage == nil {
 		return false
 	}
-	return (m.GetType() == "b-t-f-r" || m.GetType() == "b-t-f-d") && m.Detail != nil && m.Detail.Has("__chatreceipt")
+	return m.GetType() == "b-t-f-r" || m.GetType() == "b-t-f-d"
 }
 
 func (m *CotMessage) PrintChat() string {
@@ -161,12 +161,27 @@ func (m *CotMessage) GetLon() float64 {
 }
 
 func (m *CotMessage) GetParent() (string, string) {
+	if m.Detail == nil {
+		return "", ""
+	}
 	for _, link := range m.Detail.GetAll("link") {
 		if link.GetAttr("relation") == "p-p" {
 			return link.GetAttr("uid"), link.GetAttr("parent_callsign")
 		}
 	}
 	return "", ""
+}
+
+func (m *CotMessage) GetFirstLink(relation string) *Node {
+	if m.Detail == nil {
+		return nil
+	}
+	for _, link := range m.Detail.GetAll("link") {
+		if link.GetAttr("relation") == relation {
+			return link
+		}
+	}
+	return nil
 }
 
 func TimeFromMillis(ms uint64) time.Time {
