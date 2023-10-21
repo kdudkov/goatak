@@ -39,6 +39,8 @@ func main() {
 		dmp = new(TextDumper)
 	case "json":
 		dmp = new(JsonDumper)
+	case "json2":
+		dmp = new(Json2Dumper)
 	case "gpx":
 		if *uid == "" {
 			fmt.Println("need uid to make gpx")

@@ -45,6 +45,25 @@ func (g *JsonDumper) Process(msg *cot.CotMessage) error {
 	return nil
 }
 
+type Json2Dumper struct {
+}
+
+func (g *Json2Dumper) Start() {
+}
+
+func (g *Json2Dumper) Stop() {
+}
+
+func (g *Json2Dumper) Process(msg *cot.CotMessage) error {
+	b, err := json.Marshal(msg.TakMessage)
+	if err != nil {
+		return err
+	}
+	fmt.Println(string(b))
+	fmt.Println(msg.TakMessage.GetCotEvent().GetDetail().GetXmlDetail())
+	return nil
+}
+
 type GpxDumper struct {
 	name       string
 	prevStale  time.Time
