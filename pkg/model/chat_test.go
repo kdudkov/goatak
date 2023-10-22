@@ -1,6 +1,7 @@
 package model
 
 import (
+	"fmt"
 	"github.com/kdudkov/goatak/pkg/cot"
 	"github.com/kdudkov/goatak/pkg/cotproto"
 	"github.com/stretchr/testify/assert"
@@ -8,30 +9,56 @@ import (
 	"time"
 )
 
-func TestChat(t *testing.T) {
-	// user1 (uid1) -> user2 (uid2)
+func getChatMsg(msgId, uidFrom, userFrom, uidTo, userTo, text string) *cot.CotMessage {
+	d := fmt.Sprintf("<__chat parent=\"RootContactGroup\" groupOwner=\"false\" messageId=\"%[1]s\" chatroom=\"%[5]s\" id=\"%[4]s\" senderCallsign=\"%[3]s\">"+
+		"<chatgrp uid0=\"%[2]s\" uid1=\"%[4]s\" id=\"%[4]s\"/></__chat>"+
+		"<link uid=\"%[2]s\" type=\"a-f-G-U-C\" relation=\"p-p\"/>"+
+		"<__serverdestination destinations=\"1.1.1.1:4242:tcp:%[2]s\"/>"+
+		"<remarks source=\"BAO.F.ATAK.%[2]s\" to=\"%[4]s\" time=\"2023-10-21T20:28:58.991Z\">%[6]s</remarks>"+
+		"<marti><dest callsign=\"%[5]s\"/></marti>", msgId, uidFrom, userFrom, uidTo, userTo, text)
 
-	d := "<__chat parent=\"RootContactGroup\" groupOwner=\"false\" messageId=\"4de0262c-633f-46eb-b8e5-5ef1eb1e5e22\" chatroom=\"user2\" id=\"uid2\" senderCallsign=\"user1\">" +
-		"<chatgrp uid0=\"uid1\" uid1=\"uid2\" id=\"uid2\"/></__chat>" +
-		"<link uid=\"uid1\" type=\"a-f-G-U-C\" relation=\"p-p\"/>" +
-		"<__serverdestination destinations=\"1.1.1.1:4242:tcp:uid1\"/>" +
-		"<remarks source=\"BAO.F.ATAK.uid1\" to=\"uid2\" time=\"2023-10-21T20:28:58.991Z\">at breach</remarks>" +
-		"<marti><dest callsign=\"user2\"/></marti>"
-
-	m := cot.BasicMsg("b-t-f", "GeoChat.uid1.uid2.4de0262c-633f-46eb-b8e5-5ef1eb1e5e22", time.Minute)
+	m := cot.BasicMsg("b-t-f", fmt.Sprintf("GeoChat.%s.%s.%s", uidFrom, uidTo, msgId), time.Minute)
 	xd, _ := cot.DetailsFromString(d)
 	m.CotEvent.Detail = &cotproto.Detail{XmlDetail: xd.AsXMLString()}
-	msg := cot.CotMessage{TakMessage: m, Detail: xd}
+	return &cot.CotMessage{TakMessage: m, Detail: xd}
+}
 
-	assert.Equal(t, msg.IsChat(), true)
+func TestChatFromMe(t *testing.T) {
+	msg := getChatMsg("4de0262c-633f-46eb-b8e5-5ef1eb1e5e22", "uid1", "user1", "uid2", "user2", "at breach")
+	assert.Equal(t, true, msg.IsChat())
+	cm := MsgToChat(msg)
 
-	cm := MsgToChat(&msg)
+	assert.Equal(t, "user1", cm.From)
+	assert.Equal(t, "uid1", cm.FromUid)
+	assert.Equal(t, "user2", cm.Chatroom)
+	assert.Equal(t, "uid2", cm.ToUid)
+	assert.Equal(t, true, cm.Direct)
 
-	assert.Equal(t, cm.From, "user1")
-	assert.Equal(t, cm.FromUid, "uid1")
-	assert.Equal(t, cm.ToUid, "uid2")
-	assert.Equal(t, cm.Chatroom, "user2")
-	assert.Equal(t, cm.Direct, true)
+	messages := NewMessages("uid1")
+	messages.Add(cm)
+	ch, ok := messages.Chats["uid2"]
+	assert.Equal(t, true, ok)
+	assert.Equal(t, "uid2", ch.Uid)
+	assert.Equal(t, "user2", ch.From)
+}
+
+func TestChatTomMe(t *testing.T) {
+	msg := getChatMsg("4de0262c-633f-46eb-b8e5-5ef1eb1e5e22", "uid1", "user1", "uid2", "user2", "at breach")
+	assert.Equal(t, true, msg.IsChat())
+	cm := MsgToChat(msg)
+
+	assert.Equal(t, "user1", cm.From)
+	assert.Equal(t, "uid1", cm.FromUid)
+	assert.Equal(t, "user2", cm.Chatroom)
+	assert.Equal(t, "uid2", cm.ToUid)
+	assert.Equal(t, true, cm.Direct)
+
+	messages := NewMessages("uid2")
+	messages.Add(cm)
+	ch, ok := messages.Chats["uid1"]
+	assert.Equal(t, true, ok)
+	assert.Equal(t, "uid1", ch.Uid)
+	assert.Equal(t, "user1", ch.From)
 }
 
 func TestBtfd(t *testing.T) {
@@ -46,15 +73,7 @@ func TestBtfd(t *testing.T) {
 	m.CotEvent.Detail = &cotproto.Detail{XmlDetail: xd.AsXMLString()}
 	msg := cot.CotMessage{TakMessage: m, Detail: xd}
 
-	assert.Equal(t, msg.IsChatReceipt(), true)
-
-	//cm := MsgToChat(&msg)
-	//
-	//assert.Equal(t, cm.From, "user1")
-	//assert.Equal(t, cm.FromUid, "uid1")
-	//assert.Equal(t, cm.ToUid, "uid2")
-	//assert.Equal(t, cm.Chatroom, "user2")
-	//assert.Equal(t, cm.Direct, true)
+	assert.Equal(t, true, msg.IsChatReceipt())
 }
 
 func TestBtfr(t *testing.T) {
@@ -69,7 +88,7 @@ func TestBtfr(t *testing.T) {
 	m.CotEvent.Detail = &cotproto.Detail{XmlDetail: xd.AsXMLString()}
 	msg := cot.CotMessage{TakMessage: m, Detail: xd}
 
-	assert.Equal(t, msg.IsChatReceipt(), true)
+	assert.Equal(t, true, msg.IsChatReceipt())
 }
 
 func TestMsgRed(t *testing.T) {
@@ -86,14 +105,28 @@ func TestMsgRed(t *testing.T) {
 	m.CotEvent.Detail = &cotproto.Detail{XmlDetail: xd.AsXMLString()}
 	msg := cot.CotMessage{TakMessage: m, Detail: xd}
 
-	assert.Equal(t, msg.IsChat(), true)
+	assert.Equal(t, true, msg.IsChat())
 
 	cm := MsgToChat(&msg)
 
-	assert.Equal(t, cm.From, "user1")
-	assert.Equal(t, cm.FromUid, "uid1")
-	assert.Equal(t, cm.ToUid, "Red")
-	assert.Equal(t, cm.Chatroom, "Red")
-	assert.Equal(t, cm.Direct, false)
-	assert.Equal(t, cm.Text, "Roger")
+	assert.Equal(t, "user1", cm.From)
+	assert.Equal(t, "uid1", cm.FromUid)
+	assert.Equal(t, "Red", cm.ToUid)
+	assert.Equal(t, "Red", cm.Chatroom)
+	assert.Equal(t, false, cm.Direct)
+	assert.Equal(t, "Roger", cm.Text)
+
+	messages := NewMessages("uid2")
+	messages.Add(cm)
+	ch, ok := messages.Chats["Red"]
+	assert.Equal(t, true, ok)
+	assert.Equal(t, "Red", ch.Uid)
+	assert.Equal(t, "Red", ch.From)
+
+	messages2 := NewMessages("uid1")
+	messages2.Add(cm)
+	ch, ok = messages2.Chats["Red"]
+	assert.Equal(t, true, ok)
+	assert.Equal(t, "Red", ch.Uid)
+	assert.Equal(t, "Red", ch.From)
 }

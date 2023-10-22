@@ -36,28 +36,27 @@ type ChatMessage struct {
 }
 
 func NewMessages(myUid string) *Messages {
-	return &Messages{
-		mx:  sync.RWMutex{},
-		uid: myUid,
-		Chats: map[string]*Chat{
-			"All Chat Rooms": {
-				From:     "All Chat Rooms",
-				Uid:      "All Chat Rooms",
-				Messages: nil,
-			},
+	msg := new(Messages)
+	msg.uid = myUid
+	msg.Chats = map[string]*Chat{
+		"All Chat Rooms": {
+			From:     "All Chat Rooms",
+			Uid:      "All Chat Rooms",
+			Messages: nil,
 		},
 	}
+	return msg
 }
 
 func (m *Messages) Add(msg *ChatMessage) {
 	m.mx.Lock()
 	defer m.mx.Unlock()
 
-	uid := msg.FromUid
-	callsign := msg.From
-	if uid == m.uid {
-		uid = msg.ToUid
-		callsign = msg.Chatroom
+	uid := msg.ToUid
+	callsign := msg.Chatroom
+	if msg.Direct && msg.ToUid == m.uid {
+		uid = msg.FromUid
+		callsign = msg.From
 	}
 
 	if c, ok := m.Chats[uid]; ok {
@@ -120,6 +119,7 @@ func MakeChatMessage(c *ChatMessage) *cotproto.TakMessage {
 	t := time.Now().UTC().Format(time.RFC3339)
 	msgUid := fmt.Sprintf("GeoChat.%s.%s.%s", c.FromUid, c.ToUid, c.Id)
 	msg := cot.BasicMsg("b-t-f", msgUid, time.Second*10)
+	msg.CotEvent.How = "h-g-i-g-o"
 	xd := cot.NewXmlDetails()
 	xd.AddPpLink(c.FromUid, "", "")
 
