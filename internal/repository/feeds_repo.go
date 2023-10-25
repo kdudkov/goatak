@@ -71,6 +71,7 @@ func (r *FeedsFileRepository) load(fname string) *model.Feed2 {
 		r.logger.Errorf("error: %s", err.Error())
 	}
 
+	f.Active = true
 	return f
 }
 

@@ -21,6 +21,11 @@ type VideoConnections struct {
 	Feeds   []*Feed `xml:"feed"`
 }
 
+type VideoConnections2 struct {
+	XMLName xml.Name `json:"-"`
+	Feeds   []*Feed2 `xml:"feed" json:"feeds"`
+}
+
 type Feed struct {
 	Uid    string `xml:"uid" yaml:"uid"`
 	Active bool   `xml:"active" yaml:"active,omitempty"`
@@ -50,6 +55,7 @@ type Feed struct {
 
 type Feed2 struct {
 	Uid       string  `yaml:"uid" json:"uid,omitempty"`
+	Active    bool    `yaml:"active" json:"active"`
 	Alias     string  `yaml:"alias" json:"alias,omitempty"`
 	Url       string  `yaml:"url" json:"url,omitempty"`
 	Latitude  float64 `yaml:"lat,omitempty" json:"lat,omitempty"`
@@ -57,7 +63,7 @@ type Feed2 struct {
 	Fov       string  `yaml:"fov,omitempty" json:"fov,omitempty"`
 	Heading   string  `yaml:"heading,omitempty" json:"heading,omitempty"`
 	Range     string  `yaml:"range,omitempty" json:"range,omitempty"`
-	User      string  `yaml:"user"`
+	User      string  `yaml:"user" json:"-"`
 }
 
 func (f *Feed2) ToFeed() *Feed {
@@ -105,6 +111,7 @@ func (f *Feed) ToFeed2() *Feed2 {
 	}
 
 	return &Feed2{
+		Active:    f.Active,
 		Uid:       f.Uid,
 		Alias:     f.Alias,
 		Url:       toUrl(f.Protocol, f.Address, f.Port, f.Path),

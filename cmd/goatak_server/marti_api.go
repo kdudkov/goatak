@@ -57,6 +57,8 @@ func addMartiRoutes(app *App, api *air.Air, name string) {
 	api.GET("/Marti/api/device/profile/connection", getProfileConnectionHandler(app, name))
 
 	api.GET("/Marti/api/missions", getMissionsHandler(app, name))
+	api.GET("/Marti/api/missions/", getMissionsHandler(app, name))
+	api.GET("/Marti/api/missions/:missionname", getMissionHandler(app, name))
 
 	api.GET("/Marti/sync/content", getMetadataGetHandler(app, name))
 	api.GET("/Marti/sync/search", getSearchHandler(app, name))
@@ -65,6 +67,8 @@ func addMartiRoutes(app *App, api *air.Air, name string) {
 
 	api.GET("/Marti/vcm", getVideoListHandler(app, name))
 	api.POST("/Marti/vcm", getVideoPostHandler(app, name))
+
+	api.GET("/Marti/api/video", getVideo2ListHandler(app, name))
 }
 
 func getVersionHandler(app *App, name string) func(req *air.Request, res *air.Response) error {
@@ -321,6 +325,17 @@ func getMissionsHandler(app *App, name string) func(req *air.Request, res *air.R
 	}
 }
 
+func getMissionHandler(app *App, name string) func(req *air.Request, res *air.Response) error {
+	return func(req *air.Request, res *air.Response) error {
+		user := getUsernameFromReq(req)
+		logger := app.Logger.With(zap.String("api", name), zap.String("user", user))
+		logger.Infof("%s %s", req.Method, req.Path)
+
+		m := GetDefault(getStringParam(req, "missionname"))
+		return res.WriteJSON(makeAnswer("Mission", []any{m}))
+	}
+}
+
 func getProfileConnectionHandler(app *App, name string) func(req *air.Request, res *air.Response) error {
 	return func(req *air.Request, res *air.Response) error {
 		user := getUsernameFromReq(req)
@@ -365,6 +380,24 @@ func getVideoListHandler(app *App, name string) func(req *air.Request, res *air.
 			return true
 		})
 		return res.WriteXML(r)
+	}
+}
+
+func getVideo2ListHandler(app *App, name string) func(req *air.Request, res *air.Response) error {
+	return func(req *air.Request, res *air.Response) error {
+		user := getUsernameFromReq(req)
+		logger := app.Logger.With(zap.String("api", name), zap.String("user", user))
+		logger.Infof("%s %s", req.Method, req.Path)
+
+		conn := make([]*model.VideoConnections2, 0)
+		app.feeds.ForEach(func(f *model.Feed2) bool {
+			conn = append(conn, &model.VideoConnections2{Feeds: []*model.Feed2{f}})
+			return true
+		})
+
+		r := make(map[string]any)
+		r["videoConnections"] = conn
+		return res.WriteJSON(r)
 	}
 }
 

@@ -9,6 +9,8 @@ import (
 	"time"
 )
 
+const renewContacts = time.Second * 30
+
 func (app *App) getContacts() error {
 	url := ""
 	if app.tls {
@@ -43,6 +45,7 @@ func (app *App) getContacts() error {
 
 	app.Logger.Debugf("got %d contacts", len(dat))
 	for _, c := range dat {
+		app.Logger.Debugf("contact %s %s", c.Uid, c.Callsign)
 		app.messages.Contacts.Store(c.Uid, c)
 	}
 
@@ -50,7 +53,7 @@ func (app *App) getContacts() error {
 }
 
 func (app *App) periodicGetter(ctx context.Context) {
-	ticker := time.NewTicker(time.Second * 30)
+	ticker := time.NewTicker(renewContacts)
 	defer ticker.Stop()
 
 	_ = app.getContacts()
