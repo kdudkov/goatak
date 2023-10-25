@@ -16,6 +16,8 @@ import (
 	"go.uber.org/zap"
 )
 
+const nodeId = "1"
+
 func getMartiApi(app *App, addr string) *air.Air {
 	api := air.New()
 	api.Address = addr
@@ -54,6 +56,8 @@ func addMartiRoutes(app *App, api *air.Air, name string) {
 
 	api.GET("/Marti/api/device/profile/connection", getProfileConnectionHandler(app, name))
 
+	api.GET("/Marti/api/missions", getMissionsHandler(app, name))
+
 	api.GET("/Marti/sync/content", getMetadataGetHandler(app, name))
 	api.GET("/Marti/sync/search", getSearchHandler(app, name))
 	api.GET("/Marti/sync/missionquery", getMissionQueryHandler(app, name))
@@ -73,20 +77,15 @@ func getVersionHandler(app *App, name string) func(req *air.Request, res *air.Re
 }
 
 func getVersionConfigHandler(app *App, name string) func(req *air.Request, res *air.Response) error {
-	result := make(map[string]any)
 	data := make(map[string]any)
-	result["version"] = "2"
-	result["type"] = "ServerConfig"
-	result["nodeId"] = "1"
-	data["api"] = "2"
+	data["api"] = "3"
 	data["version"] = gitRevision + ":" + gitBranch
 	data["hostname"] = "0.0.0.0"
-	result["data"] = data
 	return func(req *air.Request, res *air.Response) error {
 		user := getUsernameFromReq(req)
 		logger := app.Logger.With(zap.String("api", name), zap.String("user", user))
 		logger.Infof("%s %s", req.Method, req.Path)
-		return res.WriteJSON(result)
+		return res.WriteJSON(makeAnswer("ServerConfig", data))
 	}
 }
 
@@ -97,13 +96,7 @@ func getEndpointsHandler(app *App, name string) func(req *air.Request, res *air.
 		logger.Infof("%s %s", req.Method, req.Path)
 		//secAgo := getIntParam(req, "secAgo", 0)
 
-		result := make(map[string]any)
 		data := make([]map[string]any, 0)
-		result["Matcher"] = "com.bbn.marti.remote.ClientEndpoint"
-		result["BaseUrl"] = ""
-		result["ServerConnectString"] = ""
-		result["NotificationId"] = ""
-		result["type"] = "com.bbn.marti.remote.ClientEndpoint"
 
 		app.items.ForEach(func(item *model.Item) bool {
 			if item.GetClass() == model.CONTACT {
@@ -121,8 +114,7 @@ func getEndpointsHandler(app *App, name string) func(req *air.Request, res *air.
 
 			return true
 		})
-		result["data"] = data
-		return res.WriteJSON(result)
+		return res.WriteJSON(makeAnswer("com.bbn.marti.remote.ClientEndpoint", data))
 	}
 }
 
@@ -305,22 +297,27 @@ func getAllGroupsHandler(app *App, name string) func(req *air.Request, res *air.
 	g := make(map[string]any)
 	g["name"] = "__ANON__"
 	g["direction"] = "OUT"
-	g["created"] = "2022-05-03"
+	g["created"] = "2023-01-01"
 	g["type"] = "SYSTEM"
 	g["bitpos"] = 2
 	g["active"] = true
 
-	result := make(map[string]any)
-	result["version"] = "3"
-	result["type"] = "com.bbn.marti.remote.groups.Group"
-	result["nodeId"] = "main"
-	result["data"] = []any{g}
+	result := makeAnswer("com.bbn.marti.remote.groups.Group", []map[string]any{g})
 
 	return func(req *air.Request, res *air.Response) error {
 		user := getUsernameFromReq(req)
 		logger := app.Logger.With(zap.String("api", name), zap.String("user", user))
 		logger.Infof("%s %s", req.Method, req.Path)
 		return res.WriteJSON(result)
+	}
+}
+
+func getMissionsHandler(app *App, name string) func(req *air.Request, res *air.Response) error {
+	return func(req *air.Request, res *air.Response) error {
+		user := getUsernameFromReq(req)
+		logger := app.Logger.With(zap.String("api", name), zap.String("user", user))
+		logger.Infof("%s %s", req.Method, req.Path)
+		return res.WriteJSON(makeAnswer("Mission", []string{}))
 	}
 }
 
@@ -388,6 +385,15 @@ func getVideoPostHandler(app *App, name string) func(req *air.Request, res *air.
 		}
 		return nil
 	}
+}
+
+func makeAnswer(typ string, data any) map[string]any {
+	result := make(map[string]any)
+	result["version"] = "3"
+	result["type"] = typ
+	result["nodeId"] = nodeId
+	result["data"] = data
+	return result
 }
 
 func getStringParam(req *air.Request, name string) string {
