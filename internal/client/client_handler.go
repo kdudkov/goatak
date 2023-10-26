@@ -36,6 +36,7 @@ type HandlerConfig struct {
 
 type ClientHandler interface {
 	GetName() string
+	HasUid(uid string) bool
 	GetUids() map[string]string
 	GetUser() string
 	GetScope() string
@@ -120,6 +121,11 @@ func (h *ConnClientHandler) GetUids() map[string]string {
 		return true
 	})
 	return res
+}
+
+func (h *ConnClientHandler) HasUid(uid string) bool {
+	_, ok := h.uids.Load(uid)
+	return ok
 }
 
 func (h *ConnClientHandler) IsActive() bool {

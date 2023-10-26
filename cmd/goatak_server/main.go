@@ -368,7 +368,10 @@ func (app *App) cleanOldUnits() {
 
 func (app *App) SendBroadcast(msg *cot.CotMessage) {
 	app.ForAllClients(func(ch client.ClientHandler) bool {
-		if ch.GetName() != msg.From && ch.CanSeeScope(msg.Scope) {
+		if ch.GetName() != msg.From {
+			return true
+		}
+		if ch.CanSeeScope(msg.Scope) {
 			if err := ch.SendMsg(msg.TakMessage); err != nil {
 				app.Logger.Errorf("error sending to %s: %v", ch.GetName(), err)
 			}
@@ -392,12 +395,9 @@ func (app *App) SendToCallsign(callsign string, msg *cotproto.TakMessage) {
 
 func (app *App) SendToUid(uid string, msg *cotproto.TakMessage) {
 	app.ForAllClients(func(ch client.ClientHandler) bool {
-		for c := range ch.GetUids() {
-			if c == uid {
-				if err := ch.SendMsg(msg); err != nil {
-					app.Logger.Errorf("error: %v", err)
-				}
-				return false
+		if ch.HasUid(uid) {
+			if err := ch.SendMsg(msg); err != nil {
+				app.Logger.Errorf("error: %v", err)
 			}
 		}
 		return true

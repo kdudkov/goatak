@@ -54,6 +54,11 @@ func (w *WsClientHandler) GetUids() map[string]string {
 	return res
 }
 
+func (w *WsClientHandler) HasUid(uid string) bool {
+	_, ok := w.uids.Load(uid)
+	return ok
+}
+
 func (w *WsClientHandler) GetLastSeen() *time.Time {
 	return nil
 }
