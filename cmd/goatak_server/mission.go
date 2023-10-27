@@ -11,7 +11,7 @@ type Mission struct {
 	Path           string    `json:"path"`
 	Classification string    `json:"classification"`
 	Tool           string    `json:"tool"`
-	Keywords       []any     `json:"keywords"`
+	Keywords       []string  `json:"keywords"`
 	CreatorUID     string    `json:"creatorUid"`
 	CreateTime     time.Time `json:"createTime"`
 	ExternalData   []any     `json:"externalData"`
@@ -25,13 +25,13 @@ type Mission struct {
 		Permissions []string `json:"permissions"`
 		Type        string   `json:"type"`
 	} `json:"ownerRole"`
-	InviteOnly        bool   `json:"inviteOnly"`
-	Expiration        int    `json:"expiration"`
-	GUID              string `json:"guid"`
-	Uids              []any  `json:"uids"`
-	Contents          []any  `json:"contents"`
-	Token             string `json:"token"`
-	PasswordProtected bool   `json:"passwordProtected"`
+	InviteOnly        bool     `json:"inviteOnly"`
+	Expiration        int      `json:"expiration"`
+	GUID              string   `json:"guid"`
+	Uids              []string `json:"uids"`
+	Contents          []any    `json:"contents"`
+	Token             string   `json:"token"`
+	PasswordProtected bool     `json:"passwordProtected"`
 }
 
 func GetDefault(name string) *Mission {

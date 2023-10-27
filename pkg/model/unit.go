@@ -255,6 +255,13 @@ func (i *Item) Update(msg *cot.CotMessage) {
 	}
 }
 
+func (i *Item) GetTrack() []*Pos {
+	i.mx.RLock()
+	defer i.mx.RUnlock()
+
+	return i.track[:]
+}
+
 func (i *Item) UpdateFromWeb(w *WebUnit, m *cot.CotMessage) {
 	if w == nil {
 		return

@@ -71,6 +71,7 @@ func getAdminApi(app *App, addr string, renderer *staticfiles.Renderer, webtakRo
 	adminApi.GET("/connections", getConnHandler(app))
 
 	adminApi.GET("/unit", getUnitsHandler(app))
+	adminApi.GET("/unit/:uid/track", getUnitTrackHandler(app))
 	adminApi.DELETE("/unit/:uid", deleteItemHandler(app))
 
 	adminApi.GET("/takproto/1", getWsHandler(app))
@@ -170,6 +171,19 @@ func getUnits(app *App) []*model.WebUnit {
 	})
 
 	return units
+}
+
+func getUnitTrackHandler(app *App) func(req *air.Request, res *air.Response) error {
+	return func(req *air.Request, res *air.Response) error {
+		uid := getStringParam(req, "uid")
+		item := app.items.Get(uid)
+		if item == nil {
+			res.Status = http.StatusNotFound
+			return nil
+		}
+
+		return res.WriteJSON(item.GetTrack())
+	}
 }
 
 func deleteItemHandler(app *App) func(req *air.Request, res *air.Response) error {
