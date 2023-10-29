@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/xml"
 	"fmt"
+	"github.com/kdudkov/goatak/internal/model"
 	"github.com/kdudkov/goatak/pkg/cot"
 	"io"
 	"net"
@@ -23,8 +24,7 @@ const (
 )
 
 type HandlerConfig struct {
-	User         string
-	Scope        string
+	User         *model.User
 	Serial       string
 	Uid          string
 	IsClient     bool
@@ -38,8 +38,7 @@ type ClientHandler interface {
 	GetName() string
 	HasUid(uid string) bool
 	GetUids() map[string]string
-	GetUser() string
-	GetScope() string
+	GetUser() *model.User
 	CanSeeScope(scope string) bool
 	GetVersion() int32
 	SendMsg(msg *cotproto.TakMessage) error
@@ -59,8 +58,7 @@ type ConnClientHandler struct {
 	closeTimer   *time.Timer
 	sendChan     chan []byte
 	active       int32
-	user         string
-	scope        string
+	user         *model.User
 	serial       string
 	messageCb    func(msg *cot.CotMessage)
 	removeCb     func(ch ClientHandler)
@@ -83,7 +81,6 @@ func NewConnClientHandler(name string, conn net.Conn, config *HandlerConfig) *Co
 
 	if config != nil {
 		c.user = config.User
-		c.scope = config.Scope
 		c.serial = config.Serial
 		c.localUid = config.Uid
 		if config.Logger != nil {
@@ -102,16 +99,15 @@ func (h *ConnClientHandler) GetName() string {
 	return h.addr
 }
 
-func (h *ConnClientHandler) GetUser() string {
+func (h *ConnClientHandler) GetUser() *model.User {
 	return h.user
 }
 
-func (h *ConnClientHandler) GetScope() string {
-	return h.scope
-}
-
 func (h *ConnClientHandler) CanSeeScope(scope string) bool {
-	return h.scope == "" || scope == "broadcast" || h.scope == scope
+	if h.user == nil {
+		return true
+	}
+	return h.user.Scope == "" || scope == "broadcast" || h.user.Scope == scope
 }
 
 func (h *ConnClientHandler) GetUids() map[string]string {
@@ -202,7 +198,7 @@ func (h *ConnClientHandler) handleRead() {
 
 		cotmsg := &cot.CotMessage{
 			From:       h.addr,
-			Scope:      h.scope,
+			Scope:      h.user.Scope,
 			TakMessage: msg,
 			Detail:     d,
 		}

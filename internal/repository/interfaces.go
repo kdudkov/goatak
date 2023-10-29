@@ -10,7 +10,7 @@ type UserRepository interface {
 	Stop()
 	CheckUserAuth(user, password string) bool
 	UserIsValid(user, sn string) bool
-	GetUser(username string) *int.UserInfo
+	GetUser(username string) *int.User
 }
 
 type ItemsRepository interface {

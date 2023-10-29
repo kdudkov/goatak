@@ -1,7 +1,7 @@
 package model
 
-type UserInfo struct {
-	User     string `yaml:"user"`
+type User struct {
+	Login    string `yaml:"user"`
 	Callsign string `yaml:"callsign,omitempty"`
 	Team     string `yaml:"team,omitempty"`
 	Role     string `yaml:"role,omitempty"`

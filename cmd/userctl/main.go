@@ -12,13 +12,13 @@ import (
 	"github.com/kdudkov/goatak/internal/model"
 )
 
-func read(fn string) []*model.UserInfo {
+func read(fn string) []*model.User {
 	dat, err := os.ReadFile(fn)
 	if err != nil {
 		return nil
 	}
 
-	users := make([]*model.UserInfo, 0)
+	users := make([]*model.User, 0)
 	if err := yaml.Unmarshal(dat, &users); err != nil {
 		panic(err.Error())
 	}
@@ -26,7 +26,7 @@ func read(fn string) []*model.UserInfo {
 	return users
 }
 
-func write(fn string, users []*model.UserInfo) error {
+func write(fn string, users []*model.User) error {
 	f, err := os.Create(fn)
 	if err != nil {
 		return err
@@ -50,7 +50,7 @@ func main() {
 
 	if *user == "" {
 		for _, user := range users {
-			fmt.Printf("%s\t%s\t%s\t%s\n", user.User, user.Callsign, user.Team, user.Role)
+			fmt.Printf("%s\t%s\t%s\t%s\n", user.Login, user.Callsign, user.Team, user.Role)
 		}
 		return
 	}
@@ -75,7 +75,7 @@ func main() {
 	var found bool
 
 	for _, u := range users {
-		if u.User == *user {
+		if u.Login == *user {
 			found = true
 			u.Password = string(bpass)
 			if *scope != "" {
@@ -86,7 +86,7 @@ func main() {
 	}
 
 	if !found {
-		users = append(users, &model.UserInfo{User: *user, Password: string(bpass), Scope: *scope})
+		users = append(users, &model.User{Login: *user, Password: string(bpass), Scope: *scope})
 	}
 
 	if err := write(*file, users); err != nil {

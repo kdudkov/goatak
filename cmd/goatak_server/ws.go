@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
+	"github.com/kdudkov/goatak/internal/model"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -29,12 +30,8 @@ type WsClientHandler struct {
 func (w *WsClientHandler) GetName() string {
 	return w.name
 }
-func (w *WsClientHandler) GetUser() string {
-	return ""
-}
-
-func (w *WsClientHandler) GetScope() string {
-	return ""
+func (w *WsClientHandler) GetUser() *model.User {
+	return nil
 }
 
 func (w *WsClientHandler) CanSeeScope(scope string) bool {

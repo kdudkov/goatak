@@ -205,10 +205,10 @@ func getConnHandler(app *App) func(req *air.Request, res *air.Response) error {
 		app.ForAllClients(func(ch client.ClientHandler) bool {
 			c := &Connection{
 				Uids:     ch.GetUids(),
-				User:     ch.GetUser(),
+				User:     ch.GetUser().Login,
 				Ver:      ch.GetVersion(),
 				Addr:     ch.GetName(),
-				Scope:    ch.GetScope(),
+				Scope:    ch.GetUser().Scope,
 				LastSeen: ch.GetLastSeen(),
 			}
 			conn = append(conn, c)

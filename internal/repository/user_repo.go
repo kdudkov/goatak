@@ -15,7 +15,7 @@ import (
 type UserFileRepository struct {
 	userFile string
 	logger   *zap.SugaredLogger
-	users    map[string]*model.UserInfo
+	users    map[string]*model.User
 
 	watcher *fsnotify.Watcher
 
@@ -26,7 +26,7 @@ func NewFileUserRepo(logger *zap.SugaredLogger, userFile string) *UserFileReposi
 	um := &UserFileRepository{
 		logger:   logger.Named("UserManager"),
 		userFile: userFile,
-		users:    make(map[string]*model.UserInfo),
+		users:    make(map[string]*model.User),
 		mx:       sync.RWMutex{},
 	}
 
@@ -36,8 +36,8 @@ func NewFileUserRepo(logger *zap.SugaredLogger, userFile string) *UserFileReposi
 		um.logger.Infof("no valid users found -  create one")
 		bytes, _ := bcrypt.GenerateFromPassword([]byte("11111"), 14)
 
-		um.users["user"] = &model.UserInfo{
-			User:     "user",
+		um.users["user"] = &model.User{
+			Login:    "user",
 			Password: string(bytes),
 		}
 	}
@@ -65,16 +65,16 @@ func (r *UserFileRepository) loadUsersFile() error {
 		return err
 	}
 
-	users := make([]*model.UserInfo, 0)
+	users := make([]*model.User, 0)
 
 	if err := yaml.Unmarshal(dat, &users); err != nil {
 		return err
 	}
 
-	r.users = make(map[string]*model.UserInfo)
+	r.users = make(map[string]*model.User)
 	for _, user := range users {
-		if user.User != "" {
-			r.users[user.User] = user
+		if user.Login != "" {
+			r.users[user.Login] = user
 		}
 	}
 
@@ -141,7 +141,7 @@ func (r *UserFileRepository) UserIsValid(user, sn string) bool {
 	return ok
 }
 
-func (r *UserFileRepository) GetUser(username string) *model.UserInfo {
+func (r *UserFileRepository) GetUser(username string) *model.User {
 	r.mx.RLock()
 	defer r.mx.RUnlock()
 	return r.users[username]

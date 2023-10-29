@@ -5,6 +5,7 @@ import (
 	"crypto/md5"
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/hex"
 	"flag"
 	"fmt"
 	"math/rand"
@@ -206,12 +207,8 @@ func (app *App) IsConnected() bool {
 }
 
 func makeUid(callsign string) string {
-	h := md5.New()
-	h.Write([]byte(callsign))
-	uid := fmt.Sprintf("%x", h.Sum(nil))
-	uid = uid[len(uid)-14:]
-
-	return "ANDROID-" + uid
+	s := hex.EncodeToString(md5.New().Sum([]byte(callsign)))
+	return "ANDROID-" + s[:16]
 }
 
 func (app *App) myPosSender(ctx context.Context, wg *sync.WaitGroup) {
