@@ -6,7 +6,7 @@ require (
 	github.com/air-gases/authenticator v0.11.0
 	github.com/aofei/air v0.22.0
 	github.com/fsnotify/fsnotify v1.7.0
-	github.com/google/uuid v1.3.1
+	github.com/google/uuid v1.4.0
 	github.com/jroimartin/gocui v0.5.0
 	github.com/spf13/viper v1.17.0
 	github.com/stretchr/testify v1.8.4
@@ -15,7 +15,7 @@ require (
 	golang.org/x/net v0.17.0
 	google.golang.org/protobuf v1.31.0
 	gopkg.in/yaml.v3 v3.0.1
-	software.sslmate.com/src/go-pkcs12 v0.2.1
+	software.sslmate.com/src/go-pkcs12 v0.3.0
 )
 
 require (
@@ -41,9 +41,9 @@ require (
 	github.com/spf13/cast v1.5.1 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
-	github.com/tdewolff/minify/v2 v2.19.10 // indirect
-	github.com/tdewolff/parse/v2 v2.6.8 // indirect
-	github.com/vmihailenco/msgpack/v5 v5.4.0 // indirect
+	github.com/tdewolff/minify/v2 v2.20.5 // indirect
+	github.com/tdewolff/parse/v2 v2.7.3 // indirect
+	github.com/vmihailenco/msgpack/v5 v5.4.1 // indirect
 	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/exp v0.0.0-20231006140011-7918f672742d // indirect
