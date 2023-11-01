@@ -27,7 +27,6 @@ import (
 	"github.com/kdudkov/goatak/internal/client"
 	"github.com/kdudkov/goatak/internal/repository"
 	"github.com/kdudkov/goatak/pkg/cot"
-	"github.com/kdudkov/goatak/pkg/cotproto"
 	"github.com/kdudkov/goatak/pkg/model"
 )
 
@@ -325,7 +324,7 @@ func (app *App) MessageProcessor() {
 func (app *App) route(msg *cot.CotMessage) {
 	if dest := msg.Detail.GetDest(); len(dest) > 0 {
 		for _, s := range dest {
-			app.SendToCallsign(s, msg.TakMessage)
+			app.SendToCallsign(s, msg)
 		}
 	} else {
 		app.SendBroadcast(msg)
@@ -371,16 +370,14 @@ func (app *App) SendBroadcast(msg *cot.CotMessage) {
 		if ch.GetName() != msg.From {
 			return true
 		}
-		if ch.CanSeeScope(msg.Scope) {
-			if err := ch.SendMsg(msg.TakMessage); err != nil {
-				app.Logger.Errorf("error sending to %s: %v", ch.GetName(), err)
-			}
+		if err := ch.SendMsg(msg); err != nil {
+			app.Logger.Errorf("error sending to %s: %v", ch.GetName(), err)
 		}
 		return true
 	})
 }
 
-func (app *App) SendToCallsign(callsign string, msg *cotproto.TakMessage) {
+func (app *App) SendToCallsign(callsign string, msg *cot.CotMessage) {
 	app.ForAllClients(func(ch client.ClientHandler) bool {
 		for _, c := range ch.GetUids() {
 			if c == callsign {
@@ -393,7 +390,7 @@ func (app *App) SendToCallsign(callsign string, msg *cotproto.TakMessage) {
 	})
 }
 
-func (app *App) SendToUid(uid string, msg *cotproto.TakMessage) {
+func (app *App) SendToUid(uid string, msg *cot.CotMessage) {
 	app.ForAllClients(func(ch client.ClientHandler) bool {
 		if ch.HasUid(uid) {
 			if err := ch.SendMsg(msg); err != nil {

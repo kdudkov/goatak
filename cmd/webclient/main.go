@@ -232,7 +232,7 @@ func (app *App) myPosSender(ctx context.Context, wg *sync.WaitGroup) {
 
 func (app *App) SendMsg(msg *cotproto.TakMessage) {
 	if app.cl != nil {
-		if err := app.cl.SendMsg(msg); err != nil {
+		if err := app.cl.SendCot(msg); err != nil {
 			app.Logger.Errorf("%v", err)
 		}
 	}

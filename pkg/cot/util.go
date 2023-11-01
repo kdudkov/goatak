@@ -5,6 +5,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/kdudkov/goatak/pkg/cotproto"
+	"google.golang.org/protobuf/proto"
 )
 
 func BasicMsg(typ string, uid string, stale time.Duration) *cotproto.TakMessage {
@@ -60,4 +61,23 @@ func MakeDpMsg(uid string, typ string, name string, lat float64, lon float64) *c
 		Contact:   &cotproto.Contact{Callsign: name},
 	}
 	return msg
+}
+
+func CloneMessageNoCoords(msg *cotproto.TakMessage) *cotproto.TakMessage {
+	if msg == nil {
+		return nil
+	}
+
+	data, _ := proto.Marshal(msg)
+	msg1 := new(cotproto.TakMessage)
+	_ = proto.Unmarshal(data, msg1)
+	if evt := msg1.GetCotEvent(); evt != nil {
+		evt.Lat = 0
+		evt.Lon = 0
+		evt.Hae = 0
+		evt.Ce = 9999999
+		evt.Le = 9999999
+	}
+	msg1.GetCotEvent().GetLon()
+	return msg1
 }

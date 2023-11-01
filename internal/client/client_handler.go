@@ -39,9 +39,9 @@ type ClientHandler interface {
 	HasUid(uid string) bool
 	GetUids() map[string]string
 	GetUser() *model.User
-	CanSeeScope(scope string) bool
 	GetVersion() int32
-	SendMsg(msg *cotproto.TakMessage) error
+	SendMsg(msg *cot.CotMessage) error
+	SendCot(msg *cotproto.TakMessage) error
 	GetLastSeen() *time.Time
 }
 
@@ -156,7 +156,7 @@ func (h *ConnClientHandler) pinger() {
 		select {
 		case <-ticker.C:
 			h.logger.Debugf("ping")
-			if err := h.SendMsg(cot.MakePing(h.localUid)); err != nil {
+			if err := h.SendCot(cot.MakePing(h.localUid)); err != nil {
 				h.logger.Debugf("sendMsg error: %v", err)
 			}
 		case <-h.ctx.Done():
@@ -226,7 +226,7 @@ func (h *ConnClientHandler) handleRead() {
 		// ping
 		if cotmsg.GetType() == "t-x-c-t" {
 			h.logger.Debugf("ping from %s %s", h.addr, cotmsg.GetUid())
-			if err := h.SendMsg(cot.MakePong()); err != nil {
+			if err := h.SendCot(cot.MakePong()); err != nil {
 				h.logger.Errorf("SendMsg error: %v", err)
 			}
 		}
@@ -424,7 +424,19 @@ func (h *ConnClientHandler) sendEvent(evt *cot.Event) error {
 	return fmt.Errorf("client is off")
 }
 
-func (h *ConnClientHandler) SendMsg(msg *cotproto.TakMessage) error {
+func (h *ConnClientHandler) SendMsg(msg *cot.CotMessage) error {
+	if h.CanSeeScope(msg.Scope) {
+		return h.SendCot(msg.TakMessage)
+	}
+
+	if msg.IsChat() || msg.IsChatReceipt() {
+		return h.SendCot(cot.CloneMessageNoCoords(msg.TakMessage))
+	}
+
+	return nil
+}
+
+func (h *ConnClientHandler) SendCot(msg *cotproto.TakMessage) error {
 	switch h.GetVersion() {
 	case 0:
 		buf, err := xml.Marshal(cot.ProtoToEvent(msg))

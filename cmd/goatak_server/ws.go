@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/kdudkov/goatak/internal/model"
+	"github.com/kdudkov/goatak/pkg/cotproto"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -14,7 +15,6 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/kdudkov/goatak/pkg/cot"
-	"github.com/kdudkov/goatak/pkg/cotproto"
 )
 
 type WsClientHandler struct {
@@ -72,7 +72,11 @@ func NewWsClient(name string, ws *air.WebSocket, log *zap.SugaredLogger, mc func
 	}
 }
 
-func (w *WsClientHandler) SendMsg(msg *cotproto.TakMessage) error {
+func (w *WsClientHandler) SendMsg(msg *cot.CotMessage) error {
+	return w.SendCot(msg.TakMessage)
+}
+
+func (w *WsClientHandler) SendCot(msg *cotproto.TakMessage) error {
 	dat, err := cot.MakeProtoPacket(msg)
 	if err != nil {
 		return err

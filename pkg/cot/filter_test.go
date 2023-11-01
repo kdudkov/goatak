@@ -7,6 +7,7 @@ func TestMatch(t *testing.T) {
 		a, b string
 		res  bool
 	}{
+		{"a-b-c-d", ".-", true},
 		{"a-b-c-d", "a-b-c", false},
 		{"a-b-c-d", "a-b-c-", true},
 		{"a-b-c-d", "a-.-c", false},

@@ -3,12 +3,20 @@ package cot
 import "strings"
 
 func MatchPattern(a, pattern string) bool {
-	if pattern == "-" {
+	if pattern == ".-" {
+		return true
+	}
+
+	if a == pattern {
 		return true
 	}
 
 	if strings.HasPrefix(a, pattern) && strings.HasSuffix(pattern, "-") {
 		return true
+	}
+
+	if !strings.Contains(pattern, ".") {
+		return false
 	}
 
 	at := strings.Split(a, "-")
