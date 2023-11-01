@@ -107,7 +107,17 @@ func (h *ConnClientHandler) CanSeeScope(scope string) bool {
 	if h.user == nil {
 		return true
 	}
-	return h.user.Scope == "" || scope == "broadcast" || h.user.Scope == scope
+	if h.user.Scope == "" || h.user.Scope == scope {
+		return true
+	}
+
+	for _, s := range h.user.ReadScope {
+		if s == scope {
+			return true
+		}
+	}
+
+	return false
 }
 
 func (h *ConnClientHandler) GetUids() map[string]string {

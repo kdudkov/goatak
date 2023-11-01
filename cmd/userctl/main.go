@@ -42,7 +42,7 @@ func main() {
 	file := flag.String("file", "users.yml", "file")
 	user := flag.String("user", "", "user")
 	passwd := flag.String("password", "", "password")
-	scope := flag.String("scope", "", "scope")
+	scope := flag.String("scope", "test", "scope")
 
 	users := read(*file)
 

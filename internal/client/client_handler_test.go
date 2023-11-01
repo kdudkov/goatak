@@ -16,13 +16,19 @@ import (
 func TestRoute(t *testing.T) {
 	h := NewConnClientHandler("test", nil, &HandlerConfig{Uid: "111", IsClient: true})
 	h.ver = 1
-	h.user = &model.User{Scope: "aaa"}
+	h.user = &model.User{Scope: "aaa", ReadScope: []string{"ccc", "ddd"}}
 
 	var msg *cot.CotMessage
 	var c *cotproto.TakMessage
 	var err error
 
 	msg = &cot.CotMessage{TakMessage: cot.MakePing("123"), Scope: "aaa"}
+	c, err = passMsg(h, msg)
+	assert.NoError(t, err)
+	assert.NotNil(t, c)
+	assert.Equal(t, "t-x-c-t", c.GetCotEvent().GetType())
+
+	msg = &cot.CotMessage{TakMessage: cot.MakePing("123"), Scope: "ddd"}
 	c, err = passMsg(h, msg)
 	assert.NoError(t, err)
 	assert.NotNil(t, c)
