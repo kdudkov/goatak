@@ -208,7 +208,7 @@ func (h *ConnClientHandler) handleRead() {
 
 		cotmsg := &cot.CotMessage{
 			From:       h.addr,
-			Scope:      h.user.Scope,
+			Scope:      h.getScope(),
 			TakMessage: msg,
 			Detail:     d,
 		}
@@ -478,4 +478,12 @@ func (h *ConnClientHandler) tryAddPacket(msg []byte) bool {
 	default:
 	}
 	return true
+}
+
+func (h *ConnClientHandler) getScope() string {
+	if h.user == nil {
+		return ""
+	}
+
+	return h.user.Scope
 }
