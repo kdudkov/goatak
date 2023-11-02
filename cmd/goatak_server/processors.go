@@ -23,7 +23,7 @@ func (app *App) AddEventProcessor(name string, cb func(msg *cot.CotMessage), mas
 
 func (app *App) InitMessageProcessors() {
 	app.AddEventProcessor("remove", app.removeItemProcessor, "t-x-d-d")
-	app.AddEventProcessor("chat", app.chatProcessor, "b-t-f-")
+	app.AddEventProcessor("chat", app.chatProcessor, "b-t-f")
 	app.AddEventProcessor("items", app.saveItemProcessor, "a-", "b-")
 	app.AddEventProcessor("logger", app.loggerProcessor, ".-")
 	if app.config.logging {
