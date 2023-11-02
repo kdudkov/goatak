@@ -20,6 +20,8 @@ from [releases page](https://github.com/kdudkov/goatak/releases)
 * default preferences and maps provisioning to connected devices
 * ability to log all cot's and cli utility to view cot's log and convert it to json or gpx
 
+you can run it with docker, using `docker run kdudkov/goatak_server`
+
 ## Client features
 
 * v1 (XML) and v2 (protobuf) CoT protocol support
