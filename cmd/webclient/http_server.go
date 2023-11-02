@@ -72,7 +72,7 @@ func getUnitsHandler(app *App) func(req *air.Request, res *air.Response) error {
 func getConfigHandler(app *App) func(req *air.Request, res *air.Response) error {
 	return func(req *air.Request, res *air.Response) error {
 		m := make(map[string]any, 0)
-		m["version"] = gitRevision
+		m["version"] = getVersion()
 		m["uid"] = app.uid
 		lat, lon := app.pos.Load().Get()
 		m["lat"] = lat

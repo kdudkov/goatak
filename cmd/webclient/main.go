@@ -341,6 +341,15 @@ func (app *App) sendMyPoints() {
 	})
 }
 
+func getVersion() string {
+	res := gitRevision
+	if gitBranch != "master" && gitBranch != "unknowm" {
+		res = gitBranch + ":" + res
+	}
+
+	return res
+}
+
 func main() {
 	var conf = flag.String("config", "goatak_client.yml", "name of config file")
 	var noweb = flag.Bool("noweb", false, "do not start web server")
@@ -361,7 +370,7 @@ func main() {
 	viper.SetDefault("me.team", "Blue")
 	viper.SetDefault("me.role", "HQ")
 	viper.SetDefault("me.platform", "GoATAK_client")
-	viper.SetDefault("me.version", fmt.Sprintf("%s:%s", gitBranch, gitRevision))
+	viper.SetDefault("me.version", getVersion())
 	viper.SetDefault("ssl.password", "atakatak")
 	viper.SetDefault("ssl.save_cert", true)
 	viper.SetDefault("ssl.strict", false)

@@ -140,7 +140,7 @@ func getConfigHandler(app *App) func(req *air.Request, res *air.Response) error 
 	m["lat"] = app.lat
 	m["lon"] = app.lon
 	m["zoom"] = app.zoom
-	m["version"] = gitRevision
+	m["version"] = getVersion()
 	return func(req *air.Request, res *air.Response) error {
 		return res.WriteJSON(m)
 	}

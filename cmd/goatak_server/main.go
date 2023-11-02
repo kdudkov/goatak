@@ -8,26 +8,24 @@ import (
 	"encoding/pem"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net"
 	"os"
 	"os/signal"
 	"path/filepath"
+	"software.sslmate.com/src/go-pkcs12"
 	"strings"
 	"sync"
 	"syscall"
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/spf13/viper"
-	"go.uber.org/zap"
-	"software.sslmate.com/src/go-pkcs12"
-
 	"github.com/kdudkov/goatak/internal/client"
 	"github.com/kdudkov/goatak/internal/repository"
 	"github.com/kdudkov/goatak/pkg/cot"
 	"github.com/kdudkov/goatak/pkg/model"
+	"github.com/spf13/viper"
+	"go.uber.org/zap"
 )
 
 var (
@@ -289,7 +287,7 @@ func (app *App) connect(connectStr string) (net.Conn, error) {
 }
 
 func (app *App) getTlsConfig() *tls.Config {
-	p12Data, err := ioutil.ReadFile(viper.GetString("ssl.cert"))
+	p12Data, err := os.ReadFile(viper.GetString("ssl.cert"))
 	if err != nil {
 		app.Logger.Fatal(err)
 	}
@@ -470,8 +468,17 @@ func processCerts(conf *AppConfig) error {
 	return nil
 }
 
+func getVersion() string {
+	res := gitRevision
+	if gitBranch != "master" && gitBranch != "unknowm" {
+		res = gitBranch + ":" + res
+	}
+
+	return res
+}
+
 func main() {
-	fmt.Printf("version %s %s\n", gitRevision, gitBranch)
+	fmt.Printf("version %s\n", getVersion())
 	var debug = flag.Bool("debug", false, "debug node")
 	var conf = flag.String("config", "goatak_server.yml", "name of config file")
 	flag.Parse()

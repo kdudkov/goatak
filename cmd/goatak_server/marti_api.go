@@ -76,14 +76,14 @@ func getVersionHandler(app *App, name string) func(req *air.Request, res *air.Re
 		user := getUsernameFromReq(req)
 		logger := app.Logger.With(zap.String("api", name), zap.String("user", user))
 		logger.Infof("%s %s", req.Method, req.Path)
-		return res.WriteString(fmt.Sprintf("GoATAK server %s", gitRevision))
+		return res.WriteString(fmt.Sprintf("GoATAK server %s", getVersion()))
 	}
 }
 
 func getVersionConfigHandler(app *App, name string) func(req *air.Request, res *air.Response) error {
 	data := make(map[string]any)
 	data["api"] = "3"
-	data["version"] = gitRevision + ":" + gitBranch
+	data["version"] = getVersion()
 	data["hostname"] = "0.0.0.0"
 	return func(req *air.Request, res *air.Response) error {
 		user := getUsernameFromReq(req)

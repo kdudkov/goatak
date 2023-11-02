@@ -1,7 +1,9 @@
 #!/bin/bash
 
 ver=$(git describe --always --tags --dirty)
-docker build . -t kdudkov/goatak_server:$ver -t kdudkov/goatak_server:latest
+branch=$(git rev-parse --symbolic-full-name --abbrev-ref HEAD)
+
+docker build . --build-arg branch=$branch --build-arg commit=$ver -t kdudkov/goatak_server:$ver -t kdudkov/goatak_server:latest
 
 echo "$ver"
 

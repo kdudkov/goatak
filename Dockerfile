@@ -1,8 +1,11 @@
 FROM golang:alpine AS builder
 
+ARG branch
+ARG commit
+
 WORKDIR /build
 COPY . .
-RUN go mod tidy && go build -o dist/ ./cmd/...
+RUN go mod tidy && go build -o dist/ -ldflags "-s -X main.gitRevision=$commit -X main.gitBranch=$branch" ./cmd/...
 
 FROM alpine
 

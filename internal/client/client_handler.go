@@ -112,7 +112,7 @@ func (h *ConnClientHandler) CanSeeScope(scope string) bool {
 	}
 
 	for _, s := range h.user.ReadScope {
-		if s == scope {
+		if s == "*" || s == scope {
 			return true
 		}
 	}
