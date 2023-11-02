@@ -469,12 +469,11 @@ func processCerts(conf *AppConfig) error {
 }
 
 func getVersion() string {
-	res := gitRevision
 	if gitBranch != "master" && gitBranch != "unknowm" {
-		res = gitBranch + ":" + res
+		return fmt.Sprintf("%s:%s", gitBranch, gitRevision)
 	}
 
-	return res
+	return gitRevision
 }
 
 func main() {

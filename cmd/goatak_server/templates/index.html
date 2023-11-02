@@ -50,7 +50,9 @@
                                     <img v-bind:src="getImg(u)"/>
                                 </td>
                                 <td>{{ u.callsign }}</td>
-                                <td>{{ u.status }}</td>
+                                <td><span class="badge"
+                                          v-bind:class="[u.status=='Online' ? 'bg-success' : 'bg-secondary']">{{ u.status }}</span>
+                                </td>
                                 <td>{{ printCoords(u.lat, u.lon) }}</td>
                                 <td>{{ u.tak_version }}</td>
                             </tr>

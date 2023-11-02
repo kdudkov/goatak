@@ -25,9 +25,9 @@ func (app *App) InitMessageProcessors() {
 	app.AddEventProcessor("remove", app.removeItemProcessor, "t-x-d-d")
 	app.AddEventProcessor("chat", app.chatProcessor, "b-t-f-")
 	app.AddEventProcessor("items", app.saveItemProcessor, "a-", "b-")
-	app.AddEventProcessor("logger", app.loggerProcessor, "-")
+	app.AddEventProcessor("logger", app.loggerProcessor, ".-")
 	if app.config.logging {
-		app.AddEventProcessor("file_logger", app.fileLoggerProcessor, "-")
+		app.AddEventProcessor("file_logger", app.fileLoggerProcessor, ".-")
 	}
 }
 

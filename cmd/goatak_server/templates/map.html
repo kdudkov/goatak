@@ -1,14 +1,14 @@
 <div id="app">
     <nav class="navbar navbar-expand-md navbar-dark fixed-top bg-dark">
         <div class="container-fluid">
-            <a class="navbar-brand" href="#">GoATAK server <span v-if="config != null">v.{{config.version}}</span></a>
+            <a class="navbar-brand" href="#">GoATAK server <span v-if="config != null">{{ config.version }}</span></a>
 
             <div class="collapse navbar-collapse" id="navbarCollapse">
                 <ul class="navbar-nav me-auto mb-2 mb-md-0">
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" id="navbarDarkDropdownMenuLink" role="button"
                            data-bs-toggle="dropdown" aria-expanded="false">
-                            Contacts <span class="badge rounded-pill bg-success">{{contactsNum()}}</span>
+                            Contacts <span class="badge rounded-pill bg-success">{{ contactsNum() }}</span>
                         </a>
                         <ul class="dropdown-menu dropdown-menu-dark" aria-labelledby="navbarDarkDropdownMenuLink">
                             <li v-for="u in byCategory('contact')">

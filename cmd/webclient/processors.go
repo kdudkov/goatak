@@ -21,10 +21,10 @@ func (app *App) InitMessageProcessors() {
 	app.AddEventProcessor("remove", app.removeItemProcessor, "t-x-d-d")
 	app.AddEventProcessor("chat", app.chatProcessor, "b-t-f-")
 	app.AddEventProcessor("items", app.saveItemProcessor, "a-", "b-")
-	app.AddEventProcessor("logger", app.loggerProcessor, "-")
+	app.AddEventProcessor("logger", app.loggerProcessor, ".-")
 
 	if app.saveFile != "" {
-		app.AddEventProcessor("file_logger", app.fileLoggerProcessor, "-")
+		app.AddEventProcessor("file_logger", app.fileLoggerProcessor, ".-")
 	}
 
 	// u-rb-a Range & Bearing – Line
@@ -90,6 +90,7 @@ func (app *App) saveItemProcessor(msg *cot.CotMessage) {
 
 	if msg.GetUid() == app.uid {
 		app.Logger.Debugf("my own position")
+		return
 	}
 
 	cl := model.GetClass(msg)

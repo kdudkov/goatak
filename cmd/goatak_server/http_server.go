@@ -108,19 +108,23 @@ func getIndexHandler(app *App, r *staticfiles.Renderer) func(req *air.Request, r
 		}
 		s, err := r.Render(data, "index.html", "header.html")
 		if err != nil {
+			app.Logger.Errorf("%v", err)
+			_ = res.WriteString(err.Error())
 			return err
 		}
 		return res.WriteHTML(s)
 	}
 }
 
-func getMapHandler(_ *App, r *staticfiles.Renderer) func(req *air.Request, res *air.Response) error {
+func getMapHandler(app *App, r *staticfiles.Renderer) func(req *air.Request, res *air.Response) error {
 	return func(req *air.Request, res *air.Response) error {
 		data := map[string]any{
 			"js": []string{"map.js"},
 		}
 		s, err := r.Render(data, "map.html", "header.html")
 		if err != nil {
+			app.Logger.Errorf("%v", err)
+			_ = res.WriteString(err.Error())
 			return err
 		}
 		return res.WriteHTML(s)
