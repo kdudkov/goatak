@@ -89,7 +89,7 @@ func (app *App) chatReceiptProcessor(msg *cot.CotMessage) {
 }
 
 func (app *App) saveItemProcessor(msg *cot.CotMessage) {
-	if cot.MatchPattern(msg.GetType(), "b-t-f-") {
+	if cot.MatchAnyPattern(msg.GetType(), "b-t-f", "b-t-f-") {
 		return
 	}
 
