@@ -43,7 +43,7 @@ func main() {
 	file := flag.String("file", "users.yml", "file")
 	user := flag.String("user", "", "user")
 	passwd := flag.String("password", "", "password")
-	scope := flag.String("scope", "test", "scope")
+	scope := flag.String("scope", "", "scope")
 
 	users := read(*file)
 
@@ -90,7 +90,11 @@ func main() {
 	}
 
 	if !found {
-		users = append(users, &model.User{Login: *user, Password: string(bpass), Scope: *scope})
+		sc := *scope
+		if sc == "" {
+			sc = "test"
+		}
+		users = append(users, &model.User{Login: *user, Password: string(bpass), Scope: sc})
 	}
 
 	if err := write(*file, users); err != nil {
