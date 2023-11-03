@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"strings"
 
 	"golang.org/x/crypto/bcrypt"
 	"gopkg.in/yaml.v3"
@@ -49,8 +50,11 @@ func main() {
 	flag.Parse()
 
 	if *user == "" {
+		fmt.Printf("%-20s %-15s %-8s %-12s %-8s %s\n", "Login", "Callsign", "Team", "Role", "Scope", "Read scope")
+		fmt.Println(strings.Repeat("-", 90))
 		for _, user := range users {
-			fmt.Printf("%s\t%s\t%s\t%s\n", user.Login, user.Callsign, user.Team, user.Role)
+			fmt.Printf("%-20s %-15s %-8s %-12s %-8s %s\n",
+				user.Login, user.Callsign, user.Team, user.Role, user.Scope, strings.Join(user.ReadScope, ","))
 		}
 		return
 	}
