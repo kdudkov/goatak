@@ -6,6 +6,8 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/pem"
+	"fmt"
+	"go.uber.org/zap"
 	"strings"
 
 	"software.sslmate.com/src/go-pkcs12"
@@ -76,4 +78,31 @@ func MakeCertPool(certs ...*x509.Certificate) *x509.CertPool {
 	}
 
 	return cp
+}
+
+func LogCert(logger *zap.SugaredLogger, name string, cert *x509.Certificate) {
+	if cert == nil {
+		logger.Errorf("no %s!!!", name)
+		return
+	}
+	logger.Infof("%s sn: %x", name, cert.SerialNumber)
+	logger.Infof("%s subject: %s", name, cert.Subject.String())
+	logger.Infof("%s issuer: %s", name, cert.Issuer.String())
+	logger.Infof("%s valid till %s", name, cert.NotAfter)
+	if len(cert.DNSNames) > 0 {
+		logger.Infof("%s dns_names: %s", name, strings.Join(cert.DNSNames, ","))
+	}
+	if len(cert.IPAddresses) > 0 {
+		ip1 := make([]string, len(cert.IPAddresses))
+		for i, ip := range cert.IPAddresses {
+			ip1[i] = ip.String()
+		}
+		logger.Infof("%s ip_addresses: %s", name, strings.Join(ip1, ","))
+	}
+}
+
+func LogCerts(logger *zap.SugaredLogger, certs ...*x509.Certificate) {
+	for i, c := range certs {
+		LogCert(logger, fmt.Sprintf("cert #%d", i), c)
+	}
 }

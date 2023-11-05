@@ -452,6 +452,7 @@ func main() {
 				app.Logger.Errorf("error while loading cert: %s", err.Error())
 				return
 			}
+			tlsutil.LogCert(app.Logger, "loaded cert", cert.Leaf)
 			app.tlsCert = cert
 			app.cas = tlsutil.MakeCertPool(cas...)
 		}

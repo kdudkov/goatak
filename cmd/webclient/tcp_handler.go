@@ -3,9 +3,9 @@ package main
 import (
 	"crypto/tls"
 	"fmt"
+	"github.com/kdudkov/goatak/pkg/tlsutil"
 	"github.com/spf13/viper"
 	"net"
-	"strings"
 )
 
 func (app *App) connect() (net.Conn, error) {
@@ -25,11 +25,7 @@ func (app *App) connect() (net.Conn, error) {
 
 		app.Logger.Infof("Handshake complete: %t", cs.HandshakeComplete)
 		app.Logger.Infof("version: %d", cs.Version)
-		for i, cert := range cs.PeerCertificates {
-			app.Logger.Infof("cert #%d subject: %s", i, cert.Subject.String())
-			app.Logger.Infof("cert #%d issuer: %s", i, cert.Issuer.String())
-			app.Logger.Infof("cert #%d dns_names: %s", i, strings.Join(cert.DNSNames, ","))
-		}
+		tlsutil.LogCerts(app.Logger, cs.PeerCertificates...)
 		return conn, nil
 	} else {
 		app.Logger.Infof("connecting to %s...", addr)
@@ -41,7 +37,7 @@ func (app *App) getTlsConfig() *tls.Config {
 	conf := &tls.Config{
 		Certificates: []tls.Certificate{*app.tlsCert},
 		RootCAs:      app.cas,
-		//InsecureSkipVerify: true,
+		ClientCAs:    app.cas,
 	}
 
 	if !viper.GetBool("ssl.strict") {

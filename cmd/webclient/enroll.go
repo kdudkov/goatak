@@ -98,7 +98,6 @@ func (e *Enroller) getOrEnrollCert(uid, version string) (*tls.Certificate, []*x5
 	fname := fmt.Sprintf("%s_%s.p12", e.host, e.user)
 	if cert, cas, err := loadP12(fname, viper.GetString("ssl.password")); err == nil {
 		e.logger.Infof("loading cert from file %s", fname)
-		e.logger.Infof("cert is valid till %s", cert.Leaf.NotAfter)
 		return cert, cas, nil
 	}
 
@@ -183,6 +182,8 @@ func (e *Enroller) getOrEnrollCert(uid, version string) (*tls.Certificate, []*x5
 		return nil, nil, fmt.Errorf("no signed cert in answer")
 	}
 
+	tlsutil.LogCert(e.logger, "signed cert", cert)
+
 	if e.save {
 		if err := e.saveP12(key, cert, ca); err != nil {
 			e.logger.Errorf("%s", err)
@@ -257,7 +258,7 @@ func (e *Enroller) saveP12(key interface{}, cert *x509.Certificate, ca []*x509.C
 	}
 	defer f.Close()
 
-	data, err := pkcs12.Encode(rand.Reader, key, cert, ca, viper.GetString("ssl.password"))
+	data, err := pkcs12.Modern.Encode(key, cert, ca, viper.GetString("ssl.password"))
 	if err != nil {
 		return err
 	}

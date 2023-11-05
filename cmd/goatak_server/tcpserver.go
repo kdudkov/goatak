@@ -2,8 +2,8 @@ package main
 
 import (
 	"crypto/tls"
-	"crypto/x509"
 	"fmt"
+	"github.com/kdudkov/goatak/pkg/tlsutil"
 	"net"
 
 	"go.uber.org/zap"
@@ -88,7 +88,7 @@ func (app *App) listenTls(addr string) error {
 
 func (app *App) verifyConnection(st tls.ConnectionState) error {
 	user, sn := getCertUser(&st)
-	app.logCert(st.PeerCertificates)
+	tlsutil.LogCerts(app.Logger, st.PeerCertificates...)
 
 	if !app.users.UserIsValid(user, sn) {
 		app.Logger.Warnf("bad user %s", user)
@@ -106,14 +106,6 @@ func getCertUser(st *tls.ConnectionState) (string, string) {
 	}
 
 	return "", ""
-}
-
-func (app *App) logCert(cert []*x509.Certificate) {
-	for i, cert := range cert {
-		app.Logger.Infof("#%d issuer: %s", i, cert.Issuer.String())
-		app.Logger.Infof("#%d subject: %s", i, cert.Subject.String())
-		app.Logger.Infof("#%d sn: %x", i, cert.SerialNumber)
-	}
 }
 
 func (app *App) onTlsClientConnect(username, sn string) {
