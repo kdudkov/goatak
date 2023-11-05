@@ -41,20 +41,16 @@ func (app *App) ListenUDP(addr string) error {
 					app.Logger.Errorf("protobuf decode error: %s", err.Error())
 					continue
 				}
-				xd, err := cot.DetailsFromString(msg.GetCotEvent().GetDetail().GetXmlDetail())
-				if err != nil {
-					app.Logger.Errorf("protobuf detail extract error: %s", err.Error())
-					continue
-				}
 				scope := msg.GetCotEvent().GetAccess()
 				if scope == "" {
 					scope = "broadcast"
 				}
-				app.NewCotMessage(&cot.CotMessage{
-					TakMessage: msg,
-					Detail:     xd,
-					Scope:      scope,
-				})
+				c, err := cot.CotFromProto(msg, "", scope)
+				if err != nil {
+					app.Logger.Errorf("protobuf detail extract error: %s", err.Error())
+					continue
+				}
+				app.NewCotMessage(c)
 			} else {
 				ev := &cot.Event{}
 				err = xml.Unmarshal(buf[3:n], ev)
@@ -63,30 +59,20 @@ func (app *App) ListenUDP(addr string) error {
 					continue
 				}
 
-				msg, xd := cot.EventToProto(ev)
-				scope := msg.GetCotEvent().GetAccess()
+				scope := ev.Access
 				if scope == "" {
 					scope = "broadcast"
 				}
-				app.NewCotMessage(&cot.CotMessage{
-					TakMessage: msg,
-					Detail:     xd,
-					Scope:      scope,
-				})
+				c := cot.CotFromEvent(ev, "", scope)
+				app.NewCotMessage(c)
 			}
 		} else {
-			evt := &cot.Event{}
-			if err := xml.Unmarshal(buf[:n], evt); err != nil {
+			ev := &cot.Event{}
+			if err := xml.Unmarshal(buf[:n], ev); err != nil {
 				app.Logger.Errorf("decode error: %v", err)
 				continue
 			}
-			msg, xd := cot.EventToProto(evt)
-
-			app.NewCotMessage(&cot.CotMessage{
-				TakMessage: msg,
-				Detail:     xd,
-				Scope:      "broadcast",
-			})
+			app.NewCotMessage(cot.CotFromEvent(ev, "", "broadcast"))
 		}
 	}
 

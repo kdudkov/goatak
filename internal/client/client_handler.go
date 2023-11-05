@@ -103,23 +103,6 @@ func (h *ConnClientHandler) GetUser() *model.User {
 	return h.user
 }
 
-func (h *ConnClientHandler) CanSeeScope(scope string) bool {
-	if h.user == nil {
-		return true
-	}
-	if h.user.Scope == "" || h.user.Scope == scope {
-		return true
-	}
-
-	for _, s := range h.user.ReadScope {
-		if s == "*" || s == scope {
-			return true
-		}
-	}
-
-	return false
-}
-
 func (h *ConnClientHandler) GetUids() map[string]string {
 	res := make(map[string]string)
 	h.uids.Range(func(key, value any) bool {
@@ -435,7 +418,7 @@ func (h *ConnClientHandler) sendEvent(evt *cot.Event) error {
 }
 
 func (h *ConnClientHandler) SendMsg(msg *cot.CotMessage) error {
-	if h.CanSeeScope(msg.Scope) {
+	if h.GetUser().CanSeeScope(msg.Scope) {
 		return h.SendCot(msg.TakMessage)
 	}
 

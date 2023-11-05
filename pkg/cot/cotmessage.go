@@ -9,10 +9,27 @@ import (
 )
 
 type CotMessage struct {
-	From       string
-	Scope      string
-	TakMessage *cotproto.TakMessage
-	Detail     *Node
+	From       string               `json:"from,omitempty"`
+	Scope      string               `json:"scope"`
+	TakMessage *cotproto.TakMessage `json:"tak_message"`
+	Detail     *Node                `json:"-"`
+}
+
+func CotFromEvent(evt *Event, from, scope string) *CotMessage {
+	if evt == nil {
+		return nil
+	}
+	msg, xd := EventToProto(evt)
+
+	return &CotMessage{TakMessage: msg, Detail: xd, From: from, Scope: scope}
+}
+
+func CotFromProto(msg *cotproto.TakMessage, from, scope string) (*CotMessage, error) {
+	if msg == nil {
+		return nil, nil
+	}
+	d, err := DetailsFromString(msg.GetCotEvent().GetDetail().GetXmlDetail())
+	return &CotMessage{From: from, Scope: scope, TakMessage: msg, Detail: d}, err
 }
 
 func (m *CotMessage) GetSendTime() time.Time {

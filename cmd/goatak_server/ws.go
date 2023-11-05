@@ -19,6 +19,7 @@ import (
 
 type WsClientHandler struct {
 	name      string
+	user      *model.User
 	ws        *air.WebSocket
 	ch        chan []byte
 	uids      sync.Map
@@ -30,12 +31,9 @@ type WsClientHandler struct {
 func (w *WsClientHandler) GetName() string {
 	return w.name
 }
-func (w *WsClientHandler) GetUser() *model.User {
-	return nil
-}
 
-func (w *WsClientHandler) CanSeeScope(scope string) bool {
-	return true
+func (w *WsClientHandler) GetUser() *model.User {
+	return w.user
 }
 
 func (w *WsClientHandler) GetVersion() int32 {
@@ -60,9 +58,10 @@ func (w *WsClientHandler) GetLastSeen() *time.Time {
 	return nil
 }
 
-func NewWsClient(name string, ws *air.WebSocket, log *zap.SugaredLogger, mc func(msg *cot.CotMessage)) *WsClientHandler {
+func NewWsClient(name string, user *model.User, ws *air.WebSocket, log *zap.SugaredLogger, mc func(msg *cot.CotMessage)) *WsClientHandler {
 	return &WsClientHandler{
 		name:      name,
+		user:      user,
 		ws:        ws,
 		uids:      sync.Map{},
 		ch:        make(chan []byte, 10),
@@ -128,16 +127,10 @@ func (w *WsClientHandler) Listen() {
 			return err
 		}
 
-		d, err := cot.DetailsFromString(msg.GetCotEvent().GetDetail().GetXmlDetail())
+		cotmsg, err := cot.CotFromProto(msg, w.name, w.GetUser().GetScope())
 		if err != nil {
 			w.logger.Errorf("details get error: %s", err.Error())
 			return err
-		}
-
-		cotmsg := &cot.CotMessage{
-			From:       w.name,
-			TakMessage: msg,
-			Detail:     d,
 		}
 
 		if cotmsg.IsContact() {
@@ -174,7 +167,7 @@ func getWsHandler(app *App) func(req *air.Request, res *air.Response) error {
 
 		app.Logger.Infof("WS connection from %s", req.ClientAddress())
 		name := "ws:" + req.ClientAddress()
-		w := NewWsClient(name, ws, app.Logger, app.NewCotMessage)
+		w := NewWsClient(name, nil, ws, app.Logger, app.NewCotMessage)
 
 		app.AddClientHandler(w)
 		w.Listen()

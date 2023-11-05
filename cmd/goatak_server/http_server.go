@@ -2,7 +2,9 @@ package main
 
 import (
 	"embed"
+	"encoding/json"
 	"errors"
+	"github.com/kdudkov/goatak/pkg/cot"
 	"go.uber.org/zap"
 	"net/http"
 	"path/filepath"
@@ -75,6 +77,7 @@ func getAdminApi(app *App, addr string, renderer *staticfiles.Renderer, webtakRo
 	adminApi.DELETE("/unit/:uid", deleteItemHandler(app))
 
 	adminApi.GET("/takproto/1", getWsHandler(app))
+	adminApi.POST("/cot", getCotPostHandler(app))
 
 	if webtakRoot != "" {
 		adminApi.FILE("/webtak/", filepath.Join(webtakRoot, "index.html"))
@@ -209,10 +212,10 @@ func getConnHandler(app *App) func(req *air.Request, res *air.Response) error {
 		app.ForAllClients(func(ch client.ClientHandler) bool {
 			c := &Connection{
 				Uids:     ch.GetUids(),
-				User:     ch.GetUser().Login,
+				User:     ch.GetUser().GetLogin(),
 				Ver:      ch.GetVersion(),
 				Addr:     ch.GetName(),
-				Scope:    ch.GetUser().Scope,
+				Scope:    ch.GetUser().GetScope(),
 				LastSeen: ch.GetLastSeen(),
 			}
 			conn = append(conn, c)
@@ -224,5 +227,21 @@ func getConnHandler(app *App) func(req *air.Request, res *air.Response) error {
 		})
 
 		return res.WriteJSON(conn)
+	}
+}
+
+func getCotPostHandler(app *App) func(req *air.Request, res *air.Response) error {
+	return func(req *air.Request, res *air.Response) error {
+		c := new(cot.CotMessage)
+
+		dec := json.NewDecoder(req.Body)
+
+		if err := dec.Decode(c); err != nil {
+			app.Logger.Errorf("cot decode error %s", err)
+			return err
+		}
+
+		app.NewCotMessage(c)
+		return nil
 	}
 }
