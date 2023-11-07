@@ -16,10 +16,11 @@ builds:
     ldflags:
       - '-s -w -X main.gitRevision={{.Version}} -X main.gitCommit={{.Commit}}'
     goos: [ windows, linux, darwin ]
-    goarch: [ amd64, arm64 ]
+    goarch: [ amd64, arm64, arm ]
+    goarm: [ 6, 7 ]
     ignore:
       - goos: darwin
-        goarch: '386'
+        goarch: arm
   - id: ctl
     main: ./cmd/userctl
     binary: userctl
@@ -31,10 +32,11 @@ builds:
     ldflags:
       - '-s -w -X main.gitRevision={{.Version}} -X main.gitCommit={{.Commit}}'
     goos: [ windows, linux, darwin ]
-    goarch: [ amd64, arm64 ]
+    goarch: [ amd64, arm64, arm ]
+    goarm: [ 6, 7 ]
     ignore:
       - goos: darwin
-        goarch: '386'
+        goarch: arm
   - id: takreplay
     main: ./cmd/takreplay
     binary: takreplay
@@ -46,10 +48,11 @@ builds:
     ldflags:
       - '-s -w -X main.gitRevision={{.Version}} -X main.gitCommit={{.Commit}}'
     goos: [ windows, linux, darwin ]
-    goarch: [ amd64, arm64 ]
+    goarch: [ amd64, arm64, arm ]
+    goarm: [ 6, 7 ]
     ignore:
       - goos: darwin
-        goarch: '386'
+        goarch: arm
   - id: client
     main: ./cmd/webclient
     binary: goatak_client
@@ -62,9 +65,6 @@ builds:
       - '-s -w -X main.gitRevision={{.Version}} -X main.gitCommit={{.Commit}}'
     goos: [ windows, linux, darwin ]
     goarch: [ amd64, arm64 ]
-    ignore:
-      - goos: darwin
-        goarch: '386'
 archives:
   - id: server
     builds: [ server, ctl, takreplay ]
