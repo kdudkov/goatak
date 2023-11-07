@@ -21,6 +21,8 @@ builds:
     ignore:
       - goos: darwin
         goarch: arm
+      - goos: windows
+        goarch: arm
   - id: ctl
     main: ./cmd/userctl
     binary: userctl
@@ -36,6 +38,8 @@ builds:
     goarm: [ 6, 7 ]
     ignore:
       - goos: darwin
+        goarch: arm
+      - goos: windows
         goarch: arm
   - id: takreplay
     main: ./cmd/takreplay
@@ -53,6 +57,8 @@ builds:
     ignore:
       - goos: darwin
         goarch: arm
+      - goos: windows
+        goarch: arm
   - id: client
     main: ./cmd/webclient
     binary: goatak_client
@@ -66,11 +72,16 @@ builds:
     goos: [ windows, linux, darwin ]
     goarch: [ amd64, arm64, arm ]
     goarm: [ 6, 7 ]
+    ignore:
+      - goos: darwin
+        goarch: arm
+      - goos: windows
+        goarch: arm
 archives:
   - id: server
     builds: [ server, ctl, takreplay ]
     format: zip
-    name_template: 'server_{{ .Version }}_{{ .Os }}_{{ .Arch }}'
+    name_template: 'server_{{ .Version }}_{{ .Os }}_{{ .Arch }}{{ .Arm }}'
     files:
       - goatak_server.yml
       - users.yml
@@ -79,7 +90,7 @@ archives:
   - id: client
     builds: [ client, takreplay ]
     format: zip
-    name_template: 'client_{{ .Version }}_{{ .Os }}_{{ .Arch }}'
+    name_template: 'client_{{ .Version }}_{{ .Os }}_{{ .Arch }}{{ .Arm }}'
     files:
       - goatak_client*.yml
 release:
