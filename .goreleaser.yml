@@ -64,7 +64,7 @@ builds:
     ldflags:
       - '-s -w -X main.gitRevision={{.Version}} -X main.gitCommit={{.Commit}}'
     goos: [ windows, linux, darwin ]
-    goarch: [ amd64, arm64 ]
+    goarch: [ amd64, arm64, arm ]
 archives:
   - id: server
     builds: [ server, ctl, takreplay ]
