@@ -65,6 +65,7 @@ builds:
       - '-s -w -X main.gitRevision={{.Version}} -X main.gitCommit={{.Commit}}'
     goos: [ windows, linux, darwin ]
     goarch: [ amd64, arm64, arm ]
+    goarm: [ 6, 7 ]
 archives:
   - id: server
     builds: [ server, ctl, takreplay ]
