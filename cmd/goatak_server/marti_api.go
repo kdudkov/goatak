@@ -13,7 +13,6 @@ import (
 	"github.com/aofei/air"
 	"github.com/google/uuid"
 	"github.com/kdudkov/goatak/pkg/model"
-	"go.uber.org/zap"
 )
 
 const nodeId = "1"
@@ -22,9 +21,9 @@ func getMartiApi(app *App, addr string) *air.Air {
 	api := air.New()
 	api.Address = addr
 
-	addMartiRoutes(app, api, "marti")
+	addMartiRoutes(app, api)
 
-	api.NotFoundHandler = getNotFoundHandler(app, "marti")
+	api.NotFoundHandler = getNotFoundHandler()
 
 	if app.config.useSsl {
 		tlsCfg := &tls.Config{
@@ -36,68 +35,60 @@ func getMartiApi(app *App, addr string) *air.Air {
 		}
 
 		api.TLSConfig = tlsCfg
-		api.Gases = append(api.Gases, SslCheckHandler(app))
+		api.Gases = append(api.Gases, SslCheckHandlerGas(app))
 	}
 
+	api.Gases = append(api.Gases, LoggerGas(app.Logger.Named("marti_api")))
 	return api
 }
 
-func addMartiRoutes(app *App, api *air.Air, name string) {
-	api.GET("/Marti/api/version", getVersionHandler(app, name))
-	api.GET("/Marti/api/version/config", getVersionConfigHandler(app, name))
-	api.GET("/Marti/api/clientEndPoints", getEndpointsHandler(app, name))
-	api.GET("/Marti/api/contacts/all", getContactsHandler(app, name))
-	api.GET("/Marti/api/sync/metadata/:hash/tool", getMetadataGetHandler(app, name))
-	api.PUT("/Marti/api/sync/metadata/:hash/tool", getMetadataPutHandler(app, name))
+func addMartiRoutes(app *App, api *air.Air) {
+	api.GET("/Marti/api/version", getVersionHandler(app))
+	api.GET("/Marti/api/version/config", getVersionConfigHandler(app))
+	api.GET("/Marti/api/clientEndPoints", getEndpointsHandler(app))
+	api.GET("/Marti/api/contacts/all", getContactsHandler(app))
+	api.GET("/Marti/api/sync/metadata/:hash/tool", getMetadataGetHandler(app))
+	api.PUT("/Marti/api/sync/metadata/:hash/tool", getMetadataPutHandler(app))
 
-	api.GET("/Marti/api/util/user/roles", getUserRolesHandler(app, name))
+	api.GET("/Marti/api/util/user/roles", getUserRolesHandler(app))
 
-	api.GET("/Marti/api/groups/all", getAllGroupsHandler(app, name))
+	api.GET("/Marti/api/groups/all", getAllGroupsHandler(app))
 
-	api.GET("/Marti/api/device/profile/connection", getProfileConnectionHandler(app, name))
+	api.GET("/Marti/api/device/profile/connection", getProfileConnectionHandler(app))
 
-	api.GET("/Marti/api/missions", getMissionsHandler(app, name))
-	api.GET("/Marti/api/missions/", getMissionsHandler(app, name))
-	api.GET("/Marti/api/missions/:missionname", getMissionHandler(app, name))
+	api.GET("/Marti/api/missions", getMissionsHandler(app))
+	api.GET("/Marti/api/missions/", getMissionsHandler(app))
+	api.GET("/Marti/api/missions/:missionname", getMissionHandler(app))
 
-	api.GET("/Marti/sync/content", getMetadataGetHandler(app, name))
-	api.GET("/Marti/sync/search", getSearchHandler(app, name))
-	api.GET("/Marti/sync/missionquery", getMissionQueryHandler(app, name))
-	api.POST("/Marti/sync/missionupload", getMissionUploadHandler(app, name))
+	api.GET("/Marti/sync/content", getMetadataGetHandler(app))
+	api.GET("/Marti/sync/search", getSearchHandler(app))
+	api.GET("/Marti/sync/missionquery", getMissionQueryHandler(app))
+	api.POST("/Marti/sync/missionupload", getMissionUploadHandler(app))
 
-	api.GET("/Marti/vcm", getVideoListHandler(app, name))
-	api.POST("/Marti/vcm", getVideoPostHandler(app, name))
+	api.GET("/Marti/vcm", getVideoListHandler(app))
+	api.POST("/Marti/vcm", getVideoPostHandler(app))
 
-	api.GET("/Marti/api/video", getVideo2ListHandler(app, name))
+	api.GET("/Marti/api/video", getVideo2ListHandler(app))
 }
 
-func getVersionHandler(app *App, name string) func(req *air.Request, res *air.Response) error {
+func getVersionHandler(app *App) func(req *air.Request, res *air.Response) error {
 	return func(req *air.Request, res *air.Response) error {
-		user := getUsernameFromReq(req)
-		logger := app.Logger.With(zap.String("api", name), zap.String("user", user))
-		logger.Infof("%s %s", req.Method, req.Path)
 		return res.WriteString(fmt.Sprintf("GoATAK server %s", getVersion()))
 	}
 }
 
-func getVersionConfigHandler(app *App, name string) func(req *air.Request, res *air.Response) error {
+func getVersionConfigHandler(app *App) func(req *air.Request, res *air.Response) error {
 	data := make(map[string]any)
 	data["api"] = "3"
 	data["version"] = getVersion()
 	data["hostname"] = "0.0.0.0"
 	return func(req *air.Request, res *air.Response) error {
-		user := getUsernameFromReq(req)
-		logger := app.Logger.With(zap.String("api", name), zap.String("user", user))
-		logger.Infof("%s %s", req.Method, req.Path)
 		return res.WriteJSON(makeAnswer("ServerConfig", data))
 	}
 }
 
-func getEndpointsHandler(app *App, name string) func(req *air.Request, res *air.Response) error {
+func getEndpointsHandler(app *App) func(req *air.Request, res *air.Response) error {
 	return func(req *air.Request, res *air.Response) error {
-		user := getUsernameFromReq(req)
-		logger := app.Logger.With(zap.String("api", name), zap.String("user", user))
-		logger.Infof("%s %s", req.Method, req.Path)
 		//secAgo := getIntParam(req, "secAgo", 0)
 
 		data := make([]map[string]any, 0)
@@ -122,12 +113,8 @@ func getEndpointsHandler(app *App, name string) func(req *air.Request, res *air.
 	}
 }
 
-func getContactsHandler(app *App, name string) func(req *air.Request, res *air.Response) error {
+func getContactsHandler(app *App) func(req *air.Request, res *air.Response) error {
 	return func(req *air.Request, res *air.Response) error {
-		user := getUsernameFromReq(req)
-		logger := app.Logger.With(zap.String("api", name), zap.String("user", user))
-		logger.Infof("%s %s", req.Method, req.Path)
-
 		result := make([]*model.Contact, 0)
 
 		app.items.ForEach(func(item *model.Item) bool {
@@ -146,11 +133,8 @@ func getContactsHandler(app *App, name string) func(req *air.Request, res *air.R
 	}
 }
 
-func getMissionQueryHandler(app *App, name string) func(req *air.Request, res *air.Response) error {
+func getMissionQueryHandler(app *App) func(req *air.Request, res *air.Response) error {
 	return func(req *air.Request, res *air.Response) error {
-		user := getUsernameFromReq(req)
-		logger := app.Logger.With(zap.String("api", name), zap.String("user", user))
-		logger.Infof("%s %s", req.Method, req.Path)
 		hash := getStringParam(req, "hash")
 		if hash == "" {
 			res.Status = http.StatusNotAcceptable
@@ -165,11 +149,9 @@ func getMissionQueryHandler(app *App, name string) func(req *air.Request, res *a
 	}
 }
 
-func getMissionUploadHandler(app *App, name string) func(req *air.Request, res *air.Response) error {
+func getMissionUploadHandler(app *App) func(req *air.Request, res *air.Response) error {
 	return func(req *air.Request, res *air.Response) error {
 		user := getUsernameFromReq(req)
-		logger := app.Logger.With(zap.String("api", name), zap.String("user", user))
-		logger.Infof("%s %s", req.Method, req.Path)
 		hash := getStringParam(req, "hash")
 		fname := getStringParam(req, "filename")
 
@@ -178,15 +160,15 @@ func getMissionUploadHandler(app *App, name string) func(req *air.Request, res *
 			params = append(params, r.Name+"="+r.Value().String())
 		}
 
-		logger.Infof("params: %s", strings.Join(params, ","))
+		app.Logger.Infof("params: %s", strings.Join(params, ","))
 
 		if hash == "" {
-			logger.Errorf("no hash: %s", req.RawQuery())
+			app.Logger.Errorf("no hash: %s", req.RawQuery())
 			res.Status = http.StatusNotAcceptable
 			return res.WriteString("no hash")
 		}
 		if fname == "" {
-			logger.Errorf("no filename: %s", req.RawQuery())
+			app.Logger.Errorf("no filename: %s", req.RawQuery())
 			res.Status = http.StatusNotAcceptable
 			return res.WriteString("no filename")
 		}
@@ -206,7 +188,7 @@ func getMissionUploadHandler(app *App, name string) func(req *air.Request, res *
 		if f, fh, err := req.HTTPRequest().FormFile("assetfile"); err == nil {
 			n, err := app.packageManager.SaveFile(hash, fh.Filename, f)
 			if err != nil {
-				logger.Errorf("%v", err)
+				app.Logger.Errorf("%v", err)
 				return err
 			}
 
@@ -215,20 +197,17 @@ func getMissionUploadHandler(app *App, name string) func(req *air.Request, res *
 
 			app.packageManager.Store(hash, info)
 
-			logger.Infof("save packege %s %s", fname, hash)
+			app.Logger.Infof("save packege %s %s", fname, hash)
 			return res.WriteString(fmt.Sprintf("/Marti/sync/content?hash=%s", hash))
 		} else {
-			logger.Errorf("%v", err)
+			app.Logger.Errorf("%v", err)
 			return err
 		}
 	}
 }
 
-func getMetadataGetHandler(app *App, name string) func(req *air.Request, res *air.Response) error {
+func getMetadataGetHandler(app *App) func(req *air.Request, res *air.Response) error {
 	return func(req *air.Request, res *air.Response) error {
-		user := getUsernameFromReq(req)
-		logger := app.Logger.With(zap.String("api", name), zap.String("user", user))
-		logger.Infof("%s %s", req.Method, req.Path)
 		hash := getStringParam(req, "hash")
 
 		if hash == "" {
@@ -240,18 +219,15 @@ func getMetadataGetHandler(app *App, name string) func(req *air.Request, res *ai
 			res.Header.Set("Content-type", pi.MIMEType)
 			return res.WriteFile(app.packageManager.GetFilePath(hash))
 		} else {
-			logger.Infof("not found - %s", hash)
+			app.Logger.Infof("not found - %s", hash)
 			res.Status = http.StatusNotFound
 			return res.WriteString("not found")
 		}
 	}
 }
 
-func getMetadataPutHandler(app *App, name string) func(req *air.Request, res *air.Response) error {
+func getMetadataPutHandler(app *App) func(req *air.Request, res *air.Response) error {
 	return func(req *air.Request, res *air.Response) error {
-		user := getUsernameFromReq(req)
-		logger := app.Logger.With(zap.String("api", name), zap.String("user", user))
-		logger.Infof("%s %s", req.Method, req.Path)
 		hash := getStringParam(req, "hash")
 
 		if hash == "" {
@@ -265,17 +241,13 @@ func getMetadataPutHandler(app *App, name string) func(req *air.Request, res *ai
 			pi.Tool = string(s)
 			app.packageManager.Store(hash, pi)
 		}
-		logger.Debugf("body: %s", s)
 
 		return nil
 	}
 }
 
-func getSearchHandler(app *App, name string) func(req *air.Request, res *air.Response) error {
+func getSearchHandler(app *App) func(req *air.Request, res *air.Response) error {
 	return func(req *air.Request, res *air.Response) error {
-		user := getUsernameFromReq(req)
-		logger := app.Logger.With(zap.String("api", name), zap.String("user", user))
-		logger.Infof("%s %s", req.Method, req.Path)
 		kw := getStringParam(req, "keywords")
 		tool := getStringParam(req, "tool")
 
@@ -288,16 +260,13 @@ func getSearchHandler(app *App, name string) func(req *air.Request, res *air.Res
 	}
 }
 
-func getUserRolesHandler(app *App, name string) func(req *air.Request, res *air.Response) error {
+func getUserRolesHandler(app *App) func(req *air.Request, res *air.Response) error {
 	return func(req *air.Request, res *air.Response) error {
-		user := getUsernameFromReq(req)
-		logger := app.Logger.With(zap.String("api", name), zap.String("user", user))
-		logger.Infof("%s %s", req.Method, req.Path)
 		return res.WriteJSON([]string{"user", "webuser"})
 	}
 }
 
-func getAllGroupsHandler(app *App, name string) func(req *air.Request, res *air.Response) error {
+func getAllGroupsHandler(app *App) func(req *air.Request, res *air.Response) error {
 	g := make(map[string]any)
 	g["name"] = "__ANON__"
 	g["direction"] = "OUT"
@@ -309,38 +278,26 @@ func getAllGroupsHandler(app *App, name string) func(req *air.Request, res *air.
 	result := makeAnswer("com.bbn.marti.remote.groups.Group", []map[string]any{g})
 
 	return func(req *air.Request, res *air.Response) error {
-		user := getUsernameFromReq(req)
-		logger := app.Logger.With(zap.String("api", name), zap.String("user", user))
-		logger.Infof("%s %s", req.Method, req.Path)
 		return res.WriteJSON(result)
 	}
 }
 
-func getMissionsHandler(app *App, name string) func(req *air.Request, res *air.Response) error {
+func getMissionsHandler(app *App) func(req *air.Request, res *air.Response) error {
 	return func(req *air.Request, res *air.Response) error {
-		user := getUsernameFromReq(req)
-		logger := app.Logger.With(zap.String("api", name), zap.String("user", user))
-		logger.Infof("%s %s", req.Method, req.Path)
 		return res.WriteJSON(makeAnswer("Mission", []string{}))
 	}
 }
 
-func getMissionHandler(app *App, name string) func(req *air.Request, res *air.Response) error {
+func getMissionHandler(app *App) func(req *air.Request, res *air.Response) error {
 	return func(req *air.Request, res *air.Response) error {
-		user := getUsernameFromReq(req)
-		logger := app.Logger.With(zap.String("api", name), zap.String("user", user))
-		logger.Infof("%s %s", req.Method, req.Path)
-
 		m := GetDefault(getStringParam(req, "missionname"))
 		return res.WriteJSON(makeAnswer("Mission", []any{m}))
 	}
 }
 
-func getProfileConnectionHandler(app *App, name string) func(req *air.Request, res *air.Response) error {
+func getProfileConnectionHandler(app *App) func(req *air.Request, res *air.Response) error {
 	return func(req *air.Request, res *air.Response) error {
 		user := getUsernameFromReq(req)
-		logger := app.Logger.With(zap.String("api", name), zap.String("user", user))
-		logger.Infof("%s %s", req.Method, req.Path)
 		_ = getIntParam(req, "syncSecago", 0)
 		uid := getStringParamIgnoreCaps(req, "clientUid")
 
@@ -367,12 +324,8 @@ func getProfileConnectionHandler(app *App, name string) func(req *air.Request, r
 	}
 }
 
-func getVideoListHandler(app *App, name string) func(req *air.Request, res *air.Response) error {
+func getVideoListHandler(app *App) func(req *air.Request, res *air.Response) error {
 	return func(req *air.Request, res *air.Response) error {
-		user := getUsernameFromReq(req)
-		logger := app.Logger.With(zap.String("api", name), zap.String("user", user))
-		logger.Infof("%s %s", req.Method, req.Path)
-
 		r := new(model.VideoConnections)
 		r.XMLName = xml.Name{Local: "videoConnections"}
 		app.feeds.ForEach(func(f *model.Feed2) bool {
@@ -383,12 +336,8 @@ func getVideoListHandler(app *App, name string) func(req *air.Request, res *air.
 	}
 }
 
-func getVideo2ListHandler(app *App, name string) func(req *air.Request, res *air.Response) error {
+func getVideo2ListHandler(app *App) func(req *air.Request, res *air.Response) error {
 	return func(req *air.Request, res *air.Response) error {
-		user := getUsernameFromReq(req)
-		logger := app.Logger.With(zap.String("api", name), zap.String("user", user))
-		logger.Infof("%s %s", req.Method, req.Path)
-
 		conn := make([]*model.VideoConnections2, 0)
 		app.feeds.ForEach(func(f *model.Feed2) bool {
 			conn = append(conn, &model.VideoConnections2{Feeds: []*model.Feed2{f}})
@@ -401,11 +350,9 @@ func getVideo2ListHandler(app *App, name string) func(req *air.Request, res *air
 	}
 }
 
-func getVideoPostHandler(app *App, name string) func(req *air.Request, res *air.Response) error {
+func getVideoPostHandler(app *App) func(req *air.Request, res *air.Response) error {
 	return func(req *air.Request, res *air.Response) error {
 		user := getUsernameFromReq(req)
-		logger := app.Logger.With(zap.String("api", name), zap.String("user", user))
-		logger.Infof("%s %s", req.Method, req.Path)
 
 		r := new(model.VideoConnections)
 
