@@ -15,15 +15,6 @@ type CotMessage struct {
 	Detail     *Node                `json:"-"`
 }
 
-func CotFromEvent(evt *Event, from, scope string) *CotMessage {
-	if evt == nil {
-		return nil
-	}
-	msg, xd := EventToProto(evt)
-
-	return &CotMessage{TakMessage: msg, Detail: xd, From: from, Scope: scope}
-}
-
 func CotFromProto(msg *cotproto.TakMessage, from, scope string) (*CotMessage, error) {
 	if msg == nil {
 		return nil, nil

@@ -44,16 +44,16 @@ func ProtoToEvent(msg *cotproto.TakMessage) *Event {
 			xml.NewDecoder(&b).Decode(&ev.Detail)
 		}
 
-		if d.GetContact() != nil {
+		if d.GetContact().GetCallsign() != "" {
 			attrs := map[string]string{
-				"endpoint": d.GetContact().GetEndpoint(),
 				"callsign": d.GetContact().GetCallsign(),
+				"endpoint": d.GetContact().GetEndpoint(),
 			}
-			ev.Detail.AddChild("contact", attrs, "")
+			ev.Detail.AddOrChangeChild("contact", attrs)
 		}
 
 		if d.GetStatus() != nil {
-			ev.Detail.AddChild("status", map[string]string{"battery": strconv.Itoa(int(d.GetStatus().GetBattery()))}, "")
+			ev.Detail.AddOrChangeChild("status", map[string]string{"battery": strconv.Itoa(int(d.GetStatus().GetBattery()))})
 		}
 
 		if d.GetTrack() != nil {
@@ -61,7 +61,7 @@ func ProtoToEvent(msg *cotproto.TakMessage) *Event {
 				"course": fmt.Sprintf("%f", d.GetTrack().GetCourse()),
 				"speed":  fmt.Sprintf("%f", d.GetTrack().GetSpeed()),
 			}
-			ev.Detail.AddChild("track", attrs, "")
+			ev.Detail.AddOrChangeChild("track", attrs)
 		}
 
 		if tv := d.GetTakv(); tv != nil {
@@ -71,7 +71,7 @@ func ProtoToEvent(msg *cotproto.TakMessage) *Event {
 				"device":   tv.GetDevice(),
 				"platform": tv.GetPlatform(),
 			}
-			ev.Detail.AddChild("takv", attrs, "")
+			ev.Detail.AddOrChangeChild("takv", attrs)
 		}
 
 		if d.GetGroup() != nil {
@@ -79,7 +79,7 @@ func ProtoToEvent(msg *cotproto.TakMessage) *Event {
 				"name": d.GetGroup().GetName(),
 				"role": d.GetGroup().GetRole(),
 			}
-			ev.Detail.AddChild("__group", attrs, "")
+			ev.Detail.AddOrChangeChild("__group", attrs)
 		}
 
 		if d.GetPrecisionLocation() != nil {
@@ -87,14 +87,14 @@ func ProtoToEvent(msg *cotproto.TakMessage) *Event {
 				"altsrc":      d.GetPrecisionLocation().GetAltsrc(),
 				"geopointsrc": d.GetPrecisionLocation().GetGeopointsrc(),
 			}
-			ev.Detail.AddChild("precisionlocation", attrs, "")
+			ev.Detail.AddOrChangeChild("precisionlocation", attrs)
 		}
 	}
 
 	return ev
 }
 
-func EventToProto(ev *Event) (*cotproto.TakMessage, *Node) {
+func EventToProto(ev *Event) (*CotMessage, error) {
 	if ev == nil {
 		return nil, nil
 	}
@@ -160,9 +160,18 @@ func EventToProto(ev *Event) (*cotproto.TakMessage, *Node) {
 		}
 	}
 
-	xd, _ := GetXmlDetails(ev.Detail)
+	xd, err := GetXmlDetails(ev.Detail)
 	msg.CotEvent.Detail.XmlDetail = xd.AsXMLString()
-	return msg, xd
+	return &CotMessage{TakMessage: msg, Detail: xd}, err
+}
+
+func EventToProtoExt(ev *Event, from, scope string) (*CotMessage, error) {
+	c, err := EventToProto(ev)
+	if c != nil {
+		c.Scope = scope
+		c.From = from
+	}
+	return c, err
 }
 
 func GetXmlDetails(d *Node) (*Node, error) {

@@ -165,7 +165,9 @@ func (app *App) Run() {
 }
 
 func (app *App) NewCotMessage(msg *cot.CotMessage) {
-	app.ch <- msg
+	if msg != nil {
+		app.ch <- msg
+	}
 }
 
 func (app *App) AddClientHandler(ch client.ClientHandler) {
@@ -486,8 +488,7 @@ func main() {
 	viper.SetDefault("udp_addr", ":8999")
 	viper.SetDefault("tcp_addr", ":8999")
 	viper.SetDefault("ssl_addr", ":8089")
-	viper.SetDefault("admin_addr", ":8080")
-	viper.SetDefault("api_addr", ":8889")
+	viper.SetDefault("api_addr", ":8080")
 	viper.SetDefault("log", false)
 	viper.SetDefault("data_dir", "data")
 

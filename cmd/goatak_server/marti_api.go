@@ -26,7 +26,7 @@ func getMartiApi(app *App, addr string) *air.Air {
 	api.NotFoundHandler = getNotFoundHandler()
 
 	if app.config.useSsl {
-		tlsCfg := &tls.Config{
+		api.TLSConfig = &tls.Config{
 			Certificates: []tls.Certificate{*app.config.tlsCert},
 			ClientCAs:    app.config.certPool,
 			RootCAs:      app.config.certPool,
@@ -34,7 +34,6 @@ func getMartiApi(app *App, addr string) *air.Air {
 			MinVersion:   tls.VersionTLS10,
 		}
 
-		api.TLSConfig = tlsCfg
 		api.Gases = append(api.Gases, SslCheckHandlerGas(app))
 	}
 

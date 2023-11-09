@@ -49,9 +49,9 @@ func TestConvert(t *testing.T) {
 	b, _ := xml.Marshal(evt)
 	fmt.Println(string(b))
 
-	msg1, _ := EventToProto(evt)
+	cot, _ := EventToProto(evt)
 
-	if !reflect.DeepEqual(msg.CotEvent, msg1.CotEvent) {
+	if !reflect.DeepEqual(msg.GetCotEvent(), cot.TakMessage.GetCotEvent()) {
 		t.Fail()
 	}
 }

@@ -63,7 +63,10 @@ func (app *App) ListenUDP(addr string) error {
 				if scope == "" {
 					scope = "broadcast"
 				}
-				c := cot.CotFromEvent(ev, "", scope)
+				c, err := cot.EventToProtoExt(ev, "", scope)
+				if err != nil {
+					app.Logger.Errorf("%s", err.Error())
+				}
 				app.NewCotMessage(c)
 			}
 		} else {
@@ -72,7 +75,11 @@ func (app *App) ListenUDP(addr string) error {
 				app.Logger.Errorf("decode error: %v", err)
 				continue
 			}
-			app.NewCotMessage(cot.CotFromEvent(ev, "", "broadcast"))
+			c, err := cot.EventToProtoExt(ev, "", "broadcast")
+			if err != nil {
+				app.Logger.Errorf("%s", err.Error())
+			}
+			app.NewCotMessage(c)
 		}
 	}
 

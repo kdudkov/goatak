@@ -165,15 +165,14 @@ func (h *ConnClientHandler) handleRead() {
 	pr := cot.NewProtoReader(h.conn)
 
 	for h.ctx.Err() == nil {
-		var msg *cotproto.TakMessage
-		var d *cot.Node
+		var msg *cot.CotMessage
 		var err error
 
 		switch h.GetVersion() {
 		case 0:
-			msg, d, err = h.processXMLRead(er)
+			msg, err = h.processXMLRead(er)
 		case 1:
-			msg, d, err = h.processProtoRead(pr)
+			msg, err = h.processProtoRead(pr)
 		}
 
 		if err != nil {
@@ -189,67 +188,63 @@ func (h *ConnClientHandler) handleRead() {
 			continue
 		}
 
-		cotmsg := &cot.CotMessage{
-			From:       h.addr,
-			Scope:      h.getScope(),
-			TakMessage: msg,
-			Detail:     d,
-		}
+		msg.From = h.addr
+		msg.Scope = h.getScope()
 
 		// add new contact uid
-		if cotmsg.IsContact() {
-			uid := msg.GetCotEvent().GetUid()
+		if msg.IsContact() {
+			uid := msg.GetUid()
 			if strings.HasSuffix(uid, "-ping") {
 				uid = uid[:len(uid)-5]
 			}
-			if _, present := h.uids.Swap(uid, cotmsg.GetCallsign()); !present {
+			if _, present := h.uids.Swap(uid, msg.GetCallsign()); !present {
 				if h.newContactCb != nil {
-					h.newContactCb(uid, cotmsg.GetCallsign())
+					h.newContactCb(uid, msg.GetCallsign())
 				}
 			}
 		}
 
 		// remove contact
-		if cotmsg.GetType() == "t-x-d-d" && cotmsg.Detail != nil && cotmsg.Detail.Has("link") {
-			uid := cotmsg.Detail.GetFirst("link").GetAttr("uid")
+		if msg.GetType() == "t-x-d-d" && msg.Detail != nil && msg.Detail.Has("link") {
+			uid := msg.Detail.GetFirst("link").GetAttr("uid")
 			h.logger.Debugf("delete uid %s by message", uid)
 			h.uids.Delete(uid)
 		}
 
 		// ping
-		if cotmsg.GetType() == "t-x-c-t" {
-			h.logger.Debugf("ping from %s %s", h.addr, cotmsg.GetUid())
+		if msg.GetType() == "t-x-c-t" {
+			h.logger.Debugf("ping from %s %s", h.addr, msg.GetUid())
 			if err := h.SendCot(cot.MakePong()); err != nil {
 				h.logger.Errorf("SendMsg error: %v", err)
 			}
 		}
 
-		h.messageCb(cotmsg)
+		h.messageCb(msg)
 	}
 }
 
-func (h *ConnClientHandler) processXMLRead(er *cot.TagReader) (*cotproto.TakMessage, *cot.Node, error) {
+func (h *ConnClientHandler) processXMLRead(er *cot.TagReader) (*cot.CotMessage, error) {
 	tag, dat, err := er.ReadTag()
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	if tag == "?xml" {
-		return nil, nil, nil
+		return nil, nil
 	}
 
 	if tag == "auth" {
 		// <auth><cot username=\"test\" password=\"111111\" uid=\"ANDROID-xxxx\ callsign=\"zzz\""/></auth>
-		return nil, nil, nil
+		return nil, nil
 	}
 
 	if tag != "event" {
-		return nil, nil, fmt.Errorf("bad tag: %s", dat)
+		return nil, fmt.Errorf("bad tag: %s", dat)
 	}
 
 	ev := &cot.Event{}
 	if err := xml.Unmarshal(dat, ev); err != nil {
-		return nil, nil, fmt.Errorf("xml decode error: %v, client: %s", err, string(dat))
+		return nil, fmt.Errorf("xml decode error: %v, client: %s", err, string(dat))
 	}
 
 	h.setActivity()
@@ -262,9 +257,9 @@ func (h *ConnClientHandler) processXMLRead(er *cot.TagReader) (*cotproto.TakMess
 			if err := h.sendEvent(cot.ProtoChangeOkMsg()); err == nil {
 				h.logger.Infof("client %s switch to v.1", h.addr)
 				h.SetVersion(1)
-				return nil, nil, nil
+				return nil, nil
 			} else {
-				return nil, nil, fmt.Errorf("error on send ok: %v", err)
+				return nil, fmt.Errorf("error on send ok: %v", err)
 			}
 		}
 	}
@@ -280,7 +275,7 @@ func (h *ConnClientHandler) processXMLRead(er *cot.TagReader) (*cotproto.TakMess
 		} else {
 			h.logger.Warnf("invalid protocol support message: %s", dat)
 		}
-		return nil, nil, nil
+		return nil, nil
 	}
 
 	if h.isClient && ev.Type == "t-x-takp-r" {
@@ -293,18 +288,16 @@ func (h *ConnClientHandler) processXMLRead(er *cot.TagReader) (*cotproto.TakMess
 				h.logger.Errorf("got TakResponce with status %s: %s", status, ev.Detail)
 			}
 		}
-		return nil, nil, nil
+		return nil, nil
 	}
 
-	msg, d := cot.EventToProto(ev)
-
-	return msg, d, nil
+	return cot.EventToProto(ev)
 }
 
-func (h *ConnClientHandler) processProtoRead(r *cot.ProtoReader) (*cotproto.TakMessage, *cot.Node, error) {
+func (h *ConnClientHandler) processProtoRead(r *cot.ProtoReader) (*cot.CotMessage, error) {
 	msg, err := r.ReadProtoBuf()
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	h.setActivity()
@@ -313,7 +306,7 @@ func (h *ConnClientHandler) processProtoRead(r *cot.ProtoReader) (*cotproto.TakM
 	d, err = cot.DetailsFromString(msg.GetCotEvent().GetDetail().GetXmlDetail())
 
 	h.logger.Debugf("proto msg: %s", msg)
-	return msg, d, err
+	return &cot.CotMessage{TakMessage: msg, Detail: d}, err
 }
 
 func (h *ConnClientHandler) SetVersion(n int32) {

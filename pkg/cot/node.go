@@ -222,3 +222,14 @@ func (n *Node) AddChild(name string, params map[string]string, text string) *Nod
 	n.Nodes = append(n.Nodes, nn)
 	return nn
 }
+
+func (n *Node) AddOrChangeChild(name string, params map[string]string) *Node {
+	if c := n.GetFirst(name); c != nil {
+		for k, v := range params {
+			c.Attrs = append(c.Attrs, xml.Attr{Name: xml.Name{Local: k}, Value: v})
+		}
+		return c
+	} else {
+		return n.AddChild(name, params, "")
+	}
+}
