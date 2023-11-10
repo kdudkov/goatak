@@ -37,7 +37,7 @@ func getMartiApi(app *App, addr string) *air.Air {
 		api.Gases = append(api.Gases, SslCheckHandlerGas(app))
 	}
 
-	api.Gases = append(api.Gases, LoggerGas(app.Logger.Named("marti_api")))
+	api.Gases = append(api.Gases, LoggerGas(app.Logger.Named("marti_api"), "marti_api"))
 	return api
 }
 

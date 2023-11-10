@@ -166,6 +166,7 @@ func (app *App) Run() {
 
 func (app *App) NewCotMessage(msg *cot.CotMessage) {
 	if msg != nil {
+		messagesMetric.Inc()
 		app.ch <- msg
 	}
 }

@@ -16,6 +16,7 @@ import (
 	"github.com/kdudkov/goatak/internal/client"
 	"github.com/kdudkov/goatak/pkg/model"
 	"github.com/kdudkov/goatak/staticfiles"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 //go:embed templates
@@ -64,7 +65,7 @@ func getAdminApi(app *App, addr string, renderer *staticfiles.Renderer, webtakRo
 	adminApi := air.New()
 	adminApi.Address = addr
 	adminApi.NotFoundHandler = getNotFoundHandler()
-	adminApi.Gases = []air.Gas{LoggerGas(app.Logger.Named("admin_api"))}
+	adminApi.Gases = []air.Gas{LoggerGas(app.Logger.Named("admin_api"), "admin_api")}
 
 	staticfiles.EmbedFiles(adminApi, "/static")
 	adminApi.GET("/", getIndexHandler(app, renderer))
@@ -86,6 +87,7 @@ func getAdminApi(app *App, addr string, renderer *staticfiles.Renderer, webtakRo
 	}
 
 	adminApi.GET("/stack", getStackHandler())
+	adminApi.GET("/metrics", getMetricsHandler())
 
 	adminApi.RendererTemplateLeftDelim = "[["
 	adminApi.RendererTemplateRightDelim = "]]"
@@ -165,6 +167,14 @@ func getUnitsHandler(app *App) func(req *air.Request, res *air.Response) error {
 func getStackHandler() func(req *air.Request, res *air.Response) error {
 	return func(req *air.Request, res *air.Response) error {
 		return pprof.Lookup("goroutine").WriteTo(res.Body, 1)
+	}
+}
+
+func getMetricsHandler() func(req *air.Request, res *air.Response) error {
+	h := promhttp.Handler()
+	return func(req *air.Request, res *air.Response) error {
+		h.ServeHTTP(res.HTTPResponseWriter(), req.HTTPRequest())
+		return nil
 	}
 }
 

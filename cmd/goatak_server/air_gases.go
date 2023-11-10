@@ -2,13 +2,35 @@ package main
 
 import (
 	"errors"
-	"github.com/aofei/air"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 	"go.uber.org/zap"
 	"net/http"
+	"strconv"
 	"time"
+
+	"github.com/aofei/air"
+)
+
+var (
+	httpRequestsDuration = promauto.NewHistogramVec(prometheus.HistogramOpts{
+		Namespace: "goatak",
+		Subsystem: "http",
+		Name:      "request_duration_seconds",
+		Help:      "The latency of the HTTP requests.",
+		Buckets:   prometheus.DefBuckets,
+	}, []string{"api"})
+
+	httpRequestsCount = promauto.NewCounterVec(prometheus.CounterOpts{
+		Namespace: "goatak",
+		Subsystem: "http",
+		Name:      "request_count",
+		Help:      "Number of the HTTP requests.",
+	}, []string{"api", "path", "method", "code"})
 )
 
 func SslCheckHandlerGas(app *App) air.Gas {
+	err := errors.New("unauthorized")
 	return func(next air.Handler) air.Handler {
 		return func(req *air.Request, res *air.Response) error {
 			if h := req.HTTPRequest(); h != nil {
@@ -22,13 +44,14 @@ func SslCheckHandlerGas(app *App) air.Gas {
 					}
 				}
 			}
+			time.Sleep(3 * time.Second)
 			res.Status = http.StatusUnauthorized
-			return errors.New("error")
+			return err
 		}
 	}
 }
 
-func LoggerGas(log *zap.SugaredLogger) air.Gas {
+func LoggerGas(log *zap.SugaredLogger, apiname string) air.Gas {
 	return func(next air.Handler) air.Handler {
 		return func(req *air.Request, res *air.Response) (err error) {
 			startTime := time.Now()
@@ -36,7 +59,16 @@ func LoggerGas(log *zap.SugaredLogger) air.Gas {
 				endTime := time.Now()
 				user := getUsernameFromReq(req)
 
-				log.With(zap.String("user", user), zap.Int("status", res.Status)).Infof("%s %s, client: %s, time :%s",
+				httpRequestsDuration.With(prometheus.Labels{"api": apiname}).Observe(endTime.Sub(startTime).Seconds())
+
+				httpRequestsCount.With(prometheus.Labels{
+					"api":    apiname,
+					"path":   req.Path,
+					"method": req.Method,
+					"code":   strconv.Itoa(res.Status)}).Inc()
+
+				log.With(zap.String("user", user), zap.Int("status", res.Status)).Infof(
+					"%s %s, client: %s, time :%s",
 					req.Method, req.Path, req.ClientAddress(), endTime.Sub(startTime))
 			})
 

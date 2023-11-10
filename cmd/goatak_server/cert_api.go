@@ -43,7 +43,7 @@ func getCertApi(app *App, addr string) *air.Air {
 		},
 	})
 
-	certApi.Gases = []air.Gas{auth, LoggerGas(app.Logger.Named("cert_api"))}
+	certApi.Gases = []air.Gas{auth, LoggerGas(app.Logger.Named("cert_api"), "cert_api")}
 
 	certApi.GET("/Marti/api/tls/config", getTlsConfigHandler(app))
 	certApi.POST("/Marti/api/tls/signClient", getSignHandler(app))
