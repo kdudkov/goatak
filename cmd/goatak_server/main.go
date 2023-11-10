@@ -173,12 +173,15 @@ func (app *App) NewCotMessage(msg *cot.CotMessage) {
 
 func (app *App) AddClientHandler(ch client.ClientHandler) {
 	app.handlers.Store(ch.GetName(), ch)
+	connectionsMetric.Inc()
 }
 
 func (app *App) RemoveClientHandler(name string) {
 	if _, ok := app.handlers.Load(name); ok {
 		app.Logger.Infof("remove handler: %s", name)
-		app.handlers.Delete(name)
+		if _, ok := app.handlers.LoadAndDelete(name); ok {
+			connectionsMetric.Dec()
+		}
 	}
 }
 

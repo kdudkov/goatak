@@ -11,4 +11,10 @@ var (
 		Name:      "cots_processed",
 		Help:      "The total number of cots processed",
 	})
+
+	connectionsMetric = promauto.NewGauge(prometheus.GaugeOpts{
+		Namespace: "goatak",
+		Name:      "connections",
+		Help:      "The total number of connections",
+	})
 )
