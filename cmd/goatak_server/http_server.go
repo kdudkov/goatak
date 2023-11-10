@@ -3,8 +3,8 @@ package main
 import (
 	"embed"
 	"encoding/json"
+	"encoding/xml"
 	"errors"
-	"github.com/kdudkov/goatak/pkg/cot"
 	"net/http"
 	"path/filepath"
 	"runtime/pprof"
@@ -12,11 +12,12 @@ import (
 	"time"
 
 	"github.com/aofei/air"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	"github.com/kdudkov/goatak/internal/client"
+	"github.com/kdudkov/goatak/pkg/cot"
 	"github.com/kdudkov/goatak/pkg/model"
 	"github.com/kdudkov/goatak/staticfiles"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 //go:embed templates
@@ -79,6 +80,7 @@ func getAdminApi(app *App, addr string, renderer *staticfiles.Renderer, webtakRo
 
 	adminApi.GET("/takproto/1", getWsHandler(app))
 	adminApi.POST("/cot", getCotPostHandler(app))
+	adminApi.POST("/cot_xml", getCotXmlPostHandler(app))
 
 	if webtakRoot != "" {
 		adminApi.FILE("/webtak/", filepath.Join(webtakRoot, "index.html"))
@@ -250,6 +252,32 @@ func getCotPostHandler(app *App) func(req *air.Request, res *air.Response) error
 			return err
 		}
 
+		app.NewCotMessage(c)
+		return nil
+	}
+}
+
+func getCotXmlPostHandler(app *App) func(req *air.Request, res *air.Response) error {
+	return func(req *air.Request, res *air.Response) error {
+		scope := getStringParam(req, "scope")
+		if scope == "" {
+			scope = "test"
+		}
+		ev := new(cot.Event)
+
+		dec := xml.NewDecoder(req.Body)
+
+		if err := dec.Decode(ev); err != nil {
+			app.Logger.Errorf("cot decode error %s", err)
+			return err
+		}
+
+		c, err := cot.EventToProto(ev)
+		if err != nil {
+			app.Logger.Errorf("cot convert error %s", err)
+			return err
+		}
+		c.Scope = scope
 		app.NewCotMessage(c)
 		return nil
 	}
