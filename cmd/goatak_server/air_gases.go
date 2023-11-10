@@ -63,7 +63,7 @@ func LoggerGas(log *zap.SugaredLogger, apiname string) air.Gas {
 
 				httpRequestsCount.With(prometheus.Labels{
 					"api":    apiname,
-					"path":   req.Path,
+					"path":   req.RawPath(),
 					"method": req.Method,
 					"code":   strconv.Itoa(res.Status)}).Inc()
 
