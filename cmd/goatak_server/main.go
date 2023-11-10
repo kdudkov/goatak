@@ -8,6 +8,7 @@ import (
 	"encoding/pem"
 	"flag"
 	"fmt"
+	"github.com/prometheus/client_golang/prometheus"
 	"log"
 	"net"
 	"os"
@@ -166,7 +167,7 @@ func (app *App) Run() {
 
 func (app *App) NewCotMessage(msg *cot.CotMessage) {
 	if msg != nil {
-		messagesMetric.Inc()
+		messagesMetric.With(prometheus.Labels{"scope": msg.Scope}).Inc()
 		app.ch <- msg
 	}
 }

@@ -6,11 +6,11 @@ import (
 )
 
 var (
-	messagesMetric = promauto.NewCounter(prometheus.CounterOpts{
+	messagesMetric = promauto.NewCounterVec(prometheus.CounterOpts{
 		Namespace: "goatak",
 		Name:      "cots_processed",
 		Help:      "The total number of cots processed",
-	})
+	}, []string{"scope"})
 
 	connectionsMetric = promauto.NewGauge(prometheus.GaugeOpts{
 		Namespace: "goatak",
