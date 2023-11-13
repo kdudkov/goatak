@@ -66,7 +66,7 @@ func getAdminApi(app *App, addr string, renderer *staticfiles.Renderer, webtakRo
 	adminApi := air.New()
 	adminApi.Address = addr
 	adminApi.NotFoundHandler = getNotFoundHandler()
-	adminApi.Gases = []air.Gas{LoggerGas(app.Logger.Named("admin_api"), "admin_api")}
+	//adminApi.Gases = []air.Gas{LoggerGas(app.Logger.Named("admin_api"), "admin_api")}
 
 	staticfiles.EmbedFiles(adminApi, "/static")
 	adminApi.GET("/", getIndexHandler(app, renderer))

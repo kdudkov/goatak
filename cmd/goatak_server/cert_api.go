@@ -43,7 +43,7 @@ func getCertApi(app *App, addr string) *air.Air {
 		},
 	})
 
-	certApi.Gases = []air.Gas{auth, LoggerGas(app.Logger.Named("cert_api"), "cert_api")}
+	certApi.Gases = []air.Gas{LoggerGas(app.Logger.Named("cert_api"), "cert_api"), auth}
 
 	certApi.GET("/Marti/api/tls/config", getTlsConfigHandler(app))
 	certApi.POST("/Marti/api/tls/signClient", getSignHandler(app))
@@ -56,20 +56,20 @@ func getCertApi(app *App, addr string) *air.Air {
 }
 
 func getTlsConfigHandler(app *App) func(req *air.Request, res *air.Response) error {
+	names := map[string]string{"C": "RU", "O": "takserver.ru", "OU": "takserver.ru"}
+	buf := strings.Builder{}
+	buf.WriteString("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n")
+	buf.WriteString(fmt.Sprintf("<certificateConfig validityDays=\"%d\"><nameEntries>", app.config.certTtlDays))
+	for k, v := range names {
+		buf.WriteString(fmt.Sprintf("<nameEntry name=\"%s\" value=\"%s\"/>", k, v))
+	}
+	buf.WriteString("</nameEntries></certificateConfig>")
+	data := buf.String()
+
 	return func(req *air.Request, res *air.Response) error {
-		app.Logger.Infof("%s %s", req.Method, req.Path)
-
-		names := map[string]string{"C": "RU"}
-		buf := strings.Builder{}
-		buf.WriteString("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n")
-		buf.WriteString(fmt.Sprintf("<certificateConfig validityDays=\"%d\"><nameEntries>", app.config.certTtlDays))
-		for k, v := range names {
-			buf.WriteString(fmt.Sprintf("<nameEntry name=\"%s\" value=\"%s\"/>", k, v))
-		}
-		buf.WriteString("</nameEntries></certificateConfig>")
-
+		app.Logger.Infof("%s", req.Header.Get("Accept"))
 		res.Header.Set("Content-Type", "application/xml")
-		return res.Write(strings.NewReader(buf.String()))
+		return res.Write(strings.NewReader(data))
 	}
 }
 
@@ -138,8 +138,6 @@ func (app *App) processSignRequest(req *air.Request) (*x509.Certificate, error) 
 
 func getSignHandler(app *App) func(req *air.Request, res *air.Response) error {
 	return func(req *air.Request, res *air.Response) error {
-		app.Logger.Infof("%s %s", req.Method, req.Path)
-
 		signedCert, err := app.processSignRequest(req)
 		if err != nil {
 			app.Logger.Errorf(err.Error())
@@ -164,8 +162,6 @@ func getSignHandler(app *App) func(req *air.Request, res *air.Response) error {
 
 func getSignHandlerV2(app *App) func(req *air.Request, res *air.Response) error {
 	return func(req *air.Request, res *air.Response) error {
-		app.Logger.Infof("%s %s", req.Method, req.Path)
-
 		signedCert, err := app.processSignRequest(req)
 		if err != nil {
 			app.Logger.Errorf(err.Error())
@@ -176,8 +172,10 @@ func getSignHandlerV2(app *App) func(req *air.Request, res *air.Response) error 
 		switch {
 		case accept == "", strings.Contains(accept, "*/*"), strings.Contains(accept, "application/json"):
 			certs := map[string]string{"signedCert": tlsutil.CertToStr(signedCert, false)}
+			// iTAK needs server cert in answer
+			certs["ca0"] = tlsutil.CertToStr(app.config.serverCert, false)
 			for i, c := range app.config.ca {
-				certs[fmt.Sprintf("ca%d", i)] = tlsutil.CertToStr(c, false)
+				certs[fmt.Sprintf("ca%d", i+1)] = tlsutil.CertToStr(c, false)
 			}
 			return res.WriteJSON(certs)
 		case strings.Contains(accept, "application/xml"):
@@ -206,7 +204,6 @@ func getProfileEnrollmentHandler(app *App) func(req *air.Request, res *air.Respo
 	return func(req *air.Request, res *air.Response) error {
 		user := getUsernameFromReq(req)
 		uid := getStringParamIgnoreCaps(req, "clientUid")
-		app.Logger.Infof("%s %s %s %s", req.Method, req.Path, user, uid)
 		files := app.GetProfileFiles(user, uid)
 		if len(files) == 0 {
 			res.Status = http.StatusNoContent
