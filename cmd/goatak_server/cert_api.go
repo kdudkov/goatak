@@ -56,7 +56,7 @@ func getCertApi(app *App, addr string) *air.Air {
 }
 
 func getTlsConfigHandler(app *App) func(req *air.Request, res *air.Response) error {
-	names := map[string]string{"C": "RU", "O": "takserver.ru", "OU": "takserver.ru"}
+	names := map[string]string{"C": "RU", "O": "goatak", "OU": "goatak"}
 	buf := strings.Builder{}
 	buf.WriteString("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n")
 	buf.WriteString(fmt.Sprintf("<certificateConfig validityDays=\"%d\"><nameEntries>", app.config.certTtlDays))
@@ -185,6 +185,9 @@ func getSignHandlerV2(app *App) func(req *air.Request, res *air.Response) error 
 			buf.WriteString("<signedCert>")
 			buf.WriteString(tlsutil.CertToStr(signedCert, false))
 			buf.WriteString("</signedCert>")
+			buf.WriteString("<ca>")
+			buf.WriteString(tlsutil.CertToStr(app.config.serverCert, false))
+			buf.WriteString("</ca>")
 			for _, c := range app.config.ca {
 				buf.WriteString("<ca>")
 				buf.WriteString(tlsutil.CertToStr(c, false))
