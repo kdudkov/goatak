@@ -1,13 +1,14 @@
 # GoATAK - free ATAK/CivTAK server & client
 
-This is fast & simple implementation of ATAK server/CoT router and ATAK client with web interface.
+This is fast & simple implementation of TAK server/CoT router and ATAK client with web interface.
 
+[Wiki](https://github.com/kdudkov/goatak/wiki)
 Support chat in Telegram: https://t.me/ru_atak
 
 binary builds can be downloaded
 from [releases page](https://github.com/kdudkov/goatak/releases)
 
-![Alt text](client.png?raw=true "Title")
+![Client screen](img/client.png?raw=true "Client csreen")
 
 ## GoATAK server features
 
@@ -43,7 +44,8 @@ We offer a public TAK server for the community free of charge.
 * user `test`
 * password `111111`
 
-[Wiki](https://github.com/kdudkov/goatak/wiki)
+iTAK connect QR-CODE:
+![QR](img/qr.png?raw=true "QR")
 
 ## Libraries used
 
