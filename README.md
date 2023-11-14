@@ -45,6 +45,7 @@ We offer a public TAK server for the community free of charge.
 * password `111111`
 
 iTAK connect QR-CODE:
+
 ![QR](img/qr.png?raw=true "QR")
 
 ## Libraries used
