@@ -51,7 +51,8 @@ func SslCheckHandlerGas(app *App) air.Gas {
 	}
 }
 
-func LoggerGas(log *zap.SugaredLogger, apiname string) air.Gas {
+func LoggerGas(log *zap.SugaredLogger, apiName string) air.Gas {
+	logger := log.Named(apiName)
 	return func(next air.Handler) air.Handler {
 		return func(req *air.Request, res *air.Response) (err error) {
 			startTime := time.Now()
@@ -59,15 +60,15 @@ func LoggerGas(log *zap.SugaredLogger, apiname string) air.Gas {
 				endTime := time.Now()
 				user := getUsernameFromReq(req)
 
-				httpRequestsDuration.With(prometheus.Labels{"api": apiname}).Observe(endTime.Sub(startTime).Seconds())
+				httpRequestsDuration.With(prometheus.Labels{"api": apiName}).Observe(endTime.Sub(startTime).Seconds())
 
 				httpRequestsCount.With(prometheus.Labels{
-					"api":    apiname,
+					"api":    apiName,
 					"path":   req.RawPath(),
 					"method": req.Method,
 					"code":   strconv.Itoa(res.Status)}).Inc()
 
-				log.With(zap.String("user", user), zap.Int("status", res.Status)).Infof(
+				logger.With(zap.String("user", user), zap.Int("status", res.Status)).Infof(
 					"%s %s, client: %s, time :%s",
 					req.Method, req.Path, req.ClientAddress(), endTime.Sub(startTime))
 			})

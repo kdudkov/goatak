@@ -24,7 +24,7 @@ func getMartiApi(app *App, addr string) *air.Air {
 	addMartiRoutes(app, api)
 
 	api.NotFoundHandler = getNotFoundHandler()
-	api.Gases = append(api.Gases, LoggerGas(app.Logger.Named("marti_api"), "marti_api"))
+	api.Gases = append(api.Gases, LoggerGas(app.Logger, "marti_api"))
 
 	if app.config.useSsl {
 		api.TLSConfig = &tls.Config{
