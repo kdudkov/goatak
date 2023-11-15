@@ -8,7 +8,18 @@ Support chat in Telegram: https://t.me/ru_atak
 binary builds can be downloaded
 from [releases page](https://github.com/kdudkov/goatak/releases)
 
-![Client screen](img/client.png?raw=true "Client csreen")
+## Test server
+
+We offer a public TAK server for the community free of charge.
+
+* address: `takserver.ru`
+* set `Enroll for Client Certificate` marked
+* user `test`
+* password `111111`
+
+iTAK connect qr-code:
+
+![QR](img/qr.png?raw=true "QR")
 
 ## GoATAK server features
 
@@ -35,18 +46,7 @@ you can run it with docker, using `docker run -p 8088:8088 -p 8080:8080 -p 8999:
 * Add and edit units on map
 * ability to log all cot's and cli utility to view cot's log and convert it to json or gpx
 
-## Test server
-
-We offer a public TAK server for the community free of charge.
-
-* address: `takserver.ru`
-* set `Enroll for Client Certificate` marked
-* user `test`
-* password `111111`
-
-iTAK connect QR-CODE:
-
-![QR](img/qr.png?raw=true "QR")
+![Client screen](img/client.png?raw=true "Client csreen")
 
 ## Libraries used
 
