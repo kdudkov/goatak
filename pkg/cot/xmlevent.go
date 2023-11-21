@@ -47,7 +47,7 @@ func (e *Event) AddGroup(group, role string) {
 		return
 	}
 
-	e.AddDetail().AddChild("__group", map[string]string{"name": group, "role": role}, "")
+	e.AddDetail().AddOrChangeChild("__group", map[string]string{"name": group, "role": role})
 }
 
 func (e *Event) AddCallsign(callsign, endpoint string, addDroid bool) {
@@ -55,10 +55,10 @@ func (e *Event) AddCallsign(callsign, endpoint string, addDroid bool) {
 		return
 	}
 
-	e.AddDetail().AddChild("contact", map[string]string{"callsign": callsign, "endpoint": endpoint}, "")
+	e.AddDetail().AddOrChangeChild("contact", map[string]string{"callsign": callsign, "endpoint": endpoint})
 
 	if addDroid {
-		e.AddDetail().AddChild("uid", map[string]string{"Droid": callsign}, "")
+		e.AddDetail().AddOrChangeChild("uid", map[string]string{"Droid": callsign})
 	}
 }
 
@@ -67,7 +67,7 @@ func (e *Event) AddTrack(speed, course string) {
 		return
 	}
 
-	e.AddDetail().AddChild("track", map[string]string{"speed": speed, "course": course}, "")
+	e.AddDetail().AddOrChangeChild("track", map[string]string{"speed": speed, "course": course})
 }
 
 func (e *Event) AddVersion(device, platform, os, version string) {
@@ -75,7 +75,7 @@ func (e *Event) AddVersion(device, platform, os, version string) {
 		return
 	}
 
-	e.AddDetail().AddChild("takv", map[string]string{"device": device, "platform": platform, "os": os, "version": version}, "")
+	e.AddDetail().AddOrChangeChild("takv", map[string]string{"device": device, "platform": platform, "os": os, "version": version})
 }
 
 type Point struct {
@@ -109,7 +109,7 @@ func VersionSupportMsg(ver int8) *Event {
 	v := strconv.Itoa(int(ver))
 	ev := XmlBasicMsg("t-x-takp-v", "protouid", time.Minute)
 	ev.How = "m-g"
-	ev.AddDetail().AddChild("TakControl", nil, "").AddChild("TakProtocolSupport", map[string]string{"version": v}, "")
+	ev.AddDetail().AddOrChangeChild("TakControl", nil).AddOrChangeChild("TakProtocolSupport", map[string]string{"version": v})
 	return ev
 }
 
@@ -117,14 +117,14 @@ func VersionReqMsg(ver int8) *Event {
 	v := strconv.Itoa(int(ver))
 	ev := XmlBasicMsg("t-x-takp-q", "protouid", time.Minute)
 	ev.How = "m-g"
-	ev.AddDetail().AddChild("TakControl", nil, "").AddChild("TakRequest", map[string]string{"version": v}, "")
+	ev.AddDetail().AddOrChangeChild("TakControl", nil).AddOrChangeChild("TakRequest", map[string]string{"version": v})
 	return ev
 }
 
 func ProtoChangeOkMsg() *Event {
 	ev := XmlBasicMsg("t-x-takp-r", "protouid", time.Minute)
 	ev.How = "m-g"
-	ev.AddDetail().AddChild("TakControl", nil, "").AddChild("TakResponse", map[string]string{"status": "true"}, "")
+	ev.AddDetail().AddOrChangeChild("TakControl", nil).AddOrChangeChild("TakResponse", map[string]string{"status": "true"})
 	return ev
 }
 

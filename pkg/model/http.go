@@ -121,7 +121,7 @@ func (w *WebUnit) ToMsg() *cot.CotMessage {
 			Detail: &cotproto.Detail{
 				Contact: &cotproto.Contact{Callsign: w.Callsign},
 				PrecisionLocation: &cotproto.PrecisionLocation{
-					Geopointsrc: "DTED0",
+					Geopointsrc: "USER",
 					Altsrc:      "USER",
 				},
 			},
@@ -130,13 +130,9 @@ func (w *WebUnit) ToMsg() *cot.CotMessage {
 
 	xd := cot.NewXmlDetails()
 	if w.ParentUid != "" {
-		m := map[string]string{"uid": w.ParentUid, "relation": "p-p"}
-		if w.ParentCallsign != "" {
-			m["parent_callsign"] = w.ParentCallsign
-		}
-		xd.AddChild("link", m, "")
+		xd.AddPpLink(w.ParentUid, "", w.ParentCallsign)
 	}
-	xd.AddChild("status", map[string]string{"readiness": "true"}, "")
+	xd.AddOrChangeChild("status", map[string]string{"readiness": "true"})
 	if w.Text != "" {
 		xd.AddChild("remarks", nil, w.Text)
 	}

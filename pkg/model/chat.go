@@ -123,8 +123,8 @@ func MakeChatMessage(c *ChatMessage) *cotproto.TakMessage {
 	xd := cot.NewXmlDetails()
 	xd.AddPpLink(c.FromUid, "", "")
 
-	chat := xd.AddChild("__chat", map[string]string{"parent": c.Parent, "groupOwner": "false", "chatroom": c.Chatroom, "senderCallsign": c.From, "id": c.ToUid, "messageId": c.Id}, "")
-	chat.AddChild("chatgrp", map[string]string{"uid0": c.FromUid, "uid1": c.ToUid, "id": c.ToUid}, "")
+	chat := xd.AddOrChangeChild("__chat", map[string]string{"parent": c.Parent, "groupOwner": "false", "chatroom": c.Chatroom, "senderCallsign": c.From, "id": c.ToUid, "messageId": c.Id})
+	chat.AddOrChangeChild("chatgrp", map[string]string{"uid0": c.FromUid, "uid1": c.ToUid, "id": c.ToUid})
 
 	xd.AddChild("remarks", map[string]string{"source": "BAO.F.ATAK." + c.FromUid, "to": c.ToUid, "time": t}, html.EscapeString(c.Text))
 
