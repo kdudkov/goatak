@@ -61,10 +61,10 @@ func (app *App) listenTls(addr string) error {
 			app.Logger.Errorf("Unable to accept connections: %#v", err)
 			continue
 		}
-		app.Logger.Infof("SSL connection from %s", conn.RemoteAddr())
+		app.Logger.Debugf("SSL connection from %s", conn.RemoteAddr())
 		c1 := conn.(*tls.Conn)
 		if err := c1.Handshake(); err != nil {
-			app.Logger.Errorf("Handshake error: %#v", err)
+			app.Logger.Debugf("Handshake error: %#v", err)
 			c1.Close()
 			continue
 		}
@@ -92,7 +92,7 @@ func (app *App) verifyConnection(st tls.ConnectionState) error {
 
 	if !app.users.UserIsValid(user, sn) {
 		app.Logger.Warnf("bad user %s", user)
-		return fmt.Errorf("bad user %s", user)
+		return fmt.Errorf("bad user")
 	}
 
 	return nil

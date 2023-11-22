@@ -15,7 +15,10 @@ import (
 	"github.com/kdudkov/goatak/pkg/model"
 )
 
-const nodeId = "1"
+const (
+	nodeId     = "1"
+	apiVersion = "3"
+)
 
 func getMartiApi(app *App, addr string) *air.Air {
 	api := air.New()
@@ -52,17 +55,20 @@ func addMartiRoutes(app *App, api *air.Air) {
 	api.GET("/Marti/api/util/user/roles", getUserRolesHandler(app))
 
 	api.GET("/Marti/api/groups/all", getAllGroupsHandler(app))
+	api.GET("/Marti/api/groups/groupCacheEnabled", getAllGroupsCacheHandler(app))
 
 	api.GET("/Marti/api/device/profile/connection", getProfileConnectionHandler(app))
 
 	api.GET("/Marti/api/missions", getMissionsHandler(app))
 	api.GET("/Marti/api/missions/", getMissionsHandler(app))
+	api.GET("/missions/all/invitations", getMissionsInvitationsHandler(app))
 	api.GET("/Marti/api/missions/:missionname", getMissionHandler(app))
 
 	api.GET("/Marti/sync/content", getMetadataGetHandler(app))
 	api.GET("/Marti/sync/search", getSearchHandler(app))
 	api.GET("/Marti/sync/missionquery", getMissionQueryHandler(app))
 	api.POST("/Marti/sync/missionupload", getMissionUploadHandler(app))
+	api.POST("/Marti/sync/upload", getUploadHandler(app))
 
 	api.GET("/Marti/vcm", getVideoListHandler(app))
 	api.POST("/Marti/vcm", getVideoPostHandler(app))
@@ -78,7 +84,7 @@ func getVersionHandler(app *App) func(req *air.Request, res *air.Response) error
 
 func getVersionConfigHandler(app *App) func(req *air.Request, res *air.Response) error {
 	data := make(map[string]any)
-	data["api"] = "3"
+	data["api"] = apiVersion
 	data["version"] = getVersion()
 	data["hostname"] = "0.0.0.0"
 	return func(req *air.Request, res *air.Response) error {
@@ -205,6 +211,38 @@ func getMissionUploadHandler(app *App) func(req *air.Request, res *air.Response)
 	}
 }
 
+func getUploadHandler(app *App) func(req *air.Request, res *air.Response) error {
+	return func(req *air.Request, res *air.Response) error {
+		user := getUsernameFromReq(req)
+
+		params := []string{}
+		for _, r := range req.Params() {
+			params = append(params, r.Name+"="+r.Value().String())
+		}
+
+		app.Logger.Infof("params: %s", strings.Join(params, ","))
+
+		info := &PackageInfo{
+			PrimaryKey:         1,
+			UID:                getStringParam(req, "uid"),
+			SubmissionDateTime: time.Now(),
+			Name:               getStringParam(req, "name"),
+			CreatorUID:         getStringParam(req, "CreatorUid"),
+			SubmissionUser:     user,
+			Tool:               getStringParam(req, "tool"),
+			Keywords:           []string{"missionpackage"},
+			MIMEType:           req.Header.Get("Content-Type"),
+			Size:               req.ContentLength,
+		}
+
+		if info.UID == "" || info.Name == "" {
+			res.Status = http.StatusBadRequest
+			return nil
+		}
+
+		return nil
+	}
+}
 func getMetadataGetHandler(app *App) func(req *air.Request, res *air.Response) error {
 	return func(req *air.Request, res *air.Response) error {
 		hash := getStringParam(req, "hash")
@@ -281,9 +319,25 @@ func getAllGroupsHandler(app *App) func(req *air.Request, res *air.Response) err
 	}
 }
 
-func getMissionsHandler(app *App) func(req *air.Request, res *air.Response) error {
+func getAllGroupsCacheHandler(app *App) func(req *air.Request, res *air.Response) error {
+	result := makeAnswer("java.lang.Boolean", true)
+
 	return func(req *air.Request, res *air.Response) error {
-		return res.WriteJSON(makeAnswer("Mission", []string{}))
+		return res.WriteJSON(result)
+	}
+}
+
+func getMissionsHandler(app *App) func(req *air.Request, res *air.Response) error {
+	result := makeAnswer("Mission", []string{})
+	return func(req *air.Request, res *air.Response) error {
+		return res.WriteJSON(result)
+	}
+}
+
+func getMissionsInvitationsHandler(app *App) func(req *air.Request, res *air.Response) error {
+	result := makeAnswer("MissionInvitation", []string{})
+	return func(req *air.Request, res *air.Response) error {
+		return res.WriteJSON(result)
 	}
 }
 
@@ -368,7 +422,7 @@ func getVideoPostHandler(app *App) func(req *air.Request, res *air.Response) err
 
 func makeAnswer(typ string, data any) map[string]any {
 	result := make(map[string]any)
-	result["version"] = "3"
+	result["version"] = apiVersion
 	result["type"] = typ
 	result["nodeId"] = nodeId
 	result["data"] = data
