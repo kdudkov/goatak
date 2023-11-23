@@ -43,7 +43,7 @@ func NewHttp(app *App) *HttpServer {
 	renderer := new(staticfiles.Renderer)
 	renderer.LeftDelimeter = "[["
 	renderer.RightDelimeter = "]]"
-	renderer.Load(templates, "templates")
+	renderer.Load(templates)
 
 	srv := &HttpServer{
 		app:       app,

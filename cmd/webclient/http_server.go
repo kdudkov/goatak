@@ -25,7 +25,7 @@ func NewHttp(app *App, address string) *air.Air {
 	renderer := new(staticfiles.Renderer)
 	renderer.LeftDelimeter = "[["
 	renderer.RightDelimeter = "]]"
-	renderer.Load(templates, "templates")
+	renderer.Load(templates)
 
 	srv.GET("/", getIndexHandler(app, renderer))
 	srv.GET("/config", getConfigHandler(app))

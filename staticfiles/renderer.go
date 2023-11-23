@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"html/template"
 	"path/filepath"
+	"strings"
 	"time"
 )
 
@@ -15,7 +16,7 @@ type Renderer struct {
 	template       *template.Template
 }
 
-func (r *Renderer) Load(fs embed.FS, baseName string) error {
+func (r *Renderer) Load(fs embed.FS) error {
 	t := template.
 		New("template").
 		Delims(
@@ -29,15 +30,17 @@ func (r *Renderer) Load(fs embed.FS, baseName string) error {
 			"timefmt":  timefmt,
 		})
 
-	if err := walkEmbed(fs, baseName, func(fs embed.FS, fname string) {
-		b, err := fs.ReadFile(fname)
-		if err != nil {
-			fmt.Println(err)
-			return
-		}
-		if _, err := t.New(filepath.ToSlash(fname[len(baseName)+1:])).Parse(string(b)); err != nil {
-			fmt.Println(err)
-			return
+	if err := walkEmbed(fs, func(fs embed.FS, fname string) {
+		if strings.HasSuffix(fname, ".html") {
+			b, err := fs.ReadFile(fname)
+			if err != nil {
+				fmt.Println(err)
+				return
+			}
+			if _, err := t.New(fname).Parse(string(b)); err != nil {
+				fmt.Println(err)
+				return
+			}
 		}
 	}); err != nil {
 		return err
@@ -47,8 +50,8 @@ func (r *Renderer) Load(fs embed.FS, baseName string) error {
 	return nil
 }
 
-func walkEmbed(fs embed.FS, baseName string, fn func(fs embed.FS, fname string)) error {
-	dirs := []string{baseName}
+func walkEmbed(fs embed.FS, fn func(fs embed.FS, fname string)) error {
+	dirs := []string{"."}
 	i := 0
 
 	for {
@@ -63,10 +66,10 @@ func walkEmbed(fs embed.FS, baseName string, fn func(fs embed.FS, fname string))
 
 		for _, f := range dir {
 			if f.IsDir() {
-				dirs = append(dirs, filepath.Join(path, f.Name()))
+				dirs = append(dirs, filepath.ToSlash(filepath.Join(path, f.Name())))
 				continue
 			}
-			fn(fs, filepath.Join(path, f.Name()))
+			fn(fs, filepath.ToSlash(filepath.Join(path, f.Name())))
 		}
 		i++
 	}
