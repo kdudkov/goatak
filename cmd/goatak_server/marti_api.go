@@ -59,11 +59,6 @@ func addMartiRoutes(app *App, api *air.Air) {
 
 	api.GET("/Marti/api/device/profile/connection", getProfileConnectionHandler(app))
 
-	api.GET("/Marti/api/missions", getMissionsHandler(app))
-	api.GET("/Marti/api/missions/", getMissionsHandler(app))
-	api.GET("/Marti/api/missions/all/invitations", getMissionsInvitationsHandler(app))
-	api.GET("/Marti/api/missions/:missionname", getMissionHandler(app))
-
 	api.GET("/Marti/sync/content", getMetadataGetHandler(app))
 	api.GET("/Marti/sync/search", getSearchHandler(app))
 	api.GET("/Marti/sync/missionquery", getMissionQueryHandler(app))
@@ -74,6 +69,8 @@ func addMartiRoutes(app *App, api *air.Air) {
 	api.POST("/Marti/vcm", getVideoPostHandler(app))
 
 	api.GET("/Marti/api/video", getVideo2ListHandler(app))
+
+	addMissionApi(app, api)
 }
 
 func getVersionHandler(app *App) func(req *air.Request, res *air.Response) error {
@@ -324,27 +321,6 @@ func getAllGroupsCacheHandler(app *App) func(req *air.Request, res *air.Response
 
 	return func(req *air.Request, res *air.Response) error {
 		return res.WriteJSON(result)
-	}
-}
-
-func getMissionsHandler(app *App) func(req *air.Request, res *air.Response) error {
-	result := makeAnswer("Mission", []string{})
-	return func(req *air.Request, res *air.Response) error {
-		return res.WriteJSON(result)
-	}
-}
-
-func getMissionsInvitationsHandler(app *App) func(req *air.Request, res *air.Response) error {
-	result := makeAnswer("MissionInvitation", []string{})
-	return func(req *air.Request, res *air.Response) error {
-		return res.WriteJSON(result)
-	}
-}
-
-func getMissionHandler(app *App) func(req *air.Request, res *air.Response) error {
-	return func(req *air.Request, res *air.Response) error {
-		m := GetDefault(getStringParam(req, "missionname"))
-		return res.WriteJSON(makeAnswer("Mission", []any{m}))
 	}
 }
 

@@ -9,7 +9,6 @@ import (
 	"flag"
 	"fmt"
 	"math/rand"
-	"net/http"
 	"os"
 	"os/signal"
 	"strings"
@@ -58,7 +57,7 @@ type App struct {
 	listeners       sync.Map
 	textLogger      *TextLogger
 	eventProcessors map[string]*EventProcessor
-	client          *http.Client
+	remoteApi       *RemoteApi
 	saveFile        string
 	connected       uint32
 
@@ -131,12 +130,10 @@ func (app *App) Init(cancel context.CancelFunc) {
 		app.textLogger = NewTextLogger()
 	}
 
-	app.client = &http.Client{Timeout: time.Second * 5}
+	app.remoteApi = NewRemoteApi(app.host)
 
 	if app.tls {
-		app.client.Transport = &http.Transport{
-			TLSClientConfig: app.getTlsConfig(),
-		}
+		app.remoteApi.SetTls(app.getTlsConfig())
 	}
 
 	app.ch = make(chan []byte, 20)

@@ -8,7 +8,7 @@ type User struct {
 	Typ       string   `yaml:"type,omitempty"`
 	Password  string   `yaml:"password"`
 	Scope     string   `yaml:"scope,omitempty"`
-	ReadScope []string `yaml:"read_scope"`
+	ReadScope []string `yaml:"read_scope,omitempty"`
 }
 
 func (u *User) GetLogin() string {
