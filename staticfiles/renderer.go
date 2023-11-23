@@ -37,7 +37,8 @@ func (r *Renderer) Load(fs embed.FS) error {
 				fmt.Println(err)
 				return
 			}
-			if _, err := t.New(fname).Parse(string(b)); err != nil {
+			tplName := fname[len("templates")+1:]
+			if _, err := t.New(tplName).Parse(string(b)); err != nil {
 				fmt.Println(err)
 				return
 			}
