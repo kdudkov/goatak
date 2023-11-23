@@ -3,6 +3,7 @@ option optimize_for = LITE_RUNTIME;
 option go_package = "github.com/kdudkov/goatak/cotproto";
 
 import "takmessage.proto";
+import "binarypayload.proto";
 
 // Container for TakMessage and metadata, such as groups
 message Message {
@@ -26,4 +27,6 @@ message Message {
 
   string connectionId = 10;
 
+  // optional sequence of binary payloads
+  repeated BinaryPayload bloads = 11;
 }

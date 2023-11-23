@@ -1,0 +1,23 @@
+syntax = "proto3";
+option optimize_for = LITE_RUNTIME;
+import "takmessage.proto";
+
+option go_package = "github.com/kdudkov/goatak/cotproto";
+
+// Container for MissionAnnouncement and metadata
+message MissionAnnouncement {
+  TakMessage payload = 1;
+
+  string missionName = 2;
+
+  string missionAnnouncementType = 3;
+
+  string creatorUid = 4;
+
+  string groupVector = 5;
+
+  string clientUid = 6;
+
+  repeated string uids = 7;
+
+}
