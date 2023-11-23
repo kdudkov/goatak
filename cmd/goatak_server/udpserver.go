@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/xml"
 	"net"
 
@@ -12,7 +13,7 @@ import (
 
 const magicByte = 0xbf
 
-func (app *App) ListenUDP(addr string) error {
+func (app *App) ListenUDP(ctx context.Context, addr string) error {
 	app.Logger.Infof("listening UDP at %s", addr)
 
 	p, err := net.ListenPacket("udp", addr)
@@ -24,7 +25,7 @@ func (app *App) ListenUDP(addr string) error {
 
 	buf := make([]byte, 65535)
 
-	for app.ctx.Err() == nil {
+	for ctx.Err() == nil {
 		n, _, err := p.ReadFrom(buf)
 		if err != nil {
 			app.Logger.Errorf("read error: %v", err)

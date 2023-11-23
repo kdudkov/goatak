@@ -5,9 +5,10 @@ import (
 	"sync"
 	"time"
 
+	"golang.org/x/net/html"
+
 	"github.com/kdudkov/goatak/pkg/cot"
 	"github.com/kdudkov/goatak/pkg/cotproto"
-	"golang.org/x/net/html"
 )
 
 type Messages struct {

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"crypto/tls"
 	"fmt"
 	"net"
@@ -11,7 +12,7 @@ import (
 	"github.com/kdudkov/goatak/pkg/tlsutil"
 )
 
-func (app *App) ListenTCP(addr string) (err error) {
+func (app *App) ListenTCP(ctx context.Context, addr string) (err error) {
 	app.Logger.Infof("listening TCP at %s", addr)
 
 	listener, err := net.Listen("tcp", addr)
@@ -23,7 +24,7 @@ func (app *App) ListenTCP(addr string) (err error) {
 
 	defer listener.Close()
 
-	for {
+	for ctx.Err() == nil {
 		conn, err := listener.Accept()
 		if err != nil {
 			app.Logger.Errorf("Unable to accept connections: %#v", err)
@@ -42,9 +43,11 @@ func (app *App) ListenTCP(addr string) (err error) {
 		app.AddClientHandler(h)
 		h.Start()
 	}
+
+	return nil
 }
 
-func (app *App) listenTLS(addr string) error {
+func (app *App) listenTLS(ctx context.Context, addr string) error {
 	app.Logger.Infof("listening TCP SSL at %s", addr)
 
 	tlsCfg := &tls.Config{
@@ -61,7 +64,7 @@ func (app *App) listenTLS(addr string) error {
 
 	defer listener.Close()
 
-	for {
+	for ctx.Err() == nil {
 		conn, err := listener.Accept()
 		if err != nil {
 			app.Logger.Errorf("Unable to accept connections: %#v", err)
@@ -95,6 +98,8 @@ func (app *App) listenTLS(addr string) error {
 		h.Start()
 		app.onTLSClientConnect(username, serial)
 	}
+
+	return nil
 }
 
 func (app *App) verifyConnection(st tls.ConnectionState) error {

@@ -38,6 +38,7 @@ type WebUnit struct {
 	ParentUID      string    `json:"parent_uid"`
 	Local          bool      `json:"local"`
 	Send           bool      `json:"send"`
+	Missions       []string  `json:"missions"`
 }
 
 type Contact struct {
@@ -85,7 +86,8 @@ func (i *Item) ToWeb() *WebUnit {
 		ParentUID:      parentUID,
 		ParentCallsign: parentCallsign,
 		Color:          i.msg.GetColor(),
-		Icon:           i.msg.GetIcon(),
+		Icon:           i.msg.GetIconsetPath(),
+		Missions:       i.missions,
 		Local:          i.local,
 		Send:           i.send,
 		Text:           i.msg.Detail.GetFirst("remarks").GetText(),

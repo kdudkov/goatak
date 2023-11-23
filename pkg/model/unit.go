@@ -27,6 +27,7 @@ type Item struct {
 	send     bool
 	track    []*Pos
 	msg      *cot.CotMessage
+	missions []string
 }
 
 func (i *Item) String() string {

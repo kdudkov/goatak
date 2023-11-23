@@ -122,14 +122,6 @@ func (m *CotMessage) IsContact() bool {
 	return strings.HasPrefix(m.GetType(), "a-f-") && m.GetEndpoint() != ""
 }
 
-func (m *CotMessage) GetColor() string {
-	return m.Detail.GetFirst("color").GetAttr("argb")
-}
-
-func (m *CotMessage) GetIcon() string {
-	return m.Detail.GetFirst("usericon").GetAttr("iconsetpath")
-}
-
 func (m *CotMessage) IsChat() bool {
 	if m == nil || m.TakMessage == nil {
 		return false
@@ -195,6 +187,14 @@ func (m *CotMessage) GetParent() (string, string) {
 	}
 
 	return "", ""
+}
+
+func (m *CotMessage) GetIconsetPath() string {
+	return m.Detail.GetFirst("usericon").GetAttr("iconsetpath")
+}
+
+func (m *CotMessage) GetColor() string {
+	return m.Detail.GetFirst("color").GetAttr("argb")
 }
 
 func (m *CotMessage) GetFirstLink(relation string) *Node {

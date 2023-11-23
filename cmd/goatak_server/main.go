@@ -17,10 +17,13 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/glebarez/sqlite"
 	"github.com/google/uuid"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
+	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 	"software.sslmate.com/src/go-pkcs12"
 
 	"github.com/kdudkov/goatak/internal/client"
@@ -30,7 +33,10 @@ import (
 	"github.com/kdudkov/goatak/pkg/tlsutil"
 )
 
-const unknown = "unknown"
+const (
+	unknown = "unknown"
+	dbName  = "db.sqlite"
+)
 
 var (
 	gitRevision            = unknown
@@ -66,6 +72,14 @@ type AppConfig struct {
 	connections []string
 }
 
+func getVersion() string {
+	if gitBranch != "master" && gitBranch != unknown {
+		return fmt.Sprintf("%s:%s", gitBranch, gitRevision)
+	}
+
+	return gitRevision
+}
+
 type App struct {
 	Logger         *zap.SugaredLogger
 	packageManager *PackageManager
@@ -78,16 +92,22 @@ type App struct {
 	items    repository.ItemsRepository
 	messages []*model.ChatMessage
 	feeds    repository.FeedsRepository
+	missions *MissionManager
 
 	users repository.UserRepository
 
-	ctx             context.Context
 	uid             string
 	ch              chan *cot.CotMessage
 	eventProcessors []*EventProcessor
 }
 
 func NewApp(config *AppConfig, logger *zap.SugaredLogger) *App {
+	db, err := getDatabase()
+
+	if err != nil {
+		panic(err)
+	}
+
 	app := &App{
 		Logger:          logger,
 		config:          config,
@@ -97,9 +117,12 @@ func NewApp(config *AppConfig, logger *zap.SugaredLogger) *App {
 		handlers:        sync.Map{},
 		items:           repository.NewItemsMemoryRepo(),
 		feeds:           repository.NewFeedsFileRepo(logger.Named("feedsRepo"), filepath.Join(config.dataDir, "feeds")),
-		uid:             uuid.New().String(),
+		missions:        NewMissionManager(db),
+		uid:             uuid.NewString(),
 		eventProcessors: make([]*EventProcessor, 0),
 	}
+
+	app.missions.Migrate()
 
 	return app
 }
@@ -123,13 +146,11 @@ func (app *App) Run() {
 		log.Fatal(err)
 	}
 
-	var cancel context.CancelFunc
-
-	app.ctx, cancel = context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(context.Background())
 
 	if app.config.udpAddr != "" {
 		go func() {
-			if err := app.ListenUDP(app.config.udpAddr); err != nil {
+			if err := app.ListenUDP(ctx, app.config.udpAddr); err != nil {
 				panic(err)
 			}
 		}()
@@ -137,7 +158,7 @@ func (app *App) Run() {
 
 	if app.config.tcpAddr != "" {
 		go func() {
-			if err := app.ListenTCP(app.config.tcpAddr); err != nil {
+			if err := app.ListenTCP(ctx, app.config.tcpAddr); err != nil {
 				panic(err)
 			}
 		}()
@@ -145,7 +166,7 @@ func (app *App) Run() {
 
 	if app.config.tlsCert != nil && app.config.tlsAddr != "" {
 		go func() {
-			if err := app.listenTLS(app.config.tlsAddr); err != nil {
+			if err := app.listenTLS(ctx, app.config.tlsAddr); err != nil {
 				panic(err)
 			}
 		}()
@@ -158,7 +179,7 @@ func (app *App) Run() {
 
 	for _, c := range app.config.connections {
 		app.Logger.Infof("start external connection to %s", c)
-		go app.ConnectTo(c)
+		go app.ConnectTo(ctx, c)
 	}
 
 	c := make(chan os.Signal, 1)
@@ -219,10 +240,10 @@ func (app *App) NewContactCb(uid, callsign string) {
 	app.Logger.Infof("new contact: %s %s", uid, callsign)
 }
 
-func (app *App) ConnectTo(addr string) {
+func (app *App) ConnectTo(ctx context.Context, addr string) {
 	name := "ext_" + addr
 
-	for app.ctx.Err() == nil {
+	for ctx.Err() == nil {
 		conn, err := app.connect(addr)
 		if err != nil {
 			app.Logger.Errorf("connect error: %s", err)
@@ -342,13 +363,25 @@ func (app *App) MessageProcessor() {
 }
 
 func (app *App) route(msg *cot.CotMessage) {
+	if missions := msg.Detail.GetDestMission(); len(missions) > 0 {
+		for _, name := range missions {
+			for _, uid := range app.missions.GetSubscribers(name) {
+				app.SendToUID(uid, msg)
+			}
+		}
+
+		return
+	}
+
 	if dest := msg.Detail.GetDestCallsign(); len(dest) > 0 {
 		for _, s := range dest {
 			app.SendToCallsign(s, msg)
 		}
-	} else {
-		app.SendBroadcast(msg)
+
+		return
 	}
+
+	app.SendBroadcast(msg)
 }
 
 func (app *App) cleaner() {
@@ -479,12 +512,13 @@ func processCerts(conf *AppConfig) error {
 	return nil
 }
 
-func getVersion() string {
-	if gitBranch != "master" && gitBranch != unknown {
-		return fmt.Sprintf("%s:%s", gitBranch, gitRevision)
+func getDatabase() (*gorm.DB, error) {
+	db, err := gorm.Open(sqlite.Open(dbName), &gorm.Config{Logger: logger.Default.LogMode(logger.Silent)})
+	if err != nil {
+		return nil, err
 	}
 
-	return gitRevision
+	return db, nil
 }
 
 func main() {
