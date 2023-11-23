@@ -61,7 +61,7 @@ func addMartiRoutes(app *App, api *air.Air) {
 
 	api.GET("/Marti/api/missions", getMissionsHandler(app))
 	api.GET("/Marti/api/missions/", getMissionsHandler(app))
-	api.GET("/missions/all/invitations", getMissionsInvitationsHandler(app))
+	api.GET("/Marti/api/missions/all/invitations", getMissionsInvitationsHandler(app))
 	api.GET("/Marti/api/missions/:missionname", getMissionHandler(app))
 
 	api.GET("/Marti/sync/content", getMetadataGetHandler(app))
