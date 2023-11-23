@@ -156,7 +156,7 @@ func getMissionQueryHandler(app *App) func(req *air.Request, res *air.Response) 
 
 func getMissionUploadHandler(app *App) func(req *air.Request, res *air.Response) error {
 	return func(req *air.Request, res *air.Response) error {
-		user := getUsernameFromReq(req)
+		username := getUsernameFromReq(req)
 		hash := getStringParam(req, "hash")
 		fname := getStringParam(req, "filename")
 
@@ -185,7 +185,7 @@ func getMissionUploadHandler(app *App) func(req *air.Request, res *air.Response)
 			Hash:               hash,
 			Name:               fname,
 			CreatorUID:         getStringParam(req, "creatorUid"),
-			SubmissionUser:     user,
+			SubmissionUser:     username,
 			Tool:               "public",
 			Keywords:           []string{"missionpackage"},
 		}
@@ -213,7 +213,7 @@ func getMissionUploadHandler(app *App) func(req *air.Request, res *air.Response)
 
 func getUploadHandler(app *App) func(req *air.Request, res *air.Response) error {
 	return func(req *air.Request, res *air.Response) error {
-		user := getUsernameFromReq(req)
+		username := getUsernameFromReq(req)
 
 		params := []string{}
 		for _, r := range req.Params() {
@@ -228,7 +228,7 @@ func getUploadHandler(app *App) func(req *air.Request, res *air.Response) error 
 			SubmissionDateTime: time.Now(),
 			Name:               getStringParam(req, "name"),
 			CreatorUID:         getStringParam(req, "CreatorUid"),
-			SubmissionUser:     user,
+			SubmissionUser:     username,
 			Tool:               getStringParam(req, "tool"),
 			Keywords:           []string{"missionpackage"},
 			MIMEType:           req.Header.Get("Content-Type"),
@@ -350,11 +350,11 @@ func getMissionHandler(app *App) func(req *air.Request, res *air.Response) error
 
 func getProfileConnectionHandler(app *App) func(req *air.Request, res *air.Response) error {
 	return func(req *air.Request, res *air.Response) error {
-		user := getUsernameFromReq(req)
+		username := getUsernameFromReq(req)
 		_ = getIntParam(req, "syncSecago", 0)
 		uid := getStringParamIgnoreCaps(req, "clientUid")
 
-		files := app.GetProfileFiles(user, uid)
+		files := app.GetProfileFiles(username, uid)
 		if len(files) == 0 {
 			res.Status = http.StatusNoContent
 			return nil
@@ -405,7 +405,7 @@ func getVideo2ListHandler(app *App) func(req *air.Request, res *air.Response) er
 
 func getVideoPostHandler(app *App) func(req *air.Request, res *air.Response) error {
 	return func(req *air.Request, res *air.Response) error {
-		user := getUsernameFromReq(req)
+		username := getUsernameFromReq(req)
 
 		r := new(model.VideoConnections)
 
@@ -414,7 +414,7 @@ func getVideoPostHandler(app *App) func(req *air.Request, res *air.Response) err
 			return err
 		}
 		for _, f := range r.Feeds {
-			app.feeds.Store(f.ToFeed2().WithUser(user))
+			app.feeds.Store(f.ToFeed2().WithUser(username))
 		}
 		return nil
 	}

@@ -102,11 +102,11 @@ func signClientCert(clientCSR *x509.CertificateRequest, serverCert *x509.Certifi
 }
 
 func (app *App) processSignRequest(req *air.Request) (*x509.Certificate, error) {
-	user := getUsernameFromReq(req)
+	username := getUsernameFromReq(req)
 	uid := getStringParamIgnoreCaps(req, "clientUid")
 	ver := getStringParam(req, "version")
 
-	app.Logger.Infof("cert sign req from %s %s ver %s", user, uid, ver)
+	app.Logger.Infof("cert sign req from %s %s ver %s", username, uid, ver)
 	b, err := io.ReadAll(req.Body)
 	if err != nil {
 		return nil, err
@@ -117,11 +117,11 @@ func (app *App) processSignRequest(req *air.Request) (*x509.Certificate, error) 
 		return nil, fmt.Errorf("empty csr block")
 	}
 
-	if user != clientCSR.Subject.CommonName {
+	if username != clientCSR.Subject.CommonName {
 		return nil, fmt.Errorf("bad user in csr")
 	}
 
-	if !app.users.UserIsValid(user, "") {
+	if !app.users.UserIsValid(username, "") {
 		return nil, fmt.Errorf("bad user")
 	}
 
@@ -131,7 +131,7 @@ func (app *App) processSignRequest(req *air.Request) (*x509.Certificate, error) 
 		return nil, err
 	}
 
-	app.onNewCertCreated(user, uid, ver, signedCert.SerialNumber.String())
+	app.onNewCertCreated(username, uid, ver, signedCert.SerialNumber.String())
 
 	return signedCert, nil
 }
@@ -205,9 +205,9 @@ func getSignHandlerV2(app *App) func(req *air.Request, res *air.Response) error 
 
 func getProfileEnrollmentHandler(app *App) func(req *air.Request, res *air.Response) error {
 	return func(req *air.Request, res *air.Response) error {
-		user := getUsernameFromReq(req)
+		username := getUsernameFromReq(req)
 		uid := getStringParamIgnoreCaps(req, "clientUid")
-		files := app.GetProfileFiles(user, uid)
+		files := app.GetProfileFiles(username, uid)
 		if len(files) == 0 {
 			res.Status = http.StatusNoContent
 			return nil

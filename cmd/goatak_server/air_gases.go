@@ -58,7 +58,7 @@ func LoggerGas(log *zap.SugaredLogger, apiName string) air.Gas {
 			startTime := time.Now()
 			res.Defer(func() {
 				endTime := time.Now()
-				user := getUsernameFromReq(req)
+				username := getUsernameFromReq(req)
 
 				httpRequestsDuration.With(prometheus.Labels{"api": apiName}).Observe(endTime.Sub(startTime).Seconds())
 
@@ -68,7 +68,7 @@ func LoggerGas(log *zap.SugaredLogger, apiName string) air.Gas {
 					"method": req.Method,
 					"code":   strconv.Itoa(res.Status)}).Inc()
 
-				logger.With(zap.String("user", user), zap.Int("status", res.Status)).Infof(
+				logger.With(zap.String("user", username), zap.Int("status", res.Status)).Infof(
 					"%s %s, client: %s, time :%s",
 					req.Method, req.Path, req.ClientAddress(), endTime.Sub(startTime))
 			})
