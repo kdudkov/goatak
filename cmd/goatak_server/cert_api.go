@@ -67,7 +67,6 @@ func getTlsConfigHandler(app *App) func(req *air.Request, res *air.Response) err
 	data := buf.String()
 
 	return func(req *air.Request, res *air.Response) error {
-		app.Logger.Infof("%s", req.Header.Get("Accept"))
 		res.Header.Set("Content-Type", "application/xml")
 		return res.Write(strings.NewReader(data))
 	}
