@@ -212,7 +212,7 @@ func getProfileEnrollmentHandler(app *App) func(req *air.Request, res *air.Respo
 			return nil
 		}
 
-		mp := NewMissionPackage("ProfileMissionPackage-"+uuid.New().String(), "Enrollment")
+		mp := NewMissionPackage("ProfileMissionPackage-"+uuid.NewString(), "Enrollment")
 		mp.Param("onReceiveImport", "true")
 		mp.Param("onReceiveDelete", "true")
 		for _, f := range files {
