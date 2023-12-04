@@ -85,7 +85,7 @@ func MsgToChat(m *cot.CotMessage) *ChatMessage {
 
 	c := &ChatMessage{
 		Id:       chat.GetAttr("messageId"),
-		Time:     cot.TimeFromMillis(m.TakMessage.CotEvent.StartTime),
+		Time:     cot.TimeFromMillis(m.TakMessage.GetCotEvent().GetStartTime()),
 		Parent:   chat.GetAttr("parent"),
 		Chatroom: chat.GetAttr("chatroom"),
 		From:     chat.GetAttr("senderCallsign"),

@@ -30,6 +30,6 @@ func TestMissionPackage_Create(t *testing.T) {
 	}
 
 	f, _ := os.Create("/tmp/profile.zip")
-	f.Write(dat)
-	f.Close()
+	_, _ = f.Write(dat)
+	_ = f.Close()
 }

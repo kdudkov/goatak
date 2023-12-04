@@ -356,7 +356,6 @@ func getProfileConnectionHandler(app *App) func(req *air.Request, res *air.Respo
 func getVideoListHandler(app *App) func(req *air.Request, res *air.Response) error {
 	return func(req *air.Request, res *air.Response) error {
 		r := new(model.VideoConnections)
-		r.XMLName = xml.Name{Local: "videoConnections"}
 		app.feeds.ForEach(func(f *model.Feed2) bool {
 			r.Feeds = append(r.Feeds, f.ToFeed())
 			return true

@@ -94,7 +94,7 @@ func signClientCert(clientCSR *x509.CertificateRequest, serverCert *x509.Certifi
 	certBytes, err := x509.CreateCertificate(rand.Reader, &template, serverCert, clientCSR.PublicKey, privateKey)
 
 	if err != nil {
-		return nil, fmt.Errorf("failed to generate certificate, error: %s", err)
+		return nil, fmt.Errorf("failed to generate certificate, error: %w", err)
 	}
 
 	return x509.ParseCertificate(certBytes)

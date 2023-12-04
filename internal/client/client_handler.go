@@ -3,6 +3,7 @@ package client
 import (
 	"context"
 	"encoding/xml"
+	"errors"
 	"fmt"
 	"github.com/kdudkov/goatak/internal/model"
 	"github.com/kdudkov/goatak/pkg/cot"
@@ -176,7 +177,7 @@ func (h *ConnClientHandler) handleRead() {
 		}
 
 		if err != nil {
-			if err == io.EOF {
+			if errors.Is(err, io.EOF) {
 				h.logger.Info("EOF")
 				break
 			}
@@ -194,9 +195,7 @@ func (h *ConnClientHandler) handleRead() {
 		// add new contact uid
 		if msg.IsContact() {
 			uid := msg.GetUid()
-			if strings.HasSuffix(uid, "-ping") {
-				uid = uid[:len(uid)-5]
-			}
+			uid = strings.TrimSuffix(uid, "-ping")
 			if _, present := h.uids.Swap(uid, msg.GetCallsign()); !present {
 				if h.newContactCb != nil {
 					h.newContactCb(uid, msg.GetCallsign())
@@ -244,7 +243,7 @@ func (h *ConnClientHandler) processXMLRead(er *cot.TagReader) (*cot.CotMessage, 
 
 	ev := &cot.Event{}
 	if err := xml.Unmarshal(dat, ev); err != nil {
-		return nil, fmt.Errorf("xml decode error: %v, client: %s", err, string(dat))
+		return nil, fmt.Errorf("xml decode error: %w, client: %s", err, string(dat))
 	}
 
 	h.setActivity()
@@ -259,7 +258,7 @@ func (h *ConnClientHandler) processXMLRead(er *cot.TagReader) (*cot.CotMessage, 
 				h.SetVersion(1)
 				return nil, nil
 			} else {
-				return nil, fmt.Errorf("error on send ok: %v", err)
+				return nil, fmt.Errorf("error on send ok: %w", err)
 			}
 		}
 	}
@@ -363,7 +362,6 @@ func (h *ConnClientHandler) stopHandle() {
 			h.closeTimer.Stop()
 		}
 	}
-	return
 }
 
 func (h *ConnClientHandler) setActivity() {
@@ -384,7 +382,7 @@ func (h *ConnClientHandler) closeIdle() {
 		_ = h.conn.Close()
 		return
 	}
-	idle := time.Now().Sub(*last)
+	idle := time.Since(*last)
 
 	if idle >= idleTimeout {
 		h.logger.Infof("closing connection due to idle timeout: %v", idle)

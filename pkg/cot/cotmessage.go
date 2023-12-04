@@ -106,7 +106,7 @@ func (m *CotMessage) GetStale() time.Time {
 		return time.Unix(0, 0)
 	}
 
-	return TimeFromMillis(m.TakMessage.CotEvent.StaleTime)
+	return TimeFromMillis(m.TakMessage.GetCotEvent().GetStaleTime())
 }
 
 func (m *CotMessage) IsContact() bool {

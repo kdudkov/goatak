@@ -3,8 +3,6 @@ package main
 import (
 	"embed"
 	"encoding/json"
-	"fmt"
-
 	"github.com/aofei/air"
 	"github.com/google/uuid"
 	"runtime/pprof"
@@ -25,7 +23,7 @@ func NewHttp(app *App, address string) *air.Air {
 	renderer := new(staticfiles.Renderer)
 	renderer.LeftDelimeter = "[["
 	renderer.RightDelimeter = "]]"
-	renderer.Load(templates)
+	_ = renderer.Load(templates)
 
 	srv.GET("/", getIndexHandler(app, renderer))
 	srv.GET("/config", getConfigHandler(app))
@@ -139,10 +137,6 @@ func addItemHandler(app *App) func(req *air.Request, res *air.Response) error {
 			return err
 		}
 
-		if wu == nil {
-			return fmt.Errorf("no item")
-		}
-
 		msg := wu.ToMsg()
 
 		if wu.Send {
@@ -173,10 +167,6 @@ func addMessageHandler(app *App) func(req *air.Request, res *air.Response) error
 
 		if err := json.NewDecoder(req.Body).Decode(msg); err != nil {
 			return err
-		}
-
-		if msg == nil {
-			return fmt.Errorf("no message")
 		}
 
 		if msg.Id == "" {

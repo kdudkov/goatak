@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"github.com/jroimartin/gocui"
 	"github.com/kdudkov/goatak/pkg/cot"
@@ -13,13 +14,13 @@ func (app *App) layout(g *gocui.Gui) error {
 	maxX, maxY := g.Size()
 
 	if v, err := g.SetView("info", 0, 0, maxX/2-1, maxY-1); err != nil {
-		if err != gocui.ErrUnknownView {
+		if !errors.Is(err, gocui.ErrUnknownView) {
 			return err
 		}
 		v.Frame = true
 	}
 	if v, err := g.SetView("log", maxX/2, 0, maxX-1, maxY-1); err != nil {
-		if err != gocui.ErrUnknownView {
+		if !errors.Is(err, gocui.ErrUnknownView) {
 			return err
 		}
 		v.Frame = true
@@ -39,7 +40,7 @@ func (app *App) redraw() {
 			if app.IsConnected() {
 				fmt.Fprintf(v, WithColors("Connected to %s:%s as %s\n\n", FgGreen, Bold), app.host, app.tcpPort, app.callsign)
 			} else {
-				fmt.Fprintf(v, WithColors("Disconnected\n\n", FgWhite))
+				fmt.Fprint(v, WithColors("Disconnected\n\n", FgWhite))
 			}
 
 			res := make([]*model.WebUnit, 0)
@@ -107,11 +108,9 @@ func (app *App) LogMessage(msg *cot.CotMessage) {
 			extra = "invalid chat message"
 		}
 		col = []byte{FgYellow, Bold}
-		break
 	case msg.IsChatReceipt():
 		extra = "chat receipt"
 		col = []byte{FgYellow, Bold}
-		break
 	case strings.HasPrefix(msg.GetType(), "a-"):
 		extra = msg.GetCallsign()
 		switch msg.GetType()[2] {

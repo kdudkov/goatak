@@ -17,8 +17,8 @@ var defports = map[string]int{
 }
 
 type VideoConnections struct {
-	XMLName xml.Name
-	Feeds   []*Feed `xml:"feed"`
+	XMLName xml.Name `xml:"videoConnections"`
+	Feeds   []*Feed  `xml:"feed"`
 }
 
 type VideoConnections2 struct {

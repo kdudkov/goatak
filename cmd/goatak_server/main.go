@@ -159,7 +159,7 @@ func (app *App) Run() {
 	}
 
 	c := make(chan os.Signal, 1)
-	signal.Notify(c, syscall.SIGINT, syscall.SIGTERM, syscall.SIGKILL)
+	signal.Notify(c, syscall.SIGINT, syscall.SIGTERM)
 	<-c
 	app.Logger.Info("exiting...")
 	cancel()
@@ -257,10 +257,8 @@ func (app *App) connect(connectStr string) (net.Conn, error) {
 	switch parts[2] {
 	case "tcp":
 		tlsConn = false
-		break
 	case "ssl":
 		tlsConn = true
-		break
 	default:
 		return nil, fmt.Errorf("invalid connect string: %s", connectStr)
 	}
@@ -506,7 +504,7 @@ func main() {
 
 	err := viper.ReadInConfig()
 	if err != nil {
-		panic(fmt.Errorf("Fatal error config file: %s \n", err))
+		panic(fmt.Errorf("Fatal error config file: %w \n", err))
 	}
 
 	flag.Parse()

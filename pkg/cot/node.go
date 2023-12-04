@@ -63,13 +63,9 @@ func (n *Node) AddPpLink(uid, typ, callsign string) {
 
 func (n *Node) AsXMLString() string {
 	b := bytes.Buffer{}
-	xml.NewEncoder(&b).Encode(n)
+	_ = xml.NewEncoder(&b).Encode(n)
 	s := b.String()
-	if len(s) > 17 {
-		return s[len("<detail>") : len(s)-len("</detail>")]
-	} else {
-		return ""
-	}
+	return strings.TrimPrefix(strings.TrimSuffix(s, "</detail>"), "<detail>")
 }
 
 func (n *Node) String() string {

@@ -2,7 +2,6 @@ package tlsutil
 
 import (
 	"bytes"
-	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/pem"
@@ -40,7 +39,7 @@ func MakeP12TrustStore(certs map[string]*x509.Certificate, passwd string) ([]byt
 		entries = append(entries, pkcs12.TrustStoreEntry{Cert: v, FriendlyName: k})
 	}
 
-	return pkcs12.EncodeTrustStoreEntries(rand.Reader, entries, passwd)
+	return pkcs12.LegacyRC2.EncodeTrustStoreEntries(entries, passwd)
 }
 
 func CertToPem(cert *x509.Certificate) []byte {

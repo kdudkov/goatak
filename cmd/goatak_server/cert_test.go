@@ -5,8 +5,8 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
-	"io/ioutil"
 	"log"
+	"os"
 	"testing"
 	"time"
 
@@ -17,7 +17,7 @@ func TestCert(t *testing.T) {
 	t.SkipNow()
 
 	go func() {
-		Server(":55555", "../../ca.pem", "../../ca.key")
+		_ = Server(":55555", "../../ca.pem", "../../ca.key")
 	}()
 
 	time.Sleep(time.Millisecond * 500)
@@ -25,7 +25,7 @@ func TestCert(t *testing.T) {
 }
 
 func Server(addr, certFile, keyFile string) (err error) {
-	caCertPEM, err := ioutil.ReadFile(certFile)
+	caCertPEM, err := os.ReadFile(certFile)
 	if err != nil {
 		panic(err)
 	}
@@ -64,7 +64,7 @@ func Server(addr, certFile, keyFile string) (err error) {
 		c1 := conn.(*tls.Conn)
 		if err := c1.Handshake(); err != nil {
 			log.Printf("Handshake error: %#v", err)
-			c1.Close()
+			_ = c1.Close()
 			continue
 		}
 
@@ -72,8 +72,8 @@ func Server(addr, certFile, keyFile string) (err error) {
 		for _, c := range c1.ConnectionState().PeerCertificates {
 			log.Printf(c.Subject.CommonName)
 		}
-		c1.Write([]byte("Ok"))
-		c1.Close()
+		_, _ = c1.Write([]byte("Ok"))
+		_ = c1.Close()
 	}
 }
 
@@ -93,7 +93,7 @@ func Client(addr, caFile, p12file, passw string) {
 }
 
 func getTlsConfig(caFile, p12File string, passw string) *tls.Config {
-	p12Data, err := ioutil.ReadFile(p12File)
+	p12Data, err := os.ReadFile(p12File)
 	if err != nil {
 		panic(err)
 	}
@@ -109,7 +109,7 @@ func getTlsConfig(caFile, p12File string, passw string) *tls.Config {
 		Leaf:        cert,
 	}
 
-	ca, err := ioutil.ReadFile(caFile)
+	ca, err := os.ReadFile(caFile)
 	if err != nil {
 		panic(err)
 	}
@@ -118,13 +118,4 @@ func getTlsConfig(caFile, p12File string, passw string) *tls.Config {
 	roots.AppendCertsFromPEM(ca)
 
 	return &tls.Config{Certificates: []tls.Certificate{tlsCert}, RootCAs: roots}
-}
-
-func getTlsConfig2(certFile string, keyFile string) *tls.Config {
-	cert, err := tls.LoadX509KeyPair(certFile, keyFile)
-	if err != nil {
-		panic(err)
-	}
-
-	return &tls.Config{Certificates: []tls.Certificate{cert}}
 }

@@ -41,7 +41,7 @@ func ProtoToEvent(msg *cotproto.TakMessage) *Event {
 		if d.GetXmlDetail() != "" {
 			b := bytes.Buffer{}
 			b.WriteString("<detail>" + d.GetXmlDetail() + "</detail>")
-			xml.NewDecoder(&b).Decode(&ev.Detail)
+			_ = xml.NewDecoder(&b).Decode(&ev.Detail)
 		}
 
 		if d.GetContact().GetCallsign() != "" {

@@ -3,6 +3,7 @@ package staticfiles
 import (
 	"embed"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"testing"
 )
 
@@ -15,6 +16,6 @@ func TestWalk(t *testing.T) {
 		names = append(names, fname)
 	})
 
-	assert.NoError(t, err)
-	assert.Equal(t, len(names), 23)
+	require.NoError(t, err)
+	assert.Len(t, names, 23)
 }

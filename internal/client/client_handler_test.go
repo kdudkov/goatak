@@ -7,6 +7,7 @@ import (
 	"github.com/kdudkov/goatak/pkg/cot"
 	"github.com/kdudkov/goatak/pkg/cotproto"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/proto"
 	"io"
 	"testing"
@@ -24,19 +25,19 @@ func TestRoute(t *testing.T) {
 
 	msg = &cot.CotMessage{TakMessage: cot.MakePing("123"), Scope: "aaa"}
 	c, err = passMsg(h, msg)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.NotNil(t, c)
 	assert.Equal(t, "t-x-c-t", c.GetCotEvent().GetType())
 
 	msg = &cot.CotMessage{TakMessage: cot.MakePing("123"), Scope: "ddd"}
 	c, err = passMsg(h, msg)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.NotNil(t, c)
 	assert.Equal(t, "t-x-c-t", c.GetCotEvent().GetType())
 
 	msg = &cot.CotMessage{TakMessage: cot.MakePing("123"), Scope: "bbb"}
 	c, err = passMsg(h, msg)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Nil(t, c)
 }
 
@@ -55,19 +56,19 @@ func TestRouteChat(t *testing.T) {
 
 	msg = &cot.CotMessage{TakMessage: tak, Scope: "aaa"}
 	c, err = passMsg(h, msg)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.NotNil(t, c)
 	assert.Equal(t, "b-t-f", c.GetCotEvent().GetType())
-	assert.Equal(t, 10., c.GetCotEvent().GetLat())
-	assert.Equal(t, 20., c.GetCotEvent().GetLon())
+	assert.InDelta(t, 10., c.GetCotEvent().GetLat(), 0.0001)
+	assert.InDelta(t, 20., c.GetCotEvent().GetLon(), 0.0001)
 
 	msg = &cot.CotMessage{TakMessage: tak, Scope: "bbb"}
 	c, err = passMsg(h, msg)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.NotNil(t, c)
 	assert.Equal(t, "b-t-f", c.GetCotEvent().GetType())
-	assert.Equal(t, 0., c.GetCotEvent().GetLat())
-	assert.Equal(t, 0., c.GetCotEvent().GetLon())
+	assert.InDelta(t, 0., c.GetCotEvent().GetLat(), 0.0001)
+	assert.InDelta(t, 0., c.GetCotEvent().GetLon(), 0.0001)
 }
 
 func passMsg(h *ConnClientHandler, msg *cot.CotMessage) (*cotproto.TakMessage, error) {

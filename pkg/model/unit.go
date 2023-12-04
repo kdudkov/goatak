@@ -163,9 +163,9 @@ func FromMsg(msg *cot.CotMessage) *Item {
 		uid:       msg.GetUid(),
 		cottype:   msg.GetType(),
 		callsign:  msg.GetCallsign(),
-		staleTime: cot.TimeFromMillis(msg.TakMessage.GetCotEvent().GetStaleTime()),
-		startTime: cot.TimeFromMillis(msg.TakMessage.GetCotEvent().GetStartTime()),
-		sendTime:  cot.TimeFromMillis(msg.TakMessage.GetCotEvent().GetSendTime()),
+		staleTime: msg.GetStaleTime(),
+		startTime: msg.GetStartTime(),
+		sendTime:  msg.GetSendTime(),
 		msg:       msg,
 		lastSeen:  time.Now(),
 		online:    true,
@@ -183,11 +183,11 @@ func FromMsg(msg *cot.CotMessage) *Item {
 	i.icon = msg.Detail.GetFirst("usericon").GetAttr("iconsetpath")
 
 	if i.class == UNIT || i.class == CONTACT {
-		if msg.TakMessage.GetCotEvent().GetLat() != 0 || msg.TakMessage.GetCotEvent().GetLat() != 0 {
+		if msg.GetLat() != 0 || msg.GetLon() != 0 {
 			pos := &Pos{
-				time:  cot.TimeFromMillis(msg.TakMessage.GetCotEvent().GetSendTime()),
-				lat:   msg.TakMessage.GetCotEvent().GetLat(),
-				lon:   msg.TakMessage.GetCotEvent().GetLon(),
+				time:  msg.GetSendTime(),
+				lat:   msg.GetLat(),
+				lon:   msg.GetLon(),
 				speed: msg.TakMessage.GetCotEvent().GetDetail().GetTrack().GetSpeed(),
 			}
 
@@ -205,7 +205,7 @@ func FromMsgLocal(msg *cot.CotMessage, send bool) *Item {
 }
 
 func (i *Item) GetLanLon() (float64, float64) {
-	return i.msg.TakMessage.GetCotEvent().GetLat(), i.msg.TakMessage.GetCotEvent().GetLon()
+	return i.msg.GetLat(), i.msg.GetLon()
 }
 
 func (i *Item) Update(msg *cot.CotMessage) {
@@ -218,11 +218,11 @@ func (i *Item) Update(msg *cot.CotMessage) {
 	defer i.mx.Unlock()
 
 	i.class = GetClass(msg)
-	i.cottype = msg.TakMessage.GetCotEvent().GetType()
+	i.cottype = msg.GetType()
 	i.callsign = msg.GetCallsign()
-	i.staleTime = cot.TimeFromMillis(msg.TakMessage.GetCotEvent().GetStaleTime())
-	i.startTime = cot.TimeFromMillis(msg.TakMessage.GetCotEvent().GetStartTime())
-	i.sendTime = cot.TimeFromMillis(msg.TakMessage.GetCotEvent().GetSendTime())
+	i.staleTime = msg.GetStaleTime()
+	i.startTime = msg.GetStartTime()
+	i.sendTime = msg.GetSendTime()
 	i.msg = msg
 	i.lastSeen = time.Now()
 
@@ -239,11 +239,11 @@ func (i *Item) Update(msg *cot.CotMessage) {
 	if i.class == UNIT || i.class == CONTACT {
 		i.online = true
 
-		if msg.TakMessage.GetCotEvent().GetLat() != 0 || msg.TakMessage.GetCotEvent().GetLat() != 0 {
+		if msg.GetLat() != 0 || msg.GetLon() != 0 {
 			pos := &Pos{
-				time:  cot.TimeFromMillis(msg.TakMessage.GetCotEvent().GetSendTime()),
-				lat:   msg.TakMessage.GetCotEvent().GetLat(),
-				lon:   msg.TakMessage.GetCotEvent().GetLon(),
+				time:  msg.GetSendTime(),
+				lat:   msg.GetLat(),
+				lon:   msg.GetLon(),
 				speed: msg.TakMessage.GetCotEvent().GetDetail().GetTrack().GetSpeed(),
 			}
 

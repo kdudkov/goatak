@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"io"
@@ -52,7 +53,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err := readFile(f, *uid, *typ, dmp); err != io.EOF {
+	if err := readFile(f, *uid, *typ, dmp); !errors.Is(err, io.EOF) {
 		fmt.Println(err)
 	}
 }
@@ -88,6 +89,9 @@ func readFile(f *os.File, uid, typ string, dmp Dumper) error {
 		}
 
 		d, err := cot.DetailsFromString(m.GetCotEvent().GetDetail().GetXmlDetail())
+		if err != nil {
+			return err
+		}
 		msg := &cot.CotMessage{TakMessage: m, Detail: d}
 		if err = dmp.Process(msg); err != nil {
 			return err

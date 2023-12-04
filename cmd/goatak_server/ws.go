@@ -135,9 +135,8 @@ func (w *WsClientHandler) Listen() {
 
 		if cotmsg.IsContact() {
 			uid := msg.GetCotEvent().GetUid()
-			if strings.HasSuffix(uid, "-ping") {
-				uid = uid[:len(uid)-5]
-			}
+			uid = strings.TrimSuffix(uid, "-ping")
+
 			w.uids.Store(uid, cotmsg.GetCallsign())
 		}
 

@@ -37,6 +37,10 @@ test:
 build: clean dep
 	go build $(LDFLAGS) -o dist/ ./cmd/...
 
+.PHONY: lint
+lint:
+	golangci-lint run ./... -p bugs -D gosec --fix
+
 .PHONY: gox
 gox: clean dep
 	GOARM=6 gox --osarch="linux/amd64 linux/arm windows/amd64 darwin/arm64" -output "dist/{{.OS}}_{{.Arch}}/{{.Dir}}" $(LDFLAGS) ./cmd/...

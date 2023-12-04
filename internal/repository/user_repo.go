@@ -30,7 +30,9 @@ func NewFileUserRepo(logger *zap.SugaredLogger, userFile string) *UserFileReposi
 		mx:       sync.RWMutex{},
 	}
 
-	um.loadUsersFile()
+	if err := um.loadUsersFile(); err != nil {
+		logger.Errorf("error loading users file: %s", err.Error())
+	}
 
 	if len(um.users) == 0 {
 		um.logger.Infof("no valid users found -  create one")

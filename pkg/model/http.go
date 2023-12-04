@@ -57,7 +57,7 @@ type DigitalPointer struct {
 }
 
 func (i *Item) ToWeb() *WebUnit {
-	evt := i.msg.TakMessage.CotEvent
+	evt := i.msg.TakMessage.GetCotEvent()
 
 	i.mx.RLock()
 	defer i.mx.RUnlock()
@@ -66,15 +66,15 @@ func (i *Item) ToWeb() *WebUnit {
 		Uid:            i.uid,
 		Category:       i.class,
 		Callsign:       i.callsign,
-		Time:           cot.TimeFromMillis(evt.SendTime),
+		Time:           cot.TimeFromMillis(evt.GetSendTime()),
 		LastSeen:       i.lastSeen,
 		StaleTime:      i.staleTime,
 		StartTime:      i.startTime,
 		SendTime:       i.sendTime,
 		Type:           i.cottype,
-		Lat:            evt.Lat,
-		Lon:            evt.Lon,
-		Hae:            evt.Hae,
+		Lat:            evt.GetLat(),
+		Lon:            evt.GetLon(),
+		Hae:            evt.GetHae(),
 		Speed:          evt.GetDetail().GetTrack().GetSpeed(),
 		Course:         evt.GetDetail().GetTrack().GetCourse(),
 		Team:           evt.GetDetail().GetGroup().GetName(),
@@ -96,7 +96,7 @@ func (i *Item) ToWeb() *WebUnit {
 		}
 
 		if v := i.msg.TakMessage.GetCotEvent().GetDetail().GetTakv(); v != nil {
-			w.TakVersion = strings.Trim(fmt.Sprintf("%s %s on %s", v.Platform, v.Version, v.Device), " ")
+			w.TakVersion = strings.Trim(fmt.Sprintf("%s %s on %s", v.GetPlatform(), v.GetVersion(), v.GetDevice()), " ")
 		}
 	}
 
@@ -139,7 +139,7 @@ func (w *WebUnit) ToMsg() *cot.CotMessage {
 	msg.GetCotEvent().Detail.XmlDetail = xd.AsXMLString()
 
 	zero := time.Unix(0, 0)
-	if msg.CotEvent.Uid == "" {
+	if msg.GetCotEvent().GetUid() == "" {
 		msg.CotEvent.Uid = uuid.New().String()
 	}
 

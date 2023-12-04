@@ -6,6 +6,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/hex"
+	"errors"
 	"flag"
 	"fmt"
 	"math/rand"
@@ -87,10 +88,8 @@ func NewApp(uid string, callsign string, connectStr string, webPort int, logger 
 	switch parts[2] {
 	case "tcp":
 		tlsConn = false
-		break
 	case "ssl":
 		tlsConn = true
-		break
 	default:
 		logger.Errorf("invalid connect string: %s", connectStr)
 		return nil
@@ -373,7 +372,7 @@ func main() {
 
 	err := viper.ReadInConfig()
 	if err != nil {
-		panic(fmt.Errorf("Fatal error config file: %s \n", err))
+		panic(fmt.Errorf("Fatal error config file: %w \n", err))
 	}
 
 	var cfg zap.Config
@@ -460,7 +459,7 @@ func main() {
 	go app.Run(ctx)
 
 	if app.ui {
-		if err := app.g.MainLoop(); err != nil && err != gocui.ErrQuit {
+		if err := app.g.MainLoop(); err != nil && !errors.Is(err, gocui.ErrQuit) {
 			app.Logger.Errorf(err.Error())
 		}
 	} else {

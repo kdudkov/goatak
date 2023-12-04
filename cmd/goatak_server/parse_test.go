@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/xml"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"testing"
 
 	"github.com/kdudkov/goatak/pkg/cot"
@@ -26,12 +27,12 @@ func TestParseEvent(t *testing.T) {
 
 	e := &cot.Event{}
 
-	assert.NoError(t, xml.Unmarshal([]byte(data), e))
+	require.NoError(t, xml.Unmarshal([]byte(data), e))
 
 	assert.Equal(t, "a-f-G-U-C", e.Type)
 
 	c, err := cot.EventToProto(e)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	assert.Equal(t, "ANDROID-aabbcc5577", c.GetUid())
 	assert.Equal(t, "a-f-G-U-C", c.GetType())
