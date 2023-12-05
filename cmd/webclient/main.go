@@ -178,7 +178,7 @@ func (app *App) Run(ctx context.Context) {
 				app.Logger.Info("disconnected")
 			},
 			IsClient: true,
-			Uid:      app.uid,
+			UID:      app.uid,
 		})
 
 		go app.cl.Start()
@@ -244,7 +244,6 @@ func (app *App) ProcessEvent(msg *cot.CotMessage) {
 }
 
 func (app *App) processChange(u *model.Item) {
-
 }
 
 func (app *App) MakeMe() *cotproto.TakMessage {
@@ -313,12 +312,11 @@ func (app *App) cleanOldUnits() {
 			if item.IsOld() {
 				toDelete = append(toDelete, item.GetUID())
 				app.Logger.Debugf("removing contact %s", item.GetUID())
-			} else {
-				if item.IsOnline() && item.GetLastSeen().Add(lastSeenOfflineTimeout).Before(time.Now()) {
-					item.SetOffline()
-				}
+			} else if item.IsOnline() && item.GetLastSeen().Add(lastSeenOfflineTimeout).Before(time.Now()) {
+				item.SetOffline()
 			}
 		}
+
 		return true
 	})
 
@@ -346,11 +344,11 @@ func getVersion() string {
 }
 
 func main() {
-	var conf = flag.String("config", "goatak_client.yml", "name of config file")
-	var noweb = flag.Bool("noweb", false, "do not start web server")
-	var ui = flag.Bool("ui", false, "do not start web server")
-	var debug = flag.Bool("debug", false, "debug")
-	var saveFile = flag.String("file", "", "record all events to file")
+	conf := flag.String("config", "goatak_client.yml", "name of config file")
+	noweb := flag.Bool("noweb", false, "do not start web server")
+	ui := flag.Bool("ui", false, "do not start web server")
+	debug := flag.Bool("debug", false, "debug")
+	saveFile := flag.String("file", "", "record all events to file")
 	flag.Parse()
 
 	viper.SetConfigFile(*conf)

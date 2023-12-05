@@ -8,13 +8,11 @@ import (
 	"encoding/pem"
 	"flag"
 	"fmt"
-	"github.com/prometheus/client_golang/prometheus"
 	"log"
 	"net"
 	"os"
 	"os/signal"
 	"path/filepath"
-	"software.sslmate.com/src/go-pkcs12"
 	"strings"
 	"sync"
 	"syscall"
@@ -25,8 +23,10 @@ import (
 	"github.com/kdudkov/goatak/internal/repository"
 	"github.com/kdudkov/goatak/pkg/cot"
 	"github.com/kdudkov/goatak/pkg/model"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
+	"software.sslmate.com/src/go-pkcs12"
 )
 
 var (
@@ -236,7 +236,7 @@ func (app *App) ConnectTo(addr string) {
 				app.Logger.Info("disconnected")
 			},
 			IsClient: true,
-			Uid:      app.uid,
+			UID:      app.uid,
 		})
 
 		go h.Start()
@@ -482,8 +482,8 @@ func getVersion() string {
 
 func main() {
 	fmt.Printf("version %s\n", getVersion())
-	var debug = flag.Bool("debug", false, "debug node")
-	var conf = flag.String("config", "goatak_server.yml", "name of config file")
+	debug := flag.Bool("debug", false, "debug node")
+	conf := flag.String("config", "goatak_server.yml", "name of config file")
 	flag.Parse()
 
 	viper.SetConfigFile(*conf)

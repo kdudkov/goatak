@@ -2,14 +2,14 @@ package main
 
 import (
 	"errors"
-	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promauto"
-	"go.uber.org/zap"
 	"net/http"
 	"strconv"
 	"time"
 
 	"github.com/aofei/air"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
+	"go.uber.org/zap"
 )
 
 var (
@@ -66,7 +66,8 @@ func LoggerGas(log *zap.SugaredLogger, apiName string) air.Gas {
 					"api":    apiName,
 					"path":   req.RawPath(),
 					"method": req.Method,
-					"code":   strconv.Itoa(res.Status)}).Inc()
+					"code":   strconv.Itoa(res.Status),
+				}).Inc()
 
 				logger.With(zap.String("user", username), zap.Int("status", res.Status)).Infof(
 					"%s %s, client: %s, time :%s",

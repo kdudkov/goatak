@@ -22,7 +22,7 @@ func ProtoToEvent(msg *cotproto.TakMessage) *Event {
 		Access:  msg.GetCotEvent().GetAccess(),
 		Qos:     msg.GetCotEvent().GetQos(),
 		Opex:    msg.GetCotEvent().GetOpex(),
-		Uid:     msg.GetCotEvent().GetUid(),
+		UID:     msg.GetCotEvent().GetUid(),
 		Time:    TimeFromMillis(msg.GetCotEvent().GetSendTime()).UTC(),
 		Start:   TimeFromMillis(msg.GetCotEvent().GetStartTime()).UTC(),
 		Stale:   TimeFromMillis(msg.GetCotEvent().GetStaleTime()).UTC(),
@@ -34,7 +34,7 @@ func ProtoToEvent(msg *cotproto.TakMessage) *Event {
 			Ce:  msg.GetCotEvent().GetCe(),
 			Le:  msg.GetCotEvent().GetLe(),
 		},
-		Detail: NewXmlDetails(),
+		Detail: NewXMLDetails(),
 	}
 
 	if d := msg.GetCotEvent().GetDetail(); d != nil {
@@ -94,17 +94,20 @@ func ProtoToEvent(msg *cotproto.TakMessage) *Event {
 	return ev
 }
 
+//nolint:nilnil
 func EventToProto(ev *Event) (*CotMessage, error) {
 	if ev == nil {
 		return nil, nil
 	}
+
+	var extContact bool
 
 	msg := &cotproto.TakMessage{CotEvent: &cotproto.CotEvent{
 		Type:      ev.Type,
 		Access:    ev.Access,
 		Qos:       ev.Qos,
 		Opex:      ev.Opex,
-		Uid:       ev.Uid,
+		Uid:       ev.UID,
 		SendTime:  TimeToMillis(ev.Time),
 		StartTime: TimeToMillis(ev.Start),
 		StaleTime: TimeToMillis(ev.Stale),
@@ -118,9 +121,13 @@ func EventToProto(ev *Event) (*CotMessage, error) {
 	}}
 
 	if c := ev.Detail.GetFirst("contact"); c != nil {
-		msg.CotEvent.Detail.Contact = &cotproto.Contact{
-			Endpoint: c.GetAttr("endpoint"),
-			Callsign: c.GetAttr("callsign"),
+		if len(c.GetAttrs()) < 3 {
+			msg.CotEvent.Detail.Contact = &cotproto.Contact{
+				Endpoint: c.GetAttr("endpoint"),
+				Callsign: c.GetAttr("callsign"),
+			}
+		} else {
+			extContact = true
 		}
 	}
 
@@ -160,8 +167,9 @@ func EventToProto(ev *Event) (*CotMessage, error) {
 		}
 	}
 
-	xd, err := GetXmlDetails(ev.Detail)
+	xd, err := GetXMLDetails(ev.Detail, extContact)
 	msg.CotEvent.Detail.XmlDetail = xd.AsXMLString()
+
 	return &CotMessage{TakMessage: msg, Detail: xd}, err
 }
 
@@ -174,7 +182,8 @@ func EventToProtoExt(ev *Event, from, scope string) (*CotMessage, error) {
 	return c, err
 }
 
-func GetXmlDetails(d *Node) (*Node, error) {
+//nolint:nilnil
+func GetXMLDetails(d *Node, withContacts bool) (*Node, error) {
 	if d == nil {
 		return nil, nil
 	}
@@ -188,7 +197,14 @@ func GetXmlDetails(d *Node) (*Node, error) {
 	if err != nil {
 		return nil, err
 	}
-	details.RemoveTags("contact", "__group", "precisionlocation", "status", "takv", "track")
+
+	removeFields := []string{"contact", "__group", "precisionlocation", "status", "takv", "track"}
+
+	if withContacts {
+		details.RemoveTags(removeFields[1:]...)
+	} else {
+		details.RemoveTags(removeFields...)
+	}
 	return details, nil
 }
 

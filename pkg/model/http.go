@@ -6,13 +6,12 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-
 	"github.com/kdudkov/goatak/pkg/cot"
 	"github.com/kdudkov/goatak/pkg/cotproto"
 )
 
 type WebUnit struct {
-	Uid            string    `json:"uid"`
+	UID            string    `json:"uid"`
 	Callsign       string    `json:"callsign"`
 	Category       string    `json:"category"`
 	Team           string    `json:"team"`
@@ -35,13 +34,13 @@ type WebUnit struct {
 	Color          string    `json:"color"`
 	Icon           string    `json:"icon"`
 	ParentCallsign string    `json:"parent_callsign"`
-	ParentUid      string    `json:"parent_uid"`
+	ParentUID      string    `json:"parent_uid"`
 	Local          bool      `json:"local"`
 	Send           bool      `json:"send"`
 }
 
 type Contact struct {
-	Uid          string `json:"uid"`
+	UID          string `json:"uid"`
 	Callsign     string `json:"callsign"`
 	Team         string `json:"team"`
 	Role         string `json:"role"`
@@ -63,7 +62,7 @@ func (i *Item) ToWeb() *WebUnit {
 	defer i.mx.RUnlock()
 
 	w := &WebUnit{
-		Uid:            i.uid,
+		UID:            i.uid,
 		Category:       i.class,
 		Callsign:       i.callsign,
 		Time:           cot.TimeFromMillis(evt.GetSendTime()),
@@ -80,7 +79,7 @@ func (i *Item) ToWeb() *WebUnit {
 		Team:           evt.GetDetail().GetGroup().GetName(),
 		Role:           evt.GetDetail().GetGroup().GetRole(),
 		Sidc:           getSIDC(i.cottype),
-		ParentUid:      i.parentUid,
+		ParentUID:      i.parentUID,
 		ParentCallsign: i.parentCallsign,
 		Color:          fmt.Sprintf("#%.6x", i.color&0xffffff),
 		Icon:           i.icon,
@@ -101,14 +100,16 @@ func (i *Item) ToWeb() *WebUnit {
 	}
 
 	w.Text = i.msg.Detail.GetFirst("remarks").GetText()
+
 	return w
 }
 
+//nolint:exhaustruct
 func (w *WebUnit) ToMsg() *cot.CotMessage {
 	msg := &cotproto.TakMessage{
 		CotEvent: &cotproto.CotEvent{
 			Type:      w.Type,
-			Uid:       w.Uid,
+			Uid:       w.UID,
 			SendTime:  cot.TimeToMillis(w.SendTime),
 			StartTime: cot.TimeToMillis(w.StartTime),
 			StaleTime: cot.TimeToMillis(w.StaleTime),
@@ -116,8 +117,8 @@ func (w *WebUnit) ToMsg() *cot.CotMessage {
 			Lat:       w.Lat,
 			Lon:       w.Lon,
 			Hae:       w.Hae,
-			Ce:        9999999,
-			Le:        9999999,
+			Ce:        cot.NotNum,
+			Le:        cot.NotNum,
 			Detail: &cotproto.Detail{
 				Contact: &cotproto.Contact{Callsign: w.Callsign},
 				PrecisionLocation: &cotproto.PrecisionLocation{
@@ -128,17 +129,21 @@ func (w *WebUnit) ToMsg() *cot.CotMessage {
 		},
 	}
 
-	xd := cot.NewXmlDetails()
-	if w.ParentUid != "" {
-		xd.AddPpLink(w.ParentUid, "", w.ParentCallsign)
+	xd := cot.NewXMLDetails()
+	if w.ParentUID != "" {
+		xd.AddPpLink(w.ParentUID, "", w.ParentCallsign)
 	}
+
 	xd.AddOrChangeChild("status", map[string]string{"readiness": "true"})
+
 	if w.Text != "" {
 		xd.AddChild("remarks", nil, w.Text)
 	}
+
 	msg.GetCotEvent().Detail.XmlDetail = xd.AsXMLString()
 
 	zero := time.Unix(0, 0)
+
 	if msg.GetCotEvent().GetUid() == "" {
 		msg.CotEvent.Uid = uuid.New().String()
 	}
@@ -157,11 +162,13 @@ func (w *WebUnit) ToMsg() *cot.CotMessage {
 
 	return &cot.CotMessage{
 		From:       "",
+		Scope:      "",
 		TakMessage: msg,
 		Detail:     xd,
 	}
 }
 
+//nolint:gomnd
 func getSIDC(fn string) string {
 	if !strings.HasPrefix(fn, "a-") {
 		return ""
@@ -182,6 +189,7 @@ func getSIDC(fn string) string {
 			if len(c) > 1 {
 				break
 			}
+
 			sidc += c
 		}
 	}
@@ -189,5 +197,6 @@ func getSIDC(fn string) string {
 	if len(sidc) < 12 {
 		sidc += strings.Repeat("-", 10-len(sidc))
 	}
+
 	return strings.ToUpper(sidc)
 }

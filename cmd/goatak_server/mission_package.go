@@ -46,7 +46,6 @@ func (m *MissionPackage) Create() ([]byte, error) {
 	zipW := zip.NewWriter(buff)
 
 	f, err := zipW.Create("MANIFEST/manifest.xml")
-
 	if err != nil {
 		return nil, err
 	}
@@ -86,7 +85,6 @@ type FsFile struct {
 
 func NewFsFile(name, path string) (*FsFile, error) {
 	dat, err := os.ReadFile(path)
-
 	if err != nil {
 		return nil, err
 	}

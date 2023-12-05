@@ -45,7 +45,7 @@ type PackageInfo struct {
 }
 
 func (pm *PackageManager) Start() error {
-	if err := os.MkdirAll(pm.baseDir, 0777); err != nil {
+	if err := os.MkdirAll(pm.baseDir, 0o777); err != nil {
 		return err
 	}
 
@@ -168,7 +168,7 @@ func (pm *PackageManager) GetFilePath(hash string) string {
 func (pm *PackageManager) SaveFile(hash, fname string, reader io.Reader) (int64, error) {
 	dir := filepath.Join(pm.baseDir, hash)
 	if !fileExists(dir) {
-		if err := os.MkdirAll(dir, 0777); err != nil {
+		if err := os.MkdirAll(dir, 0o777); err != nil {
 			return 0, err
 		}
 	}

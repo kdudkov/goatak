@@ -39,7 +39,7 @@ build: clean dep
 
 .PHONY: lint
 lint:
-	golangci-lint run ./... -p bugs -D gosec --fix
+	golangci-lint run ./... || grep -c "<error " report.xml
 
 .PHONY: gox
 gox: clean dep

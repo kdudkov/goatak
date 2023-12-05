@@ -3,10 +3,10 @@ package main
 import (
 	"embed"
 	"encoding/json"
-	"github.com/aofei/air"
-	"github.com/google/uuid"
 	"runtime/pprof"
 
+	"github.com/aofei/air"
+	"github.com/google/uuid"
 	"github.com/kdudkov/goatak/pkg/cot"
 	"github.com/kdudkov/goatak/pkg/model"
 	"github.com/kdudkov/goatak/staticfiles"
@@ -169,8 +169,8 @@ func addMessageHandler(app *App) func(req *air.Request, res *air.Response) error
 			return err
 		}
 
-		if msg.Id == "" {
-			msg.Id = uuid.NewString()
+		if msg.ID == "" {
+			msg.ID = uuid.NewString()
 		}
 		app.SendMsg(model.MakeChatMessage(msg))
 		app.messages.Add(msg)

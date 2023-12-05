@@ -1,11 +1,12 @@
 package main
 
 import (
+	"os"
+	"strings"
+
 	"github.com/kdudkov/goatak/pkg/cot"
 	"github.com/kdudkov/goatak/pkg/model"
 	"google.golang.org/protobuf/proto"
-	"os"
-	"strings"
 )
 
 type EventProcessor struct {
@@ -78,14 +79,13 @@ func (app *App) chatProcessor(msg *cot.CotMessage) {
 		return
 	}
 	if c.From == "" {
-		c.From = app.items.GetCallsign(c.FromUid)
+		c.From = app.items.GetCallsign(c.FromUID)
 	}
 	app.Logger.Infof("%s", c)
 	app.messages.Add(c)
 }
 
 func (app *App) chatReceiptProcessor(msg *cot.CotMessage) {
-
 }
 
 func (app *App) saveItemProcessor(msg *cot.CotMessage) {
@@ -126,7 +126,7 @@ func logMessage(msg *cot.CotMessage, fname string) error {
 		return nil
 	}
 
-	f, err := os.OpenFile(fname, os.O_RDWR|os.O_APPEND|os.O_CREATE, 0666)
+	f, err := os.OpenFile(fname, os.O_RDWR|os.O_APPEND|os.O_CREATE, 0o666)
 	if err != nil {
 		return err
 	}

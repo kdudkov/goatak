@@ -5,10 +5,11 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
-	"github.com/kdudkov/goatak/pkg/model"
 	"io"
 	"net/http"
 	"time"
+
+	"github.com/kdudkov/goatak/pkg/model"
 )
 
 const renewContacts = time.Second * 30
@@ -78,6 +79,7 @@ func (r *RemoteApi) getContacts() ([]*model.Contact, error) {
 
 	unm := json.NewDecoder(b)
 	err = unm.Decode(&dat)
+
 	return dat, err
 }
 
@@ -94,6 +96,7 @@ func (r *RemoteApi) getTest() error {
 
 	dat, err := io.ReadAll(b)
 	fmt.Println(string(dat))
+
 	return err
 }
 
@@ -103,8 +106,8 @@ func (app *App) periodicGetter(ctx context.Context) {
 
 	d, _ := app.remoteApi.getContacts()
 	for _, c := range d {
-		app.Logger.Debugf("contact %s %s", c.Uid, c.Callsign)
-		app.messages.Contacts.Store(c.Uid, c)
+		app.Logger.Debugf("contact %s %s", c.UID, c.Callsign)
+		app.messages.Contacts.Store(c.UID, c)
 	}
 
 	for ctx.Err() == nil {
@@ -115,12 +118,13 @@ func (app *App) periodicGetter(ctx context.Context) {
 			dat, err := app.remoteApi.getContacts()
 			if err != nil {
 				app.Logger.Warnf("error getting contacts: %s", err.Error())
+
 				continue
 			}
 
 			for _, c := range dat {
-				app.Logger.Debugf("contact %s %s", c.Uid, c.Callsign)
-				app.messages.Contacts.Store(c.Uid, c)
+				app.Logger.Debugf("contact %s %s", c.UID, c.Callsign)
+				app.messages.Contacts.Store(c.UID, c)
 			}
 		}
 	}

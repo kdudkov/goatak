@@ -91,7 +91,7 @@ func getVersionConfigHandler(app *App) func(req *air.Request, res *air.Response)
 
 func getEndpointsHandler(app *App) func(req *air.Request, res *air.Response) error {
 	return func(req *air.Request, res *air.Response) error {
-		//secAgo := getIntParam(req, "secAgo", 0)
+		// secAgo := getIntParam(req, "secAgo", 0)
 
 		data := make([]map[string]any, 0)
 
@@ -122,7 +122,7 @@ func getContactsHandler(app *App) func(req *air.Request, res *air.Response) erro
 		app.items.ForEach(func(item *model.Item) bool {
 			if item.GetClass() == model.CONTACT {
 				c := &model.Contact{
-					Uid:      item.GetUID(),
+					UID:      item.GetUID(),
 					Callsign: item.GetCallsign(),
 					Team:     item.GetMsg().GetTeam(),
 					Role:     item.GetMsg().GetRole(),
@@ -240,6 +240,7 @@ func getUploadHandler(app *App) func(req *air.Request, res *air.Response) error 
 		return nil
 	}
 }
+
 func getMetadataGetHandler(app *App) func(req *air.Request, res *air.Response) error {
 	return func(req *air.Request, res *air.Response) error {
 		hash := getStringParam(req, "hash")

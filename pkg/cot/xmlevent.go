@@ -14,7 +14,7 @@ type Event struct {
 	Access  string    `xml:"access,attr,omitempty"`
 	Qos     string    `xml:"qos,attr,omitempty"`
 	Opex    string    `xml:"opex,attr,omitempty"`
-	Uid     string    `xml:"uid,attr"`
+	UID     string    `xml:"uid,attr"`
 	Time    time.Time `xml:"time,attr"`
 	Start   time.Time `xml:"start,attr"`
 	Stale   time.Time `xml:"stale,attr"`
@@ -27,7 +27,8 @@ func (e *Event) String() string {
 	if e == nil {
 		return "nil"
 	}
-	return fmt.Sprintf("version=%s, type=%s, uid=%s, how=%s, stale=%s, detail={%s}", e.Version, e.Type, e.Uid, e.How, e.Stale.Sub(e.Start), e.Detail)
+
+	return fmt.Sprintf("version=%s, type=%s, uid=%s, how=%s, stale=%s, detail={%s}", e.Version, e.Type, e.UID, e.How, e.Stale.Sub(e.Start), e.Detail)
 }
 
 func (e *Event) AddDetail() *Node {
@@ -87,10 +88,10 @@ type Point struct {
 	Le      float64  `xml:"le,attr"`
 }
 
-func XmlBasicMsg(typ string, uid string, stale time.Duration) *Event {
+func XMLBasicMsg(typ string, uid string, stale time.Duration) *Event {
 	return &Event{
 		Version: "2.0",
-		Uid:     uid,
+		UID:     uid,
 		Type:    typ,
 		Time:    time.Now().UTC(),
 		Start:   time.Now().UTC(),
@@ -99,32 +100,35 @@ func XmlBasicMsg(typ string, uid string, stale time.Duration) *Event {
 			Lat: 0,
 			Lon: 0,
 			Hae: 0,
-			Ce:  9999999,
-			Le:  9999999,
+			Ce:  NotNum,
+			Le:  NotNum,
 		},
 	}
 }
 
 func VersionSupportMsg(ver int8) *Event {
 	v := strconv.Itoa(int(ver))
-	ev := XmlBasicMsg("t-x-takp-v", "protouid", time.Minute)
+	ev := XMLBasicMsg("t-x-takp-v", "protouid", time.Minute)
 	ev.How = "m-g"
 	ev.AddDetail().AddOrChangeChild("TakControl", nil).AddOrChangeChild("TakProtocolSupport", map[string]string{"version": v})
+
 	return ev
 }
 
 func VersionReqMsg(ver int8) *Event {
 	v := strconv.Itoa(int(ver))
-	ev := XmlBasicMsg("t-x-takp-q", "protouid", time.Minute)
+	ev := XMLBasicMsg("t-x-takp-q", "protouid", time.Minute)
 	ev.How = "m-g"
 	ev.AddDetail().AddOrChangeChild("TakControl", nil).AddOrChangeChild("TakRequest", map[string]string{"version": v})
+
 	return ev
 }
 
 func ProtoChangeOkMsg() *Event {
-	ev := XmlBasicMsg("t-x-takp-r", "protouid", time.Minute)
+	ev := XMLBasicMsg("t-x-takp-r", "protouid", time.Minute)
 	ev.How = "m-g"
 	ev.AddDetail().AddOrChangeChild("TakControl", nil).AddOrChangeChild("TakResponse", map[string]string{"status": "true"})
+
 	return ev
 }
 

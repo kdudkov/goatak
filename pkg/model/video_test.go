@@ -21,17 +21,16 @@ func TestParse(t *testing.T) {
 
 	for _, td := range data {
 		t.Run("parse_"+td.url, func(t *testing.T) {
-
-			proto, addr, port, path := parseUrl(td.url)
+			proto, addr, port, path := parseURL(td.url)
 
 			if proto != td.proto || addr != td.addr || port != td.port || path != td.path {
 				t.Errorf("%s -> %s %s %d %s", td.url, proto, addr, port, path)
 			}
 
-			newUrl := toUrl(proto, addr, port, path)
+			newURL := toURL(proto, addr, port, path)
 
-			if newUrl != td.url {
-				t.Errorf("%s %s", td.url, newUrl)
+			if newURL != td.url {
+				t.Errorf("%s %s", td.url, newURL)
 			}
 		})
 	}

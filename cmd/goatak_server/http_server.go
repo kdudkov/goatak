@@ -12,12 +12,11 @@ import (
 	"time"
 
 	"github.com/aofei/air"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
-
 	"github.com/kdudkov/goatak/internal/client"
 	"github.com/kdudkov/goatak/pkg/cot"
 	"github.com/kdudkov/goatak/pkg/model"
 	"github.com/kdudkov/goatak/staticfiles"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 //go:embed templates
@@ -66,7 +65,7 @@ func getAdminApi(app *App, addr string, renderer *staticfiles.Renderer, webtakRo
 	adminApi := air.New()
 	adminApi.Address = addr
 	adminApi.NotFoundHandler = getNotFoundHandler()
-	//adminApi.Gases = []air.Gas{LoggerGas(app.Logger, "admin_api")}
+	// adminApi.Gases = []air.Gas{LoggerGas(app.Logger, "admin_api")}
 
 	staticfiles.EmbedFiles(adminApi, "/static")
 	adminApi.GET("/", getIndexHandler(app, renderer))

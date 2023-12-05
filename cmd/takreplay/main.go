@@ -13,9 +13,9 @@ import (
 )
 
 func main() {
-	var format = flag.String("format", "", "dump format (text|json|gpx)")
-	var uid = flag.String("uid", "", "uid to show")
-	var typ = flag.String("type", "", "type to show")
+	format := flag.String("format", "", "dump format (text|json|gpx)")
+	uid := flag.String("uid", "", "uid to show")
+	typ := flag.String("type", "", "type to show")
 
 	flag.Parse()
 
@@ -28,7 +28,6 @@ func main() {
 	}
 
 	f, err := os.Open(file)
-
 	if err != nil {
 		panic(err)
 	}

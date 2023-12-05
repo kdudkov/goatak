@@ -7,7 +7,7 @@ import (
 
 const escape = "\x1b"
 
-// Base attributes
+// Base attributes.
 const (
 	Reset byte = iota
 	Bold
@@ -21,7 +21,7 @@ const (
 	CrossedOut
 )
 
-// Foreground text colors
+// Foreground text colors.
 const (
 	FgBlack byte = iota + 30
 	FgRed
@@ -33,7 +33,7 @@ const (
 	FgWhite
 )
 
-// Foreground Hi-Intensity text colors
+// Foreground Hi-Intensity text colors.
 const (
 	FgHiBlack byte = iota + 90
 	FgHiRed
@@ -45,7 +45,7 @@ const (
 	FgHiWhite
 )
 
-// Background text colors
+// Background text colors.
 const (
 	BgBlack byte = iota + 40
 	BgRed
@@ -57,7 +57,7 @@ const (
 	BgWhite
 )
 
-// Background Hi-Intensity text colors
+// Background Hi-Intensity text colors.
 const (
 	BgHiBlack byte = iota + 100
 	BgHiRed

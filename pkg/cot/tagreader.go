@@ -15,13 +15,14 @@ type TagReader struct {
 func NewTagReader(r io.Reader) *TagReader {
 	if rb, ok := r.(io.ByteReader); ok {
 		return &TagReader{r: rb}
-	} else {
-		return &TagReader{r: bufio.NewReader(r)}
 	}
+
+	return &TagReader{r: bufio.NewReader(r)}
 }
 
 func (er *TagReader) ReadTag() (string, []byte, error) {
 	var buf bytes.Buffer
+
 	var saved bytes.Buffer
 
 	// start tag
@@ -30,6 +31,7 @@ func (er *TagReader) ReadTag() (string, []byte, error) {
 		if err != nil {
 			return "", nil, err
 		}
+
 		if b == '<' {
 			break
 		}
@@ -55,6 +57,7 @@ func (er *TagReader) ReadTag() (string, []byte, error) {
 
 	tag := buf.String()
 	selfClosed := strings.HasSuffix(tag, "/>")
+
 	if strings.HasPrefix(tag, "</") {
 		return "", nil, fmt.Errorf("closed tag")
 	}
@@ -82,12 +85,14 @@ func (er *TagReader) ReadTag() (string, []byte, error) {
 		if err != nil {
 			return tag, saved.Bytes(), err
 		}
+
 		saved.WriteByte(b)
 		buf.WriteByte(b)
 
 		if b == '<' {
 			buf.Reset()
 			buf.WriteByte('<')
+
 			continue
 		}
 

@@ -15,6 +15,7 @@ func (u *User) GetLogin() string {
 	if u == nil {
 		return ""
 	}
+
 	return u.Login
 }
 
@@ -22,6 +23,7 @@ func (u *User) GetScope() string {
 	if u == nil {
 		return ""
 	}
+
 	return u.Scope
 }
 
@@ -29,6 +31,7 @@ func (u *User) CanSeeScope(scope string) bool {
 	if u == nil {
 		return true
 	}
+
 	if u.Scope == "" || u.Scope == scope {
 		return true
 	}

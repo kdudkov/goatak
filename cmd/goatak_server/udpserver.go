@@ -2,11 +2,11 @@ package main
 
 import (
 	"encoding/xml"
-	"google.golang.org/protobuf/proto"
 	"net"
 
 	"github.com/kdudkov/goatak/pkg/cot"
 	"github.com/kdudkov/goatak/pkg/cotproto"
+	"google.golang.org/protobuf/proto"
 )
 
 const magicByte = 0xbf
@@ -14,7 +14,6 @@ const magicByte = 0xbf
 func (app *App) ListenUDP(addr string) error {
 	app.Logger.Infof("listening UDP at %s", addr)
 	p, err := net.ListenPacket("udp", addr)
-
 	if err != nil {
 		app.Logger.Error(err)
 		return err

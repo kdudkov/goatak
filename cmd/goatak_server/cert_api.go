@@ -15,7 +15,6 @@ import (
 	"github.com/air-gases/authenticator"
 	"github.com/aofei/air"
 	"github.com/google/uuid"
-
 	"github.com/kdudkov/goatak/pkg/tlsutil"
 )
 
@@ -92,7 +91,6 @@ func signClientCert(clientCSR *x509.CertificateRequest, serverCert *x509.Certifi
 	}
 
 	certBytes, err := x509.CreateCertificate(rand.Reader, &template, serverCert, clientCSR.PublicKey, privateKey)
-
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate certificate, error: %w", err)
 	}
@@ -149,7 +147,6 @@ func getSignHandler(app *App) func(req *air.Request, res *air.Response) error {
 		}
 
 		p12Bytes, err := tlsutil.MakeP12TrustStore(certs, p12Password)
-
 		if err != nil {
 			app.Logger.Errorf("error making p12: %v", err)
 			return err

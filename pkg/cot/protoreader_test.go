@@ -3,21 +3,20 @@ package cot
 import (
 	"bufio"
 	"bytes"
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestProtoRW(t *testing.T) {
 	msg := MakeDpMsg("testuid", "a-f-G", "test", 10, 20)
 
 	b, err := MakeProtoPacket(msg)
-
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	msg1, err := ReadProto(bufio.NewReader(bytes.NewReader(b)))
-
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -3,9 +3,10 @@ package main
 import (
 	"crypto/tls"
 	"fmt"
+	"net"
+
 	"github.com/kdudkov/goatak/pkg/tlsutil"
 	"github.com/spf13/viper"
-	"net"
 )
 
 func (app *App) connect() (net.Conn, error) {

@@ -2,24 +2,26 @@ package model
 
 import (
 	"fmt"
+	"testing"
+	"time"
+
 	"github.com/kdudkov/goatak/pkg/cot"
 	"github.com/kdudkov/goatak/pkg/cotproto"
 	"github.com/stretchr/testify/assert"
-	"testing"
-	"time"
 )
 
-func getChatMsg(msgId, uidFrom, userFrom, uidTo, userTo, text string) *cot.CotMessage {
+func getChatMsg(msgID, uidFrom, userFrom, uidTo, userTo, text string) *cot.CotMessage {
 	d := fmt.Sprintf("<__chat parent=\"RootContactGroup\" groupOwner=\"false\" messageId=\"%[1]s\" chatroom=\"%[5]s\" id=\"%[4]s\" senderCallsign=\"%[3]s\">"+
 		"<chatgrp uid0=\"%[2]s\" uid1=\"%[4]s\" id=\"%[4]s\"/></__chat>"+
 		"<link uid=\"%[2]s\" type=\"a-f-G-U-C\" relation=\"p-p\"/>"+
 		"<__serverdestination destinations=\"1.1.1.1:4242:tcp:%[2]s\"/>"+
 		"<remarks source=\"BAO.F.ATAK.%[2]s\" to=\"%[4]s\" time=\"2023-10-21T20:28:58.991Z\">%[6]s</remarks>"+
-		"<marti><dest callsign=\"%[5]s\"/></marti>", msgId, uidFrom, userFrom, uidTo, userTo, text)
+		"<marti><dest callsign=\"%[5]s\"/></marti>", msgID, uidFrom, userFrom, uidTo, userTo, text)
 
-	m := cot.BasicMsg("b-t-f", fmt.Sprintf("GeoChat.%s.%s.%s", uidFrom, uidTo, msgId), time.Minute)
+	m := cot.BasicMsg("b-t-f", fmt.Sprintf("GeoChat.%s.%s.%s", uidFrom, uidTo, msgID), time.Minute)
 	xd, _ := cot.DetailsFromString(d)
 	m.CotEvent.Detail = &cotproto.Detail{XmlDetail: xd.AsXMLString()}
+
 	return &cot.CotMessage{TakMessage: m, Detail: xd}
 }
 
@@ -29,16 +31,16 @@ func TestChatFromMe(t *testing.T) {
 	cm := MsgToChat(msg)
 
 	assert.Equal(t, "user1", cm.From)
-	assert.Equal(t, "uid1", cm.FromUid)
+	assert.Equal(t, "uid1", cm.FromUID)
 	assert.Equal(t, "user2", cm.Chatroom)
-	assert.Equal(t, "uid2", cm.ToUid)
+	assert.Equal(t, "uid2", cm.ToUID)
 	assert.True(t, cm.Direct)
 
 	messages := NewMessages("uid1")
 	messages.Add(cm)
 	ch, ok := messages.Chats["uid2"]
 	assert.True(t, ok)
-	assert.Equal(t, "uid2", ch.Uid)
+	assert.Equal(t, "uid2", ch.UID)
 	assert.Equal(t, "user2", ch.From)
 }
 
@@ -48,16 +50,16 @@ func TestChatTomMe(t *testing.T) {
 	cm := MsgToChat(msg)
 
 	assert.Equal(t, "user1", cm.From)
-	assert.Equal(t, "uid1", cm.FromUid)
+	assert.Equal(t, "uid1", cm.FromUID)
 	assert.Equal(t, "user2", cm.Chatroom)
-	assert.Equal(t, "uid2", cm.ToUid)
+	assert.Equal(t, "uid2", cm.ToUID)
 	assert.True(t, cm.Direct)
 
 	messages := NewMessages("uid2")
 	messages.Add(cm)
 	ch, ok := messages.Chats["uid1"]
 	assert.True(t, ok)
-	assert.Equal(t, "uid1", ch.Uid)
+	assert.Equal(t, "uid1", ch.UID)
 	assert.Equal(t, "user1", ch.From)
 }
 
@@ -110,8 +112,8 @@ func TestMsgRed(t *testing.T) {
 	cm := MsgToChat(&msg)
 
 	assert.Equal(t, "user1", cm.From)
-	assert.Equal(t, "uid1", cm.FromUid)
-	assert.Equal(t, "Red", cm.ToUid)
+	assert.Equal(t, "uid1", cm.FromUID)
+	assert.Equal(t, "Red", cm.ToUID)
 	assert.Equal(t, "Red", cm.Chatroom)
 	assert.False(t, cm.Direct)
 	assert.Equal(t, "Roger", cm.Text)
@@ -120,13 +122,13 @@ func TestMsgRed(t *testing.T) {
 	messages.Add(cm)
 	ch, ok := messages.Chats["Red"]
 	assert.True(t, ok)
-	assert.Equal(t, "Red", ch.Uid)
+	assert.Equal(t, "Red", ch.UID)
 	assert.Equal(t, "Red", ch.From)
 
 	messages2 := NewMessages("uid1")
 	messages2.Add(cm)
 	ch, ok = messages2.Chats["Red"]
 	assert.True(t, ok)
-	assert.Equal(t, "Red", ch.Uid)
+	assert.Equal(t, "Red", ch.UID)
 	assert.Equal(t, "Red", ch.From)
 }

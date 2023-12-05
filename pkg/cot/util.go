@@ -8,6 +8,8 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
+const NotNum = 9999999
+
 func BasicMsg(typ string, uid string, stale time.Duration) *cotproto.TakMessage {
 	return &cotproto.TakMessage{
 		CotEvent: &cotproto.CotEvent{
@@ -23,8 +25,8 @@ func BasicMsg(typ string, uid string, stale time.Duration) *cotproto.TakMessage 
 			Lat:       0,
 			Lon:       0,
 			Hae:       0,
-			Ce:        9999999,
-			Le:        9999999,
+			Ce:        NotNum,
+			Le:        NotNum,
 			Detail:    nil,
 		},
 	}
@@ -43,7 +45,7 @@ func MakePong() *cotproto.TakMessage {
 func MakeOfflineMsg(uid string, typ string) *cotproto.TakMessage {
 	msg := BasicMsg("t-x-d-d", uuid.New().String(), time.Minute*3)
 	msg.CotEvent.How = "h-g-i-g-o"
-	xd := NewXmlDetails()
+	xd := NewXMLDetails()
 	xd.AddPpLink(uid, typ, "")
 	msg.CotEvent.Detail = &cotproto.Detail{XmlDetail: xd.AsXMLString()}
 	return msg
@@ -54,7 +56,7 @@ func MakeDpMsg(uid string, typ string, name string, lat float64, lon float64) *c
 	msg.CotEvent.How = "h-e"
 	msg.CotEvent.Lat = lat
 	msg.CotEvent.Lon = lon
-	xd := NewXmlDetails()
+	xd := NewXMLDetails()
 	xd.AddPpLink(uid, typ, "")
 	msg.CotEvent.Detail = &cotproto.Detail{
 		XmlDetail: xd.AsXMLString(),
@@ -71,13 +73,14 @@ func CloneMessageNoCoords(msg *cotproto.TakMessage) *cotproto.TakMessage {
 	data, _ := proto.Marshal(msg)
 	msg1 := new(cotproto.TakMessage)
 	_ = proto.Unmarshal(data, msg1)
+
 	if evt := msg1.GetCotEvent(); evt != nil {
 		evt.Lat = 0
 		evt.Lon = 0
 		evt.Hae = 0
-		evt.Ce = 9999999
-		evt.Le = 9999999
+		evt.Ce = NotNum
+		evt.Le = NotNum
 	}
-	msg1.GetCotEvent().GetLon()
+
 	return msg1
 }

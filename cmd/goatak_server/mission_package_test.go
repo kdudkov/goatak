@@ -1,9 +1,10 @@
 package main
 
 import (
-	"github.com/google/uuid"
 	"os"
 	"testing"
+
+	"github.com/google/uuid"
 )
 
 func TestMissionPackage_Create(t *testing.T) {
@@ -20,7 +21,6 @@ func TestMissionPackage_Create(t *testing.T) {
 	mp.AddFile(conf)
 
 	dat, err := mp.Create()
-
 	if err != nil {
 		t.Error(err)
 	}

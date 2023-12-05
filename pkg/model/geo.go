@@ -1,3 +1,4 @@
+//nolint:gomnd
 package model
 
 import (
@@ -24,6 +25,7 @@ func DistBea(lat1, lon1, lat2, lon2 float64) (float64, float64) {
 	a := math.Sin(deltaF/2)*math.Sin(deltaF/2) + math.Cos(lat1*toRadian)*math.Cos(lat2*toRadian)*math.Sin(deltaL/2)*math.Sin(deltaL/2)
 	c := 2 * math.Atan2(math.Sqrt(a), math.Sqrt(1-a))
 	dist := R * c
+
 	return dist, bea
 }
 
@@ -36,12 +38,13 @@ type Pos struct {
 }
 
 func NewPos(lat, lon float64) *Pos {
-	return &Pos{lon: lon, lat: lat, mx: sync.RWMutex{}}
+	return &Pos{lon: lon, lat: lat, speed: 0, time: time.Now(), mx: sync.RWMutex{}}
 }
 
 func (p *Pos) Get() (float64, float64) {
 	if p == nil {
 		return 0, 0
 	}
+
 	return p.lat, p.lon
 }

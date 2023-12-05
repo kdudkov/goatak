@@ -7,10 +7,9 @@ import (
 	"os"
 	"strings"
 
+	"github.com/kdudkov/goatak/internal/model"
 	"golang.org/x/crypto/bcrypt"
 	"gopkg.in/yaml.v3"
-
-	"github.com/kdudkov/goatak/internal/model"
 )
 
 func read(fn string) []*model.User {
@@ -36,6 +35,7 @@ func write(fn string, users []*model.User) error {
 	defer f.Close()
 
 	enc := yaml.NewEncoder(f)
+
 	return enc.Encode(users)
 }
 
@@ -52,10 +52,12 @@ func main() {
 	if *user == "" {
 		fmt.Printf("%-20s %-15s %-8s %-12s %-8s %s\n", "Login", "Callsign", "Team", "Role", "Scope", "Read scope")
 		fmt.Println(strings.Repeat("-", 90))
+
 		for _, user := range users {
 			fmt.Printf("%-20s %-15s %-8s %-12s %-8s %s\n",
 				user.Login, user.Callsign, user.Team, user.Role, user.Scope, strings.Join(user.ReadScope, ","))
 		}
+
 		return
 	}
 
@@ -69,8 +71,10 @@ func main() {
 
 		if p1 != p2 {
 			fmt.Println("\npassword mismatch")
+
 			return
 		}
+
 		pass = p1
 	}
 
@@ -82,9 +86,11 @@ func main() {
 		if u.Login == *user {
 			found = true
 			u.Password = string(bpass)
+
 			if *scope != "" {
 				u.Scope = *scope
 			}
+
 			break
 		}
 	}
@@ -94,6 +100,7 @@ func main() {
 		if sc == "" {
 			sc = "test"
 		}
+
 		users = append(users, &model.User{Login: *user, Password: string(bpass), Scope: sc})
 	}
 

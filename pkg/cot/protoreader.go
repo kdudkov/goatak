@@ -3,10 +3,10 @@ package cot
 import (
 	"bufio"
 	"encoding/binary"
-	"google.golang.org/protobuf/proto"
 	"io"
 
 	"github.com/kdudkov/goatak/pkg/cotproto"
+	"google.golang.org/protobuf/proto"
 )
 
 const magic byte = 0xbf
@@ -37,6 +37,7 @@ func MakeProtoPacket(msg *cotproto.TakMessage) ([]byte, error) {
 	buf[0] = magic
 	n := binary.PutUvarint(buf[1:], uint64(len(buf1)))
 	copy(buf[1+n:], buf1)
+
 	return buf[:1+n+len(buf1)+1], nil
 }
 
@@ -46,6 +47,7 @@ func ReadProto(r *bufio.Reader) (*cotproto.TakMessage, error) {
 		if err != nil {
 			return nil, err
 		}
+
 		if b == magic {
 			break
 		}
@@ -65,5 +67,6 @@ func ReadProto(r *bufio.Reader) (*cotproto.TakMessage, error) {
 
 	msg := new(cotproto.TakMessage)
 	err = proto.Unmarshal(buf, msg)
+
 	return msg, err
 }

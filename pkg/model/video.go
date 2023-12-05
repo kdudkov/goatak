@@ -1,3 +1,4 @@
+//nolint:gomnd
 package model
 
 import (
@@ -23,47 +24,47 @@ type VideoConnections struct {
 
 type VideoConnections2 struct {
 	XMLName xml.Name `json:"-"`
-	Feeds   []*Feed2 `xml:"feed" json:"feeds"`
+	Feeds   []*Feed2 `json:"feeds" xml:"feed"`
 }
 
 type Feed struct {
-	Uid    string `xml:"uid" yaml:"uid"`
+	UID    string `xml:"uid"    yaml:"uid"`
 	Active bool   `xml:"active" yaml:"active,omitempty"`
-	Alias  string `xml:"alias" yaml:"alias"`
-	Typ    string `xml:"type" yaml:"type,omitempty"`
+	Alias  string `xml:"alias"  yaml:"alias"`
+	Typ    string `xml:"type"   yaml:"type,omitempty"`
 
-	Address             string  `xml:"address" yaml:"address,omitempty"`
-	Path                string  `xml:"path" yaml:"path,omitempty"`
+	Address             string  `xml:"address"             yaml:"address,omitempty"`
+	Path                string  `xml:"path"                yaml:"path,omitempty"`
 	PreferredMacAddress string  `xml:"preferredMacAddress" yaml:"preferredMacAddress,omitempty"`
-	Port                int     `xml:"port" yaml:"port,omitempty"`
-	RoverPort           int     `xml:"roverPort" yaml:"roverPort,omitempty"`
-	IgnoreEmbeddedKLV   bool    `xml:"ignoreEmbeddedKLV" yaml:"ignoreEmbeddedKLV,omitempty"`
-	Protocol            string  `xml:"protocol" yaml:"protocol,omitempty"`
-	Source              string  `xml:"source" yaml:"source,omitempty"`
-	Timeout             int     `xml:"timeout" yaml:"timeout,omitempty"`
-	Buffer              int     `xml:"buffer" yaml:"buffer,omitempty"`
-	RtspReliable        string  `xml:"rtspReliable" yaml:"rtspReliable,omitempty"`
-	Thumbnail           string  `xml:"thumbnail" yaml:"thumbnail,omitempty"`
-	Classification      string  `xml:"classification" yaml:"classification,omitempty"`
-	Latitude            float64 `xml:"latitude" yaml:"latitude,omitempty"`
-	Longitude           float64 `xml:"longitude" yaml:"longitude,omitempty"`
-	Fov                 string  `xml:"fov" yaml:"fov,omitempty"`
-	Heading             string  `xml:"heading" yaml:"heading,omitempty"`
-	Range               string  `xml:"range" yaml:"range,omitempty"`
+	Port                int     `xml:"port"                yaml:"port,omitempty"`
+	RoverPort           int     `xml:"roverPort"           yaml:"roverPort,omitempty"`
+	IgnoreEmbeddedKLV   bool    `xml:"ignoreEmbeddedKLV"   yaml:"ignoreEmbeddedKLV,omitempty"`
+	Protocol            string  `xml:"protocol"            yaml:"protocol,omitempty"`
+	Source              string  `xml:"source"              yaml:"source,omitempty"`
+	Timeout             int     `xml:"timeout"             yaml:"timeout,omitempty"`
+	Buffer              int     `xml:"buffer"              yaml:"buffer,omitempty"`
+	RtspReliable        string  `xml:"rtspReliable"        yaml:"rtspReliable,omitempty"`
+	Thumbnail           string  `xml:"thumbnail"           yaml:"thumbnail,omitempty"`
+	Classification      string  `xml:"classification"      yaml:"classification,omitempty"`
+	Latitude            float64 `xml:"latitude"            yaml:"latitude,omitempty"`
+	Longitude           float64 `xml:"longitude"           yaml:"longitude,omitempty"`
+	Fov                 string  `xml:"fov"                 yaml:"fov,omitempty"`
+	Heading             string  `xml:"heading"             yaml:"heading,omitempty"`
+	Range               string  `xml:"range"               yaml:"range,omitempty"`
 	User                string  `yaml:"user"`
 }
 
 type Feed2 struct {
-	Uid       string  `yaml:"uid" json:"uid,omitempty"`
-	Active    bool    `yaml:"active" json:"active"`
-	Alias     string  `yaml:"alias" json:"alias,omitempty"`
-	Url       string  `yaml:"url" json:"url,omitempty"`
-	Latitude  float64 `yaml:"lat,omitempty" json:"lat,omitempty"`
-	Longitude float64 `yaml:"lon,omitempty" json:"lon,omitempty"`
-	Fov       string  `yaml:"fov,omitempty" json:"fov,omitempty"`
-	Heading   string  `yaml:"heading,omitempty" json:"heading,omitempty"`
-	Range     string  `yaml:"range,omitempty" json:"range,omitempty"`
-	User      string  `yaml:"user" json:"-"`
+	UID       string  `json:"uid,omitempty"     yaml:"uid"`
+	Active    bool    `json:"active"            yaml:"active"`
+	Alias     string  `json:"alias,omitempty"   yaml:"alias"`
+	URL       string  `json:"url,omitempty"     yaml:"url"`
+	Latitude  float64 `json:"lat,omitempty"     yaml:"lat,omitempty"`
+	Longitude float64 `json:"lon,omitempty"     yaml:"lon,omitempty"`
+	Fov       string  `json:"fov,omitempty"     yaml:"fov,omitempty"`
+	Heading   string  `json:"heading,omitempty" yaml:"heading,omitempty"`
+	Range     string  `json:"range,omitempty"   yaml:"range,omitempty"`
+	User      string  `json:"-"                 yaml:"user"`
 }
 
 func (f *Feed2) ToFeed() *Feed {
@@ -71,10 +72,10 @@ func (f *Feed2) ToFeed() *Feed {
 		return nil
 	}
 
-	proto, addr, port, path := parseUrl(f.Url)
+	proto, addr, port, path := parseURL(f.URL)
 
 	return &Feed{
-		Uid:                 f.Uid,
+		UID:                 f.UID,
 		Active:              true,
 		Alias:               f.Alias,
 		Typ:                 "",
@@ -102,6 +103,7 @@ func (f *Feed2) ToFeed() *Feed {
 
 func (f *Feed2) WithUser(user string) *Feed2 {
 	f.User = user
+
 	return f
 }
 
@@ -112,9 +114,9 @@ func (f *Feed) ToFeed2() *Feed2 {
 
 	return &Feed2{
 		Active:    f.Active,
-		Uid:       f.Uid,
+		UID:       f.UID,
 		Alias:     f.Alias,
-		Url:       toUrl(f.Protocol, f.Address, f.Port, f.Path),
+		URL:       toURL(f.Protocol, f.Address, f.Port, f.Path),
 		Latitude:  f.Latitude,
 		Longitude: f.Longitude,
 		Fov:       f.Fov,
@@ -124,7 +126,8 @@ func (f *Feed) ToFeed2() *Feed2 {
 	}
 }
 
-func parseUrl(url string) (proto, addr string, port int, path string) {
+//nolint:nonamedreturns
+func parseURL(url string) (proto, addr string, port int, path string) {
 	u, err := url2.Parse(url)
 	if err != nil {
 		return
@@ -148,7 +151,7 @@ func parseUrl(url string) (proto, addr string, port int, path string) {
 	return
 }
 
-func toUrl(proto, addr string, port int, path string) string {
+func toURL(proto, addr string, port int, path string) string {
 	if p, ok := defports[proto]; (ok && p == port) || port == 0 {
 		return fmt.Sprintf("%s://%s%s", proto, addr, path)
 	} else {

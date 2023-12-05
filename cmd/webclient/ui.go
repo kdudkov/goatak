@@ -3,11 +3,12 @@ package main
 import (
 	"errors"
 	"fmt"
+	"sort"
+	"strings"
+
 	"github.com/jroimartin/gocui"
 	"github.com/kdudkov/goatak/pkg/cot"
 	"github.com/kdudkov/goatak/pkg/model"
-	"sort"
-	"strings"
 )
 
 func (app *App) layout(g *gocui.Gui) error {
@@ -19,6 +20,7 @@ func (app *App) layout(g *gocui.Gui) error {
 		}
 		v.Frame = true
 	}
+
 	if v, err := g.SetView("log", maxX/2, 0, maxX-1, maxY-1); err != nil {
 		if !errors.Is(err, gocui.ErrUnknownView) {
 			return err
@@ -26,6 +28,7 @@ func (app *App) layout(g *gocui.Gui) error {
 		v.Frame = true
 		v.Title = "Log"
 	}
+
 	return nil
 }
 
@@ -48,6 +51,7 @@ func (app *App) redraw() {
 				if i.GetClass() == model.CONTACT {
 					res = append(res, i.ToWeb())
 				}
+
 				return true
 			})
 
@@ -77,6 +81,7 @@ func (app *App) redraw() {
 
 func (app *App) LogMessage(msg *cot.CotMessage) {
 	var col []byte
+
 	var extra string
 
 	switch {
@@ -88,10 +93,12 @@ func (app *App) LogMessage(msg *cot.CotMessage) {
 		col = []byte{FgBlack, Bold}
 	case msg.GetType() == "t-x-d-d":
 		extra = "remove msg"
+
 		if msg.Detail != nil && msg.Detail.Has("link") {
 			uid := msg.Detail.GetFirst("link").GetAttr("uid")
 			typ := msg.Detail.GetFirst("link").GetAttr("type")
 			extra += fmt.Sprintf(" uid: %s, type %s", uid, typ)
+
 			if uid != "" {
 				if i := app.items.Get(uid); i != nil {
 					extra += " callsign " + i.GetCallsign()
@@ -100,6 +107,7 @@ func (app *App) LogMessage(msg *cot.CotMessage) {
 		} else {
 			extra += " " + msg.TakMessage.GetCotEvent().GetDetail().GetXmlDetail()
 		}
+
 		col = []byte{FgRed}
 	case msg.IsChat():
 		if c := model.MsgToChat(msg); c != nil {
@@ -107,12 +115,14 @@ func (app *App) LogMessage(msg *cot.CotMessage) {
 		} else {
 			extra = "invalid chat message"
 		}
+
 		col = []byte{FgYellow, Bold}
 	case msg.IsChatReceipt():
 		extra = "chat receipt"
 		col = []byte{FgYellow, Bold}
 	case strings.HasPrefix(msg.GetType(), "a-"):
 		extra = msg.GetCallsign()
+
 		switch msg.GetType()[2] {
 		case 'f':
 			col = []byte{FgBlue, Bold}

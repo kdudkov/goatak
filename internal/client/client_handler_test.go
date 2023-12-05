@@ -3,19 +3,20 @@ package client
 import (
 	"bytes"
 	"encoding/binary"
+	"io"
+	"testing"
+	"time"
+
 	"github.com/kdudkov/goatak/internal/model"
 	"github.com/kdudkov/goatak/pkg/cot"
 	"github.com/kdudkov/goatak/pkg/cotproto"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/proto"
-	"io"
-	"testing"
-	"time"
 )
 
 func TestRoute(t *testing.T) {
-	h := NewConnClientHandler("test", nil, &HandlerConfig{Uid: "111", IsClient: true})
+	h := NewConnClientHandler("test", nil, &HandlerConfig{UID: "111", IsClient: true})
 	h.ver = 1
 	h.user = &model.User{Scope: "aaa", ReadScope: []string{"ccc", "ddd"}}
 
@@ -42,7 +43,7 @@ func TestRoute(t *testing.T) {
 }
 
 func TestRouteChat(t *testing.T) {
-	h := NewConnClientHandler("test", nil, &HandlerConfig{Uid: "111", IsClient: true})
+	h := NewConnClientHandler("test", nil, &HandlerConfig{UID: "111", IsClient: true})
 	h.ver = 1
 	h.user = &model.User{Scope: "aaa"}
 
@@ -85,7 +86,6 @@ func passMsg(h *ConnClientHandler, msg *cot.CotMessage) (*cotproto.TakMessage, e
 		}
 
 		size, err := binary.ReadUvarint(bb)
-
 		if err != nil {
 			return nil, err
 		}

@@ -8,8 +8,11 @@ import (
 
 //go:embed types
 var strTypes string
-var types = make(map[string]*CotType)
-var Root = new(CotType)
+
+var (
+	types = make(map[string]*CotType)
+	Root  = new(CotType)
+)
 
 //go:embed messages
 var strMsgs string
@@ -32,6 +35,7 @@ func init() {
 		types[n[0]] = &CotType{
 			Code: n[0],
 			Name: n[1],
+			Next: nil,
 		}
 	}
 
@@ -39,14 +43,18 @@ func init() {
 		n := strings.Split(ct.Code, "-")
 		if len(n) == 1 {
 			Root.Next = append(Root.Next, ct)
+
 			continue
 		}
+
 		found := false
+
 		for i := len(n) - 1; i > 0; i-- {
 			t1 := strings.Join(n[:i], "-")
 			if ct1, ok := types[t1]; ok {
 				found = true
 				ct1.Next = append(ct1.Next, ct)
+
 				break
 			}
 		}
@@ -88,8 +96,9 @@ func GetNext(s string) []*CotType {
 	return types[s].Next
 }
 
-func GetMsgType(typ string) (name string, exact bool) {
+func GetMsgType(typ string) (string, bool) {
 	found := ""
+
 	for k, v := range messages {
 		if k == typ {
 			return v, true

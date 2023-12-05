@@ -1,7 +1,7 @@
 package repository
 
 import (
-	int "github.com/kdudkov/goatak/internal/model"
+	internal "github.com/kdudkov/goatak/internal/model"
 	"github.com/kdudkov/goatak/pkg/model"
 )
 
@@ -10,7 +10,7 @@ type UserRepository interface {
 	Stop()
 	CheckUserAuth(user, password string) bool
 	UserIsValid(user, sn string) bool
-	GetUser(username string) *int.User
+	GetUser(username string) *internal.User
 }
 
 type ItemsRepository interface {

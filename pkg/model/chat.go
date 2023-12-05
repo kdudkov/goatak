@@ -2,12 +2,12 @@ package model
 
 import (
 	"fmt"
-	"github.com/kdudkov/goatak/pkg/cotproto"
-	"golang.org/x/net/html"
 	"sync"
 	"time"
 
 	"github.com/kdudkov/goatak/pkg/cot"
+	"github.com/kdudkov/goatak/pkg/cotproto"
+	"golang.org/x/net/html"
 )
 
 type Messages struct {
@@ -19,32 +19,33 @@ type Messages struct {
 
 type Chat struct {
 	From     string         `json:"from"`
-	Uid      string         `json:"uid"`
+	UID      string         `json:"uid"`
 	Messages []*ChatMessage `json:"messages"`
 }
 
 type ChatMessage struct {
-	Id       string    `json:"message_id"`
+	ID       string    `json:"message_id"`
 	Time     time.Time `json:"time"`
 	Parent   string    `json:"parent"`
 	Chatroom string    `json:"chatroom"`
 	From     string    `json:"from"`
-	FromUid  string    `json:"from_uid"`
-	ToUid    string    `json:"to_uid"`
+	FromUID  string    `json:"from_uid"`
+	ToUID    string    `json:"to_uid"`
 	Direct   bool      `json:"direct"`
 	Text     string    `json:"text"`
 }
 
-func NewMessages(myUid string) *Messages {
+func NewMessages(myUID string) *Messages {
 	msg := new(Messages)
-	msg.uid = myUid
+	msg.uid = myUID
 	msg.Chats = map[string]*Chat{
 		"All Chat Rooms": {
 			From:     "All Chat Rooms",
-			Uid:      "All Chat Rooms",
+			UID:      "All Chat Rooms",
 			Messages: nil,
 		},
 	}
+
 	return msg
 }
 
@@ -52,10 +53,11 @@ func (m *Messages) Add(msg *ChatMessage) {
 	m.mx.Lock()
 	defer m.mx.Unlock()
 
-	uid := msg.ToUid
+	uid := msg.ToUID
 	callsign := msg.Chatroom
-	if msg.Direct && msg.ToUid == m.uid {
-		uid = msg.FromUid
+
+	if msg.Direct && msg.ToUID == m.uid {
+		uid = msg.FromUID
 		callsign = msg.From
 	}
 
@@ -67,14 +69,14 @@ func (m *Messages) Add(msg *ChatMessage) {
 	} else {
 		m.Chats[uid] = &Chat{
 			From:     callsign,
-			Uid:      uid,
+			UID:      uid,
 			Messages: []*ChatMessage{msg},
 		}
 	}
 }
 
 func (m *ChatMessage) String() string {
-	return fmt.Sprintf("Chat %s (%s) -> %s (%s) \"%s\"", m.From, m.FromUid, m.Chatroom, m.ToUid, m.Text)
+	return fmt.Sprintf("Chat %s (%s) -> %s (%s) \"%s\"", m.From, m.FromUID, m.Chatroom, m.ToUID, m.Text)
 }
 
 func MsgToChat(m *cot.CotMessage) *ChatMessage {
@@ -84,25 +86,25 @@ func MsgToChat(m *cot.CotMessage) *ChatMessage {
 	}
 
 	c := &ChatMessage{
-		Id:       chat.GetAttr("messageId"),
+		ID:       chat.GetAttr("messageId"),
 		Time:     cot.TimeFromMillis(m.TakMessage.GetCotEvent().GetStartTime()),
 		Parent:   chat.GetAttr("parent"),
 		Chatroom: chat.GetAttr("chatroom"),
 		From:     chat.GetAttr("senderCallsign"),
-		ToUid:    chat.GetAttr("id"),
+		ToUID:    chat.GetAttr("id"),
 	}
 
 	if cg := chat.GetFirst("chatgrp"); cg != nil {
-		c.FromUid = cg.GetAttr("uid0")
+		c.FromUID = cg.GetAttr("uid0")
 	}
 
 	if link := m.GetFirstLink("p-p"); link != nil {
 		if uid := link.GetAttr("uid"); uid != "" {
-			c.FromUid = uid
+			c.FromUID = uid
 		}
 	}
 
-	if c.Chatroom != c.ToUid {
+	if c.Chatroom != c.ToUID {
 		c.Direct = true
 	}
 
@@ -117,16 +119,16 @@ func MsgToChat(m *cot.CotMessage) *ChatMessage {
 
 func MakeChatMessage(c *ChatMessage) *cotproto.TakMessage {
 	t := time.Now().UTC().Format(time.RFC3339)
-	msgUid := fmt.Sprintf("GeoChat.%s.%s.%s", c.FromUid, c.ToUid, c.Id)
-	msg := cot.BasicMsg("b-t-f", msgUid, time.Second*10)
+	msgUID := fmt.Sprintf("GeoChat.%s.%s.%s", c.FromUID, c.ToUID, c.ID)
+	msg := cot.BasicMsg("b-t-f", msgUID, time.Second*10)
 	msg.CotEvent.How = "h-g-i-g-o"
-	xd := cot.NewXmlDetails()
-	xd.AddPpLink(c.FromUid, "", "")
+	xd := cot.NewXMLDetails()
+	xd.AddPpLink(c.FromUID, "", "")
 
-	chat := xd.AddOrChangeChild("__chat", map[string]string{"parent": c.Parent, "groupOwner": "false", "chatroom": c.Chatroom, "senderCallsign": c.From, "id": c.ToUid, "messageId": c.Id})
-	chat.AddOrChangeChild("chatgrp", map[string]string{"uid0": c.FromUid, "uid1": c.ToUid, "id": c.ToUid})
+	chat := xd.AddOrChangeChild("__chat", map[string]string{"parent": c.Parent, "groupOwner": "false", "chatroom": c.Chatroom, "senderCallsign": c.From, "id": c.ToUID, "messageId": c.ID})
+	chat.AddOrChangeChild("chatgrp", map[string]string{"uid0": c.FromUID, "uid1": c.ToUID, "id": c.ToUID})
 
-	xd.AddChild("remarks", map[string]string{"source": "BAO.F.ATAK." + c.FromUid, "to": c.ToUid, "time": t}, html.EscapeString(c.Text))
+	xd.AddChild("remarks", map[string]string{"source": "BAO.F.ATAK." + c.FromUID, "to": c.ToUID, "time": t}, html.EscapeString(c.Text))
 
 	if c.Direct {
 		marti := xd.AddChild("marti", nil, "")
@@ -134,5 +136,6 @@ func MakeChatMessage(c *ChatMessage) *cotproto.TakMessage {
 	}
 
 	msg.CotEvent.Detail = &cotproto.Detail{XmlDetail: xd.AsXMLString()}
+
 	return msg
 }

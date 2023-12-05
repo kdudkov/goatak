@@ -1,12 +1,13 @@
 package repository
 
 import (
-	"github.com/kdudkov/goatak/pkg/model"
-	"go.uber.org/zap"
-	"gopkg.in/yaml.v3"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/kdudkov/goatak/pkg/model"
+	"go.uber.org/zap"
+	"gopkg.in/yaml.v3"
 )
 
 type FeedsFileRepository struct {
@@ -22,7 +23,7 @@ func NewFeedsFileRepo(logger *zap.SugaredLogger, basedir string) *FeedsFileRepos
 }
 
 func (r *FeedsFileRepository) Start() error {
-	if err := os.MkdirAll(r.baseDir, 0777); err != nil {
+	if err := os.MkdirAll(r.baseDir, 777); err != nil {
 		return err
 	}
 
@@ -34,13 +35,14 @@ func (r *FeedsFileRepository) Stop() {
 }
 
 func (r *FeedsFileRepository) Store(f *model.Feed2) {
-	if f == nil || f.Uid == "" {
+	if f == nil || f.UID == "" {
 		return
 	}
 
-	fl, err := os.Create(filepath.Join(r.baseDir, f.Uid+".yml"))
+	fl, err := os.Create(filepath.Join(r.baseDir, f.UID+".yml"))
 	if err != nil {
 		r.logger.Errorf("error: %s", err.Error())
+
 		return
 	}
 	defer fl.Close()
@@ -65,6 +67,7 @@ func (r *FeedsFileRepository) load(fname string) *model.Feed2 {
 	defer fl.Close()
 
 	var f *model.Feed2
+
 	dec := yaml.NewDecoder(fl)
 
 	if err := dec.Decode(&f); err != nil {
@@ -72,6 +75,7 @@ func (r *FeedsFileRepository) load(fname string) *model.Feed2 {
 	}
 
 	f.Active = true
+
 	return f
 }
 
@@ -83,6 +87,7 @@ func (r *FeedsFileRepository) ForEach(f func(item *model.Feed2) bool) {
 	files, err := os.ReadDir(r.baseDir)
 	if err != nil {
 		r.logger.Errorf("error: %s", err.Error())
+
 		return
 	}
 
@@ -90,6 +95,7 @@ func (r *FeedsFileRepository) ForEach(f func(item *model.Feed2) bool) {
 		if fl.IsDir() {
 			continue
 		}
+
 		if !strings.HasSuffix(fl.Name(), ".yml") {
 			continue
 		}

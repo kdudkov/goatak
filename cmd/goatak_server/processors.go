@@ -2,14 +2,15 @@ package main
 
 import (
 	"fmt"
-	"github.com/kdudkov/goatak/pkg/cot"
-	"github.com/kdudkov/goatak/pkg/model"
-	"github.com/spf13/viper"
-	"google.golang.org/protobuf/proto"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/kdudkov/goatak/pkg/cot"
+	"github.com/kdudkov/goatak/pkg/model"
+	"github.com/spf13/viper"
+	"google.golang.org/protobuf/proto"
 )
 
 type EventProcessor struct {
@@ -73,7 +74,7 @@ func (app *App) chatProcessor(msg *cot.CotMessage) {
 		return
 	}
 	if c.From == "" {
-		c.From = app.items.GetCallsign(c.FromUid)
+		c.From = app.items.GetCallsign(c.FromUID)
 	}
 	app.Logger.Infof("Chat %s", c.String())
 	app.messages = append(app.messages, c)
@@ -110,13 +111,13 @@ func (app *App) fileLoggerProcessor(msg *cot.CotMessage) {
 }
 
 func logMessage(msg *cot.CotMessage, dir string) error {
-	if err := os.MkdirAll(dir, 0777); err != nil {
+	if err := os.MkdirAll(dir, 0o777); err != nil {
 		return err
 	}
 
 	fname := filepath.Join(dir, time.Now().Format("2006-01-02.tak"))
 
-	f, err := os.OpenFile(fname, os.O_RDWR|os.O_APPEND|os.O_CREATE, 0666)
+	f, err := os.OpenFile(fname, os.O_RDWR|os.O_APPEND|os.O_CREATE, 0o666)
 	if err != nil {
 		return err
 	}
@@ -133,11 +134,11 @@ func logMessage(msg *cot.CotMessage, dir string) error {
 }
 
 func logChatMessage(c *model.ChatMessage) error {
-	fd, err := os.OpenFile("msg.log", os.O_RDWR|os.O_APPEND|os.O_CREATE, 0666)
+	fd, err := os.OpenFile("msg.log", os.O_RDWR|os.O_APPEND|os.O_CREATE, 0o666)
 	if err != nil {
 		return nil
 	}
 	defer fd.Close()
-	_, err = fmt.Fprintf(fd, "%s %s (%s) -> %s (%s) \"%s\"\n", c.Time, c.From, c.FromUid, c.Chatroom, c.ToUid, c.Text)
+	_, err = fmt.Fprintf(fd, "%s %s (%s) -> %s (%s) \"%s\"\n", c.Time, c.From, c.FromUID, c.Chatroom, c.ToUID, c.Text)
 	return err
 }

@@ -30,28 +30,29 @@ func (r *Renderer) Load(fs embed.FS) error {
 			"timefmt":  timefmt,
 		})
 
-	if err := walkEmbed(fs, func(fs embed.FS, fname string) {
+	if err := walkEmbed(fs, func(fs embed.FS, fname string) error {
 		if strings.HasSuffix(fname, ".html") {
 			b, err := fs.ReadFile(fname)
 			if err != nil {
-				fmt.Println(err)
-				return
+				return err
 			}
 			tplName := fname[len("templates")+1:]
 			if _, err := t.New(tplName).Parse(string(b)); err != nil {
-				fmt.Println(err)
-				return
+				return err
 			}
 		}
+
+		return nil
 	}); err != nil {
 		return err
 	}
 
 	r.template = t
+
 	return nil
 }
 
-func walkEmbed(fs embed.FS, fn func(fs embed.FS, fname string)) error {
+func walkEmbed(fs embed.FS, fn func(fs embed.FS, fname string) error) error {
 	dirs := []string{"."}
 	i := 0
 
@@ -59,6 +60,7 @@ func walkEmbed(fs embed.FS, fn func(fs embed.FS, fname string)) error {
 		if i >= len(dirs) {
 			return nil
 		}
+
 		path := dirs[i]
 		dir, err := fs.ReadDir(path)
 		if err != nil {
@@ -68,9 +70,13 @@ func walkEmbed(fs embed.FS, fn func(fs embed.FS, fname string)) error {
 		for _, f := range dir {
 			if f.IsDir() {
 				dirs = append(dirs, filepath.ToSlash(filepath.Join(path, f.Name())))
+
 				continue
 			}
-			fn(fs, filepath.ToSlash(filepath.Join(path, f.Name())))
+
+			if err := fn(fs, filepath.ToSlash(filepath.Join(path, f.Name()))); err != nil {
+				return err
+			}
 		}
 		i++
 	}
@@ -84,7 +90,7 @@ func (r *Renderer) Render(m map[string]interface{}, templates ...string) (string
 				m = make(map[string]interface{}, 1)
 			}
 
-			m["InheritedHTML"] = template.HTML(buf.String())
+			m["InheritedHTML"] = template.HTML(buf.String()) //nolint:gosec
 		}
 
 		buf.Reset()
@@ -93,6 +99,7 @@ func (r *Renderer) Render(m map[string]interface{}, templates ...string) (string
 		if t == nil {
 			return "", fmt.Errorf("undefined html template: %s", name)
 		}
+
 		if err := t.Execute(&buf, m); err != nil {
 			return "", err
 		}
@@ -103,7 +110,7 @@ func (r *Renderer) Render(m map[string]interface{}, templates ...string) (string
 
 // str2html returns a `template.HTML` for the s.
 func str2html(s string) template.HTML {
-	return template.HTML(s)
+	return template.HTML(s) //nolint:gosec
 }
 
 // strlen returns the number of characters of the s.

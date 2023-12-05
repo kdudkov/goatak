@@ -16,11 +16,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/kdudkov/goatak/pkg/tlsutil"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
 	"software.sslmate.com/src/go-pkcs12"
-
-	"github.com/kdudkov/goatak/pkg/tlsutil"
 )
 
 const minCertAge = time.Hour * 24
@@ -48,6 +47,7 @@ type CertificateConfig struct {
 
 func NewEnroller(logger *zap.SugaredLogger, host, user, passwd string, save bool) *Enroller {
 	tlsConf := &tls.Config{InsecureSkipVerify: true}
+
 	return &Enroller{
 		logger: logger,
 		host:   host,
@@ -72,7 +72,6 @@ func (e *Enroller) getConfig() (*CertificateConfig, error) {
 	req.Header.Del("User-Agent")
 	req.SetBasicAuth(e.user, e.passwd)
 	res, err := e.cl.Do(req)
-
 	if err != nil {
 		return nil, err
 	}
@@ -137,7 +136,6 @@ func (e *Enroller) getOrEnrollCert(uid, version string) (*tls.Certificate, []*x5
 	req.Header.Del("User-Agent")
 	req.SetBasicAuth(e.user, e.passwd)
 	res, err := e.cl.Do(req)
-
 	if err != nil {
 		return nil, nil, err
 	}
@@ -157,19 +155,20 @@ func (e *Enroller) getOrEnrollCert(uid, version string) (*tls.Certificate, []*x5
 	}
 
 	var cert *x509.Certificate
+
 	ca := make([]*x509.Certificate, 0)
 
 	defer res.Body.Close()
 
 	for name, c := range certs {
 		crt, err := tlsutil.ParseCert(c)
-
 		if err != nil {
 			return nil, nil, err
 		}
 
 		if name == "signedCert" {
 			cert = crt
+
 			continue
 		}
 
@@ -191,6 +190,7 @@ func (e *Enroller) getOrEnrollCert(uid, version string) (*tls.Certificate, []*x5
 	}
 
 	e.logger.Infof("cert enrollment successful")
+
 	if err := e.getProfile(uid); err != nil {
 		e.logger.Warnf("%s", err.Error())
 	}
@@ -203,6 +203,7 @@ func (e *Enroller) getProfile(uid string) error {
 	if err != nil {
 		return err
 	}
+
 	q := req.URL.Query()
 	q.Add("clientUID", uid)
 	req.URL.RawQuery = q.Encode()

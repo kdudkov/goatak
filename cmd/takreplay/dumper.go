@@ -3,8 +3,9 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/kdudkov/goatak/pkg/cot"
 	"time"
+
+	"github.com/kdudkov/goatak/pkg/cot"
 )
 
 type Dumper interface {
@@ -13,8 +14,7 @@ type Dumper interface {
 	Process(msg *cot.CotMessage) error
 }
 
-type TextDumper struct {
-}
+type TextDumper struct{}
 
 func (g *TextDumper) Start() {
 }
@@ -27,8 +27,7 @@ func (g *TextDumper) Process(msg *cot.CotMessage) error {
 	return nil
 }
 
-type JsonDumper struct {
-}
+type JsonDumper struct{}
 
 func (g *JsonDumper) Start() {
 }
@@ -45,8 +44,7 @@ func (g *JsonDumper) Process(msg *cot.CotMessage) error {
 	return nil
 }
 
-type Json2Dumper struct {
-}
+type Json2Dumper struct{}
 
 func (g *Json2Dumper) Start() {
 }

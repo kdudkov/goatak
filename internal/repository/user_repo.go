@@ -5,11 +5,10 @@ import (
 	"sync"
 
 	"github.com/fsnotify/fsnotify"
+	"github.com/kdudkov/goatak/internal/model"
 	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
 	"gopkg.in/yaml.v3"
-
-	"github.com/kdudkov/goatak/internal/model"
 )
 
 type UserFileRepository struct {
@@ -36,7 +35,9 @@ func NewFileUserRepo(logger *zap.SugaredLogger, userFile string) *UserFileReposi
 
 	if len(um.users) == 0 {
 		um.logger.Infof("no valid users found -  create one")
-		bytes, _ := bcrypt.GenerateFromPassword([]byte("11111"), 14)
+
+		const bcryptCost = 14
+		bytes, _ := bcrypt.GenerateFromPassword([]byte("11111"), bcryptCost)
 
 		um.users["user"] = &model.User{
 			Login:    "user",
@@ -57,12 +58,11 @@ func (r *UserFileRepository) loadUsersFile() error {
 		if err != nil {
 			return err
 		}
-		f.Close()
-		return nil
+
+		return f.Close()
 	}
 
 	dat, err := os.ReadFile(r.userFile)
-
 	if err != nil {
 		return err
 	}
@@ -74,6 +74,7 @@ func (r *UserFileRepository) loadUsersFile() error {
 	}
 
 	r.users = make(map[string]*model.User)
+
 	for _, user := range users {
 		if user.Login != "" {
 			r.users[user.Login] = user
@@ -86,6 +87,7 @@ func (r *UserFileRepository) loadUsersFile() error {
 func (r *UserFileRepository) Start() error {
 	var err error
 	r.watcher, err = fsnotify.NewWatcher()
+
 	if err != nil {
 		return err
 	}
@@ -102,8 +104,10 @@ func (r *UserFileRepository) Start() error {
 					return
 				}
 				r.logger.Debugf("event: %v", event)
+
 				if event.Has(fsnotify.Write) && event.Name == r.userFile {
 					r.logger.Infof("users file is modified, reloading")
+
 					if err := r.loadUsersFile(); err != nil {
 						r.logger.Errorf("error: %s", err.Error())
 					}
@@ -129,10 +133,13 @@ func (r *UserFileRepository) Stop() {
 func (r *UserFileRepository) CheckUserAuth(user, password string) bool {
 	r.mx.RLock()
 	defer r.mx.RUnlock()
+
 	if user, ok := r.users[user]; ok {
 		err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))
+
 		return err == nil
 	}
+
 	return false
 }
 
@@ -140,11 +147,13 @@ func (r *UserFileRepository) UserIsValid(user, sn string) bool {
 	r.mx.RLock()
 	defer r.mx.RUnlock()
 	_, ok := r.users[user]
+
 	return ok
 }
 
 func (r *UserFileRepository) GetUser(username string) *model.User {
 	r.mx.RLock()
 	defer r.mx.RUnlock()
+
 	return r.users[username]
 }

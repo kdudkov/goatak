@@ -3,12 +3,11 @@ package main
 import (
 	"crypto/tls"
 	"fmt"
-	"github.com/kdudkov/goatak/pkg/tlsutil"
 	"net"
 
-	"go.uber.org/zap"
-
 	"github.com/kdudkov/goatak/internal/client"
+	"github.com/kdudkov/goatak/pkg/tlsutil"
+	"go.uber.org/zap"
 )
 
 func (app *App) ListenTCP(addr string) (err error) {
@@ -32,7 +31,8 @@ func (app *App) ListenTCP(addr string) (err error) {
 			Logger:       app.Logger.With(zap.String("addr", name)),
 			MessageCb:    app.NewCotMessage,
 			RemoveCb:     app.RemoveHandlerCb,
-			NewContactCb: app.NewContactCb})
+			NewContactCb: app.NewContactCb,
+		})
 		app.AddClientHandler(h)
 		h.Start()
 	}
@@ -79,7 +79,8 @@ func (app *App) listenTls(addr string) error {
 			Serial:       serial,
 			MessageCb:    app.NewCotMessage,
 			RemoveCb:     app.RemoveHandlerCb,
-			NewContactCb: app.NewContactCb})
+			NewContactCb: app.NewContactCb,
+		})
 		app.AddClientHandler(h)
 		h.Start()
 		app.onTlsClientConnect(username, serial)
@@ -109,5 +110,4 @@ func getCertUser(st *tls.ConnectionState) (string, string) {
 }
 
 func (app *App) onTlsClientConnect(username, sn string) {
-
 }

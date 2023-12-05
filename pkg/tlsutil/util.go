@@ -6,9 +6,9 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
-	"go.uber.org/zap"
 	"strings"
 
+	"go.uber.org/zap"
 	"software.sslmate.com/src/go-pkcs12"
 )
 
@@ -33,7 +33,7 @@ func ParseCsr(b []byte) (*x509.CertificateRequest, error) {
 }
 
 func MakeP12TrustStore(certs map[string]*x509.Certificate, passwd string) ([]byte, error) {
-	var entries []pkcs12.TrustStoreEntry
+	entries := make([]pkcs12.TrustStoreEntry, 0, len(certs))
 
 	for k, v := range certs {
 		entries = append(entries, pkcs12.TrustStoreEntry{Cert: v, FriendlyName: k})
@@ -58,18 +58,22 @@ func CertToStr(cert *x509.Certificate, header bool) string {
 
 	ss := strings.Split(s, "\n")
 	sb := strings.Builder{}
+
 	for _, s1 := range ss {
 		if s1 == "" || strings.HasPrefix(s1, "----") {
 			continue
 		}
+
 		sb.WriteString(s1)
 		sb.WriteByte(10)
 	}
+
 	return sb.String()
 }
 
 func MakeCertPool(certs ...*x509.Certificate) *x509.CertPool {
 	cp := x509.NewCertPool()
+
 	for _, c := range certs {
 		if c != nil {
 			cp.AddCert(c)
@@ -82,20 +86,24 @@ func MakeCertPool(certs ...*x509.Certificate) *x509.CertPool {
 func LogCert(logger *zap.SugaredLogger, name string, cert *x509.Certificate) {
 	if cert == nil {
 		logger.Errorf("no %s!!!", name)
+
 		return
 	}
 	logger.Infof("%s sn: %x", name, cert.SerialNumber)
 	logger.Infof("%s subject: %s", name, cert.Subject.String())
 	logger.Infof("%s issuer: %s", name, cert.Issuer.String())
 	logger.Infof("%s valid till %s", name, cert.NotAfter)
+
 	if len(cert.DNSNames) > 0 {
 		logger.Infof("%s dns_names: %s", name, strings.Join(cert.DNSNames, ","))
 	}
+
 	if len(cert.IPAddresses) > 0 {
 		ip1 := make([]string, len(cert.IPAddresses))
 		for i, ip := range cert.IPAddresses {
 			ip1[i] = ip.String()
 		}
+
 		logger.Infof("%s ip_addresses: %s", name, strings.Join(ip1, ","))
 	}
 }

@@ -5,8 +5,6 @@ import (
 	"encoding/xml"
 	"errors"
 	"fmt"
-	"github.com/kdudkov/goatak/internal/model"
-	"github.com/kdudkov/goatak/pkg/cot"
 	"io"
 	"net"
 	"strings"
@@ -14,9 +12,10 @@ import (
 	"sync/atomic"
 	"time"
 
-	"go.uber.org/zap"
-
+	"github.com/kdudkov/goatak/internal/model"
+	"github.com/kdudkov/goatak/pkg/cot"
 	"github.com/kdudkov/goatak/pkg/cotproto"
+	"go.uber.org/zap"
 )
 
 const (
@@ -27,7 +26,7 @@ const (
 type HandlerConfig struct {
 	User         *model.User
 	Serial       string
-	Uid          string
+	UID          string
 	IsClient     bool
 	MessageCb    func(msg *cot.CotMessage)
 	RemoveCb     func(ch ClientHandler)
@@ -51,7 +50,7 @@ type ConnClientHandler struct {
 	cancel       context.CancelFunc
 	conn         net.Conn
 	addr         string
-	localUid     string
+	localUID     string
 	ver          int32
 	isClient     bool
 	uids         sync.Map
@@ -83,16 +82,19 @@ func NewConnClientHandler(name string, conn net.Conn, config *HandlerConfig) *Co
 	if config != nil {
 		c.user = config.User
 		c.serial = config.Serial
-		c.localUid = config.Uid
+		c.localUID = config.UID
+
 		if config.Logger != nil {
 			c.logger = config.Logger.Named("client " + name)
 		}
+
 		c.isClient = config.IsClient
 		c.messageCb = config.MessageCb
 		c.removeCb = config.RemoveCb
 		c.newContactCb = config.NewContactCb
 	}
 	c.closeTimer = time.AfterFunc(idleTimeout, c.closeIdle)
+
 	return c
 }
 
@@ -106,10 +108,12 @@ func (h *ConnClientHandler) GetUser() *model.User {
 
 func (h *ConnClientHandler) GetUids() map[string]string {
 	res := make(map[string]string)
+
 	h.uids.Range(func(key, value any) bool {
 		res[key.(string)] = value.(string)
 		return true
 	})
+
 	return res
 }
 
@@ -137,6 +141,7 @@ func (h *ConnClientHandler) Start() {
 
 	if !h.isClient {
 		h.logger.Debugf("send version msg")
+
 		if err := h.sendEvent(cot.VersionSupportMsg(1)); err != nil {
 			h.logger.Errorf("error sending ver req: %s", err.Error())
 		}
@@ -146,11 +151,13 @@ func (h *ConnClientHandler) Start() {
 func (h *ConnClientHandler) pinger() {
 	ticker := time.NewTicker(pingTimeout)
 	defer ticker.Stop()
+
 	for h.ctx.Err() == nil {
 		select {
 		case <-ticker.C:
 			h.logger.Debugf("ping")
-			if err := h.SendCot(cot.MakePing(h.localUid)); err != nil {
+
+			if err := h.SendCot(cot.MakePing(h.localUID)); err != nil {
 				h.logger.Debugf("sendMsg error: %v", err)
 			}
 		case <-h.ctx.Done():
@@ -167,6 +174,7 @@ func (h *ConnClientHandler) handleRead() {
 
 	for h.ctx.Err() == nil {
 		var msg *cot.CotMessage
+
 		var err error
 
 		switch h.GetVersion() {
@@ -179,9 +187,12 @@ func (h *ConnClientHandler) handleRead() {
 		if err != nil {
 			if errors.Is(err, io.EOF) {
 				h.logger.Info("EOF")
+
 				break
 			}
+
 			h.logger.Warnf(err.Error())
+
 			break
 		}
 
@@ -222,6 +233,7 @@ func (h *ConnClientHandler) handleRead() {
 	}
 }
 
+//nolint:nilnil
 func (h *ConnClientHandler) processXMLRead(er *cot.TagReader) (*cot.CotMessage, error) {
 	tag, dat, err := er.ReadTag()
 	if err != nil {
@@ -241,7 +253,7 @@ func (h *ConnClientHandler) processXMLRead(er *cot.TagReader) (*cot.CotMessage, 
 		return nil, fmt.Errorf("bad tag: %s", dat)
 	}
 
-	ev := &cot.Event{}
+	ev := new(cot.Event)
 	if err := xml.Unmarshal(dat, ev); err != nil {
 		return nil, fmt.Errorf("xml decode error: %w, client: %s", err, string(dat))
 	}
@@ -256,6 +268,7 @@ func (h *ConnClientHandler) processXMLRead(er *cot.TagReader) (*cot.CotMessage, 
 			if err := h.sendEvent(cot.ProtoChangeOkMsg()); err == nil {
 				h.logger.Infof("client %s switch to v.1", h.addr)
 				h.SetVersion(1)
+
 				return nil, nil
 			} else {
 				return nil, fmt.Errorf("error on send ok: %w", err)
@@ -267,6 +280,7 @@ func (h *ConnClientHandler) processXMLRead(er *cot.TagReader) (*cot.CotMessage, 
 		if ps := ev.Detail.GetFirst("TakControl").GetFirst("TakProtocolSupport"); ps != nil {
 			v := ps.GetAttr("version")
 			h.logger.Infof("server supports protocol v%s", v)
+
 			if v == "1" {
 				h.logger.Debugf("sending v1 req")
 				_ = h.sendEvent(cot.VersionReqMsg(1))
@@ -274,6 +288,7 @@ func (h *ConnClientHandler) processXMLRead(er *cot.TagReader) (*cot.CotMessage, 
 		} else {
 			h.logger.Warnf("invalid protocol support message: %s", dat)
 		}
+
 		return nil, nil
 	}
 

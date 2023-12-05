@@ -2,6 +2,7 @@ package staticfiles
 
 import (
 	"embed"
+	"errors"
 	"io/fs"
 	"mime"
 	"net/http"
@@ -30,9 +31,11 @@ func EmbedFiles(a *air.Air, prefix string) {
 
 		f, err := hfs.Open(path)
 		if err != nil {
-			if _, ok := err.(*fs.PathError); ok {
+			var _t2 *fs.PathError
+			if ok := errors.Is(err, _t2); ok {
 				return a.NotFoundHandler(req, res)
 			}
+
 			return err
 		}
 
@@ -48,12 +51,13 @@ func EmbedFiles(a *air.Air, prefix string) {
 
 func EmbedFile(a *air.Air, path string, file string) {
 	a.BATCH([]string{http.MethodGet, http.MethodHead}, path, func(request *air.Request, response *air.Response) error {
-
 		f, err := hfs.Open(file)
 		if err != nil {
-			if _, ok := err.(*fs.PathError); ok {
+			var _t1 *fs.PathError
+			if ok := errors.Is(err, _t1); ok {
 				return a.NotFoundHandler(request, response)
 			}
+
 			return err
 		}
 

@@ -20,6 +20,7 @@ func CotFromProto(msg *cotproto.TakMessage, from, scope string) (*CotMessage, er
 		return nil, nil
 	}
 	d, err := DetailsFromString(msg.GetCotEvent().GetDetail().GetXmlDetail())
+
 	return &CotMessage{From: from, Scope: scope, TakMessage: msg, Detail: d}, err
 }
 
@@ -27,6 +28,7 @@ func (m *CotMessage) GetSendTime() time.Time {
 	if m == nil || m.TakMessage == nil {
 		return time.Time{}
 	}
+
 	return TimeFromMillis(m.TakMessage.GetCotEvent().GetSendTime())
 }
 
@@ -34,6 +36,7 @@ func (m *CotMessage) GetStartTime() time.Time {
 	if m == nil || m.TakMessage == nil {
 		return time.Time{}
 	}
+
 	return TimeFromMillis(m.TakMessage.GetCotEvent().GetStartTime())
 }
 
@@ -41,6 +44,7 @@ func (m *CotMessage) GetStaleTime() time.Time {
 	if m == nil || m.TakMessage == nil {
 		return time.Time{}
 	}
+
 	return TimeFromMillis(m.TakMessage.GetCotEvent().GetStaleTime())
 }
 
@@ -121,6 +125,7 @@ func (m *CotMessage) IsChat() bool {
 	if m == nil || m.TakMessage == nil {
 		return false
 	}
+
 	return m.GetType() == "b-t-f"
 }
 
@@ -128,6 +133,7 @@ func (m *CotMessage) IsChatReceipt() bool {
 	if m == nil || m.TakMessage == nil {
 		return false
 	}
+
 	return m.GetType() == "b-t-f-r" || m.GetType() == "b-t-f-d"
 }
 
@@ -172,11 +178,13 @@ func (m *CotMessage) GetParent() (string, string) {
 	if m.Detail == nil {
 		return "", ""
 	}
+
 	for _, link := range m.Detail.GetAll("link") {
 		if link.GetAttr("relation") == "p-p" {
 			return link.GetAttr("uid"), link.GetAttr("parent_callsign")
 		}
 	}
+
 	return "", ""
 }
 
@@ -184,11 +192,13 @@ func (m *CotMessage) GetFirstLink(relation string) *Node {
 	if m.Detail == nil {
 		return nil
 	}
+
 	for _, link := range m.Detail.GetAll("link") {
 		if link.GetAttr("relation") == relation {
 			return link
 		}
 	}
+
 	return nil
 }
 
