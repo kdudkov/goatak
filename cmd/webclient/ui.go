@@ -18,6 +18,7 @@ func (app *App) layout(g *gocui.Gui) error {
 		if !errors.Is(err, gocui.ErrUnknownView) {
 			return err
 		}
+
 		v.Frame = true
 	}
 
@@ -25,6 +26,7 @@ func (app *App) layout(g *gocui.Gui) error {
 		if !errors.Is(err, gocui.ErrUnknownView) {
 			return err
 		}
+
 		v.Frame = true
 		v.Title = "Log"
 	}

@@ -7,14 +7,14 @@ import "takcontrol.proto";
 
 // Top level message sent for TAK Messaging Protocol Version 1.
 message TakMessage {
-    // Optional - if omitted, continue using last reported control
-    // information
-    TakControl takControl = 1;
+  // Optional - if omitted, continue using last reported control
+  // information
+  TakControl takControl = 1;
 
-    // Optional - if omitted, no event data in this message
-    CotEvent cotEvent = 2;
+  // Optional - if omitted, no event data in this message
+  CotEvent cotEvent = 2;
 
-    uint64 submissionTime = 3;
-    uint64 creationTime = 4;
+  uint64 submissionTime = 3;
+  uint64 creationTime = 4;
 
 }

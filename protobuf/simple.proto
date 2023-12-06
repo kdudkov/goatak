@@ -6,6 +6,6 @@ option go_package = "github.com/kdudkov/goatak/cotproto";
 // to the message format will be rejected and fall back to opaque
 // XML representation
 message Simple {
-    string endpoint = 1; // endpoint=
-    string callsign = 2; // callsign=
+  string endpoint = 1; // endpoint=
+  string callsign = 2; // callsign=
 }

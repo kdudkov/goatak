@@ -53,6 +53,7 @@ func init() {
 			t1 := strings.Join(n[:i], "-")
 			if ct1, ok := types[t1]; ok {
 				found = true
+
 				ct1.Next = append(ct1.Next, ct)
 
 				break

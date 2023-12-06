@@ -8,6 +8,8 @@ import (
 	"strings"
 )
 
+const maxBufLen = 2048
+
 type TagReader struct {
 	r io.ByteReader
 }
@@ -44,13 +46,16 @@ func (er *TagReader) ReadTag() (string, []byte, error) {
 			return "", nil, err
 		}
 		buf.WriteByte(b)
+
 		if b == '>' {
 			break
 		}
+
 		if b == '<' {
 			return "", nil, fmt.Errorf("bad xml: %s", buf.String())
 		}
-		if buf.Len() > 2048 {
+
+		if buf.Len() > maxBufLen {
 			return "", nil, fmt.Errorf("too long tag")
 		}
 	}
@@ -102,7 +107,8 @@ func (er *TagReader) ReadTag() (string, []byte, error) {
 			}
 			buf.Reset()
 		}
-		if saved.Len() > 2048 {
+
+		if saved.Len() > maxBufLen {
 			return "", nil, fmt.Errorf("too long tag")
 		}
 	}

@@ -50,23 +50,23 @@ import "track.proto";
 //        and the data in the equivalent message should ignored.
 
 message Detail {
-    string xmlDetail = 1;
+  string xmlDetail = 1;
 
-    // <contact>
-    Contact contact = 2;
+  // <contact>
+  Contact contact = 2;
 
-    // <__group>
-    Group group = 3;
+  // <__group>
+  Group group = 3;
 
-    // <precisionlocation>
-    PrecisionLocation precisionLocation = 4;
+  // <precisionlocation>
+  PrecisionLocation precisionLocation = 4;
 
-    // <status>
-    Status status = 5;
+  // <status>
+  Status status = 5;
 
-    // <takv>
-    Takv takv = 6;
+  // <takv>
+  Takv takv = 6;
 
-    // <track>
-    Track track = 7;
+  // <track>
+  Track track = 7;
 }

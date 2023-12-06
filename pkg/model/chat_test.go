@@ -20,9 +20,9 @@ func getChatMsg(msgID, uidFrom, userFrom, uidTo, userTo, text string) *cot.CotMe
 
 	m := cot.BasicMsg("b-t-f", fmt.Sprintf("GeoChat.%s.%s.%s", uidFrom, uidTo, msgID), time.Minute)
 	xd, _ := cot.DetailsFromString(d)
-	m.CotEvent.Detail = &cotproto.Detail{XmlDetail: xd.AsXMLString()}
+	m.CotEvent.Detail = &cotproto.Detail{XmlDetail: xd.AsXMLString()} //nolint:exhaustruct
 
-	return &cot.CotMessage{TakMessage: m, Detail: xd}
+	return &cot.CotMessage{TakMessage: m, Detail: xd, From: "", Scope: ""}
 }
 
 func TestChatFromMe(t *testing.T) {
@@ -73,7 +73,7 @@ func TestBtfd(t *testing.T) {
 	m := cot.BasicMsg("b-t-f-d", "4de0262c-633f-46eb-b8e5-5ef1eb1e5e22", time.Minute)
 	xd, _ := cot.DetailsFromString(d)
 	m.CotEvent.Detail = &cotproto.Detail{XmlDetail: xd.AsXMLString()}
-	msg := cot.CotMessage{TakMessage: m, Detail: xd}
+	msg := cot.CotMessage{TakMessage: m, Detail: xd, From: "", Scope: ""}
 
 	assert.True(t, msg.IsChatReceipt())
 }
@@ -88,7 +88,7 @@ func TestBtfr(t *testing.T) {
 	m := cot.BasicMsg("b-t-f-r", "4de0262c-633f-46eb-b8e5-5ef1eb1e5e22", time.Minute)
 	xd, _ := cot.DetailsFromString(d)
 	m.CotEvent.Detail = &cotproto.Detail{XmlDetail: xd.AsXMLString()}
-	msg := cot.CotMessage{TakMessage: m, Detail: xd}
+	msg := cot.CotMessage{TakMessage: m, Detail: xd, From: "", Scope: ""}
 
 	assert.True(t, msg.IsChatReceipt())
 }
@@ -105,7 +105,7 @@ func TestMsgRed(t *testing.T) {
 	m := cot.BasicMsg("b-t-f", "GeoChat.uid1.Red.9f46716f-c875-43b0-8162-3da74196353f", time.Minute)
 	xd, _ := cot.DetailsFromString(d)
 	m.CotEvent.Detail = &cotproto.Detail{XmlDetail: xd.AsXMLString()}
-	msg := cot.CotMessage{TakMessage: m, Detail: xd}
+	msg := cot.CotMessage{TakMessage: m, Detail: xd, From: "", Scope: ""}
 
 	assert.True(t, msg.IsChat())
 

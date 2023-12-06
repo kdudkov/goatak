@@ -394,7 +394,7 @@ func (app *App) SendToCallsign(callsign string, msg *cot.CotMessage) {
 
 func (app *App) SendToUid(uid string, msg *cot.CotMessage) {
 	app.ForAllClients(func(ch client.ClientHandler) bool {
-		if ch.HasUid(uid) {
+		if ch.HasUID(uid) {
 			if err := ch.SendMsg(msg); err != nil {
 				app.Logger.Errorf("error: %v", err)
 			}

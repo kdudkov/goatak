@@ -13,7 +13,7 @@ func (app *App) connect() (net.Conn, error) {
 	addr := fmt.Sprintf("%s:%s", app.host, app.tcpPort)
 	if app.tls {
 		app.Logger.Infof("connecting with SSL to %s...", addr)
-		conn, err := tls.Dial("tcp", addr, app.getTlsConfig())
+		conn, err := tls.Dial("tcp", addr, app.getTLSConfig())
 		if err != nil {
 			return nil, err
 		}
@@ -34,8 +34,8 @@ func (app *App) connect() (net.Conn, error) {
 	}
 }
 
-func (app *App) getTlsConfig() *tls.Config {
-	conf := &tls.Config{
+func (app *App) getTLSConfig() *tls.Config {
+	conf := &tls.Config{ //nolint:exhaustruct
 		Certificates: []tls.Certificate{*app.tlsCert},
 		RootCAs:      app.cas,
 		ClientCAs:    app.cas,

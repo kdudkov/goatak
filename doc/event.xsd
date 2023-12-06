@@ -44,11 +44,11 @@ MITRE Case #11-3895 (Event-PUBLIC.xsd)
 
                         The first component (component1) is a hierarchically organized hint about type.
                         The intention is that this hierarchy be flexible and extensible and
-                        facilitate simple filtering, translation and display.  To
-                        facilitate  filtering, the hierarchy needs to present key
-                        fields in an easily parsed and logical order.  To facilitate
+                        facilitate simple filtering, translation and display. To
+                        facilitate filtering, the hierarchy needs to present key
+                        fields in an easily parsed and logical order. To facilitate
                         this, this component is a composite of fields separated by the "-" punctuation
-                        character, so a valid type would be: x-x-X-X-x.  Using a
+                        character, so a valid type would be: x-x-X-X-x. Using a
                         punctuation for field separation allows arbitrary expansion of the
                         type space, e.g., a-fzp-mlk-gm-...
                     </xs:documentation>
@@ -76,34 +76,34 @@ MITRE Case #11-3895 (Event-PUBLIC.xsd)
                         format - digit-character-character as defined below
 
                         The QoS attribute will determine the preferential treatment events
-                        receive as they proceed through the kill chain.  The field has
+                        receive as they proceed through the kill chain. The field has
                         several distinct but related components.
 
                         A "priority" value indicates queuing and processing order for
-                        competing events.  At a processing bottleneck (e.g., bandwidth
+                        competing events. At a processing bottleneck (e.g., bandwidth
                         limited link) high priority events will be processed before lower
-                        priority events.  Priority determines queuing order at a
+                        priority events. Priority determines queuing order at a
                         bottleneck.
 
                         9 - highest (most significant) priority
                         0 - lowest (least significant) priority
 
                         A "overtaking" value indicates how two events for the same uid are
-                        reconciled when they "catch up" to one another.  The more recent
+                        reconciled when they "catch up" to one another. The more recent
                         event (by timestamp) may supersede the older event (deleting the
                         old event) when it catches it, or it may follow the old event so
                         that event order is preserved, or it may be routed independently
                         of previous events.
 
                         r - replace - new event replaces (deletes) old event
-                        f - follow  - new event must follow previous events
+                        f - follow - new event must follow previous events
                         i - independent - new event processed independently of old events
 
                         An "assurance" value indicates how much effort must be placed in
-                        delivering this particular event.  Events from sources that
+                        delivering this particular event. Events from sources that
                         continually send updates (blue force tracks) or that are sent for
                         information purposes only require a lower level of delivery
-                        effort.  Events that are singletons (sent only once) and are
+                        effort. Events that are singletons (sent only once) and are
                         critical require guaranteed delivery.
 
                         g - guaranteed delivery (message never dropped even if delivered late)
@@ -115,16 +115,16 @@ MITRE Case #11-3895 (Event-PUBLIC.xsd)
                         qos="1-r-c"
 
                         Note that different events with the same UID may have differing
-                        QoS values.  This enables a graceful degradation in the presence
-                        of congestion.  For example, a blue force tracker may output a
+                        QoS values. This enables a graceful degradation in the presence
+                        of congestion. For example, a blue force tracker may output a
                         sequence of events with like
-                        ... qos="1-r-c" ...  frequent, low priority updates
+                        ... qos="1-r-c" ... frequent, low priority updates
                         ... qos="1-r-c" ...
                         ... qos="1-r-c" ...
-                        ... qos="5-r-d" ...  occasional "push" priority update
+                        ... qos="5-r-d" ... occasional "push" priority update
                         ... qos="1-r-c" ...
                         ... qos="1-r-c" ...
-                        ... qos="9-r-g" ...  "Mayday" position report
+                        ... qos="9-r-g" ... "Mayday" position report
 
                     </xs:documentation>
                 </xs:annotation>
@@ -138,12 +138,12 @@ MITRE Case #11-3895 (Event-PUBLIC.xsd)
                 <xs:annotation>
                     <xs:documentation>
                         The opex field is intended to indicate that the event is part of a
-                        live operation, an exercise, or a simulation.  For backward compatibility, absence
+                        live operation, an exercise, or a simulation. For backward compatibility, absence
                         of the opex indicates "no statement", which will be interpreted in
                         an installation specific manner.
 
-                        opex="o-&lt;name&gt;" or "e-&lt;nickname&gt;"  or "s-&lt;nickname&gt;",
-                        where "-&lt;name&gt;" is optional.  That is, it is permissible to
+                        opex="o-&lt;name&gt;" or "e-&lt;nickname&gt;" or "s-&lt;nickname&gt;",
+                        where "-&lt;name&gt;" is optional. That is, it is permissible to
                         specify only "o", "e", or "s" for the opex value.
 
                         o = operations
@@ -156,7 +156,8 @@ MITRE Case #11-3895 (Event-PUBLIC.xsd)
                 <xs:annotation>
                     <xs:documentation>
                         The "uid" attribute is a globally unique name for this specific piece of information.
-                        Several "events" may be associated with one UID, but in that case, the latest (ordered by timestamp),
+                        Several "events" may be associated with one UID, but in that case, the latest (ordered by
+                        timestamp),
                         overwrites all previous events for that UID.
                     </xs:documentation>
                 </xs:annotation>
@@ -165,12 +166,12 @@ MITRE Case #11-3895 (Event-PUBLIC.xsd)
                 <xs:annotation>
                     <xs:documentation>
                         The CoT XML schema includes three time values:
-                        time, start, and stale.  "time" is a time stamp placed on the event
+                        time, start, and stale. "time" is a time stamp placed on the event
                         when generated. start and stale define an interval in time for which
                         the event is valid. Example: For the scenario where we have intel
                         reports about a meeting of terrorist operatives later in the day: An
                         event might be generated at noon (time) to describe a ground based
-                        target which is valid from 1300 (start) until 1330 (stale).  All time
+                        target which is valid from 1300 (start) until 1330 (stale). All time
                         fields are required. In version 1.1 of the CoT schema, the time and stale
                         attributes together defined and interval of time for which the event was
                         valid. In V2.0, time indicates the "birth" of an event and the start and stale pair
@@ -179,9 +180,9 @@ MITRE Case #11-3895 (Event-PUBLIC.xsd)
                         The "time" attribute is a time stamp indicating when an event was generated.
                         The format of time, start, and stale are in standard date format (ISO 8601):
                         CCYY-MM-DDThh:mm:ss.ssZ (e.g., 2002-10-05T17:01:14.00Z), where the presence of
-                        fractional seconds (including the delimeter) is optional.  Also, there is no constraint
-                        on the number of digits to use for fractional seconds.  The following are all valid:
-                        2002-10-05T18:00:23Z,  2002-10-05T18:00:23.12Z, 2002-10-05T18:00:23.123456Z
+                        fractional seconds (including the delimeter) is optional. Also, there is no constraint
+                        on the number of digits to use for fractional seconds. The following are all valid:
+                        2002-10-05T18:00:23Z, 2002-10-05T18:00:23.12Z, 2002-10-05T18:00:23.123456Z
                     </xs:documentation>
                 </xs:annotation>
             </xs:attribute>
@@ -211,11 +212,11 @@ MITRE Case #11-3895 (Event-PUBLIC.xsd)
                         format = character-character
 
                         The "how" attribute gives a hint about how the coordinates were
-                        generated.  It is used specifically to relay a hint about the
+                        generated. It is used specifically to relay a hint about the
                         types of errors that may be expected in the data and to weight the
-                        data in systems that fuse multiple inputs.  For example,
+                        data in systems that fuse multiple inputs. For example,
                         coordinates transcribed by humans may have digit transposition,
-                        missing or repeated digits, estimated error bounds, etc.  As such,
+                        missing or repeated digits, estimated error bounds, etc. As such,
                         they may require special attention as they propagate through the
                         kill chain (e.g., they may require an additional review).
                         Similarly, machine generated coordinates derived solely from
@@ -230,15 +231,15 @@ MITRE Case #11-3895 (Event-PUBLIC.xsd)
                         m - machine generated
                         i - mensurated (from imagery)
                         g - derived from GPS receiver
-                        m - magnetic    - derived from magnetic sources
-                        s - simulated   - out of a simulation
-                        f - fused       - corroborated from multiple sources
-                        c - configured  - out of a configuration file
-                        p - predicted   - prediction of future (e.g., a from a tracker)
-                        r - relayed     - imported from another system (gateway)
+                        m - magnetic - derived from magnetic sources
+                        s - simulated - out of a simulation
+                        f - fused - corroborated from multiple sources
+                        c - configured - out of a configuration file
+                        p - predicted - prediction of future (e.g., a from a tracker)
+                        r - relayed - imported from another system (gateway)
 
                         As with other compound fields, the elements of the how field
-                        will be delimited by the field separator character "-".  E.g,
+                        will be delimited by the field separator character "-". E.g,
                         A coordinate mensurated from imagery would have a how field of "m-i".
                     </xs:documentation>
                 </xs:annotation>
@@ -259,18 +260,18 @@ MITRE Case #11-3895 (Event-PUBLIC.xsd)
 
                 The "detail" entity is intended to carry information that is
                 specific to smaller communities of producers and consumers and
-                require more intimate knowledge of the operating domain.  For
+                require more intimate knowledge of the operating domain. For
                 example, mensurated "target" events may come from dramatically
                 different sources and need to propagate dramatically different
-                "detail" information.  A close-air-support mission will augment
+                "detail" information. A close-air-support mission will augment
                 target details with initial point and callsign details to
-                facilitate coordination of weapon delivery.  In contrast, a
+                facilitate coordination of weapon delivery. In contrast, a
                 mission planning system may augment planned targets with target
                 catalog information and weapon fuzing requirements.
 
                 Because the "details" portion of the event are of interest only to
                 a subset of subscribers, that entity may be mentioned by reference
-                when the event is communicated.  This reduces the congestion when
+                when the event is communicated. This reduces the congestion when
                 events are transmitted over bandwidth limited links and also
                 prevents the retransmission of static data elements.
             </xs:documentation>
@@ -286,7 +287,9 @@ MITRE Case #11-3895 (Event-PUBLIC.xsd)
         <xs:complexType>
             <xs:attribute name="lat" use="required">
                 <xs:annotation>
-                    <xs:documentation>Latitude based on WGS-84 ellipsoid in signed degree-decimal format (e.g. -33.350000). Range -90 -> +90.</xs:documentation>
+                    <xs:documentation>Latitude based on WGS-84 ellipsoid in signed degree-decimal format (e.g.
+                        -33.350000). Range -90 -> +90.
+                    </xs:documentation>
                 </xs:annotation>
                 <xs:simpleType>
                     <xs:restriction base="xs:decimal">
@@ -297,7 +300,9 @@ MITRE Case #11-3895 (Event-PUBLIC.xsd)
             </xs:attribute>
             <xs:attribute name="lon" use="required">
                 <xs:annotation>
-                    <xs:documentation>Longitude based on WGS-84 ellipsoid in signed degree-decimal format (e.g. 44.383333). Range -180 -> +180.</xs:documentation>
+                    <xs:documentation>Longitude based on WGS-84 ellipsoid in signed degree-decimal format (e.g.
+                        44.383333). Range -180 -> +180.
+                    </xs:documentation>
                 </xs:annotation>
                 <xs:simpleType>
                     <xs:restriction base="xs:decimal">
@@ -308,7 +313,9 @@ MITRE Case #11-3895 (Event-PUBLIC.xsd)
             </xs:attribute>
             <xs:attribute name="hae" type="xs:decimal" use="required">
                 <xs:annotation>
-                    <xs:documentation>HAE acronym for Height above Ellipsoid based on WGS-84 ellipsoid (measured in meters).</xs:documentation>
+                    <xs:documentation>HAE acronym for Height above Ellipsoid based on WGS-84 ellipsoid (measured in
+                        meters).
+                    </xs:documentation>
                 </xs:annotation>
             </xs:attribute>
             <xs:attribute name="ce" type="xs:decimal" use="required">
@@ -317,7 +324,7 @@ MITRE Case #11-3895 (Event-PUBLIC.xsd)
                         Circular Error around point defined by lat and lon fields in meters. Although
                         named ce, this field is intended to define a circular area around the event point, not
                         necessarily an error (e.g. Describing a reservation area is not an
-                        "error").  If it is appropriate for the "ce" field to represent
+                        "error"). If it is appropriate for the "ce" field to represent
                         an error value (e.g. event describes laser designated target), the
                         value will represent the one sigma point for a zero mean
                         normal (Guassian) distribution.

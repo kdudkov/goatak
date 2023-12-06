@@ -81,7 +81,7 @@ func (i *Item) ToWeb() *WebUnit {
 		Sidc:           getSIDC(i.cottype),
 		ParentUID:      i.parentUID,
 		ParentCallsign: i.parentCallsign,
-		Color:          fmt.Sprintf("#%.6x", i.color&0xffffff),
+		Color:          i.color,
 		Icon:           i.icon,
 		Local:          i.local,
 		Send:           i.send,

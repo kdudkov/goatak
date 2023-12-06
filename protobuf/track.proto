@@ -7,6 +7,6 @@ option go_package = "github.com/kdudkov/goatak/cotproto";
 // to the message format will be rejected and fall back to opaque
 // XML representation
 message Track {
-     double speed = 1;           // speed=
-     double course = 2;          // course=
+  double speed = 1;           // speed=
+  double course = 2;          // course=
 }

@@ -132,7 +132,7 @@ func (app *App) Init(cancel context.CancelFunc) {
 	app.remoteApi = NewRemoteApi(app.host)
 
 	if app.tls {
-		app.remoteApi.SetTls(app.getTlsConfig())
+		app.remoteApi.SetTls(app.getTLSConfig())
 	}
 
 	app.ch = make(chan []byte, 20)

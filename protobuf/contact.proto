@@ -7,7 +7,7 @@ option go_package = "github.com/kdudkov/goatak/cotproto";
 // to the message format will be rejected and fall back to opaque
 // XML representation
 message Contact {
-     // Endpoint is optional; if missing/empty do not populate.
-     string endpoint = 1;           // endpoint=
-     string callsign = 2;           // callsign=
+  // Endpoint is optional; if missing/empty do not populate.
+  string endpoint = 1;           // endpoint=
+  string callsign = 2;           // callsign=
 }

@@ -63,6 +63,7 @@ func walkEmbed(fs embed.FS, fn func(fs embed.FS, fname string) error) error {
 
 		path := dirs[i]
 		dir, err := fs.ReadDir(path)
+
 		if err != nil {
 			return err
 		}

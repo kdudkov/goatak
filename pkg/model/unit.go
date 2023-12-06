@@ -2,7 +2,6 @@ package model
 
 import (
 	"fmt"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -33,7 +32,7 @@ type Item struct {
 	send           bool
 	parentCallsign string
 	parentUID      string
-	color          uint32
+	color          string
 	icon           string
 	track          []*Pos
 	msg            *cot.CotMessage
@@ -145,6 +144,7 @@ func GetClass(msg *cot.CotMessage) string {
 	if msg == nil {
 		return ""
 	}
+
 	t := msg.GetType()
 
 	switch {
@@ -168,29 +168,28 @@ func FromMsg(msg *cot.CotMessage) *Item {
 		return nil
 	}
 
+	parent, parentCs := msg.GetParent()
+
 	i := &Item{
-		class:     cls,
-		uid:       msg.GetUid(),
-		cottype:   msg.GetType(),
-		callsign:  msg.GetCallsign(),
-		staleTime: msg.GetStaleTime(),
-		startTime: msg.GetStartTime(),
-		sendTime:  msg.GetSendTime(),
-		msg:       msg,
-		lastSeen:  time.Now(),
-		online:    true,
-		mx:        sync.RWMutex{},
+		mx:             sync.RWMutex{},
+		uid:            msg.GetUid(),
+		cottype:        msg.GetType(),
+		class:          cls,
+		callsign:       msg.GetCallsign(),
+		staleTime:      msg.GetStaleTime(),
+		startTime:      msg.GetStartTime(),
+		sendTime:       msg.GetSendTime(),
+		lastSeen:       time.Now(),
+		online:         true,
+		local:          false,
+		send:           false,
+		parentCallsign: parentCs,
+		parentUID:      parent,
+		color:          msg.Detail.GetFirst("color").GetAttr("argb"),
+		icon:           msg.Detail.GetFirst("usericon").GetAttr("iconsetpath"),
+		track:          nil,
+		msg:            msg,
 	}
-
-	i.parentUID, i.parentCallsign = msg.GetParent()
-
-	if c := msg.Detail.GetFirst("color"); c != nil {
-		if col, err := strconv.Atoi(c.GetAttr("argb")); err == nil {
-			i.color = uint32(col)
-		}
-	}
-
-	i.icon = msg.Detail.GetFirst("usericon").GetAttr("iconsetpath")
 
 	if i.class == UNIT || i.class == CONTACT {
 		if msg.GetLat() != 0 || msg.GetLon() != 0 {
@@ -213,6 +212,7 @@ func FromMsgLocal(msg *cot.CotMessage, send bool) *Item {
 	i := FromMsg(msg)
 	i.local = true
 	i.send = send
+
 	return i
 }
 
@@ -242,9 +242,7 @@ func (i *Item) Update(msg *cot.CotMessage) {
 	i.parentUID, i.parentCallsign = msg.GetParent()
 
 	if c := msg.Detail.GetFirst("color"); c != nil {
-		if col, err := strconv.Atoi(c.GetAttr("argb")); err == nil {
-			i.color = uint32(col)
-		}
+		i.color = c.GetAttr("argb")
 	}
 
 	i.icon = msg.Detail.GetFirst("usericon").GetAttr("iconsetpath")
@@ -294,14 +292,9 @@ func (i *Item) UpdateFromWeb(w *WebUnit, m *cot.CotMessage) {
 	i.parentUID = w.ParentUID
 	i.parentCallsign = w.ParentCallsign
 	i.icon = w.Icon
+	i.color = w.Color
 	i.local = w.Local
 	i.send = w.Send
-
-	if w.Color != "" {
-		if col, err := strconv.Atoi(w.Color); err == nil {
-			i.color = uint32(col)
-		}
-	}
 
 	i.msg = m
 }

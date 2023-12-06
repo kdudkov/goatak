@@ -36,7 +36,7 @@ type HandlerConfig struct {
 
 type ClientHandler interface {
 	GetName() string
-	HasUid(uid string) bool
+	HasUID(uid string) bool
 	GetUids() map[string]string
 	GetUser() *model.User
 	GetVersion() int32
@@ -117,8 +117,9 @@ func (h *ConnClientHandler) GetUids() map[string]string {
 	return res
 }
 
-func (h *ConnClientHandler) HasUid(uid string) bool {
+func (h *ConnClientHandler) HasUID(uid string) bool {
 	_, ok := h.uids.Load(uid)
+
 	return ok
 }
 
@@ -207,6 +208,7 @@ func (h *ConnClientHandler) handleRead() {
 		if msg.IsContact() {
 			uid := msg.GetUid()
 			uid = strings.TrimSuffix(uid, "-ping")
+
 			if _, present := h.uids.Swap(uid, msg.GetCallsign()); !present {
 				if h.newContactCb != nil {
 					h.newContactCb(uid, msg.GetCallsign())
@@ -224,6 +226,7 @@ func (h *ConnClientHandler) handleRead() {
 		// ping
 		if msg.GetType() == "t-x-c-t" {
 			h.logger.Debugf("ping from %s %s", h.addr, msg.GetUid())
+
 			if err := h.SendCot(cot.MakePong()); err != nil {
 				h.logger.Errorf("SendMsg error: %v", err)
 			}
@@ -270,9 +273,9 @@ func (h *ConnClientHandler) processXMLRead(er *cot.TagReader) (*cot.CotMessage, 
 				h.SetVersion(1)
 
 				return nil, nil
-			} else {
-				return nil, fmt.Errorf("error on send ok: %w", err)
 			}
+
+			return nil, fmt.Errorf("error on send ok: %w", err)
 		}
 	}
 

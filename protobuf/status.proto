@@ -7,5 +7,5 @@ option go_package = "github.com/kdudkov/goatak/cotproto";
 // to the message format will be rejected and fall back to opaque
 // XML representation
 message Status {
-     uint32 battery = 1;           // battery=
+  uint32 battery = 1;           // battery=
 }
