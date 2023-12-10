@@ -59,7 +59,7 @@ type App struct {
 	listeners       sync.Map
 	textLogger      *TextLogger
 	eventProcessors map[string]*EventProcessor
-	remoteApi       *RemoteApi
+	remoteAPI       *RemoteAPI
 	saveFile        string
 	connected       uint32
 
@@ -81,6 +81,7 @@ func NewApp(uid string, callsign string, connectStr string, webPort int, logger 
 
 	if len(parts) != 3 {
 		logger.Errorf("invalid connect string: %s", connectStr)
+
 		return nil
 	}
 
@@ -93,6 +94,7 @@ func NewApp(uid string, callsign string, connectStr string, webPort int, logger 
 		tlsConn = true
 	default:
 		logger.Errorf("invalid connect string: %s", connectStr)
+
 		return nil
 	}
 
@@ -132,10 +134,10 @@ func (app *App) Init(cancel context.CancelFunc) {
 		app.textLogger = NewTextLogger()
 	}
 
-	app.remoteApi = NewRemoteApi(app.host)
+	app.remoteAPI = NewRemoteAPI(app.host)
 
 	if app.tls {
-		app.remoteApi.SetTls(app.getTLSConfig())
+		app.remoteAPI.SetTLS(app.getTLSConfig())
 	}
 
 	app.ch = make(chan []byte, 20)
@@ -212,8 +214,9 @@ func (app *App) IsConnected() bool {
 	return atomic.LoadUint32(&app.connected) != 0
 }
 
-func makeUid(callsign string) string {
+func makeUID(callsign string) string {
 	s := hex.EncodeToString(md5.New().Sum([]byte(callsign)))
+
 	return "ANDROID-" + s[:16]
 }
 
@@ -403,7 +406,7 @@ func main() {
 
 	uid := viper.GetString("me.uid")
 	if uid == "auto" || uid == "" {
-		uid = makeUid(viper.GetString("me.callsign"))
+		uid = makeUID(viper.GetString("me.callsign"))
 	}
 
 	app := NewApp(
@@ -443,6 +446,7 @@ func main() {
 			passw := viper.GetString("ssl.enroll_password")
 			if passw == "" {
 				fmt.Println("no enroll_password")
+
 				return
 			}
 
@@ -451,6 +455,7 @@ func main() {
 			cert, cas, err := enr.getOrEnrollCert(app.uid, app.GetVersion())
 			if err != nil {
 				app.Logger.Errorf("error while enroll cert: %s", err.Error())
+
 				return
 			}
 
@@ -462,6 +467,7 @@ func main() {
 			cert, cas, err := loadP12(viper.GetString("ssl.cert"), viper.GetString("ssl.password"))
 			if err != nil {
 				app.Logger.Errorf("error while loading cert: %s", err.Error())
+
 				return
 			}
 

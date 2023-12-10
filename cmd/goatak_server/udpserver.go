@@ -18,6 +18,7 @@ func (app *App) ListenUDP(addr string) error {
 	p, err := net.ListenPacket("udp", addr)
 	if err != nil {
 		app.Logger.Error(err)
+
 		return err
 	}
 
@@ -27,6 +28,7 @@ func (app *App) ListenUDP(addr string) error {
 		n, _, err := p.ReadFrom(buf)
 		if err != nil {
 			app.Logger.Errorf("read error: %v", err)
+
 			return err
 		}
 
@@ -41,6 +43,7 @@ func (app *App) ListenUDP(addr string) error {
 				err = proto.Unmarshal(buf[3:n], msg)
 				if err != nil {
 					app.Logger.Errorf("protobuf decode error: %s", err.Error())
+
 					continue
 				}
 
@@ -52,6 +55,7 @@ func (app *App) ListenUDP(addr string) error {
 				c, err := cot.CotFromProto(msg, "", scope)
 				if err != nil {
 					app.Logger.Errorf("protobuf detail extract error: %s", err.Error())
+
 					continue
 				}
 
@@ -62,6 +66,7 @@ func (app *App) ListenUDP(addr string) error {
 				err = xml.Unmarshal(buf[3:n], ev)
 				if err != nil {
 					app.Logger.Errorf("xml decode error: %s", err.Error())
+
 					continue
 				}
 
@@ -81,6 +86,7 @@ func (app *App) ListenUDP(addr string) error {
 			ev := &cot.Event{}
 			if err := xml.Unmarshal(buf[:n], ev); err != nil {
 				app.Logger.Errorf("decode error: %v", err)
+
 				continue
 			}
 

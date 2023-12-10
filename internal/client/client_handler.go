@@ -110,6 +110,7 @@ func (h *ConnClientHandler) GetUids() map[string]string {
 
 	h.uids.Range(func(key, value any) bool {
 		res[key.(string)] = value.(string)
+
 		return true
 	})
 
@@ -346,6 +347,7 @@ func (h *ConnClientHandler) GetUID(callsign string) string {
 	h.uids.Range(func(key, value any) bool {
 		if callsign == value.(string) {
 			res = key.(string)
+
 			return false
 		}
 

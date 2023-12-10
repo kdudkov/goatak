@@ -33,10 +33,10 @@ func (app *App) connect() (net.Conn, error) {
 		tlsutil.LogCerts(app.Logger, cs.PeerCertificates...)
 
 		return conn, nil
-	} else {
-		app.Logger.Infof("connecting to %s...", addr)
-		return net.DialTimeout("tcp", addr, app.dialTimeout)
 	}
+	app.Logger.Infof("connecting to %s...", addr)
+
+	return net.DialTimeout("tcp", addr, app.dialTimeout)
 }
 
 func (app *App) getTLSConfig() *tls.Config {

@@ -24,7 +24,7 @@ var (
 	httpRequestsCount = promauto.NewCounterVec(prometheus.CounterOpts{
 		Namespace: "goatak",
 		Subsystem: "http",
-		Name:      "request_count",
+		Name:      "requests_total",
 		Help:      "Number of the HTTP requests.",
 	}, []string{"api", "path", "method", "code"})
 )
@@ -39,6 +39,7 @@ func SslCheckHandlerGas(app *App) air.Gas {
 					user, serial := getCertUser(h.TLS)
 					if app.users.UserIsValid(user, serial) {
 						req.SetValue(usernameKey, user)
+
 						return next(req, res)
 					} else {
 						app.Logger.Warnf("invalid user %s serial %s", user, serial)
@@ -59,7 +60,7 @@ func LoggerGas(log *zap.SugaredLogger, apiName string) air.Gas {
 	logger := log.Named(apiName)
 
 	return func(next air.Handler) air.Handler {
-		return func(req *air.Request, res *air.Response) (err error) {
+		return func(req *air.Request, res *air.Response) error {
 			startTime := time.Now()
 
 			res.Defer(func() {

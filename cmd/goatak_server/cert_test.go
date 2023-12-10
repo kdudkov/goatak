@@ -61,6 +61,7 @@ func Server(addr, certFile, keyFile string) (err error) {
 
 		if err != nil {
 			log.Printf("Unable to accept connections: %#v", err)
+
 			continue
 		}
 
@@ -87,7 +88,7 @@ func Server(addr, certFile, keyFile string) (err error) {
 }
 
 func Client(addr, caFile, p12file, passw string) {
-	conn, err := tls.Dial("tcp", addr, getTlsConfig(caFile, p12file, passw))
+	conn, err := tls.Dial("tcp", addr, getTLSConfig(caFile, p12file, passw))
 	if err != nil {
 		panic(err)
 	}
@@ -102,7 +103,7 @@ func Client(addr, caFile, p12file, passw string) {
 	fmt.Println(string(b[:n]))
 }
 
-func getTlsConfig(caFile, p12File string, passw string) *tls.Config {
+func getTLSConfig(caFile, p12File string, passw string) *tls.Config {
 	p12Data, err := os.ReadFile(p12File)
 	if err != nil {
 		panic(err)

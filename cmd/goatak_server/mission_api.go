@@ -33,6 +33,7 @@ func getMissionsInvitationsHandler(app *App) func(req *air.Request, res *air.Res
 func getMissionHandler(app *App) func(req *air.Request, res *air.Response) error {
 	return func(req *air.Request, res *air.Response) error {
 		m := model.GetDefaultMission(getStringParam(req, "missionname"))
+
 		return res.WriteJSON(makeAnswer("Mission", []any{m}))
 	}
 }

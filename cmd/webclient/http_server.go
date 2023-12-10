@@ -214,10 +214,12 @@ func getWsHandler(app *App) func(req *air.Request, res *air.Response) error {
 				if b, err := json.Marshal(ci); err == nil {
 					if err := ws.WriteText(string(b)); err != nil {
 						ws.Close()
+
 						return
 					}
 				} else {
 					ws.Close()
+
 					return
 				}
 			}
@@ -274,6 +276,7 @@ func getUnits(app *App) []*model.WebUnit {
 
 	app.items.ForEach(func(item *model.Item) bool {
 		units = append(units, item.ToWeb())
+
 		return true
 	})
 

@@ -32,7 +32,7 @@ func getUsernameFromReq(req *air.Request) string {
 	return ""
 }
 
-func getCertApi(app *App, addr string) *air.Air {
+func getCertAPI(app *App, addr string) *air.Air {
 	certApi := air.New()
 	certApi.Address = addr
 
@@ -40,13 +40,14 @@ func getCertApi(app *App, addr string) *air.Air {
 		Validator: func(username string, password string, req *air.Request, _ *air.Response) (bool, error) {
 			app.Logger.Infof("tls api login with user %s", username)
 			req.SetValue(usernameKey, username)
+
 			return app.users.CheckUserAuth(username, password), nil
 		},
 	})
 
 	certApi.Gases = []air.Gas{LoggerGas(app.Logger, "cert_api"), auth}
 
-	certApi.GET("/Marti/api/tls/config", getTlsConfigHandler(app))
+	certApi.GET("/Marti/api/tls/config", getTLSConfigHandler(app))
 	certApi.POST("/Marti/api/tls/signClient", getSignHandler(app))
 	certApi.POST("/Marti/api/tls/signClient/v2", getSignHandlerV2(app))
 	certApi.GET("/Marti/api/tls/profile/enrollment", getProfileEnrollmentHandler(app))
@@ -56,11 +57,11 @@ func getCertApi(app *App, addr string) *air.Air {
 	return certApi
 }
 
-func getTlsConfigHandler(app *App) func(req *air.Request, res *air.Response) error {
+func getTLSConfigHandler(app *App) func(req *air.Request, res *air.Response) error {
 	names := map[string]string{"C": "RU", "O": "goatak", "OU": "goatak"}
 	buf := strings.Builder{}
 	buf.WriteString("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n")
-	buf.WriteString(fmt.Sprintf("<certificateConfig validityDays=\"%d\"><nameEntries>", app.config.certTtlDays))
+	buf.WriteString(fmt.Sprintf("<certificateConfig validityDays=\"%d\"><nameEntries>", app.config.certTTLDays))
 
 	for k, v := range names {
 		buf.WriteString(fmt.Sprintf("<nameEntry name=\"%s\" value=\"%s\"/>", k, v))
@@ -71,6 +72,7 @@ func getTlsConfigHandler(app *App) func(req *air.Request, res *air.Response) err
 
 	return func(req *air.Request, res *air.Response) error {
 		res.Header.Set("Content-Type", "application/xml")
+
 		return res.Write(strings.NewReader(data))
 	}
 }
@@ -128,7 +130,7 @@ func (app *App) processSignRequest(req *air.Request) (*x509.Certificate, error) 
 	}
 
 	signedCert, err := signClientCert(clientCSR,
-		app.config.serverCert, app.config.tlsCert.PrivateKey, app.config.certTtlDays)
+		app.config.serverCert, app.config.tlsCert.PrivateKey, app.config.certTTLDays)
 	if err != nil {
 		return nil, err
 	}
@@ -143,6 +145,7 @@ func getSignHandler(app *App) func(req *air.Request, res *air.Response) error {
 		signedCert, err := app.processSignRequest(req)
 		if err != nil {
 			app.Logger.Errorf(err.Error())
+
 			return err
 		}
 
@@ -154,6 +157,7 @@ func getSignHandler(app *App) func(req *air.Request, res *air.Response) error {
 		p12Bytes, err := tlsutil.MakeP12TrustStore(certs, p12Password)
 		if err != nil {
 			app.Logger.Errorf("error making p12: %v", err)
+
 			return err
 		}
 
@@ -166,6 +170,7 @@ func getSignHandlerV2(app *App) func(req *air.Request, res *air.Response) error 
 		signedCert, err := app.processSignRequest(req)
 		if err != nil {
 			app.Logger.Errorf(err.Error())
+
 			return err
 		}
 
@@ -204,6 +209,7 @@ func getSignHandlerV2(app *App) func(req *air.Request, res *air.Response) error 
 			return res.Write(strings.NewReader(buf.String()))
 		default:
 			res.Status = http.StatusBadRequest
+
 			return res.WriteString("")
 		}
 	}
@@ -217,6 +223,7 @@ func getProfileEnrollmentHandler(app *App) func(req *air.Request, res *air.Respo
 		files := app.GetProfileFiles(username, uid)
 		if len(files) == 0 {
 			res.Status = http.StatusNoContent
+
 			return nil
 		}
 

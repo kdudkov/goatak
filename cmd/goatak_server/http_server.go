@@ -52,11 +52,11 @@ func NewHttp(app *App) *HttpServer {
 	}
 
 	if app.config.adminAddr != "" {
-		srv.listeners["admin api calls"] = getAdminApi(app, app.config.adminAddr, renderer, app.config.webtakRoot)
+		srv.listeners["admin api calls"] = getAdminAPI(app, app.config.adminAddr, renderer, app.config.webtakRoot)
 	}
 
 	if app.config.certAddr != "" {
-		srv.listeners["cert api calls"] = getCertApi(app, app.config.certAddr)
+		srv.listeners["cert api calls"] = getCertAPI(app, app.config.certAddr)
 	}
 
 	srv.listeners["marti api calls"] = getMartiApi(app, app.config.apiAddr)
@@ -64,39 +64,39 @@ func NewHttp(app *App) *HttpServer {
 	return srv
 }
 
-func getAdminApi(app *App, addr string, renderer *staticfiles.Renderer, webtakRoot string) *air.Air {
-	adminApi := air.New()
-	adminApi.Address = addr
-	adminApi.NotFoundHandler = getNotFoundHandler()
-	// adminApi.Gases = []air.Gas{LoggerGas(app.Logger, "admin_api")}
+func getAdminAPI(app *App, addr string, renderer *staticfiles.Renderer, webtakRoot string) *air.Air {
+	adminAPI := air.New()
+	adminAPI.Address = addr
+	adminAPI.NotFoundHandler = getNotFoundHandler()
+	// adminAPI.Gases = []air.Gas{LoggerGas(app.Logger, "admin_api")}
 
-	staticfiles.EmbedFiles(adminApi, "/static")
-	adminApi.GET("/", getIndexHandler(app, renderer))
-	adminApi.GET("/map", getMapHandler(app, renderer))
-	adminApi.GET("/config", getConfigHandler(app))
-	adminApi.GET("/connections", getConnHandler(app))
+	staticfiles.EmbedFiles(adminAPI, "/static")
+	adminAPI.GET("/", getIndexHandler(app, renderer))
+	adminAPI.GET("/map", getMapHandler(app, renderer))
+	adminAPI.GET("/config", getConfigHandler(app))
+	adminAPI.GET("/connections", getConnHandler(app))
 
-	adminApi.GET("/unit", getUnitsHandler(app))
-	adminApi.GET("/unit/:uid/track", getUnitTrackHandler(app))
-	adminApi.DELETE("/unit/:uid", deleteItemHandler(app))
+	adminAPI.GET("/unit", getUnitsHandler(app))
+	adminAPI.GET("/unit/:uid/track", getUnitTrackHandler(app))
+	adminAPI.DELETE("/unit/:uid", deleteItemHandler(app))
 
-	adminApi.GET("/takproto/1", getWsHandler(app))
-	adminApi.POST("/cot", getCotPostHandler(app))
-	adminApi.POST("/cot_xml", getCotXmlPostHandler(app))
+	adminAPI.GET("/takproto/1", getWsHandler(app))
+	adminAPI.POST("/cot", getCotPostHandler(app))
+	adminAPI.POST("/cot_xml", getCotXMLPostHandler(app))
 
 	if webtakRoot != "" {
-		adminApi.FILE("/webtak/", filepath.Join(webtakRoot, "index.html"))
-		adminApi.FILES("/webtak", webtakRoot)
-		addMartiRoutes(app, adminApi)
+		adminAPI.FILE("/webtak/", filepath.Join(webtakRoot, "index.html"))
+		adminAPI.FILES("/webtak", webtakRoot)
+		addMartiRoutes(app, adminAPI)
 	}
 
-	adminApi.GET("/stack", getStackHandler())
-	adminApi.GET("/metrics", getMetricsHandler())
+	adminAPI.GET("/stack", getStackHandler())
+	adminAPI.GET("/metrics", getMetricsHandler())
 
-	adminApi.RendererTemplateLeftDelim = "[["
-	adminApi.RendererTemplateRightDelim = "]]"
+	adminAPI.RendererTemplateLeftDelim = "[["
+	adminAPI.RendererTemplateRightDelim = "]]"
 
-	return adminApi
+	return adminAPI
 }
 
 func (h *HttpServer) Start() {
@@ -150,6 +150,7 @@ func getMapHandler(app *App, r *staticfiles.Renderer) func(req *air.Request, res
 func getNotFoundHandler() func(req *air.Request, res *air.Response) error {
 	return func(req *air.Request, res *air.Response) error {
 		res.Status = http.StatusNotFound
+
 		return errors.New(http.StatusText(res.Status))
 	}
 }
@@ -187,6 +188,7 @@ func getMetricsHandler() func(req *air.Request, res *air.Response) error {
 
 	return func(req *air.Request, res *air.Response) error {
 		h.ServeHTTP(res.HTTPResponseWriter(), req.HTTPRequest())
+
 		return nil
 	}
 }
@@ -196,6 +198,7 @@ func getUnits(app *App) []*model.WebUnit {
 
 	app.items.ForEach(func(item *model.Item) bool {
 		units = append(units, item.ToWeb())
+
 		return true
 	})
 
@@ -209,6 +212,7 @@ func getUnitTrackHandler(app *App) func(req *air.Request, res *air.Response) err
 		item := app.items.Get(uid)
 		if item == nil {
 			res.Status = http.StatusNotFound
+
 			return nil
 		}
 
@@ -263,6 +267,7 @@ func getCotPostHandler(app *App) func(req *air.Request, res *air.Response) error
 
 		if err := dec.Decode(c); err != nil {
 			app.Logger.Errorf("cot decode error %s", err)
+
 			return err
 		}
 
@@ -272,7 +277,7 @@ func getCotPostHandler(app *App) func(req *air.Request, res *air.Response) error
 	}
 }
 
-func getCotXmlPostHandler(app *App) func(req *air.Request, res *air.Response) error {
+func getCotXMLPostHandler(app *App) func(req *air.Request, res *air.Response) error {
 	return func(req *air.Request, res *air.Response) error {
 		scope := getStringParam(req, "scope")
 		if scope == "" {
@@ -285,12 +290,14 @@ func getCotXmlPostHandler(app *App) func(req *air.Request, res *air.Response) er
 
 		if err := dec.Decode(ev); err != nil {
 			app.Logger.Errorf("cot decode error %s", err)
+
 			return err
 		}
 
 		c, err := cot.EventToProto(ev)
 		if err != nil {
 			app.Logger.Errorf("cot convert error %s", err)
+
 			return err
 		}
 

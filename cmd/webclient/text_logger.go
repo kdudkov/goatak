@@ -20,15 +20,14 @@ func NewTextLogger() *TextLogger {
 	}
 }
 
-func (l *TextLogger) Write(p []byte) (n int, _ error) {
+func (l *TextLogger) Write(p []byte) (int, error) {
 	if l == nil {
-		return
+		return 0, nil
 	}
 
 	l.AddLine(string(p))
-	n = len(p)
 
-	return
+	return len(p), nil
 }
 
 func (l *TextLogger) AddLine(s string) {

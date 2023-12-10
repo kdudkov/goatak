@@ -60,7 +60,7 @@ type AppConfig struct {
 
 	debug bool
 
-	certTtlDays int
+	certTTLDays int
 	connections []string
 }
 
@@ -191,6 +191,7 @@ func (app *App) RemoveClientHandler(name string) {
 func (app *App) ForAllClients(f func(ch client.ClientHandler) bool) {
 	app.handlers.Range(func(_, value any) bool {
 		h := value.(client.ClientHandler)
+
 		return f(h)
 	})
 }
@@ -275,7 +276,7 @@ func (app *App) connect(connectStr string) (net.Conn, error) {
 	if tlsConn {
 		app.Logger.Infof("connecting with SSL to %s...", connectStr)
 
-		conn, err := tls.Dial("tcp", addr, app.getTlsConfig())
+		conn, err := tls.Dial("tcp", addr, app.getTLSConfig())
 		if err != nil {
 			return nil, err
 		}
@@ -298,13 +299,13 @@ func (app *App) connect(connectStr string) (net.Conn, error) {
 		}
 
 		return conn, nil
-	} else {
-		app.Logger.Infof("connecting to %s...", connectStr)
-		return net.DialTimeout("tcp", addr, time.Second*3)
 	}
+	app.Logger.Infof("connecting to %s...", connectStr)
+
+	return net.DialTimeout("tcp", addr, time.Second*3)
 }
 
-func (app *App) getTlsConfig() *tls.Config {
+func (app *App) getTLSConfig() *tls.Config {
 	p12Data, err := os.ReadFile(viper.GetString("ssl.cert"))
 	if err != nil {
 		app.Logger.Fatal(err)
@@ -367,10 +368,8 @@ func (app *App) cleanOldUnits() {
 			if item.IsOld() {
 				toDelete = append(toDelete, item.GetUID())
 				app.Logger.Debugf("removing contact %s", item.GetUID())
-			} else {
-				if item.IsOnline() && item.GetLastSeen().Add(lastSeenOfflineTimeout).Before(time.Now()) {
-					item.SetOffline()
-				}
+			} else if item.IsOnline() && item.GetLastSeen().Add(lastSeenOfflineTimeout).Before(time.Now()) {
+				item.SetOffline()
 			}
 		}
 
@@ -563,7 +562,7 @@ func main() {
 		connections: viper.GetStringSlice("connections"),
 		usersFile:   viper.GetString("users_file"),
 		webtakRoot:  viper.GetString("webtak_root"),
-		certTtlDays: viper.GetInt("ssl.cert_ttl_days"),
+		certTTLDays: viper.GetInt("ssl.cert_ttl_days"),
 	}
 
 	if err := processCerts(config); err != nil {

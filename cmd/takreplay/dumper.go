@@ -24,6 +24,7 @@ func (g *TextDumper) Stop() {
 
 func (g *TextDumper) Process(msg *cot.CotMessage) error {
 	fmt.Println(msg.GetSendTime().Format(time.DateTime), msg.GetType(), msg.GetCallsign())
+
 	return nil
 }
 

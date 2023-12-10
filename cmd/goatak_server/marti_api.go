@@ -17,7 +17,7 @@ import (
 )
 
 const (
-	nodeId     = "1"
+	nodeID     = "1"
 	apiVersion = "3"
 )
 
@@ -146,15 +146,16 @@ func getMissionQueryHandler(app *App) func(req *air.Request, res *air.Response) 
 		hash := getStringParam(req, "hash")
 		if hash == "" {
 			res.Status = http.StatusNotAcceptable
+
 			return res.WriteString("no hash")
 		}
 
 		if _, ok := app.packageManager.Get(hash); ok {
 			return res.WriteString(fmt.Sprintf("/Marti/sync/content?hash=%s", hash))
-		} else {
-			res.Status = http.StatusNotFound
-			return res.WriteString("not found")
 		}
+		res.Status = http.StatusNotFound
+
+		return res.WriteString("not found")
 	}
 }
 
@@ -203,6 +204,7 @@ func getMissionUploadHandler(app *App) func(req *air.Request, res *air.Response)
 			n, err := app.packageManager.SaveFile(hash, fh.Filename, f)
 			if err != nil {
 				app.Logger.Errorf("%v", err)
+
 				return err
 			}
 
@@ -216,6 +218,7 @@ func getMissionUploadHandler(app *App) func(req *air.Request, res *air.Response)
 			return res.WriteString(fmt.Sprintf("/Marti/sync/content?hash=%s", hash))
 		} else {
 			app.Logger.Errorf("%v", err)
+
 			return err
 		}
 	}
@@ -247,6 +250,7 @@ func getUploadHandler(app *App) func(req *air.Request, res *air.Response) error 
 
 		if info.UID == "" || info.Name == "" {
 			res.Status = http.StatusBadRequest
+
 			return nil
 		}
 
@@ -260,19 +264,20 @@ func getMetadataGetHandler(app *App) func(req *air.Request, res *air.Response) e
 
 		if hash == "" {
 			res.Status = http.StatusNotAcceptable
+
 			return res.WriteString("no hash")
 		}
 
 		if pi, ok := app.packageManager.Get(hash); ok {
 			res.Header.Set("Content-type", pi.MIMEType)
+
 			return res.WriteFile(app.packageManager.GetFilePath(hash))
-		} else {
-			app.Logger.Infof("not found - %s", hash)
-
-			res.Status = http.StatusNotFound
-
-			return res.WriteString("not found")
 		}
+		app.Logger.Infof("not found - %s", hash)
+
+		res.Status = http.StatusNotFound
+
+		return res.WriteString("not found")
 	}
 }
 
@@ -282,6 +287,7 @@ func getMetadataPutHandler(app *App) func(req *air.Request, res *air.Response) e
 
 		if hash == "" {
 			res.Status = http.StatusNotAcceptable
+
 			return res.WriteString("no hash")
 		}
 
@@ -350,6 +356,7 @@ func getProfileConnectionHandler(app *App) func(req *air.Request, res *air.Respo
 		files := app.GetProfileFiles(username, uid)
 		if len(files) == 0 {
 			res.Status = http.StatusNoContent
+
 			return nil
 		}
 
@@ -379,6 +386,7 @@ func getVideoListHandler(app *App) func(req *air.Request, res *air.Response) err
 
 		app.feeds.ForEach(func(f *model.Feed2) bool {
 			r.Feeds = append(r.Feeds, f.ToFeed())
+
 			return true
 		})
 
@@ -392,6 +400,7 @@ func getVideo2ListHandler(app *App) func(req *air.Request, res *air.Response) er
 
 		app.feeds.ForEach(func(f *model.Feed2) bool {
 			conn = append(conn, &model.VideoConnections2{Feeds: []*model.Feed2{f}})
+
 			return true
 		})
 
@@ -425,7 +434,7 @@ func makeAnswer(typ string, data any) map[string]any {
 	result := make(map[string]any)
 	result["version"] = apiVersion
 	result["type"] = typ
-	result["nodeId"] = nodeId
+	result["nodeId"] = nodeID
 	result["data"] = data
 
 	return result

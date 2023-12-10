@@ -53,6 +53,7 @@ func (app *App) removeItemProcessor(msg *cot.CotMessage) {
 
 		if uid == "" {
 			app.Logger.Warnf("invalid remove message: %s", msg.Detail)
+
 			return
 		}
 
@@ -77,6 +78,7 @@ func (app *App) chatProcessor(msg *cot.CotMessage) {
 	c := model.MsgToChat(msg)
 	if c == nil {
 		app.Logger.Errorf("invalid chat message %s", msg.TakMessage)
+
 		return
 	}
 
@@ -128,7 +130,7 @@ func logMessage(msg *cot.CotMessage, dir string) error {
 
 	fname := filepath.Join(dir, time.Now().Format("2006-01-02.tak"))
 
-	f, err := os.OpenFile(fname, os.O_RDWR|os.O_APPEND|os.O_CREATE, 0o666)
+	f, err := os.OpenFile(fname, os.O_RDWR|os.O_APPEND|os.O_CREATE, 0666)
 	if err != nil {
 		return err
 	}
@@ -147,7 +149,7 @@ func logMessage(msg *cot.CotMessage, dir string) error {
 }
 
 func logChatMessage(c *model.ChatMessage) error {
-	fd, err := os.OpenFile("msg.log", os.O_RDWR|os.O_APPEND|os.O_CREATE, 0o666)
+	fd, err := os.OpenFile("msg.log", os.O_RDWR|os.O_APPEND|os.O_CREATE, 0666)
 	if err != nil {
 		return nil
 	}

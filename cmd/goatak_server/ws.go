@@ -45,6 +45,7 @@ func (w *WsClientHandler) GetUids() map[string]string {
 
 	w.uids.Range(func(key, value any) bool {
 		res[key.(string)] = value.(string)
+
 		return true
 	})
 
@@ -53,6 +54,7 @@ func (w *WsClientHandler) GetUids() map[string]string {
 
 func (w *WsClientHandler) HasUID(uid string) bool {
 	_, ok := w.uids.Load(uid)
+
 	return ok
 }
 
@@ -129,12 +131,14 @@ func (w *WsClientHandler) Listen() {
 		msg, err := cot.ReadProto(bufio.NewReader(bytes.NewReader(b)))
 		if err != nil {
 			w.logger.Errorf("read: %s", err.Error())
+
 			return err
 		}
 
 		cotmsg, err := cot.CotFromProto(msg, w.name, w.GetUser().GetScope())
 		if err != nil {
 			w.logger.Errorf("details get error: %s", err.Error())
+
 			return err
 		}
 

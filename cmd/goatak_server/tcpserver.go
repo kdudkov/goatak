@@ -17,6 +17,7 @@ func (app *App) ListenTCP(addr string) (err error) {
 	listener, err := net.Listen("tcp", addr)
 	if err != nil {
 		app.Logger.Errorf("Failed to listen: %v", err)
+
 		return err
 	}
 
@@ -26,6 +27,7 @@ func (app *App) ListenTCP(addr string) (err error) {
 		conn, err := listener.Accept()
 		if err != nil {
 			app.Logger.Errorf("Unable to accept connections: %#v", err)
+
 			return err
 		}
 
@@ -63,6 +65,7 @@ func (app *App) listenTls(addr string) error {
 		conn, err := listener.Accept()
 		if err != nil {
 			app.Logger.Errorf("Unable to accept connections: %#v", err)
+
 			continue
 		}
 
@@ -100,6 +103,7 @@ func (app *App) verifyConnection(st tls.ConnectionState) error {
 
 	if !app.users.UserIsValid(user, sn) {
 		app.Logger.Warnf("bad user %s", user)
+
 		return fmt.Errorf("bad user")
 	}
 
