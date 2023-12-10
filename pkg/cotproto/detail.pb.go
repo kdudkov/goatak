@@ -228,7 +228,9 @@ func file_detail_proto_init() {
 			}
 		}
 	}
+
 	type x struct{}
+
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),

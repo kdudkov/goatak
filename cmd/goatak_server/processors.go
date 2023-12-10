@@ -98,11 +98,11 @@ func (app *App) saveItemProcessor(msg *cot.CotMessage) {
 	}
 
 	cl := model.GetClass(msg)
-	if c := app.items.Get(msg.GetUid()); c != nil {
-		app.Logger.Debugf("update %s %s (%s) %s", cl, msg.GetUid(), msg.GetCallsign(), msg.GetType())
+	if c := app.items.Get(msg.GetUID()); c != nil {
+		app.Logger.Debugf("update %s %s (%s) %s", cl, msg.GetUID(), msg.GetCallsign(), msg.GetType())
 		c.Update(msg)
 	} else {
-		app.Logger.Infof("new %s %s (%s) %s", cl, msg.GetUid(), msg.GetCallsign(), msg.GetType())
+		app.Logger.Infof("new %s %s (%s) %s", cl, msg.GetUID(), msg.GetCallsign(), msg.GetType())
 		app.items.Store(model.FromMsg(msg))
 	}
 }

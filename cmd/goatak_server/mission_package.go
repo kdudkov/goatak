@@ -146,6 +146,7 @@ func (p *PrefFile) SetName(name string) {
 
 func (p *PrefFile) Content() []byte {
 	var sb bytes.Buffer
+
 	sb.WriteString("<?xml version='1.0' standalone='yes'?>\n")
 	sb.WriteString("<preferences>")
 	sb.WriteString(fmt.Sprintf("<preference version=\"1\" name=\"%s\">\n", p.cls))

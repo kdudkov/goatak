@@ -49,7 +49,7 @@ func (m *CotMessage) GetStaleTime() time.Time {
 	return TimeFromMillis(m.TakMessage.GetCotEvent().GetStaleTime())
 }
 
-func (m *CotMessage) GetUid() string {
+func (m *CotMessage) GetUID() string {
 	if m == nil || m.TakMessage == nil {
 		return ""
 	}

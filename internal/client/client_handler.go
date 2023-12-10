@@ -47,7 +47,6 @@ type ClientHandler interface {
 }
 
 type ConnClientHandler struct {
-	ctx          context.Context
 	cancel       context.CancelFunc
 	conn         net.Conn
 	addr         string
@@ -77,8 +76,6 @@ func NewConnClientHandler(name string, conn net.Conn, config *HandlerConfig) *Co
 		uids:         sync.Map{},
 		lastActivity: atomic.Pointer[time.Time]{},
 	}
-
-	c.ctx, c.cancel = context.WithCancel(context.Background())
 
 	if config != nil {
 		c.user = config.User
@@ -135,11 +132,15 @@ func (h *ConnClientHandler) GetLastSeen() *time.Time {
 
 func (h *ConnClientHandler) Start() {
 	h.logger.Info("starting")
+
+	var ctx context.Context
+	ctx, h.cancel = context.WithCancel(context.Background())
+
 	go h.handleWrite()
-	go h.handleRead()
+	go h.handleRead(ctx)
 
 	if h.isClient {
-		go h.pinger()
+		go h.pinger(ctx)
 	}
 
 	if !h.isClient {
@@ -151,11 +152,11 @@ func (h *ConnClientHandler) Start() {
 	}
 }
 
-func (h *ConnClientHandler) pinger() {
+func (h *ConnClientHandler) pinger(ctx context.Context) {
 	ticker := time.NewTicker(pingTimeout)
 	defer ticker.Stop()
 
-	for h.ctx.Err() == nil {
+	for ctx.Err() == nil {
 		select {
 		case <-ticker.C:
 			h.logger.Debugf("ping")
@@ -163,19 +164,19 @@ func (h *ConnClientHandler) pinger() {
 			if err := h.SendCot(cot.MakePing(h.localUID)); err != nil {
 				h.logger.Debugf("sendMsg error: %v", err)
 			}
-		case <-h.ctx.Done():
+		case <-ctx.Done():
 			return
 		}
 	}
 }
 
-func (h *ConnClientHandler) handleRead() {
+func (h *ConnClientHandler) handleRead(ctx context.Context) {
 	defer h.stopHandle()
 
 	er := cot.NewTagReader(h.conn)
 	pr := cot.NewProtoReader(h.conn)
 
-	for h.ctx.Err() == nil {
+	for ctx.Err() == nil {
 		var msg *cot.CotMessage
 
 		var err error
@@ -208,7 +209,7 @@ func (h *ConnClientHandler) handleRead() {
 
 		// add new contact uid
 		if msg.IsContact() {
-			uid := msg.GetUid()
+			uid := msg.GetUID()
 			uid = strings.TrimSuffix(uid, "-ping")
 
 			if _, present := h.uids.Swap(uid, msg.GetCallsign()); !present {
@@ -227,7 +228,7 @@ func (h *ConnClientHandler) handleRead() {
 
 		// ping
 		if msg.GetType() == "t-x-c-t" {
-			h.logger.Debugf("ping from %s %s", h.addr, msg.GetUid())
+			h.logger.Debugf("ping from %s %s", h.addr, msg.GetUID())
 
 			if err := h.SendCot(cot.MakePong()); err != nil {
 				h.logger.Errorf("SendMsg error: %v", err)
@@ -339,7 +340,7 @@ func (h *ConnClientHandler) GetVersion() int32 {
 	return atomic.LoadInt32(&h.ver)
 }
 
-func (h *ConnClientHandler) GetUid(callsign string) string {
+func (h *ConnClientHandler) GetUID(callsign string) string {
 	res := ""
 
 	h.uids.Range(func(key, value any) bool {
@@ -354,7 +355,7 @@ func (h *ConnClientHandler) GetUid(callsign string) string {
 	return res
 }
 
-func (h *ConnClientHandler) ForAllUid(fn func(string, string) bool) {
+func (h *ConnClientHandler) ForAllUID(fn func(string, string) bool) {
 	h.uids.Range(func(key, value any) bool {
 		return fn(key.(string), value.(string))
 	})

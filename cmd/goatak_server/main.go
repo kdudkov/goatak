@@ -258,6 +258,7 @@ func (app *App) connect(connectStr string) (net.Conn, error) {
 	if len(parts) != 3 {
 		return nil, fmt.Errorf("invalid connect string: %s", connectStr)
 	}
+
 	var tlsConn bool
 
 	switch parts[2] {
@@ -428,7 +429,9 @@ func loadPem(name string) ([]*x509.Certificate, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error loading %s: %s", name, err.Error())
 	}
+
 	var certs []*x509.Certificate
+
 	var pemBlock *pem.Block
 
 	for {

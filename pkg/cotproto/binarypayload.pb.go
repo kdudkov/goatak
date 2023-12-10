@@ -171,7 +171,9 @@ func file_binarypayload_proto_init() {
 			}
 		}
 	}
+
 	type x struct{}
+
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),

@@ -34,9 +34,9 @@ func MatchPattern(a, pattern string) bool {
 
 	if strings.HasSuffix(pattern, "-") {
 		return len(at) > len(pt)
-	} else {
-		return len(at) == len(pt)
 	}
+
+	return len(at) == len(pt)
 }
 
 func MatchAnyPattern(a string, patterns ...string) bool {

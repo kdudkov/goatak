@@ -24,7 +24,7 @@ func NewFeedsFileRepo(logger *zap.SugaredLogger, basedir string) *FeedsFileRepos
 }
 
 func (r *FeedsFileRepository) Start() error {
-	if err := os.MkdirAll(r.baseDir, 777); err != nil {
+	if err := os.MkdirAll(r.baseDir, 0777); err != nil {
 		return err
 	}
 

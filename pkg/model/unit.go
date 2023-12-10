@@ -172,7 +172,7 @@ func FromMsg(msg *cot.CotMessage) *Item {
 
 	i := &Item{
 		mx:             sync.RWMutex{},
-		uid:            msg.GetUid(),
+		uid:            msg.GetUID(),
 		cottype:        msg.GetType(),
 		class:          cls,
 		callsign:       msg.GetCallsign(),

@@ -22,7 +22,9 @@ func TestRoute(t *testing.T) {
 	h.user = &model.User{Scope: "aaa", ReadScope: []string{"ccc", "ddd"}}
 
 	var msg *cot.CotMessage
+
 	var c *cotproto.TakMessage
+
 	var err error
 
 	msg = &cot.CotMessage{TakMessage: cot.MakePing("123"), Scope: "aaa"}
@@ -49,7 +51,9 @@ func TestRouteChat(t *testing.T) {
 	h.user = &model.User{Scope: "aaa"}
 
 	var msg *cot.CotMessage
+
 	var c *cotproto.TakMessage
+
 	var err error
 
 	tak := cot.BasicMsg("b-t-f", "123", time.Second*10)

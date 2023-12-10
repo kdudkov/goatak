@@ -19,9 +19,9 @@ type ProtoReader struct {
 func NewProtoReader(r io.Reader) *ProtoReader {
 	if rb, ok := r.(*bufio.Reader); ok {
 		return &ProtoReader{r: rb}
-	} else {
-		return &ProtoReader{r: bufio.NewReader(r)}
 	}
+
+	return &ProtoReader{r: bufio.NewReader(r)}
 }
 
 func (er *ProtoReader) ReadProtoBuf() (*cotproto.TakMessage, error) {

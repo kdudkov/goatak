@@ -154,7 +154,7 @@ func parseURL(url string) (proto, addr string, port int, path string) {
 func toURL(proto, addr string, port int, path string) string {
 	if p, ok := defports[proto]; (ok && p == port) || port == 0 {
 		return fmt.Sprintf("%s://%s%s", proto, addr, path)
-	} else {
-		return fmt.Sprintf("%s://%s:%d%s", proto, addr, port, path)
 	}
+
+	return fmt.Sprintf("%s://%s:%d%s", proto, addr, port, path)
 }

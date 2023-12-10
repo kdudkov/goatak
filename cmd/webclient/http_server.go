@@ -154,7 +154,7 @@ func addItemHandler(app *App) func(req *air.Request, res *air.Response) error {
 		}
 
 		if wu.Category == "unit" || wu.Category == "point" {
-			if u := app.items.Get(msg.GetUid()); u != nil {
+			if u := app.items.Get(msg.GetUID()); u != nil {
 				u.UpdateFromWeb(wu, msg)
 			} else {
 				app.items.Store(model.FromMsgLocal(msg, wu.Send))

@@ -50,7 +50,7 @@ linters:
     #    - forbidigo
     - forcetypeassert
     #    - funlen
-    - gci
+    #    - gci
     - ginkgolinter
     - gocheckcompilerdirectives
     - gochecknoglobals
@@ -64,7 +64,7 @@ linters:
     - godox
     - goerr113
     - gofmt
-    - gofumpt
+    #    - gofumpt
     - goheader
     - goimports
     - gomnd

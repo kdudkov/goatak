@@ -261,7 +261,7 @@ func (n *Node) AddOrChangeChild(name string, params map[string]string) *Node {
 		}
 
 		return c
-	} else {
-		return n.AddChild(name, params, "")
 	}
+
+	return n.AddChild(name, params, "")
 }
