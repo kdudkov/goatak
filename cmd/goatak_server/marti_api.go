@@ -39,7 +39,7 @@ func getMartiApi(app *App, addr string) *air.Air {
 			MinVersion:   tls.VersionTLS10,
 		}
 
-		api.Gases = append(api.Gases, SslCheckHandlerGas(app))
+		api.Gases = append(api.Gases, SSLCheckHandlerGas(app))
 	}
 
 	return api

@@ -44,7 +44,7 @@ func (app *App) ListenTCP(addr string) (err error) {
 	}
 }
 
-func (app *App) listenTls(addr string) error {
+func (app *App) listenTLS(addr string) error {
 	app.Logger.Infof("listening TCP SSL at %s", addr)
 
 	tlsCfg := &tls.Config{
@@ -93,7 +93,7 @@ func (app *App) listenTls(addr string) error {
 		})
 		app.AddClientHandler(h)
 		h.Start()
-		app.onTlsClientConnect(username, serial)
+		app.onTLSClientConnect(username, serial)
 	}
 }
 
@@ -120,5 +120,6 @@ func getCertUser(st *tls.ConnectionState) (string, string) {
 	return "", ""
 }
 
-func (app *App) onTlsClientConnect(username, sn string) {
+func (app *App) onTLSClientConnect(username, sn string) {
+	//no-op
 }

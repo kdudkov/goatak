@@ -143,7 +143,7 @@ func (app *App) Run() {
 
 	if app.config.tlsCert != nil && app.config.tlsAddr != "" {
 		go func() {
-			if err := app.listenTls(app.config.tlsAddr); err != nil {
+			if err := app.listenTLS(app.config.tlsAddr); err != nil {
 				panic(err)
 			}
 		}()

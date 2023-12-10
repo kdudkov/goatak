@@ -29,7 +29,7 @@ var (
 	}, []string{"api", "path", "method", "code"})
 )
 
-func SslCheckHandlerGas(app *App) air.Gas {
+func SSLCheckHandlerGas(app *App) air.Gas {
 	err := errors.New("unauthorized")
 
 	return func(next air.Handler) air.Handler {
@@ -41,9 +41,9 @@ func SslCheckHandlerGas(app *App) air.Gas {
 						req.SetValue(usernameKey, user)
 
 						return next(req, res)
-					} else {
-						app.Logger.Warnf("invalid user %s serial %s", user, serial)
 					}
+
+					app.Logger.Warnf("invalid user %s serial %s", user, serial)
 				}
 			}
 
