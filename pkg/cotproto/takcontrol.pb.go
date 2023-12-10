@@ -39,6 +39,7 @@ type TakControl struct {
 
 func (x *TakControl) Reset() {
 	*x = TakControl{}
+
 	if protoimpl.UnsafeEnabled {
 		mi := &file_takcontrol_proto_msgTypes[0]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -54,13 +55,16 @@ func (*TakControl) ProtoMessage() {}
 
 func (x *TakControl) ProtoReflect() protoreflect.Message {
 	mi := &file_takcontrol_proto_msgTypes[0]
+
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
 		}
+
 		return ms
 	}
+
 	return mi.MessageOf(x)
 }
 
@@ -73,6 +77,7 @@ func (x *TakControl) GetMinProtoVersion() uint32 {
 	if x != nil {
 		return x.MinProtoVersion
 	}
+
 	return 0
 }
 
@@ -80,6 +85,7 @@ func (x *TakControl) GetMaxProtoVersion() uint32 {
 	if x != nil {
 		return x.MaxProtoVersion
 	}
+
 	return 0
 }
 
@@ -108,6 +114,7 @@ func file_takcontrol_proto_rawDescGZIP() []byte {
 	file_takcontrol_proto_rawDescOnce.Do(func() {
 		file_takcontrol_proto_rawDescData = protoimpl.X.CompressGZIP(file_takcontrol_proto_rawDescData)
 	})
+
 	return file_takcontrol_proto_rawDescData
 }
 
@@ -128,6 +135,7 @@ func file_takcontrol_proto_init() {
 	if File_takcontrol_proto != nil {
 		return
 	}
+
 	if !protoimpl.UnsafeEnabled {
 		file_takcontrol_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*TakControl); i {

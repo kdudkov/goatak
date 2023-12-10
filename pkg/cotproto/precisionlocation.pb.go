@@ -35,6 +35,7 @@ type PrecisionLocation struct {
 
 func (x *PrecisionLocation) Reset() {
 	*x = PrecisionLocation{}
+
 	if protoimpl.UnsafeEnabled {
 		mi := &file_precisionlocation_proto_msgTypes[0]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -50,13 +51,16 @@ func (*PrecisionLocation) ProtoMessage() {}
 
 func (x *PrecisionLocation) ProtoReflect() protoreflect.Message {
 	mi := &file_precisionlocation_proto_msgTypes[0]
+
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
 		}
+
 		return ms
 	}
+
 	return mi.MessageOf(x)
 }
 
@@ -69,6 +73,7 @@ func (x *PrecisionLocation) GetGeopointsrc() string {
 	if x != nil {
 		return x.Geopointsrc
 	}
+
 	return ""
 }
 
@@ -76,6 +81,7 @@ func (x *PrecisionLocation) GetAltsrc() string {
 	if x != nil {
 		return x.Altsrc
 	}
+
 	return ""
 }
 
@@ -103,6 +109,7 @@ func file_precisionlocation_proto_rawDescGZIP() []byte {
 	file_precisionlocation_proto_rawDescOnce.Do(func() {
 		file_precisionlocation_proto_rawDescData = protoimpl.X.CompressGZIP(file_precisionlocation_proto_rawDescData)
 	})
+
 	return file_precisionlocation_proto_rawDescData
 }
 
@@ -123,6 +130,7 @@ func file_precisionlocation_proto_init() {
 	if File_precisionlocation_proto != nil {
 		return
 	}
+
 	if !protoimpl.UnsafeEnabled {
 		file_precisionlocation_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*PrecisionLocation); i {

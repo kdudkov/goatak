@@ -31,6 +31,7 @@ func Server(addr, certFile, keyFile string) (err error) {
 	}
 
 	roots := x509.NewCertPool()
+
 	ok := roots.AppendCertsFromPEM(caCertPEM)
 	if !ok {
 		panic("failed to parse root certificate")
@@ -55,23 +56,31 @@ func Server(addr, certFile, keyFile string) (err error) {
 
 	for {
 		conn, err := listener.Accept()
+
 		log.Printf("connect")
+
 		if err != nil {
 			log.Printf("Unable to accept connections: %#v", err)
 			continue
 		}
+
 		log.Printf("SSL connection")
+
 		c1 := conn.(*tls.Conn)
 		if err := c1.Handshake(); err != nil {
 			log.Printf("Handshake error: %#v", err)
+
 			_ = c1.Close()
+
 			continue
 		}
 
 		log.Printf("%d", len(c1.ConnectionState().PeerCertificates))
+
 		for _, c := range c1.ConnectionState().PeerCertificates {
 			log.Printf(c.Subject.CommonName)
 		}
+
 		_, _ = c1.Write([]byte("Ok"))
 		_ = c1.Close()
 	}
@@ -84,6 +93,7 @@ func Client(addr, caFile, p12file, passw string) {
 	}
 
 	b := make([]byte, 10)
+
 	n, err := conn.Read(b)
 	if err != nil {
 		panic(err)

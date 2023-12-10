@@ -32,13 +32,16 @@ func TestTagReader(t *testing.T) {
 	for _, dat := range data {
 		t.Run(dat.name, func(t *testing.T) {
 			b := strings.NewReader(dat.data)
+
 			reader := NewTagReader(b)
 			for _, rightTag := range dat.tags {
 				tag, dat, err := reader.ReadTag()
 				fmt.Printf("%s %s\n", tag, dat)
+
 				if rightTag != "" && err != nil {
 					t.Error(err)
 				}
+
 				if tag != rightTag {
 					t.Errorf("bad tag %s, muste be %s", tag, rightTag)
 				}

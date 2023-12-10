@@ -42,6 +42,7 @@ type Message struct {
 
 func (x *Message) Reset() {
 	*x = Message{}
+
 	if protoimpl.UnsafeEnabled {
 		mi := &file_message_proto_msgTypes[0]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -57,13 +58,16 @@ func (*Message) ProtoMessage() {}
 
 func (x *Message) ProtoReflect() protoreflect.Message {
 	mi := &file_message_proto_msgTypes[0]
+
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
 		}
+
 		return ms
 	}
+
 	return mi.MessageOf(x)
 }
 
@@ -76,6 +80,7 @@ func (x *Message) GetPayload() *TakMessage {
 	if x != nil {
 		return x.Payload
 	}
+
 	return nil
 }
 
@@ -83,6 +88,7 @@ func (x *Message) GetSource() string {
 	if x != nil {
 		return x.Source
 	}
+
 	return ""
 }
 
@@ -90,6 +96,7 @@ func (x *Message) GetClientId() string {
 	if x != nil {
 		return x.ClientId
 	}
+
 	return ""
 }
 
@@ -97,6 +104,7 @@ func (x *Message) GetGroups() []string {
 	if x != nil {
 		return x.Groups
 	}
+
 	return nil
 }
 
@@ -104,6 +112,7 @@ func (x *Message) GetDestClientUids() []string {
 	if x != nil {
 		return x.DestClientUids
 	}
+
 	return nil
 }
 
@@ -111,6 +120,7 @@ func (x *Message) GetDestCallsigns() []string {
 	if x != nil {
 		return x.DestCallsigns
 	}
+
 	return nil
 }
 
@@ -118,6 +128,7 @@ func (x *Message) GetProvenance() []string {
 	if x != nil {
 		return x.Provenance
 	}
+
 	return nil
 }
 
@@ -125,6 +136,7 @@ func (x *Message) GetArchive() bool {
 	if x != nil {
 		return x.Archive
 	}
+
 	return false
 }
 
@@ -132,6 +144,7 @@ func (x *Message) GetFeedUuid() string {
 	if x != nil {
 		return x.FeedUuid
 	}
+
 	return ""
 }
 
@@ -139,6 +152,7 @@ func (x *Message) GetConnectionId() string {
 	if x != nil {
 		return x.ConnectionId
 	}
+
 	return ""
 }
 
@@ -146,6 +160,7 @@ func (x *Message) GetBloads() []*BinaryPayload {
 	if x != nil {
 		return x.Bloads
 	}
+
 	return nil
 }
 
@@ -193,6 +208,7 @@ func file_message_proto_rawDescGZIP() []byte {
 	file_message_proto_rawDescOnce.Do(func() {
 		file_message_proto_rawDescData = protoimpl.X.CompressGZIP(file_message_proto_rawDescData)
 	})
+
 	return file_message_proto_rawDescData
 }
 
@@ -217,8 +233,10 @@ func file_message_proto_init() {
 	if File_message_proto != nil {
 		return
 	}
+
 	file_takmessage_proto_init()
 	file_binarypayload_proto_init()
+
 	if !protoimpl.UnsafeEnabled {
 		file_message_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*Message); i {

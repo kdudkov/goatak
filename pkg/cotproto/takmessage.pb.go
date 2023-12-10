@@ -37,6 +37,7 @@ type TakMessage struct {
 
 func (x *TakMessage) Reset() {
 	*x = TakMessage{}
+
 	if protoimpl.UnsafeEnabled {
 		mi := &file_takmessage_proto_msgTypes[0]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -52,13 +53,16 @@ func (*TakMessage) ProtoMessage() {}
 
 func (x *TakMessage) ProtoReflect() protoreflect.Message {
 	mi := &file_takmessage_proto_msgTypes[0]
+
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
 		}
+
 		return ms
 	}
+
 	return mi.MessageOf(x)
 }
 
@@ -71,6 +75,7 @@ func (x *TakMessage) GetTakControl() *TakControl {
 	if x != nil {
 		return x.TakControl
 	}
+
 	return nil
 }
 
@@ -78,6 +83,7 @@ func (x *TakMessage) GetCotEvent() *CotEvent {
 	if x != nil {
 		return x.CotEvent
 	}
+
 	return nil
 }
 
@@ -85,6 +91,7 @@ func (x *TakMessage) GetSubmissionTime() uint64 {
 	if x != nil {
 		return x.SubmissionTime
 	}
+
 	return 0
 }
 
@@ -92,6 +99,7 @@ func (x *TakMessage) GetCreationTime() uint64 {
 	if x != nil {
 		return x.CreationTime
 	}
+
 	return 0
 }
 
@@ -127,6 +135,7 @@ func file_takmessage_proto_rawDescGZIP() []byte {
 	file_takmessage_proto_rawDescOnce.Do(func() {
 		file_takmessage_proto_rawDescData = protoimpl.X.CompressGZIP(file_takmessage_proto_rawDescData)
 	})
+
 	return file_takmessage_proto_rawDescData
 }
 
@@ -151,8 +160,10 @@ func file_takmessage_proto_init() {
 	if File_takmessage_proto != nil {
 		return
 	}
+
 	file_cotevent_proto_init()
 	file_takcontrol_proto_init()
+
 	if !protoimpl.UnsafeEnabled {
 		file_takmessage_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*TakMessage); i {

@@ -7,9 +7,10 @@ import (
 	"os"
 	"strings"
 
-	"github.com/kdudkov/goatak/internal/model"
 	"golang.org/x/crypto/bcrypt"
 	"gopkg.in/yaml.v3"
+
+	"github.com/kdudkov/goatak/internal/model"
 )
 
 func read(fn string) []*model.User {
@@ -64,9 +65,13 @@ func main() {
 	pass := *passwd
 	if pass == "" {
 		reader := bufio.NewReader(os.Stdin)
+
 		fmt.Print("password: ")
+
 		p1, _ := reader.ReadString('\n')
+
 		fmt.Print("repeat password: ")
+
 		p2, _ := reader.ReadString('\n')
 
 		if p1 != p2 {

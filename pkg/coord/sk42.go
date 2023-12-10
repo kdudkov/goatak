@@ -47,12 +47,14 @@ const ms = 0
 func Wgs84_sk42(lat, lon, alt float64) (lat1, lon1 float64) {
 	lat1 = lat - dB(lat, lon, alt)/3600
 	lon1 = lon - dL(lat, lon, alt)/3600
+
 	return
 }
 
 func Sk42_wgs84(lat, lon, alt float64) (lat1, lon1 float64) {
 	lat1 = lat + dB(lat, lon, alt)/3600
 	lon1 = lon + dL(lat, lon, alt)/3600
+
 	return
 }
 
@@ -71,6 +73,7 @@ func dL(Bd, Ld, H float64) float64 {
 	l := Ld * math.Pi / 180
 
 	n := a * math.Pow(1-e2*math.Pow(math.Sin(b), 2), -0.5)
+
 	return ro/((n+H)*math.Cos(b))*(-dx*math.Sin(l)+dy*math.Cos(l)) + math.Tan(b)*(1-e2)*(wx*math.Cos(l)+wy*math.Sin(l)) - wz
 }
 
@@ -79,6 +82,7 @@ func WGS84Alt(lat, lon, alt float64) float64 {
 	l := lon * math.Pi / 180
 	n := a * math.Pow(1-e2*math.Pow(math.Sin(b), 2), -0.5)
 	dH := -a/n*da + n*math.Pow(math.Sin(b), 2*de2/2) + (dx*math.Cos(l)+dy*math.Sin(l))*math.Cos(b) + dz*math.Sin(b) - n*e2*math.Sin(b)*math.Cos(b)*(wx/ro*math.Sin(l)-wy/ro*math.Cos(l)) + (a*a/n+alt)*ms
+
 	return alt + dH
 }
 

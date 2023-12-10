@@ -31,6 +31,7 @@ var (
 
 func SslCheckHandlerGas(app *App) air.Gas {
 	err := errors.New("unauthorized")
+
 	return func(next air.Handler) air.Handler {
 		return func(req *air.Request, res *air.Response) error {
 			if h := req.HTTPRequest(); h != nil {
@@ -44,8 +45,11 @@ func SslCheckHandlerGas(app *App) air.Gas {
 					}
 				}
 			}
+
 			time.Sleep(3 * time.Second)
+
 			res.Status = http.StatusUnauthorized
+
 			return err
 		}
 	}
@@ -53,9 +57,11 @@ func SslCheckHandlerGas(app *App) air.Gas {
 
 func LoggerGas(log *zap.SugaredLogger, apiName string) air.Gas {
 	logger := log.Named(apiName)
+
 	return func(next air.Handler) air.Handler {
 		return func(req *air.Request, res *air.Response) (err error) {
 			startTime := time.Now()
+
 			res.Defer(func() {
 				endTime := time.Now()
 				username := getUsernameFromReq(req)

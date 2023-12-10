@@ -37,6 +37,7 @@ type MissionAnnouncement struct {
 
 func (x *MissionAnnouncement) Reset() {
 	*x = MissionAnnouncement{}
+
 	if protoimpl.UnsafeEnabled {
 		mi := &file_missionannouncement_proto_msgTypes[0]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -52,13 +53,16 @@ func (*MissionAnnouncement) ProtoMessage() {}
 
 func (x *MissionAnnouncement) ProtoReflect() protoreflect.Message {
 	mi := &file_missionannouncement_proto_msgTypes[0]
+
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
 		}
+
 		return ms
 	}
+
 	return mi.MessageOf(x)
 }
 
@@ -71,6 +75,7 @@ func (x *MissionAnnouncement) GetPayload() *TakMessage {
 	if x != nil {
 		return x.Payload
 	}
+
 	return nil
 }
 
@@ -78,6 +83,7 @@ func (x *MissionAnnouncement) GetMissionName() string {
 	if x != nil {
 		return x.MissionName
 	}
+
 	return ""
 }
 
@@ -85,6 +91,7 @@ func (x *MissionAnnouncement) GetMissionAnnouncementType() string {
 	if x != nil {
 		return x.MissionAnnouncementType
 	}
+
 	return ""
 }
 
@@ -92,6 +99,7 @@ func (x *MissionAnnouncement) GetCreatorUid() string {
 	if x != nil {
 		return x.CreatorUid
 	}
+
 	return ""
 }
 
@@ -99,6 +107,7 @@ func (x *MissionAnnouncement) GetGroupVector() string {
 	if x != nil {
 		return x.GroupVector
 	}
+
 	return ""
 }
 
@@ -106,6 +115,7 @@ func (x *MissionAnnouncement) GetClientUid() string {
 	if x != nil {
 		return x.ClientUid
 	}
+
 	return ""
 }
 
@@ -113,6 +123,7 @@ func (x *MissionAnnouncement) GetUids() []string {
 	if x != nil {
 		return x.Uids
 	}
+
 	return nil
 }
 
@@ -153,6 +164,7 @@ func file_missionannouncement_proto_rawDescGZIP() []byte {
 	file_missionannouncement_proto_rawDescOnce.Do(func() {
 		file_missionannouncement_proto_rawDescData = protoimpl.X.CompressGZIP(file_missionannouncement_proto_rawDescData)
 	})
+
 	return file_missionannouncement_proto_rawDescData
 }
 
@@ -175,7 +187,9 @@ func file_missionannouncement_proto_init() {
 	if File_missionannouncement_proto != nil {
 		return
 	}
+
 	file_takmessage_proto_init()
+
 	if !protoimpl.UnsafeEnabled {
 		file_missionannouncement_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*MissionAnnouncement); i {

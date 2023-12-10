@@ -7,6 +7,7 @@ import (
 
 	"github.com/aofei/air"
 	"github.com/google/uuid"
+
 	"github.com/kdudkov/goatak/pkg/cot"
 	"github.com/kdudkov/goatak/pkg/model"
 	"github.com/kdudkov/goatak/staticfiles"
@@ -42,6 +43,7 @@ func NewHttp(app *App, address string) *air.Air {
 
 	srv.RendererTemplateLeftDelim = "[["
 	srv.RendererTemplateRightDelim = "]]"
+
 	return srv
 }
 
@@ -50,10 +52,12 @@ func getIndexHandler(app *App, r *staticfiles.Renderer) func(req *air.Request, r
 		data := map[string]any{
 			"js": []string{"map.js"},
 		}
+
 		s, err := r.Render(data, "map.html", "header.html")
 		if err != nil {
 			return err
 		}
+
 		return res.WriteHTML(s)
 	}
 }
@@ -63,6 +67,7 @@ func getUnitsHandler(app *App) func(req *air.Request, res *air.Response) error {
 		r := make(map[string]any, 0)
 		r["units"] = getUnits(app)
 		r["messages"] = app.messages.Chats
+
 		return res.WriteJSON(r)
 	}
 }
@@ -88,6 +93,7 @@ func getConfigHandler(app *App) func(req *air.Request, res *air.Response) error 
 func getDpHandler(app *App) func(req *air.Request, res *air.Response) error {
 	return func(req *air.Request, res *air.Response) error {
 		dp := new(model.DigitalPointer)
+
 		if req.Body == nil {
 			return nil
 		}
@@ -98,6 +104,7 @@ func getDpHandler(app *App) func(req *air.Request, res *air.Response) error {
 
 		msg := cot.MakeDpMsg(app.uid, app.typ, app.callsign+"."+dp.Name, dp.Lat, dp.Lon)
 		app.SendMsg(msg)
+
 		return res.WriteString("Ok")
 	}
 }
@@ -105,6 +112,7 @@ func getDpHandler(app *App) func(req *air.Request, res *air.Response) error {
 func getPosHandler(app *App) func(req *air.Request, res *air.Response) error {
 	return func(req *air.Request, res *air.Response) error {
 		pos := make(map[string]float64)
+
 		if req.Body == nil {
 			return nil
 		}
@@ -122,6 +130,7 @@ func getPosHandler(app *App) func(req *air.Request, res *air.Response) error {
 		}
 
 		app.SendMsg(app.MakeMe())
+
 		return res.WriteString("Ok")
 	}
 }
@@ -129,6 +138,7 @@ func getPosHandler(app *App) func(req *air.Request, res *air.Response) error {
 func addItemHandler(app *App) func(req *air.Request, res *air.Response) error {
 	return func(req *air.Request, res *air.Response) error {
 		wu := new(model.WebUnit)
+
 		if req.Body == nil {
 			return nil
 		}
@@ -154,6 +164,7 @@ func addItemHandler(app *App) func(req *air.Request, res *air.Response) error {
 		r := make(map[string]any, 0)
 		r["units"] = getUnits(app)
 		r["messages"] = app.messages
+
 		return res.WriteJSON(r)
 	}
 }
@@ -161,6 +172,7 @@ func addItemHandler(app *App) func(req *air.Request, res *air.Response) error {
 func addMessageHandler(app *App) func(req *air.Request, res *air.Response) error {
 	return func(req *air.Request, res *air.Response) error {
 		msg := new(model.ChatMessage)
+
 		if req.Body == nil {
 			return nil
 		}
@@ -172,8 +184,10 @@ func addMessageHandler(app *App) func(req *air.Request, res *air.Response) error
 		if msg.ID == "" {
 			msg.ID = uuid.NewString()
 		}
+
 		app.SendMsg(model.MakeChatMessage(msg))
 		app.messages.Add(msg)
+
 		return res.WriteJSON(map[string]string{"ok": "ok"})
 	}
 }
@@ -244,6 +258,7 @@ func deleteItemHandler(app *App) func(req *air.Request, res *air.Response) error
 		r := make(map[string]any, 0)
 		r["units"] = getUnits(app)
 		r["messages"] = app.messages
+
 		return res.WriteJSON(r)
 	}
 }

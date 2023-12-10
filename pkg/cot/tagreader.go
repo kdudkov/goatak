@@ -45,6 +45,7 @@ func (er *TagReader) ReadTag() (string, []byte, error) {
 		if err != nil {
 			return "", nil, err
 		}
+
 		buf.WriteByte(b)
 
 		if b == '>' {
@@ -105,6 +106,7 @@ func (er *TagReader) ReadTag() (string, []byte, error) {
 			if buf.String() == "</"+tag+">" {
 				return tag, saved.Bytes(), nil
 			}
+
 			buf.Reset()
 		}
 

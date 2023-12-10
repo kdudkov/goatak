@@ -4,8 +4,9 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/kdudkov/goatak/pkg/cotproto"
 	"google.golang.org/protobuf/proto"
+
+	"github.com/kdudkov/goatak/pkg/cotproto"
 )
 
 const NotNum = 9999999
@@ -39,6 +40,7 @@ func MakePing(uid string) *cotproto.TakMessage {
 func MakePong() *cotproto.TakMessage {
 	msg := BasicMsg("t-x-c-t-r", "takPong", time.Second*20)
 	msg.CotEvent.How = "h-g-i-g-o"
+
 	return msg
 }
 
@@ -48,6 +50,7 @@ func MakeOfflineMsg(uid string, typ string) *cotproto.TakMessage {
 	xd := NewXMLDetails()
 	xd.AddPpLink(uid, typ, "")
 	msg.CotEvent.Detail = &cotproto.Detail{XmlDetail: xd.AsXMLString()}
+
 	return msg
 }
 
@@ -62,6 +65,7 @@ func MakeDpMsg(uid string, typ string, name string, lat float64, lon float64) *c
 		XmlDetail: xd.AsXMLString(),
 		Contact:   &cotproto.Contact{Callsign: name},
 	}
+
 	return msg
 }
 

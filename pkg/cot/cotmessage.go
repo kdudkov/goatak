@@ -19,6 +19,7 @@ func CotFromProto(msg *cotproto.TakMessage, from, scope string) (*CotMessage, er
 	if msg == nil {
 		return nil, nil
 	}
+
 	d, err := DetailsFromString(msg.GetCotEvent().GetDetail().GetXmlDetail())
 
 	return &CotMessage{From: from, Scope: scope, TakMessage: msg, Detail: d}, err

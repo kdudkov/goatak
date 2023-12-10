@@ -58,6 +58,7 @@ func (pm *PackageManager) Start() error {
 		if !f.IsDir() {
 			continue
 		}
+
 		hash := f.Name()
 		if pi, err := loadInfo(pm.baseDir, hash); err == nil {
 			pm.data.Store(hash, pi)
@@ -115,6 +116,7 @@ func (pm *PackageManager) GetList(kw, tool string) []*PackageInfo {
 				return true
 			}
 		}
+
 		return true
 	})
 
@@ -162,6 +164,7 @@ func (pm *PackageManager) GetFilePath(hash string) string {
 	if pi, ok := pm.Get(hash); ok {
 		return filepath.Join(pm.baseDir, hash, pi.Name)
 	}
+
 	return ""
 }
 
@@ -186,5 +189,6 @@ func fileExists(path string) bool {
 	if _, err := os.Stat(path); err != nil {
 		return os.IsExist(err)
 	}
+
 	return true
 }

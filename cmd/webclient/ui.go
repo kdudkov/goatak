@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/jroimartin/gocui"
+
 	"github.com/kdudkov/goatak/pkg/cot"
 	"github.com/kdudkov/goatak/pkg/model"
 )
@@ -42,6 +43,7 @@ func (app *App) redraw() {
 	app.g.Update(func(gui *gocui.Gui) error {
 		if v, err := gui.View("info"); err == nil {
 			v.Clear()
+
 			if app.IsConnected() {
 				fmt.Fprintf(v, WithColors("Connected to %s:%s as %s\n\n", FgGreen, Bold), app.host, app.tcpPort, app.callsign)
 			} else {
@@ -49,6 +51,7 @@ func (app *App) redraw() {
 			}
 
 			res := make([]*model.WebUnit, 0)
+
 			app.items.ForEach(func(i *model.Item) bool {
 				if i.GetClass() == model.CONTACT {
 					res = append(res, i.ToWeb())
@@ -69,8 +72,10 @@ func (app *App) redraw() {
 				}
 			}
 		}
+
 		if v, err := gui.View("log"); err == nil {
 			v.Clear()
+
 			_, size := v.Size()
 			for _, l := range app.textLogger.GetLines(size) {
 				fmt.Fprintln(v, l)

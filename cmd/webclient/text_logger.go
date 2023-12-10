@@ -53,6 +53,7 @@ func (l *TextLogger) AddLineColor(s string, col ...byte) {
 	if l == nil {
 		return
 	}
+
 	l.mx.Lock()
 
 	l.lines = append(l.lines, WithColors(s, col...))
@@ -71,6 +72,7 @@ func (l *TextLogger) GetLines(n int) []string {
 	if l == nil {
 		return []string{}
 	}
+
 	l.mx.RLock()
 	defer l.mx.RUnlock()
 

@@ -215,8 +215,10 @@ func (n *Node) print(s *bytes.Buffer, prefix string) {
 
 			s.WriteString(fmt.Sprintf("%s=\"%s\"", a.Name.Local, a.Value))
 		}
+
 		s.WriteString("]")
 	}
+
 	s.WriteByte('\n')
 
 	if n.Content != "" {
@@ -224,6 +226,7 @@ func (n *Node) print(s *bytes.Buffer, prefix string) {
 		s.WriteString(n.Content)
 		s.WriteByte('\n')
 	}
+
 	for _, n := range n.Nodes {
 		n.print(s, prefix+"    ")
 	}
@@ -245,7 +248,9 @@ func (n *Node) AddChild(name string, params map[string]string, text string) *Nod
 	if text != "" {
 		nn.Content = text
 	}
+
 	n.Nodes = append(n.Nodes, nn)
+
 	return nn
 }
 
@@ -254,6 +259,7 @@ func (n *Node) AddOrChangeChild(name string, params map[string]string) *Node {
 		for k, v := range params {
 			c.Attrs = append(c.Attrs, xml.Attr{Name: xml.Name{Local: k}, Value: v})
 		}
+
 		return c
 	} else {
 		return n.AddChild(name, params, "")

@@ -5,8 +5,9 @@ import (
 	"encoding/binary"
 	"io"
 
-	"github.com/kdudkov/goatak/pkg/cotproto"
 	"google.golang.org/protobuf/proto"
+
+	"github.com/kdudkov/goatak/pkg/cotproto"
 )
 
 const magic byte = 0xbf
@@ -52,6 +53,7 @@ func ReadProto(r *bufio.Reader) (*cotproto.TakMessage, error) {
 			break
 		}
 	}
+
 	size, err := binary.ReadUvarint(r)
 
 	if err != nil {

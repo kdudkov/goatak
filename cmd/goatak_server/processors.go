@@ -7,10 +7,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kdudkov/goatak/pkg/cot"
-	"github.com/kdudkov/goatak/pkg/model"
 	"github.com/spf13/viper"
 	"google.golang.org/protobuf/proto"
+
+	"github.com/kdudkov/goatak/pkg/cot"
+	"github.com/kdudkov/goatak/pkg/model"
 )
 
 type EventProcessor struct {
@@ -27,6 +28,7 @@ func (app *App) InitMessageProcessors() {
 	app.AddEventProcessor("chat", app.chatProcessor, "b-t-f")
 	app.AddEventProcessor("items", app.saveItemProcessor, "a-", "b-")
 	app.AddEventProcessor("logger", app.loggerProcessor, ".-")
+
 	if app.config.logging {
 		app.AddEventProcessor("file_logger", app.fileLoggerProcessor, ".-")
 	}
@@ -48,19 +50,23 @@ func (app *App) removeItemProcessor(msg *cot.CotMessage) {
 	if link := msg.GetFirstLink("p-p"); link != nil {
 		uid := link.GetAttr("uid")
 		typ := link.GetAttr("type")
+
 		if uid == "" {
 			app.Logger.Warnf("invalid remove message: %s", msg.Detail)
 			return
 		}
+
 		if v := app.items.Get(uid); v != nil {
 			switch v.GetClass() {
 			case model.CONTACT:
 				app.Logger.Debugf("remove %s by message", uid)
 				v.SetOffline()
+
 				return
 			case model.UNIT, model.POINT:
 				app.Logger.Debugf("remove unit/point %s type %s by message", uid, typ)
 				app.items.Remove(uid)
+
 				return
 			}
 		}
@@ -73,10 +79,13 @@ func (app *App) chatProcessor(msg *cot.CotMessage) {
 		app.Logger.Errorf("invalid chat message %s", msg.TakMessage)
 		return
 	}
+
 	if c.From == "" {
 		c.From = app.items.GetCallsign(c.FromUID)
 	}
+
 	app.Logger.Infof("Chat %s", c.String())
+
 	app.messages = append(app.messages, c)
 	if err := logChatMessage(c); err != nil {
 		app.Logger.Warnf("error logging chat: %s", err.Error())
@@ -102,9 +111,11 @@ func (app *App) fileLoggerProcessor(msg *cot.CotMessage) {
 	if cot.MatchAnyPattern(msg.GetType(), "t-x-c-t", "t-x-c-t-r") {
 		return
 	}
+
 	if cot.MatchAnyPattern(msg.GetType(), viper.GetStringSlice("log_exclude")...) {
 		return
 	}
+
 	if err := logMessage(msg, filepath.Join(app.config.dataDir, "log")); err != nil {
 		app.Logger.Warnf("error logging message: %s", err.Error())
 	}
@@ -127,9 +138,11 @@ func logMessage(msg *cot.CotMessage, dir string) error {
 	if err != nil {
 		return err
 	}
+
 	l := uint32(len(d))
 	_, _ = f.Write([]byte{byte(l % 256), byte(l / 256)})
 	_, _ = f.Write(d)
+
 	return nil
 }
 
@@ -138,7 +151,9 @@ func logChatMessage(c *model.ChatMessage) error {
 	if err != nil {
 		return nil
 	}
+
 	defer fd.Close()
 	_, err = fmt.Fprintf(fd, "%s %s (%s) -> %s (%s) \"%s\"\n", c.Time, c.From, c.FromUID, c.Chatroom, c.ToUID, c.Text)
+
 	return err
 }

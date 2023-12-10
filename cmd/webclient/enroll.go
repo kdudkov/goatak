@@ -16,10 +16,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kdudkov/goatak/pkg/tlsutil"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
 	"software.sslmate.com/src/go-pkcs12"
+
+	"github.com/kdudkov/goatak/pkg/tlsutil"
 )
 
 const minCertAge = time.Hour * 24
@@ -65,6 +66,7 @@ func (e *Enroller) getUrl(path string) string {
 
 func (e *Enroller) request(method, path string, args map[string]string, body io.Reader) (io.ReadCloser, error) {
 	url := e.getUrl(path)
+
 	req, err := http.NewRequest(method, url, body)
 	if err != nil {
 		return nil, err
@@ -78,8 +80,8 @@ func (e *Enroller) request(method, path string, args map[string]string, body io.
 
 		for k, v := range args {
 			q.Add(k, v)
-
 		}
+
 		req.URL.RawQuery = q.Encode()
 	}
 
@@ -128,6 +130,7 @@ func (e *Enroller) getOrEnrollCert(uid, version string) (*tls.Certificate, []*x5
 	if err != nil {
 		return nil, nil, err
 	}
+
 	subj := new(pkix.Name)
 	subj.CommonName = e.user
 
@@ -147,6 +150,7 @@ func (e *Enroller) getOrEnrollCert(uid, version string) (*tls.Certificate, []*x5
 	csr, key := makeCsr(subj)
 
 	e.logger.Infof("signing cert on server")
+
 	args := map[string]string{"clientUID": uid, "version": version}
 	body, err := e.request(http.MethodPost, "/Marti/api/tls/signClient/v2", args, strings.NewReader(csr))
 
@@ -222,6 +226,7 @@ func (e *Enroller) getProfile(uid string) error {
 	defer f.Close()
 
 	_, err = io.Copy(f, body)
+
 	return err
 }
 
@@ -254,7 +259,9 @@ func (e *Enroller) saveP12(key interface{}, cert *x509.Certificate, ca []*x509.C
 	if err != nil {
 		return err
 	}
+
 	_, _ = f.Write(data)
+
 	return nil
 }
 

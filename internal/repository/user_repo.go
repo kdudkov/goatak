@@ -5,10 +5,11 @@ import (
 	"sync"
 
 	"github.com/fsnotify/fsnotify"
-	"github.com/kdudkov/goatak/internal/model"
 	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
 	"gopkg.in/yaml.v3"
+
+	"github.com/kdudkov/goatak/internal/model"
 )
 
 type UserFileRepository struct {
@@ -103,6 +104,7 @@ func (r *UserFileRepository) Start() error {
 				if !ok {
 					return
 				}
+
 				r.logger.Debugf("event: %v", event)
 
 				if event.Has(fsnotify.Write) && event.Name == r.userFile {
@@ -116,6 +118,7 @@ func (r *UserFileRepository) Start() error {
 				if !ok {
 					return
 				}
+
 				r.logger.Errorf("error: %s", err.Error())
 			}
 		}

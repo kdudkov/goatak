@@ -12,10 +12,11 @@ import (
 	"sync/atomic"
 	"time"
 
+	"go.uber.org/zap"
+
 	"github.com/kdudkov/goatak/internal/model"
 	"github.com/kdudkov/goatak/pkg/cot"
 	"github.com/kdudkov/goatak/pkg/cotproto"
-	"go.uber.org/zap"
 )
 
 const (
@@ -93,6 +94,7 @@ func NewConnClientHandler(name string, conn net.Conn, config *HandlerConfig) *Co
 		c.removeCb = config.RemoveCb
 		c.newContactCb = config.NewContactCb
 	}
+
 	c.closeTimer = time.AfterFunc(idleTimeout, c.closeIdle)
 
 	return c
@@ -299,12 +301,14 @@ func (h *ConnClientHandler) processXMLRead(er *cot.TagReader) (*cot.CotMessage, 
 		if n := ev.Detail.GetFirst("TakControl").GetFirst("TakResponse"); n != nil {
 			status := n.GetAttr("status")
 			h.logger.Infof("server switches to v1: %v", status)
+
 			if status == "true" {
 				h.SetVersion(1)
 			} else {
 				h.logger.Errorf("got TakResponce with status %s: %s", status, ev.Detail)
 			}
 		}
+
 		return nil, nil
 	}
 
@@ -323,6 +327,7 @@ func (h *ConnClientHandler) processProtoRead(r *cot.ProtoReader) (*cot.CotMessag
 	d, err = cot.DetailsFromString(msg.GetCotEvent().GetDetail().GetXmlDetail())
 
 	h.logger.Debugf("proto msg: %s", msg)
+
 	return &cot.CotMessage{TakMessage: msg, Detail: d}, err
 }
 
@@ -336,11 +341,13 @@ func (h *ConnClientHandler) GetVersion() int32 {
 
 func (h *ConnClientHandler) GetUid(callsign string) string {
 	res := ""
+
 	h.uids.Range(func(key, value any) bool {
 		if callsign == value.(string) {
 			res = key.(string)
 			return false
 		}
+
 		return true
 	})
 
@@ -358,6 +365,7 @@ func (h *ConnClientHandler) handleWrite() {
 		if _, err := h.conn.Write(msg); err != nil {
 			h.logger.Debugf("client %s write error %v", h.addr, err)
 			h.stopHandle()
+
 			break
 		}
 	}
@@ -398,8 +406,10 @@ func (h *ConnClientHandler) closeIdle() {
 	if last == nil {
 		h.logger.Infof("closing connection due to idle")
 		_ = h.conn.Close()
+
 		return
 	}
+
 	idle := time.Since(*last)
 
 	if idle >= idleTimeout {
@@ -419,6 +429,7 @@ func (h *ConnClientHandler) sendEvent(evt *cot.Event) error {
 	}
 
 	h.logger.Debugf("sending %s", msg)
+
 	if h.tryAddPacket(msg) {
 		return nil
 	}
@@ -445,6 +456,7 @@ func (h *ConnClientHandler) SendCot(msg *cotproto.TakMessage) error {
 		if err != nil {
 			return err
 		}
+
 		if h.tryAddPacket(buf) {
 			return nil
 		}
@@ -453,6 +465,7 @@ func (h *ConnClientHandler) SendCot(msg *cotproto.TakMessage) error {
 		if err != nil {
 			return err
 		}
+
 		if h.tryAddPacket(buf) {
 			return nil
 		}
@@ -469,6 +482,7 @@ func (h *ConnClientHandler) tryAddPacket(msg []byte) bool {
 	case h.sendChan <- msg:
 	default:
 	}
+
 	return true
 }
 

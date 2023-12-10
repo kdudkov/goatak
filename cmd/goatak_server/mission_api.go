@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/aofei/air"
+
 	"github.com/kdudkov/goatak/internal/model"
 )
 
@@ -15,6 +16,7 @@ func addMissionApi(app *App, api *air.Air) {
 
 func getMissionsHandler(app *App) func(req *air.Request, res *air.Response) error {
 	result := makeAnswer("Mission", []string{})
+
 	return func(req *air.Request, res *air.Response) error {
 		return res.WriteJSON(result)
 	}
@@ -22,6 +24,7 @@ func getMissionsHandler(app *App) func(req *air.Request, res *air.Response) erro
 
 func getMissionsInvitationsHandler(app *App) func(req *air.Request, res *air.Response) error {
 	result := makeAnswer("MissionInvitation", []string{})
+
 	return func(req *air.Request, res *air.Response) error {
 		return res.WriteJSON(result)
 	}

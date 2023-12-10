@@ -7,9 +7,10 @@ import (
 	"io"
 	"os"
 
+	"google.golang.org/protobuf/proto"
+
 	"github.com/kdudkov/goatak/pkg/cot"
 	"github.com/kdudkov/goatak/pkg/cotproto"
-	"google.golang.org/protobuf/proto"
 )
 
 func main() {
@@ -46,6 +47,7 @@ func main() {
 			fmt.Println("need uid to make gpx")
 			os.Exit(1)
 		}
+
 		dmp = &GpxDumper{name: *uid}
 	default:
 		fmt.Printf("invalid format %s\n", *format)
@@ -62,6 +64,7 @@ func readFile(f *os.File, uid, typ string, dmp Dumper) error {
 	defer dmp.Stop()
 
 	lenBuf := make([]byte, 2)
+
 	for {
 		if _, err := io.ReadFull(f, lenBuf); err != nil {
 			return err
@@ -91,6 +94,7 @@ func readFile(f *os.File, uid, typ string, dmp Dumper) error {
 		if err != nil {
 			return err
 		}
+
 		msg := &cot.CotMessage{TakMessage: m, Detail: d}
 		if err = dmp.Process(msg); err != nil {
 			return err

@@ -179,6 +179,7 @@ func EventToProtoExt(ev *Event, from, scope string) (*CotMessage, error) {
 		c.Scope = scope
 		c.From = from
 	}
+
 	return c, err
 }
 
@@ -205,6 +206,7 @@ func GetXMLDetails(d *Node, withContacts bool) (*Node, error) {
 	} else {
 		details.RemoveTags(removeFields...)
 	}
+
 	return details, nil
 }
 
@@ -213,5 +215,6 @@ func getFloat(s string) float64 {
 	if err == nil {
 		return f
 	}
+
 	return 0
 }

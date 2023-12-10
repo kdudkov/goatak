@@ -42,6 +42,7 @@ type Detail struct {
 
 func (x *Detail) Reset() {
 	*x = Detail{}
+
 	if protoimpl.UnsafeEnabled {
 		mi := &file_detail_proto_msgTypes[0]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -57,13 +58,16 @@ func (*Detail) ProtoMessage() {}
 
 func (x *Detail) ProtoReflect() protoreflect.Message {
 	mi := &file_detail_proto_msgTypes[0]
+
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
 		}
+
 		return ms
 	}
+
 	return mi.MessageOf(x)
 }
 
@@ -76,6 +80,7 @@ func (x *Detail) GetXmlDetail() string {
 	if x != nil {
 		return x.XmlDetail
 	}
+
 	return ""
 }
 
@@ -83,6 +88,7 @@ func (x *Detail) GetContact() *Contact {
 	if x != nil {
 		return x.Contact
 	}
+
 	return nil
 }
 
@@ -90,6 +96,7 @@ func (x *Detail) GetGroup() *Group {
 	if x != nil {
 		return x.Group
 	}
+
 	return nil
 }
 
@@ -97,6 +104,7 @@ func (x *Detail) GetPrecisionLocation() *PrecisionLocation {
 	if x != nil {
 		return x.PrecisionLocation
 	}
+
 	return nil
 }
 
@@ -104,6 +112,7 @@ func (x *Detail) GetStatus() *Status {
 	if x != nil {
 		return x.Status
 	}
+
 	return nil
 }
 
@@ -111,6 +120,7 @@ func (x *Detail) GetTakv() *Takv {
 	if x != nil {
 		return x.Takv
 	}
+
 	return nil
 }
 
@@ -118,6 +128,7 @@ func (x *Detail) GetTrack() *Track {
 	if x != nil {
 		return x.Track
 	}
+
 	return nil
 }
 
@@ -162,6 +173,7 @@ func file_detail_proto_rawDescGZIP() []byte {
 	file_detail_proto_rawDescOnce.Do(func() {
 		file_detail_proto_rawDescData = protoimpl.X.CompressGZIP(file_detail_proto_rawDescData)
 	})
+
 	return file_detail_proto_rawDescData
 }
 
@@ -194,12 +206,14 @@ func file_detail_proto_init() {
 	if File_detail_proto != nil {
 		return
 	}
+
 	file_contact_proto_init()
 	file_group_proto_init()
 	file_precisionlocation_proto_init()
 	file_status_proto_init()
 	file_takv_proto_init()
 	file_track_proto_init()
+
 	if !protoimpl.UnsafeEnabled {
 		file_detail_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*Detail); i {

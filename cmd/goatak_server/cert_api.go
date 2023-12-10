@@ -15,6 +15,7 @@ import (
 	"github.com/air-gases/authenticator"
 	"github.com/aofei/air"
 	"github.com/google/uuid"
+
 	"github.com/kdudkov/goatak/pkg/tlsutil"
 )
 
@@ -27,6 +28,7 @@ func getUsernameFromReq(req *air.Request) string {
 	if u := req.Value(usernameKey); u != nil {
 		return u.(string)
 	}
+
 	return ""
 }
 
@@ -59,9 +61,11 @@ func getTlsConfigHandler(app *App) func(req *air.Request, res *air.Response) err
 	buf := strings.Builder{}
 	buf.WriteString("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n")
 	buf.WriteString(fmt.Sprintf("<certificateConfig validityDays=\"%d\"><nameEntries>", app.config.certTtlDays))
+
 	for k, v := range names {
 		buf.WriteString(fmt.Sprintf("<nameEntry name=\"%s\" value=\"%s\"/>", k, v))
 	}
+
 	buf.WriteString("</nameEntries></certificateConfig>")
 	data := buf.String()
 
@@ -104,6 +108,7 @@ func (app *App) processSignRequest(req *air.Request) (*x509.Certificate, error) 
 	ver := getStringParam(req, "version")
 
 	app.Logger.Infof("cert sign req from %s %s ver %s", username, uid, ver)
+
 	b, err := io.ReadAll(req.Body)
 	if err != nil {
 		return nil, err
@@ -165,6 +170,7 @@ func getSignHandlerV2(app *App) func(req *air.Request, res *air.Response) error 
 		}
 
 		accept := req.Header.Get("Accept")
+
 		switch {
 		case accept == "", strings.Contains(accept, "*/*"), strings.Contains(accept, "application/json"):
 			certs := map[string]string{"signedCert": tlsutil.CertToStr(signedCert, false)}
@@ -173,6 +179,7 @@ func getSignHandlerV2(app *App) func(req *air.Request, res *air.Response) error 
 			for i, c := range app.config.ca {
 				certs[fmt.Sprintf("ca%d", i+1)] = tlsutil.CertToStr(c, false)
 			}
+
 			return res.WriteJSON(certs)
 		case strings.Contains(accept, "application/xml"):
 			buf := strings.Builder{}
@@ -184,13 +191,16 @@ func getSignHandlerV2(app *App) func(req *air.Request, res *air.Response) error 
 			buf.WriteString("<ca>")
 			buf.WriteString(tlsutil.CertToStr(app.config.serverCert, false))
 			buf.WriteString("</ca>")
+
 			for _, c := range app.config.ca {
 				buf.WriteString("<ca>")
 				buf.WriteString(tlsutil.CertToStr(c, false))
 				buf.WriteString("</ca>")
 			}
+
 			buf.WriteString("</enrollment>")
 			res.Header.Set("Content-Type", "application/xml; charset=utf-8")
+
 			return res.Write(strings.NewReader(buf.String()))
 		default:
 			res.Status = http.StatusBadRequest
@@ -203,6 +213,7 @@ func getProfileEnrollmentHandler(app *App) func(req *air.Request, res *air.Respo
 	return func(req *air.Request, res *air.Response) error {
 		username := getUsernameFromReq(req)
 		uid := getStringParamIgnoreCaps(req, "clientUid")
+
 		files := app.GetProfileFiles(username, uid)
 		if len(files) == 0 {
 			res.Status = http.StatusNoContent
@@ -212,16 +223,19 @@ func getProfileEnrollmentHandler(app *App) func(req *air.Request, res *air.Respo
 		mp := NewMissionPackage("ProfileMissionPackage-"+uuid.NewString(), "Enrollment")
 		mp.Param("onReceiveImport", "true")
 		mp.Param("onReceiveDelete", "true")
+
 		for _, f := range files {
 			mp.AddFile(f)
 		}
 
 		res.Header.Set("Content-Type", "application/zip")
 		res.Header.Set("Content-Disposition", "attachment; filename=profile.zip")
+
 		dat, err := mp.Create()
 		if err != nil {
 			return err
 		}
+
 		return res.Write(bytes.NewReader(dat))
 	}
 }

@@ -35,6 +35,7 @@ type Group struct {
 
 func (x *Group) Reset() {
 	*x = Group{}
+
 	if protoimpl.UnsafeEnabled {
 		mi := &file_group_proto_msgTypes[0]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -50,13 +51,16 @@ func (*Group) ProtoMessage() {}
 
 func (x *Group) ProtoReflect() protoreflect.Message {
 	mi := &file_group_proto_msgTypes[0]
+
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
 		}
+
 		return ms
 	}
+
 	return mi.MessageOf(x)
 }
 
@@ -69,6 +73,7 @@ func (x *Group) GetName() string {
 	if x != nil {
 		return x.Name
 	}
+
 	return ""
 }
 
@@ -76,6 +81,7 @@ func (x *Group) GetRole() string {
 	if x != nil {
 		return x.Role
 	}
+
 	return ""
 }
 
@@ -100,6 +106,7 @@ func file_group_proto_rawDescGZIP() []byte {
 	file_group_proto_rawDescOnce.Do(func() {
 		file_group_proto_rawDescData = protoimpl.X.CompressGZIP(file_group_proto_rawDescData)
 	})
+
 	return file_group_proto_rawDescData
 }
 
@@ -120,6 +127,7 @@ func file_group_proto_init() {
 	if File_group_proto != nil {
 		return
 	}
+
 	if !protoimpl.UnsafeEnabled {
 		file_group_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*Group); i {

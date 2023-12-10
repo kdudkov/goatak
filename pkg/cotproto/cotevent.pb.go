@@ -70,6 +70,7 @@ type CotEvent struct {
 
 func (x *CotEvent) Reset() {
 	*x = CotEvent{}
+
 	if protoimpl.UnsafeEnabled {
 		mi := &file_cotevent_proto_msgTypes[0]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -85,13 +86,16 @@ func (*CotEvent) ProtoMessage() {}
 
 func (x *CotEvent) ProtoReflect() protoreflect.Message {
 	mi := &file_cotevent_proto_msgTypes[0]
+
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
 		}
+
 		return ms
 	}
+
 	return mi.MessageOf(x)
 }
 
@@ -104,6 +108,7 @@ func (x *CotEvent) GetType() string {
 	if x != nil {
 		return x.Type
 	}
+
 	return ""
 }
 
@@ -111,6 +116,7 @@ func (x *CotEvent) GetAccess() string {
 	if x != nil {
 		return x.Access
 	}
+
 	return ""
 }
 
@@ -118,6 +124,7 @@ func (x *CotEvent) GetQos() string {
 	if x != nil {
 		return x.Qos
 	}
+
 	return ""
 }
 
@@ -125,6 +132,7 @@ func (x *CotEvent) GetOpex() string {
 	if x != nil {
 		return x.Opex
 	}
+
 	return ""
 }
 
@@ -132,6 +140,7 @@ func (x *CotEvent) GetCaveat() string {
 	if x != nil {
 		return x.Caveat
 	}
+
 	return ""
 }
 
@@ -139,6 +148,7 @@ func (x *CotEvent) GetReleaseableTo() string {
 	if x != nil {
 		return x.ReleaseableTo
 	}
+
 	return ""
 }
 
@@ -146,6 +156,7 @@ func (x *CotEvent) GetUid() string {
 	if x != nil {
 		return x.Uid
 	}
+
 	return ""
 }
 
@@ -153,6 +164,7 @@ func (x *CotEvent) GetSendTime() uint64 {
 	if x != nil {
 		return x.SendTime
 	}
+
 	return 0
 }
 
@@ -160,6 +172,7 @@ func (x *CotEvent) GetStartTime() uint64 {
 	if x != nil {
 		return x.StartTime
 	}
+
 	return 0
 }
 
@@ -167,6 +180,7 @@ func (x *CotEvent) GetStaleTime() uint64 {
 	if x != nil {
 		return x.StaleTime
 	}
+
 	return 0
 }
 
@@ -174,6 +188,7 @@ func (x *CotEvent) GetHow() string {
 	if x != nil {
 		return x.How
 	}
+
 	return ""
 }
 
@@ -181,6 +196,7 @@ func (x *CotEvent) GetLat() float64 {
 	if x != nil {
 		return x.Lat
 	}
+
 	return 0
 }
 
@@ -188,6 +204,7 @@ func (x *CotEvent) GetLon() float64 {
 	if x != nil {
 		return x.Lon
 	}
+
 	return 0
 }
 
@@ -195,6 +212,7 @@ func (x *CotEvent) GetHae() float64 {
 	if x != nil {
 		return x.Hae
 	}
+
 	return 0
 }
 
@@ -202,6 +220,7 @@ func (x *CotEvent) GetCe() float64 {
 	if x != nil {
 		return x.Ce
 	}
+
 	return 0
 }
 
@@ -209,6 +228,7 @@ func (x *CotEvent) GetLe() float64 {
 	if x != nil {
 		return x.Le
 	}
+
 	return 0
 }
 
@@ -216,6 +236,7 @@ func (x *CotEvent) GetDetail() *Detail {
 	if x != nil {
 		return x.Detail
 	}
+
 	return nil
 }
 
@@ -263,6 +284,7 @@ func file_cotevent_proto_rawDescGZIP() []byte {
 	file_cotevent_proto_rawDescOnce.Do(func() {
 		file_cotevent_proto_rawDescData = protoimpl.X.CompressGZIP(file_cotevent_proto_rawDescData)
 	})
+
 	return file_cotevent_proto_rawDescData
 }
 
@@ -285,7 +307,9 @@ func file_cotevent_proto_init() {
 	if File_cotevent_proto != nil {
 		return
 	}
+
 	file_detail_proto_init()
+
 	if !protoimpl.UnsafeEnabled {
 		file_cotevent_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*CotEvent); i {

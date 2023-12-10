@@ -36,11 +36,13 @@ func (r *RemoteApi) getUrl(path string) string {
 	if r.tls {
 		return fmt.Sprintf("https://%s:8443%s", r.host, path)
 	}
+
 	return fmt.Sprintf("http://%s:8080%s", r.host, path)
 }
 
 func (r *RemoteApi) request(method, path string) (io.ReadCloser, error) {
 	url := r.getUrl(path)
+
 	req, err := http.NewRequest(method, url, nil)
 	if err != nil {
 		return nil, err

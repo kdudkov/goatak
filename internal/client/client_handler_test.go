@@ -7,12 +7,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kdudkov/goatak/internal/model"
-	"github.com/kdudkov/goatak/pkg/cot"
-	"github.com/kdudkov/goatak/pkg/cotproto"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/proto"
+
+	"github.com/kdudkov/goatak/internal/model"
+	"github.com/kdudkov/goatak/pkg/cot"
+	"github.com/kdudkov/goatak/pkg/cotproto"
 )
 
 func TestRoute(t *testing.T) {
@@ -80,6 +81,7 @@ func passMsg(h *ConnClientHandler, msg *cot.CotMessage) (*cotproto.TakMessage, e
 	select {
 	case dat := <-h.sendChan:
 		bb := bytes.NewBuffer(dat)
+
 		_, err := bb.ReadByte()
 		if err != nil {
 			return nil, err
@@ -99,6 +101,7 @@ func passMsg(h *ConnClientHandler, msg *cot.CotMessage) (*cotproto.TakMessage, e
 
 		msg := new(cotproto.TakMessage)
 		err = proto.Unmarshal(buf, msg)
+
 		return msg, err
 	default:
 		return nil, nil

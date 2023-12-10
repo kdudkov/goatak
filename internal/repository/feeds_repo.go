@@ -5,9 +5,10 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/kdudkov/goatak/pkg/model"
 	"go.uber.org/zap"
 	"gopkg.in/yaml.v3"
+
+	"github.com/kdudkov/goatak/pkg/model"
 )
 
 type FeedsFileRepository struct {
@@ -99,6 +100,7 @@ func (r *FeedsFileRepository) ForEach(f func(item *model.Feed2) bool) {
 		if !strings.HasSuffix(fl.Name(), ".yml") {
 			continue
 		}
+
 		feed := r.load(fl.Name())
 		if feed != nil {
 			if !f(feed) {

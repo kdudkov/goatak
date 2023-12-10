@@ -12,11 +12,12 @@ import (
 	"time"
 
 	"github.com/aofei/air"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+
 	"github.com/kdudkov/goatak/internal/client"
 	"github.com/kdudkov/goatak/pkg/cot"
 	"github.com/kdudkov/goatak/pkg/model"
 	"github.com/kdudkov/goatak/staticfiles"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 //go:embed templates
@@ -53,9 +54,11 @@ func NewHttp(app *App) *HttpServer {
 	if app.config.adminAddr != "" {
 		srv.listeners["admin api calls"] = getAdminApi(app, app.config.adminAddr, renderer, app.config.webtakRoot)
 	}
+
 	if app.config.certAddr != "" {
 		srv.listeners["cert api calls"] = getCertApi(app, app.config.certAddr)
 	}
+
 	srv.listeners["marti api calls"] = getMartiApi(app, app.config.apiAddr)
 
 	return srv
@@ -100,6 +103,7 @@ func (h *HttpServer) Start() {
 	for name, listener := range h.listeners {
 		go func(name string, listener *air.Air) {
 			h.app.Logger.Infof("listening %s at %s", name, listener.Address)
+
 			if err := listener.Serve(); err != nil {
 				h.app.Logger.Panicf(err.Error())
 			}
@@ -112,12 +116,15 @@ func getIndexHandler(app *App, r *staticfiles.Renderer) func(req *air.Request, r
 		data := map[string]any{
 			"js": []string{"main.js"},
 		}
+
 		s, err := r.Render(data, "index.html", "header.html")
 		if err != nil {
 			app.Logger.Errorf("%v", err)
 			_ = res.WriteString(err.Error())
+
 			return err
 		}
+
 		return res.WriteHTML(s)
 	}
 }
@@ -127,12 +134,15 @@ func getMapHandler(app *App, r *staticfiles.Renderer) func(req *air.Request, res
 		data := map[string]any{
 			"js": []string{"map.js"},
 		}
+
 		s, err := r.Render(data, "map.html", "header.html")
 		if err != nil {
 			app.Logger.Errorf("%v", err)
 			_ = res.WriteString(err.Error())
+
 			return err
 		}
+
 		return res.WriteHTML(s)
 	}
 }
@@ -150,6 +160,7 @@ func getConfigHandler(app *App) func(req *air.Request, res *air.Response) error 
 	m["lon"] = app.lon
 	m["zoom"] = app.zoom
 	m["version"] = getVersion()
+
 	return func(req *air.Request, res *air.Response) error {
 		return res.WriteJSON(m)
 	}
@@ -173,6 +184,7 @@ func getStackHandler() func(req *air.Request, res *air.Response) error {
 
 func getMetricsHandler() func(req *air.Request, res *air.Response) error {
 	h := promhttp.Handler()
+
 	return func(req *air.Request, res *air.Response) error {
 		h.ServeHTTP(res.HTTPResponseWriter(), req.HTTPRequest())
 		return nil
@@ -193,6 +205,7 @@ func getUnits(app *App) []*model.WebUnit {
 func getUnitTrackHandler(app *App) func(req *air.Request, res *air.Response) error {
 	return func(req *air.Request, res *air.Response) error {
 		uid := getStringParam(req, "uid")
+
 		item := app.items.Get(uid)
 		if item == nil {
 			res.Status = http.StatusNotFound
@@ -211,6 +224,7 @@ func deleteItemHandler(app *App) func(req *air.Request, res *air.Response) error
 		r := make(map[string]any, 0)
 		r["units"] = getUnits(app)
 		r["messages"] = app.messages
+
 		return res.WriteJSON(r)
 	}
 }
@@ -229,6 +243,7 @@ func getConnHandler(app *App) func(req *air.Request, res *air.Response) error {
 				LastSeen: ch.GetLastSeen(),
 			}
 			conn = append(conn, c)
+
 			return true
 		})
 
@@ -252,6 +267,7 @@ func getCotPostHandler(app *App) func(req *air.Request, res *air.Response) error
 		}
 
 		app.NewCotMessage(c)
+
 		return nil
 	}
 }
@@ -262,6 +278,7 @@ func getCotXmlPostHandler(app *App) func(req *air.Request, res *air.Response) er
 		if scope == "" {
 			scope = "test"
 		}
+
 		ev := new(cot.Event)
 
 		dec := xml.NewDecoder(req.Body)
@@ -276,8 +293,10 @@ func getCotXmlPostHandler(app *App) func(req *air.Request, res *air.Response) er
 			app.Logger.Errorf("cot convert error %s", err)
 			return err
 		}
+
 		c.Scope = scope
 		app.NewCotMessage(c)
+
 		return nil
 	}
 }

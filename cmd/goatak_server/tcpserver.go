@@ -5,18 +5,21 @@ import (
 	"fmt"
 	"net"
 
+	"go.uber.org/zap"
+
 	"github.com/kdudkov/goatak/internal/client"
 	"github.com/kdudkov/goatak/pkg/tlsutil"
-	"go.uber.org/zap"
 )
 
 func (app *App) ListenTCP(addr string) (err error) {
 	app.Logger.Infof("listening TCP at %s", addr)
+
 	listener, err := net.Listen("tcp", addr)
 	if err != nil {
 		app.Logger.Errorf("Failed to listen: %v", err)
 		return err
 	}
+
 	defer listener.Close()
 
 	for {
@@ -25,6 +28,7 @@ func (app *App) ListenTCP(addr string) (err error) {
 			app.Logger.Errorf("Unable to accept connections: %#v", err)
 			return err
 		}
+
 		app.Logger.Infof("TCP connection from %s", conn.RemoteAddr())
 		name := "tcp:" + conn.RemoteAddr().String()
 		h := client.NewConnClientHandler(name, conn, &client.HandlerConfig{
@@ -61,11 +65,14 @@ func (app *App) listenTls(addr string) error {
 			app.Logger.Errorf("Unable to accept connections: %#v", err)
 			continue
 		}
+
 		app.Logger.Debugf("SSL connection from %s", conn.RemoteAddr())
+
 		c1 := conn.(*tls.Conn)
 		if err := c1.Handshake(); err != nil {
 			app.Logger.Debugf("Handshake error: %#v", err)
 			c1.Close()
+
 			continue
 		}
 

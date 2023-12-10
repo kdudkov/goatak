@@ -73,6 +73,7 @@ func WithColors(s string, col ...byte) string {
 	if len(col) == 0 {
 		return s
 	}
+
 	f := make([]string, len(col))
 	for i, v := range col {
 		f[i] = strconv.Itoa(int(v))
@@ -81,15 +82,19 @@ func WithColors(s string, col ...byte) string {
 	b := strings.Builder{}
 	b.WriteString(escape)
 	b.WriteString("[")
+
 	for i, v := range col {
 		if i > 0 {
 			b.WriteString(";")
 		}
+
 		b.WriteString(strconv.Itoa(int(v)))
 	}
+
 	b.WriteString("m")
 	b.WriteString(s)
 	b.WriteString(escape)
 	b.WriteString("[0m")
+
 	return b.String()
 }

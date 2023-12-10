@@ -12,6 +12,7 @@ import (
 
 	"github.com/aofei/air"
 	"github.com/google/uuid"
+
 	"github.com/kdudkov/goatak/pkg/model"
 )
 
@@ -84,6 +85,7 @@ func getVersionConfigHandler(app *App) func(req *air.Request, res *air.Response)
 	data["api"] = apiVersion
 	data["version"] = getVersion()
 	data["hostname"] = "0.0.0.0"
+
 	return func(req *air.Request, res *air.Response) error {
 		return res.WriteJSON(makeAnswer("ServerConfig", data))
 	}
@@ -92,7 +94,6 @@ func getVersionConfigHandler(app *App) func(req *air.Request, res *air.Response)
 func getEndpointsHandler(app *App) func(req *air.Request, res *air.Response) error {
 	return func(req *air.Request, res *air.Response) error {
 		// secAgo := getIntParam(req, "secAgo", 0)
-
 		data := make([]map[string]any, 0)
 
 		app.items.ForEach(func(item *model.Item) bool {
@@ -101,16 +102,19 @@ func getEndpointsHandler(app *App) func(req *air.Request, res *air.Response) err
 				info["uid"] = item.GetUID()
 				info["callsign"] = item.GetCallsign()
 				info["lastEventTime"] = item.GetLastSeen()
+
 				if item.IsOnline() {
 					info["lastStatus"] = "Connected"
 				} else {
 					info["lastStatus"] = "Disconnected"
 				}
+
 				data = append(data, info)
 			}
 
 			return true
 		})
+
 		return res.WriteJSON(makeAnswer("com.bbn.marti.remote.ClientEndpoint", data))
 	}
 }
@@ -129,8 +133,10 @@ func getContactsHandler(app *App) func(req *air.Request, res *air.Response) erro
 				}
 				result = append(result, c)
 			}
+
 			return true
 		})
+
 		return res.WriteJSON(result)
 	}
 }
@@ -142,6 +148,7 @@ func getMissionQueryHandler(app *App) func(req *air.Request, res *air.Response) 
 			res.Status = http.StatusNotAcceptable
 			return res.WriteString("no hash")
 		}
+
 		if _, ok := app.packageManager.Get(hash); ok {
 			return res.WriteString(fmt.Sprintf("/Marti/sync/content?hash=%s", hash))
 		} else {
@@ -166,12 +173,17 @@ func getMissionUploadHandler(app *App) func(req *air.Request, res *air.Response)
 
 		if hash == "" {
 			app.Logger.Errorf("no hash: %s", req.RawQuery())
+
 			res.Status = http.StatusNotAcceptable
+
 			return res.WriteString("no hash")
 		}
+
 		if fname == "" {
 			app.Logger.Errorf("no filename: %s", req.RawQuery())
+
 			res.Status = http.StatusNotAcceptable
+
 			return res.WriteString("no filename")
 		}
 
@@ -200,6 +212,7 @@ func getMissionUploadHandler(app *App) func(req *air.Request, res *air.Response)
 			app.packageManager.Store(hash, info)
 
 			app.Logger.Infof("save packege %s %s", fname, hash)
+
 			return res.WriteString(fmt.Sprintf("/Marti/sync/content?hash=%s", hash))
 		} else {
 			app.Logger.Errorf("%v", err)
@@ -255,7 +268,9 @@ func getMetadataGetHandler(app *App) func(req *air.Request, res *air.Response) e
 			return res.WriteFile(app.packageManager.GetFilePath(hash))
 		} else {
 			app.Logger.Infof("not found - %s", hash)
+
 			res.Status = http.StatusNotFound
+
 			return res.WriteString("not found")
 		}
 	}
@@ -291,6 +306,7 @@ func getSearchHandler(app *App) func(req *air.Request, res *air.Response) error 
 
 		result["results"] = packages
 		result["resultCount"] = len(packages)
+
 		return res.WriteJSON(result)
 	}
 }
@@ -340,16 +356,19 @@ func getProfileConnectionHandler(app *App) func(req *air.Request, res *air.Respo
 		mp := NewMissionPackage("ProfileMissionPackage-"+uuid.New().String(), "Connection")
 		mp.Param("onReceiveImport", "true")
 		mp.Param("onReceiveDelete", "true")
+
 		for _, f := range files {
 			mp.AddFile(f)
 		}
 
 		res.Header.Set("Content-Type", "application/zip")
 		res.Header.Set("Content-Disposition", "attachment; filename=profile.zip")
+
 		dat, err := mp.Create()
 		if err != nil {
 			return err
 		}
+
 		return res.Write(bytes.NewReader(dat))
 	}
 }
@@ -357,10 +376,12 @@ func getProfileConnectionHandler(app *App) func(req *air.Request, res *air.Respo
 func getVideoListHandler(app *App) func(req *air.Request, res *air.Response) error {
 	return func(req *air.Request, res *air.Response) error {
 		r := new(model.VideoConnections)
+
 		app.feeds.ForEach(func(f *model.Feed2) bool {
 			r.Feeds = append(r.Feeds, f.ToFeed())
 			return true
 		})
+
 		return res.WriteXML(r)
 	}
 }
@@ -368,6 +389,7 @@ func getVideoListHandler(app *App) func(req *air.Request, res *air.Response) err
 func getVideo2ListHandler(app *App) func(req *air.Request, res *air.Response) error {
 	return func(req *air.Request, res *air.Response) error {
 		conn := make([]*model.VideoConnections2, 0)
+
 		app.feeds.ForEach(func(f *model.Feed2) bool {
 			conn = append(conn, &model.VideoConnections2{Feeds: []*model.Feed2{f}})
 			return true
@@ -375,6 +397,7 @@ func getVideo2ListHandler(app *App) func(req *air.Request, res *air.Response) er
 
 		r := make(map[string]any)
 		r["videoConnections"] = conn
+
 		return res.WriteJSON(r)
 	}
 }
@@ -389,9 +412,11 @@ func getVideoPostHandler(app *App) func(req *air.Request, res *air.Response) err
 		if err := decoder.Decode(r); err != nil {
 			return err
 		}
+
 		for _, f := range r.Feeds {
 			app.feeds.Store(f.ToFeed2().WithUser(username))
 		}
+
 		return nil
 	}
 }
@@ -402,6 +427,7 @@ func makeAnswer(typ string, data any) map[string]any {
 	result["type"] = typ
 	result["nodeId"] = nodeId
 	result["data"] = data
+
 	return result
 }
 

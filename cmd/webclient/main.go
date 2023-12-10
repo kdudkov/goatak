@@ -19,14 +19,15 @@ import (
 	"time"
 
 	"github.com/jroimartin/gocui"
+	"github.com/spf13/viper"
+	"go.uber.org/zap"
+
 	"github.com/kdudkov/goatak/internal/client"
 	"github.com/kdudkov/goatak/internal/repository"
 	"github.com/kdudkov/goatak/pkg/cot"
 	"github.com/kdudkov/goatak/pkg/cotproto"
 	"github.com/kdudkov/goatak/pkg/model"
 	"github.com/kdudkov/goatak/pkg/tlsutil"
-	"github.com/spf13/viper"
-	"go.uber.org/zap"
 )
 
 const (
@@ -115,6 +116,7 @@ func NewApp(uid string, callsign string, connectStr string, webPort int, logger 
 func (app *App) Init(cancel context.CancelFunc) {
 	if app.ui {
 		var err error
+
 		app.g, err = gocui.NewGui(gocui.OutputNormal)
 		if err != nil {
 			panic(err)
@@ -126,6 +128,7 @@ func (app *App) Init(cancel context.CancelFunc) {
 			func(_ *gocui.Gui, _ *gocui.View) error { cancel(); return gocui.ErrQuit }); err != nil {
 			panic(err)
 		}
+
 		app.textLogger = NewTextLogger()
 	}
 
@@ -148,11 +151,13 @@ func (app *App) Run(ctx context.Context) {
 		go func() {
 			addr := fmt.Sprintf(":%d", app.webPort)
 			app.Logger.Infof("listening %s", addr)
+
 			if err := NewHttp(app, addr).Serve(); err != nil {
 				panic(err)
 			}
 		}()
 	}
+
 	go app.cleaner()
 
 	for ctx.Err() == nil {
@@ -160,12 +165,16 @@ func (app *App) Run(ctx context.Context) {
 		if err != nil {
 			app.Logger.Errorf("connect error: %s", err)
 			time.Sleep(time.Second * 5)
+
 			continue
 		}
+
 		app.SetConnected(true)
 		app.Logger.Info("connected")
+
 		wg := new(sync.WaitGroup)
 		wg.Add(1)
+
 		ctx1, cancel1 := context.WithCancel(ctx)
 
 		app.cl = client.NewConnClientHandler(fmt.Sprintf("%s:%s", app.host, app.tcpPort), conn, &client.HandlerConfig{
@@ -195,6 +204,7 @@ func (app *App) SetConnected(connected bool) {
 	} else {
 		atomic.StoreUint32(&app.connected, 0)
 	}
+
 	app.redraw()
 }
 
@@ -211,6 +221,7 @@ func (app *App) myPosSender(ctx context.Context, wg *sync.WaitGroup) {
 	wg.Add(1)
 	defer wg.Done()
 	app.SendMsg(app.MakeMe())
+
 	ticker := time.NewTicker(selfPosSendPeriod)
 	defer ticker.Stop()
 
@@ -277,6 +288,7 @@ func (app *App) MakeMe() *cotproto.TakMessage {
 		Status: &cotproto.Status{Battery: 39},
 	}
 	ev.CotEvent.Detail.XmlDetail = fmt.Sprintf("<uid Droid=\"%s\"></uid>", app.callsign)
+
 	return ev
 }
 
@@ -289,6 +301,7 @@ func RandString(strlen int) string {
 	for i := 0; i < strlen; i++ {
 		result[i] = alfaNum[rand.Intn(len(alfaNum))]
 	}
+
 	return string(result)
 }
 
@@ -380,9 +393,11 @@ func main() {
 		cfg = zap.NewProductionConfig()
 		cfg.Encoding = "console"
 	}
+
 	if *ui {
 		cfg.OutputPaths = []string{"webclient.log"}
 	}
+
 	logger, _ := cfg.Build()
 	defer logger.Sync()
 
@@ -432,20 +447,24 @@ func main() {
 			}
 
 			enr := NewEnroller(app.Logger.Named("enroller"), app.host, user, passw, viper.GetBool("ssl.save_cert"))
+
 			cert, cas, err := enr.getOrEnrollCert(app.uid, app.GetVersion())
 			if err != nil {
 				app.Logger.Errorf("error while enroll cert: %s", err.Error())
 				return
 			}
+
 			app.tlsCert = cert
 			app.cas = tlsutil.MakeCertPool(cas...)
 		} else {
 			app.Logger.Infof("loading cert from file %s", viper.GetString("ssl.cert"))
+
 			cert, cas, err := loadP12(viper.GetString("ssl.cert"), viper.GetString("ssl.password"))
 			if err != nil {
 				app.Logger.Errorf("error while loading cert: %s", err.Error())
 				return
 			}
+
 			tlsutil.LogCert(app.Logger, "loaded cert", cert.Leaf)
 			app.tlsCert = cert
 			app.cas = tlsutil.MakeCertPool(cas...)
@@ -454,6 +473,7 @@ func main() {
 
 	ctx, cancel := context.WithCancel(context.Background())
 	app.Init(cancel)
+
 	go app.Run(ctx)
 
 	if app.ui {
@@ -465,5 +485,6 @@ func main() {
 		signal.Notify(c, syscall.SIGINT, syscall.SIGTERM)
 		<-c
 	}
+
 	cancel()
 }

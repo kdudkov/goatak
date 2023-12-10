@@ -45,5 +45,6 @@ func MatchAnyPattern(a string, patterns ...string) bool {
 			return true
 		}
 	}
+
 	return false
 }

@@ -35,6 +35,7 @@ type Track struct {
 
 func (x *Track) Reset() {
 	*x = Track{}
+
 	if protoimpl.UnsafeEnabled {
 		mi := &file_track_proto_msgTypes[0]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -50,13 +51,16 @@ func (*Track) ProtoMessage() {}
 
 func (x *Track) ProtoReflect() protoreflect.Message {
 	mi := &file_track_proto_msgTypes[0]
+
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
 		}
+
 		return ms
 	}
+
 	return mi.MessageOf(x)
 }
 
@@ -69,6 +73,7 @@ func (x *Track) GetSpeed() float64 {
 	if x != nil {
 		return x.Speed
 	}
+
 	return 0
 }
 
@@ -76,6 +81,7 @@ func (x *Track) GetCourse() float64 {
 	if x != nil {
 		return x.Course
 	}
+
 	return 0
 }
 
@@ -101,6 +107,7 @@ func file_track_proto_rawDescGZIP() []byte {
 	file_track_proto_rawDescOnce.Do(func() {
 		file_track_proto_rawDescData = protoimpl.X.CompressGZIP(file_track_proto_rawDescData)
 	})
+
 	return file_track_proto_rawDescData
 }
 
@@ -121,6 +128,7 @@ func file_track_proto_init() {
 	if File_track_proto != nil {
 		return
 	}
+
 	if !protoimpl.UnsafeEnabled {
 		file_track_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*Track); i {

@@ -37,6 +37,7 @@ type Takv struct {
 
 func (x *Takv) Reset() {
 	*x = Takv{}
+
 	if protoimpl.UnsafeEnabled {
 		mi := &file_takv_proto_msgTypes[0]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -52,13 +53,16 @@ func (*Takv) ProtoMessage() {}
 
 func (x *Takv) ProtoReflect() protoreflect.Message {
 	mi := &file_takv_proto_msgTypes[0]
+
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
 		}
+
 		return ms
 	}
+
 	return mi.MessageOf(x)
 }
 
@@ -71,6 +75,7 @@ func (x *Takv) GetDevice() string {
 	if x != nil {
 		return x.Device
 	}
+
 	return ""
 }
 
@@ -78,6 +83,7 @@ func (x *Takv) GetPlatform() string {
 	if x != nil {
 		return x.Platform
 	}
+
 	return ""
 }
 
@@ -85,6 +91,7 @@ func (x *Takv) GetOs() string {
 	if x != nil {
 		return x.Os
 	}
+
 	return ""
 }
 
@@ -92,6 +99,7 @@ func (x *Takv) GetVersion() string {
 	if x != nil {
 		return x.Version
 	}
+
 	return ""
 }
 
@@ -120,6 +128,7 @@ func file_takv_proto_rawDescGZIP() []byte {
 	file_takv_proto_rawDescOnce.Do(func() {
 		file_takv_proto_rawDescData = protoimpl.X.CompressGZIP(file_takv_proto_rawDescData)
 	})
+
 	return file_takv_proto_rawDescData
 }
 
@@ -140,6 +149,7 @@ func file_takv_proto_init() {
 	if File_takv_proto != nil {
 		return
 	}
+
 	if !protoimpl.UnsafeEnabled {
 		file_takv_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*Takv); i {

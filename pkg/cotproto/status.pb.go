@@ -34,6 +34,7 @@ type Status struct {
 
 func (x *Status) Reset() {
 	*x = Status{}
+
 	if protoimpl.UnsafeEnabled {
 		mi := &file_status_proto_msgTypes[0]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -49,13 +50,16 @@ func (*Status) ProtoMessage() {}
 
 func (x *Status) ProtoReflect() protoreflect.Message {
 	mi := &file_status_proto_msgTypes[0]
+
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
 		}
+
 		return ms
 	}
+
 	return mi.MessageOf(x)
 }
 
@@ -68,6 +72,7 @@ func (x *Status) GetBattery() uint32 {
 	if x != nil {
 		return x.Battery
 	}
+
 	return 0
 }
 
@@ -92,6 +97,7 @@ func file_status_proto_rawDescGZIP() []byte {
 	file_status_proto_rawDescOnce.Do(func() {
 		file_status_proto_rawDescData = protoimpl.X.CompressGZIP(file_status_proto_rawDescData)
 	})
+
 	return file_status_proto_rawDescData
 }
 
@@ -112,6 +118,7 @@ func file_status_proto_init() {
 	if File_status_proto != nil {
 		return
 	}
+
 	if !protoimpl.UnsafeEnabled {
 		file_status_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*Status); i {

@@ -79,6 +79,7 @@ func walkEmbed(fs embed.FS, fn func(fs embed.FS, fname string) error) error {
 				return err
 			}
 		}
+
 		i++
 	}
 }

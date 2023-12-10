@@ -36,6 +36,7 @@ type Contact struct {
 
 func (x *Contact) Reset() {
 	*x = Contact{}
+
 	if protoimpl.UnsafeEnabled {
 		mi := &file_contact_proto_msgTypes[0]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -51,13 +52,16 @@ func (*Contact) ProtoMessage() {}
 
 func (x *Contact) ProtoReflect() protoreflect.Message {
 	mi := &file_contact_proto_msgTypes[0]
+
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
 		}
+
 		return ms
 	}
+
 	return mi.MessageOf(x)
 }
 
@@ -70,6 +74,7 @@ func (x *Contact) GetEndpoint() string {
 	if x != nil {
 		return x.Endpoint
 	}
+
 	return ""
 }
 
@@ -77,6 +82,7 @@ func (x *Contact) GetCallsign() string {
 	if x != nil {
 		return x.Callsign
 	}
+
 	return ""
 }
 
@@ -103,6 +109,7 @@ func file_contact_proto_rawDescGZIP() []byte {
 	file_contact_proto_rawDescOnce.Do(func() {
 		file_contact_proto_rawDescData = protoimpl.X.CompressGZIP(file_contact_proto_rawDescData)
 	})
+
 	return file_contact_proto_rawDescData
 }
 
@@ -123,6 +130,7 @@ func file_contact_proto_init() {
 	if File_contact_proto != nil {
 		return
 	}
+
 	if !protoimpl.UnsafeEnabled {
 		file_contact_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*Contact); i {

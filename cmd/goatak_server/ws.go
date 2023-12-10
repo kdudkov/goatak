@@ -10,10 +10,11 @@ import (
 	"time"
 
 	"github.com/aofei/air"
+	"go.uber.org/zap"
+
 	"github.com/kdudkov/goatak/internal/model"
 	"github.com/kdudkov/goatak/pkg/cot"
 	"github.com/kdudkov/goatak/pkg/cotproto"
-	"go.uber.org/zap"
 )
 
 type WsClientHandler struct {
@@ -41,10 +42,12 @@ func (w *WsClientHandler) GetVersion() int32 {
 
 func (w *WsClientHandler) GetUids() map[string]string {
 	res := make(map[string]string)
+
 	w.uids.Range(func(key, value any) bool {
 		res[key.(string)] = value.(string)
 		return true
 	})
+
 	return res
 }
 
@@ -79,6 +82,7 @@ func (w *WsClientHandler) SendCot(msg *cotproto.TakMessage) error {
 	if err != nil {
 		return err
 	}
+
 	if w.tryAddPacket(dat) {
 		return nil
 	}
@@ -94,6 +98,7 @@ func (w *WsClientHandler) tryAddPacket(msg []byte) bool {
 	case w.ch <- msg:
 	default:
 	}
+
 	return true
 }
 
@@ -106,6 +111,7 @@ func (w *WsClientHandler) writer() {
 		if err := w.ws.WriteBinary(b); err != nil {
 			w.logger.Errorf("send error: %s", err.Error())
 			w.stop()
+
 			break
 		}
 	}
@@ -171,6 +177,7 @@ func getWsHandler(app *App) func(req *air.Request, res *air.Response) error {
 		w.Listen()
 		app.RemoveHandlerCb(w)
 		app.Logger.Infof("ws disconnected")
+
 		return nil
 	}
 }

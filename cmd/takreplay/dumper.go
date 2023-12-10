@@ -40,7 +40,9 @@ func (g *JsonDumper) Process(msg *cot.CotMessage) error {
 	if err != nil {
 		return err
 	}
+
 	fmt.Println(string(b))
+
 	return nil
 }
 
@@ -57,8 +59,10 @@ func (g *Json2Dumper) Process(msg *cot.CotMessage) error {
 	if err != nil {
 		return err
 	}
+
 	fmt.Println(string(b))
 	fmt.Println(msg.TakMessage.GetCotEvent().GetDetail().GetXmlDetail())
+
 	return nil
 }
 
@@ -84,11 +88,13 @@ func (g *GpxDumper) Process(msg *cot.CotMessage) error {
 	if msg == nil || msg.TakMessage.GetCotEvent() == nil || (msg.TakMessage.GetCotEvent().GetLat() == 0 && msg.TakMessage.GetCotEvent().GetLon() == 0) {
 		return nil
 	}
+
 	ev := msg.TakMessage.GetCotEvent()
 
 	if g.hasHistory && msg.GetStartTime().After(g.prevStale) {
 		fmt.Println("</trkseg>\n<trkseg>")
 	}
+
 	fmt.Printf("<trkpt lat=\"%f\" lon=\"%f\">", ev.GetLat(), ev.GetLon())
 	fmt.Printf("<time>%s</time>", msg.GetStartTime().Format(time.RFC3339))
 	fmt.Printf("<ele>%.0f</ele>", ev.GetHae())
@@ -97,5 +103,6 @@ func (g *GpxDumper) Process(msg *cot.CotMessage) error {
 
 	g.prevStale = msg.GetStaleTime()
 	g.hasHistory = true
+
 	return nil
 }

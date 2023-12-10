@@ -19,14 +19,15 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/kdudkov/goatak/internal/client"
-	"github.com/kdudkov/goatak/internal/repository"
-	"github.com/kdudkov/goatak/pkg/cot"
-	"github.com/kdudkov/goatak/pkg/model"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
 	"software.sslmate.com/src/go-pkcs12"
+
+	"github.com/kdudkov/goatak/internal/client"
+	"github.com/kdudkov/goatak/internal/repository"
+	"github.com/kdudkov/goatak/pkg/cot"
+	"github.com/kdudkov/goatak/pkg/model"
 )
 
 var (
@@ -180,6 +181,7 @@ func (app *App) AddClientHandler(ch client.ClientHandler) {
 func (app *App) RemoveClientHandler(name string) {
 	if _, ok := app.handlers.Load(name); ok {
 		app.Logger.Infof("remove handler: %s", name)
+
 		if _, ok := app.handlers.LoadAndDelete(name); ok {
 			connectionsMetric.Dec()
 		}
@@ -198,6 +200,7 @@ func (app *App) RemoveHandlerCb(cl client.ClientHandler) {
 		if c := app.items.Get(uid); c != nil {
 			c.SetOffline()
 		}
+
 		msg := &cot.CotMessage{
 			From:       cl.GetName(),
 			Scope:      cl.GetUser().GetScope(),
@@ -215,15 +218,18 @@ func (app *App) NewContactCb(uid, callsign string) {
 
 func (app *App) ConnectTo(addr string) {
 	name := "ext_" + addr
+
 	for app.ctx.Err() == nil {
 		conn, err := app.connect(addr)
 		if err != nil {
 			app.Logger.Errorf("connect error: %s", err)
 			time.Sleep(time.Second * 5)
+
 			continue
 		}
 
 		app.Logger.Info("connected")
+
 		wg := &sync.WaitGroup{}
 		wg.Add(1)
 
@@ -264,26 +270,32 @@ func (app *App) connect(connectStr string) (net.Conn, error) {
 	}
 
 	addr := fmt.Sprintf("%s:%s", parts[0], parts[1])
+
 	if tlsConn {
 		app.Logger.Infof("connecting with SSL to %s...", connectStr)
+
 		conn, err := tls.Dial("tcp", addr, app.getTlsConfig())
 		if err != nil {
 			return nil, err
 		}
+
 		app.Logger.Debugf("handshake...")
 
 		if err := conn.Handshake(); err != nil {
 			return conn, err
 		}
+
 		cs := conn.ConnectionState()
 
 		app.Logger.Infof("Handshake complete: %t", cs.HandshakeComplete)
 		app.Logger.Infof("version: %d", cs.Version)
+
 		for i, cert := range cs.PeerCertificates {
 			app.Logger.Infof("cert #%d subject: %s", i, cert.Subject.String())
 			app.Logger.Infof("cert #%d issuer: %s", i, cert.Issuer.String())
 			app.Logger.Infof("cert #%d dns_names: %s", i, strings.Join(cert.DNSNames, ","))
 		}
+
 		return conn, nil
 	} else {
 		app.Logger.Infof("connecting to %s...", connectStr)
@@ -360,6 +372,7 @@ func (app *App) cleanOldUnits() {
 				}
 			}
 		}
+
 		return true
 	})
 
@@ -375,6 +388,7 @@ func (app *App) SendBroadcast(msg *cot.CotMessage) {
 				app.Logger.Errorf("error sending to %s: %v", ch.GetName(), err)
 			}
 		}
+
 		return true
 	})
 }
@@ -388,6 +402,7 @@ func (app *App) SendToCallsign(callsign string, msg *cot.CotMessage) {
 				}
 			}
 		}
+
 		return true
 	})
 }
@@ -399,6 +414,7 @@ func (app *App) SendToUid(uid string, msg *cot.CotMessage) {
 				app.Logger.Errorf("error: %v", err)
 			}
 		}
+
 		return true
 	})
 }
@@ -407,22 +423,26 @@ func loadPem(name string) ([]*x509.Certificate, error) {
 	if name == "" {
 		return nil, nil
 	}
+
 	pemBytes, err := os.ReadFile(name)
 	if err != nil {
 		return nil, fmt.Errorf("error loading %s: %s", name, err.Error())
 	}
 	var certs []*x509.Certificate
 	var pemBlock *pem.Block
+
 	for {
 		pemBlock, pemBytes = pem.Decode(pemBytes)
 		if pemBlock == nil {
 			break
 		}
+
 		if pemBlock.Type == "CERTIFICATE" {
 			cert, err := x509.ParseCertificate(pemBlock.Bytes)
 			if err != nil {
 				return nil, err
 			}
+
 			certs = append(certs, cert)
 		}
 	}
@@ -430,6 +450,7 @@ func loadPem(name string) ([]*x509.Certificate, error) {
 	if len(certs) == 0 {
 		return nil, fmt.Errorf("no cert in file")
 	}
+
 	return certs, nil
 }
 
@@ -447,18 +468,22 @@ func processCerts(conf *AppConfig) error {
 	if err != nil {
 		return err
 	}
+
 	for _, c := range ca {
 		roots.AddCert(c)
 	}
+
 	conf.ca = ca
 
 	cert, err := loadPem(viper.GetString("ssl.cert"))
 	if err != nil {
 		return err
 	}
+
 	if len(cert) > 0 {
 		conf.serverCert = cert[0]
 	}
+
 	for _, c := range cert {
 		roots.AddCert(c)
 	}
@@ -469,6 +494,7 @@ func processCerts(conf *AppConfig) error {
 	}
 
 	conf.tlsCert = &tlsCert
+
 	return nil
 }
 
@@ -482,6 +508,7 @@ func getVersion() string {
 
 func main() {
 	fmt.Printf("version %s\n", getVersion())
+
 	debug := flag.Bool("debug", false, "debug node")
 	conf := flag.String("config", "goatak_server.yml", "name of config file")
 	flag.Parse()
