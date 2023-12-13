@@ -161,7 +161,7 @@ func addItemHandler(app *App) func(req *air.Request, res *air.Response) error {
 			}
 		}
 
-		r := make(map[string]any, 0)
+		r := make(map[string]any)
 		r["units"] = getUnits(app)
 		r["messages"] = app.messages
 

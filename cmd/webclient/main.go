@@ -58,7 +58,7 @@ type App struct {
 	cl              *client.ConnClientHandler
 	listeners       sync.Map
 	textLogger      *TextLogger
-	eventProcessors map[string]*EventProcessor
+	eventProcessors []*EventProcessor
 	remoteAPI       *RemoteAPI
 	saveFile        string
 	connected       uint32
@@ -110,7 +110,7 @@ func NewApp(uid string, callsign string, connectStr string, webPort int, logger 
 		dialTimeout:     time.Second * 5,
 		listeners:       sync.Map{},
 		messages:        model.NewMessages(uid),
-		eventProcessors: make(map[string]*EventProcessor),
+		eventProcessors: make([]*EventProcessor, 0),
 		pos:             atomic.Pointer[model.Pos]{},
 	}
 }
@@ -249,9 +249,9 @@ func (app *App) SendMsg(msg *cotproto.TakMessage) {
 }
 
 func (app *App) ProcessEvent(msg *cot.CotMessage) {
-	for name, prc := range app.eventProcessors {
+	for _, prc := range app.eventProcessors {
 		if cot.MatchAnyPattern(msg.GetType(), prc.include...) {
-			app.Logger.Debugf("msg is processed by %s", name)
+			app.Logger.Debugf("msg is processed by %s", prc.name)
 			prc.cb(msg)
 		}
 	}

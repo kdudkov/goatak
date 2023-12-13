@@ -122,46 +122,49 @@ func (w *WsClientHandler) writer() {
 func (w *WsClientHandler) stop() {
 	if atomic.CompareAndSwapInt32(&w.active, 1, 0) {
 		close(w.ch)
-		w.ws.Close()
+		_ = w.ws.Close()
 	}
 }
 
 func (w *WsClientHandler) Listen() {
-	w.ws.BinaryHandler = func(b []byte) error {
-		msg, err := cot.ReadProto(bufio.NewReader(bytes.NewReader(b)))
-		if err != nil {
-			w.logger.Errorf("read: %s", err.Error())
-
-			return err
-		}
-
-		cotmsg, err := cot.CotFromProto(msg, w.name, w.GetUser().GetScope())
-		if err != nil {
-			w.logger.Errorf("details get error: %s", err.Error())
-
-			return err
-		}
-
-		if cotmsg.IsContact() {
-			uid := msg.GetCotEvent().GetUid()
-			uid = strings.TrimSuffix(uid, "-ping")
-
-			w.uids.Store(uid, cotmsg.GetCallsign())
-		}
-
-		// remove contact
-		if cotmsg.GetType() == "t-x-d-d" && cotmsg.Detail != nil && cotmsg.Detail.Has("link") {
-			uid := cotmsg.Detail.GetFirst("link").GetAttr("uid")
-			w.uids.Delete(uid)
-		}
-
-		w.messageCb(cotmsg)
-
-		return nil
-	}
+	w.ws.BinaryHandler = w.binaryReader
 	go w.writer()
 	w.ws.Listen()
 	w.logger.Infof("stop listening")
+	w.stop()
+}
+
+func (w *WsClientHandler) binaryReader(b []byte) error {
+	msg, err := cot.ReadProto(bufio.NewReader(bytes.NewReader(b)))
+	if err != nil {
+		w.logger.Errorf("read: %s", err.Error())
+
+		return err
+	}
+
+	cotmsg, err := cot.CotFromProto(msg, w.name, w.GetUser().GetScope())
+	if err != nil {
+		w.logger.Errorf("details get error: %s", err.Error())
+
+		return err
+	}
+
+	if cotmsg.IsContact() {
+		uid := msg.GetCotEvent().GetUid()
+		uid = strings.TrimSuffix(uid, "-ping")
+
+		w.uids.Store(uid, cotmsg.GetCallsign())
+	}
+
+	// remove contact
+	if cotmsg.GetType() == "t-x-d-d" && cotmsg.Detail != nil && cotmsg.Detail.Has("link") {
+		uid := cotmsg.Detail.GetFirst("link").GetAttr("uid")
+		w.uids.Delete(uid)
+	}
+
+	w.messageCb(cotmsg)
+
+	return nil
 }
 
 func getWsHandler(app *App) func(req *air.Request, res *air.Response) error {

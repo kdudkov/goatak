@@ -339,7 +339,7 @@ func getAllGroupsHandler(app *App) func(req *air.Request, res *air.Response) err
 	}
 }
 
-func getAllGroupsCacheHandler(app *App) func(req *air.Request, res *air.Response) error {
+func getAllGroupsCacheHandler(_ *App) func(req *air.Request, res *air.Response) error {
 	result := makeAnswer("java.lang.Boolean", true)
 
 	return func(req *air.Request, res *air.Response) error {

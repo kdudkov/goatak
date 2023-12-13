@@ -82,7 +82,7 @@ type App struct {
 	ctx             context.Context
 	uid             string
 	ch              chan *cot.CotMessage
-	eventProcessors map[string]*EventProcessor
+	eventProcessors []*EventProcessor
 }
 
 func NewApp(config *AppConfig, logger *zap.SugaredLogger) *App {
@@ -96,7 +96,7 @@ func NewApp(config *AppConfig, logger *zap.SugaredLogger) *App {
 		items:           repository.NewItemsMemoryRepo(),
 		feeds:           repository.NewFeedsFileRepo(logger.Named("feedsRepo"), filepath.Join(config.dataDir, "feeds")),
 		uid:             uuid.New().String(),
-		eventProcessors: make(map[string]*EventProcessor),
+		eventProcessors: make([]*EventProcessor, 0),
 	}
 
 	return app
@@ -327,9 +327,9 @@ func (app *App) getTLSConfig() *tls.Config {
 
 func (app *App) MessageProcessor() {
 	for msg := range app.ch {
-		for name, prc := range app.eventProcessors {
+		for _, prc := range app.eventProcessors {
 			if cot.MatchAnyPattern(msg.GetType(), prc.include...) {
-				app.Logger.Debugf("msg is processed by %s", name)
+				app.Logger.Debugf("msg is processed by %s", prc.name)
 				prc.cb(msg)
 			}
 		}

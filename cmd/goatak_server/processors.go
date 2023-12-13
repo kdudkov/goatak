@@ -15,12 +15,13 @@ import (
 )
 
 type EventProcessor struct {
+	name    string
 	include []string
 	cb      func(msg *cot.CotMessage)
 }
 
 func (app *App) AddEventProcessor(name string, cb func(msg *cot.CotMessage), masks ...string) {
-	app.eventProcessors[name] = &EventProcessor{cb: cb, include: masks}
+	app.eventProcessors = append(app.eventProcessors, &EventProcessor{name: name, cb: cb, include: masks})
 }
 
 func (app *App) InitMessageProcessors() {
@@ -124,7 +125,7 @@ func (app *App) fileLoggerProcessor(msg *cot.CotMessage) {
 }
 
 func logMessage(msg *cot.CotMessage, dir string) error {
-	if err := os.MkdirAll(dir, 0o777); err != nil {
+	if err := os.MkdirAll(dir, 0777); err != nil {
 		return err
 	}
 
