@@ -80,10 +80,14 @@ func main() {
 			return
 		}
 
-		pass = p1
+		pass = strings.TrimRight(p1, "\n\r")
 	}
 
-	bpass, _ := bcrypt.GenerateFromPassword([]byte(pass), 14)
+	bpass, err := bcrypt.GenerateFromPassword([]byte(pass), 14)
+
+	if err != nil {
+		panic(err)
+	}
 
 	var found bool
 
