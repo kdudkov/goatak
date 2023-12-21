@@ -91,7 +91,7 @@ func (app *App) chatProcessor(msg *cot.CotMessage) {
 }
 
 func (app *App) saveItemProcessor(msg *cot.CotMessage) {
-	if cot.MatchAnyPattern(msg.GetType(), "b-t-f", "b-t-f-") {
+	if cot.MatchAnyPattern(msg.GetType(), "b-t-f", "b-t-f-", "t-x-c-t", "t-x-c-t-r") {
 		return
 	}
 
