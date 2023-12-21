@@ -18,31 +18,22 @@ const (
 )
 
 type Item struct {
-	mx             sync.RWMutex
-	uid            string
-	cottype        string
-	class          string
-	callsign       string
-	staleTime      time.Time
-	startTime      time.Time
-	sendTime       time.Time
-	lastSeen       time.Time
-	online         bool
-	local          bool
-	send           bool
-	parentCallsign string
-	parentUID      string
-	color          string
-	icon           string
-	track          []*Pos
-	msg            *cot.CotMessage
+	mx       sync.RWMutex
+	uid      string
+	class    string
+	online   bool
+	lastSeen time.Time
+	local    bool
+	send     bool
+	track    []*Pos
+	msg      *cot.CotMessage
 }
 
 func (i *Item) String() string {
 	i.mx.RLock()
 	defer i.mx.RUnlock()
 
-	return fmt.Sprintf("%s: %s %s %s", i.class, i.uid, i.cottype, i.callsign)
+	return fmt.Sprintf("%s: %s %s %s", i.class, i.uid, i.msg.GetType(), i.msg.GetCallsign())
 }
 
 func (i *Item) GetClass() string {
@@ -52,11 +43,11 @@ func (i *Item) GetClass() string {
 	return i.class
 }
 
-func (i *Item) GetCotType() string {
+func (i *Item) GetType() string {
 	i.mx.RLock()
 	defer i.mx.RUnlock()
 
-	return i.cottype
+	return i.msg.GetType()
 }
 
 func (i *Item) GetMsg() *cot.CotMessage {
@@ -77,7 +68,7 @@ func (i *Item) GetCallsign() string {
 	i.mx.RLock()
 	defer i.mx.RUnlock()
 
-	return i.callsign
+	return i.msg.GetCallsign()
 }
 
 func (i *Item) GetLastSeen() time.Time {
@@ -87,22 +78,15 @@ func (i *Item) GetLastSeen() time.Time {
 	return i.lastSeen
 }
 
-func (i *Item) GetStartTime() time.Time {
-	i.mx.RLock()
-	defer i.mx.RUnlock()
-
-	return i.startTime
-}
-
 func (i *Item) IsOld() bool {
 	i.mx.RLock()
 	defer i.mx.RUnlock()
 
 	switch i.class {
 	case CONTACT:
-		return (!i.online) && i.lastSeen.Add(StaleContactDelete).Before(time.Now())
+		return (!i.online) && time.Since(i.lastSeen) > StaleContactDelete
 	default:
-		return i.staleTime.Before(time.Now())
+		return i.msg.GetStaleTime().Before(time.Now())
 	}
 }
 
@@ -126,10 +110,15 @@ func (i *Item) SetOnline() {
 	i.lastSeen = time.Now()
 }
 
-func (i *Item) SetLocal(local, send bool) {
+func (i *Item) SetLocal(local bool) {
 	i.mx.Lock()
 	defer i.mx.Unlock()
 	i.local = local
+}
+
+func (i *Item) SetSend(send bool) {
+	i.mx.Lock()
+	defer i.mx.Unlock()
 	i.send = send
 }
 
@@ -168,27 +157,16 @@ func FromMsg(msg *cot.CotMessage) *Item {
 		return nil
 	}
 
-	parent, parentCs := msg.GetParent()
-
 	i := &Item{
-		mx:             sync.RWMutex{},
-		uid:            msg.GetUID(),
-		cottype:        msg.GetType(),
-		class:          cls,
-		callsign:       msg.GetCallsign(),
-		staleTime:      msg.GetStaleTime(),
-		startTime:      msg.GetStartTime(),
-		sendTime:       msg.GetSendTime(),
-		lastSeen:       time.Now(),
-		online:         true,
-		local:          false,
-		send:           false,
-		parentCallsign: parentCs,
-		parentUID:      parent,
-		color:          msg.Detail.GetFirst("color").GetAttr("argb"),
-		icon:           msg.Detail.GetFirst("usericon").GetAttr("iconsetpath"),
-		track:          nil,
-		msg:            msg,
+		mx:       sync.RWMutex{},
+		uid:      msg.GetUID(),
+		class:    cls,
+		lastSeen: time.Now(),
+		online:   true,
+		local:    false,
+		send:     false,
+		track:    nil,
+		msg:      msg,
 	}
 
 	if i.class == UNIT || i.class == CONTACT {
@@ -208,14 +186,6 @@ func FromMsg(msg *cot.CotMessage) *Item {
 	return i
 }
 
-func FromMsgLocal(msg *cot.CotMessage, send bool) *Item {
-	i := FromMsg(msg)
-	i.local = true
-	i.send = send
-
-	return i
-}
-
 func (i *Item) GetLanLon() (float64, float64) {
 	return i.msg.GetLat(), i.msg.GetLon()
 }
@@ -230,22 +200,9 @@ func (i *Item) Update(msg *cot.CotMessage) {
 	i.mx.Lock()
 	defer i.mx.Unlock()
 
-	i.class = GetClass(msg)
-	i.cottype = msg.GetType()
-	i.callsign = msg.GetCallsign()
-	i.staleTime = msg.GetStaleTime()
-	i.startTime = msg.GetStartTime()
-	i.sendTime = msg.GetSendTime()
-	i.msg = msg
 	i.lastSeen = time.Now()
-
-	i.parentUID, i.parentCallsign = msg.GetParent()
-
-	if c := msg.Detail.GetFirst("color"); c != nil {
-		i.color = c.GetAttr("argb")
-	}
-
-	i.icon = msg.Detail.GetFirst("usericon").GetAttr("iconsetpath")
+	i.class = GetClass(msg)
+	i.msg = msg
 
 	if i.class == UNIT || i.class == CONTACT {
 		i.online = true
@@ -256,10 +213,12 @@ func (i *Item) Update(msg *cot.CotMessage) {
 				lat:   msg.GetLat(),
 				lon:   msg.GetLon(),
 				speed: msg.TakMessage.GetCotEvent().GetDetail().GetTrack().GetSpeed(),
+				ce:    msg.TakMessage.GetCotEvent().GetCe(),
 				mx:    sync.RWMutex{},
 			}
 
 			i.track = append(i.track, pos)
+
 			if len(i.track) > MaxTrackPoints {
 				i.track = i.track[len(i.track)-MaxTrackPoints:]
 			}
@@ -272,29 +231,4 @@ func (i *Item) GetTrack() []*Pos {
 	defer i.mx.RUnlock()
 
 	return i.track
-}
-
-func (i *Item) UpdateFromWeb(w *WebUnit, m *cot.CotMessage) {
-	if w == nil {
-		return
-	}
-
-	i.mx.Lock()
-	defer i.mx.Unlock()
-
-	i.class = w.Category
-	i.cottype = w.Type
-	i.callsign = w.Callsign
-	i.staleTime = w.StaleTime
-	i.startTime = w.StartTime
-	i.sendTime = w.SendTime
-	i.lastSeen = time.Now()
-	i.parentUID = w.ParentUID
-	i.parentCallsign = w.ParentCallsign
-	i.icon = w.Icon
-	i.color = w.Color
-	i.local = w.Local
-	i.send = w.Send
-
-	i.msg = m
 }

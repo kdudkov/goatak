@@ -257,9 +257,6 @@ func (app *App) ProcessEvent(msg *cot.CotMessage) {
 	}
 }
 
-func (app *App) processChange(u *model.Item) {
-}
-
 func (app *App) MakeMe() *cotproto.TakMessage {
 	ev := cot.BasicMsg(app.typ, app.uid, time.Minute*2)
 	lat, lon := app.pos.Load().Get()
@@ -441,6 +438,8 @@ func main() {
 	app.Logger.Infof("role: %s", app.role)
 	app.Logger.Infof("server: %s", viper.GetString("server_address"))
 
+	ctx, cancel := context.WithCancel(context.Background())
+
 	if app.tls {
 		if user := viper.GetString("ssl.enroll_user"); user != "" {
 			passw := viper.GetString("ssl.enroll_password")
@@ -452,7 +451,7 @@ func main() {
 
 			enr := NewEnroller(app.Logger.Named("enroller"), app.host, user, passw, viper.GetBool("ssl.save_cert"))
 
-			cert, cas, err := enr.getOrEnrollCert(app.uid, app.GetVersion())
+			cert, cas, err := enr.getOrEnrollCert(ctx, app.uid, app.GetVersion())
 			if err != nil {
 				app.Logger.Errorf("error while enroll cert: %s", err.Error())
 
@@ -477,7 +476,6 @@ func main() {
 		}
 	}
 
-	ctx, cancel := context.WithCancel(context.Background())
 	app.Init(cancel)
 
 	go app.Run(ctx)

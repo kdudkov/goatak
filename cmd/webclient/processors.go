@@ -40,12 +40,7 @@ func (app *App) InitMessageProcessors() {
 
 func (app *App) loggerProcessor(msg *cot.CotMessage) {
 	if !strings.HasPrefix(msg.GetType(), "a-") {
-		name, exact := cot.GetMsgType(msg.GetType())
-		if exact {
-			app.Logger.Debugf("%s %s", msg.GetType(), name)
-		} else {
-			app.Logger.Infof("%s %s (extended)", msg.GetType(), name)
-		}
+		app.Logger.Debugf("%s %s", msg.GetType(), cot.GetMsgType(msg.GetType()))
 	}
 }
 

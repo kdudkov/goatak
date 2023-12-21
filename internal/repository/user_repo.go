@@ -139,8 +139,11 @@ func (r *UserFileRepository) CheckUserAuth(user, password string) bool {
 
 	if user, ok := r.users[user]; ok {
 		err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))
-
-		return err == nil
+		if err != nil {
+			r.logger.Debugf("password check failed: %w", err)
+			return false
+		}
+		return true
 	}
 
 	return false

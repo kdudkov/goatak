@@ -42,6 +42,7 @@ type PackageInfo struct {
 	CreatorUID         string    `json:"CreatorUid"`
 	Name               string    `json:"Name"`
 	Tool               string    `json:"Tool"`
+	User               string    `json:"-"`
 }
 
 func (pm *PackageManager) Start() error {

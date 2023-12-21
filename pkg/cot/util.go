@@ -9,7 +9,7 @@ import (
 	"github.com/kdudkov/goatak/pkg/cotproto"
 )
 
-const NotNum = 9999999
+const NotNum = 999999
 
 func BasicMsg(typ string, uid string, stale time.Duration) *cotproto.TakMessage {
 	return &cotproto.TakMessage{
@@ -25,7 +25,7 @@ func BasicMsg(typ string, uid string, stale time.Duration) *cotproto.TakMessage 
 			How:       "m-g",
 			Lat:       0,
 			Lon:       0,
-			Hae:       0,
+			Hae:       NotNum,
 			Ce:        NotNum,
 			Le:        NotNum,
 			Detail:    nil,
@@ -74,14 +74,12 @@ func CloneMessageNoCoords(msg *cotproto.TakMessage) *cotproto.TakMessage {
 		return nil
 	}
 
-	data, _ := proto.Marshal(msg)
-	msg1 := new(cotproto.TakMessage)
-	_ = proto.Unmarshal(data, msg1)
+	msg1 := proto.Clone(msg).(*cotproto.TakMessage)
 
 	if evt := msg1.GetCotEvent(); evt != nil {
 		evt.Lat = 0
 		evt.Lon = 0
-		evt.Hae = 0
+		evt.Hae = NotNum
 		evt.Ce = NotNum
 		evt.Le = NotNum
 	}

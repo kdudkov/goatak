@@ -300,6 +300,7 @@ func (app *App) connect(connectStr string) (net.Conn, error) {
 
 		return conn, nil
 	}
+
 	app.Logger.Infof("connecting to %s...", connectStr)
 
 	return net.DialTimeout("tcp", addr, time.Second*3)
@@ -316,7 +317,7 @@ func (app *App) getTLSConfig() *tls.Config {
 		app.Logger.Fatal(err)
 	}
 
-	tlsCert := tls.Certificate{
+	tlsCert := tls.Certificate{ //nolint:exhaustruct
 		Certificate: [][]byte{cert.Raw},
 		PrivateKey:  key.(crypto.PrivateKey),
 		Leaf:        cert,
@@ -407,7 +408,7 @@ func (app *App) SendToCallsign(callsign string, msg *cot.CotMessage) {
 	})
 }
 
-func (app *App) SendToUid(uid string, msg *cot.CotMessage) {
+func (app *App) SendToUID(uid string, msg *cot.CotMessage) {
 	app.ForAllClients(func(ch client.ClientHandler) bool {
 		if ch.HasUID(uid) {
 			if err := ch.SendMsg(msg); err != nil {

@@ -34,11 +34,12 @@ type Pos struct {
 	lat   float64
 	lon   float64
 	speed float64
+	ce    float64
 	mx    sync.RWMutex
 }
 
 func NewPos(lat, lon float64) *Pos {
-	return &Pos{lon: lon, lat: lat, speed: 0, time: time.Now(), mx: sync.RWMutex{}}
+	return &Pos{lon: lon, lat: lat, speed: 0, ce: 0, time: time.Now(), mx: sync.RWMutex{}}
 }
 
 func (p *Pos) Get() (float64, float64) {

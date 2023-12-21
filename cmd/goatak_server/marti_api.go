@@ -188,18 +188,6 @@ func getMissionUploadHandler(app *App) func(req *air.Request, res *air.Response)
 			return res.WriteString("no filename")
 		}
 
-		info := &PackageInfo{
-			PrimaryKey:         1,
-			UID:                uuid.New().String(),
-			SubmissionDateTime: time.Now(),
-			Hash:               hash,
-			Name:               fname,
-			CreatorUID:         getStringParam(req, "creatorUid"),
-			SubmissionUser:     username,
-			Tool:               "public",
-			Keywords:           []string{"missionpackage"},
-		}
-
 		if f, fh, err := req.HTTPRequest().FormFile("assetfile"); err == nil {
 			n, err := app.packageManager.SaveFile(hash, fh.Filename, f)
 			if err != nil {
@@ -208,8 +196,20 @@ func getMissionUploadHandler(app *App) func(req *air.Request, res *air.Response)
 				return err
 			}
 
-			info.Size = n
-			info.MIMEType = fh.Header.Get("Content-type")
+			info := &PackageInfo{
+				PrimaryKey:         1,
+				UID:                uuid.New().String(),
+				SubmissionDateTime: time.Now(),
+				Hash:               hash,
+				Name:               fname,
+				CreatorUID:         getStringParam(req, "creatorUid"),
+				SubmissionUser:     username,
+				Tool:               "public",
+				Keywords:           []string{"missionpackage"},
+				Size:               n,
+				MIMEType:           fh.Header.Get("Content-type"),
+				User:               username,
+			}
 
 			app.packageManager.Store(hash, info)
 

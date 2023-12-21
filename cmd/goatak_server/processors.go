@@ -27,7 +27,7 @@ func (app *App) AddEventProcessor(name string, cb func(msg *cot.CotMessage), mas
 func (app *App) InitMessageProcessors() {
 	app.AddEventProcessor("remove", app.removeItemProcessor, "t-x-d-d")
 	app.AddEventProcessor("chat", app.chatProcessor, "b-t-f")
-	app.AddEventProcessor("items", app.saveItemProcessor, "a-", "b-")
+	app.AddEventProcessor("items", app.saveItemProcessor, ".-")
 	app.AddEventProcessor("logger", app.loggerProcessor, ".-")
 
 	if app.config.logging {
@@ -37,12 +37,7 @@ func (app *App) InitMessageProcessors() {
 
 func (app *App) loggerProcessor(msg *cot.CotMessage) {
 	if !strings.HasPrefix(msg.GetType(), "a-") {
-		name, exact := cot.GetMsgType(msg.GetType())
-		if exact {
-			app.Logger.Debugf("%s %s", msg.GetType(), name)
-		} else {
-			app.Logger.Infof("%s %s (extended)", msg.GetType(), name)
-		}
+		app.Logger.Debugf("%s %s", msg.GetType(), cot.GetMsgType(msg.GetType()))
 	}
 }
 

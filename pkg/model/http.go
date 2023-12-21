@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+
 	"github.com/kdudkov/goatak/pkg/cot"
 	"github.com/kdudkov/goatak/pkg/cotproto"
 )
@@ -61,16 +62,18 @@ func (i *Item) ToWeb() *WebUnit {
 	i.mx.RLock()
 	defer i.mx.RUnlock()
 
+	parentUID, parentCallsign := i.msg.GetParent()
+
 	w := &WebUnit{
 		UID:            i.uid,
 		Category:       i.class,
-		Callsign:       i.callsign,
+		Callsign:       i.msg.GetCallsign(),
 		Time:           cot.TimeFromMillis(evt.GetSendTime()),
 		LastSeen:       i.lastSeen,
-		StaleTime:      i.staleTime,
-		StartTime:      i.startTime,
-		SendTime:       i.sendTime,
-		Type:           i.cottype,
+		StaleTime:      i.msg.GetStaleTime(),
+		StartTime:      i.msg.GetStartTime(),
+		SendTime:       i.msg.GetSendTime(),
+		Type:           i.msg.GetType(),
 		Lat:            evt.GetLat(),
 		Lon:            evt.GetLon(),
 		Hae:            evt.GetHae(),
@@ -78,13 +81,16 @@ func (i *Item) ToWeb() *WebUnit {
 		Course:         evt.GetDetail().GetTrack().GetCourse(),
 		Team:           evt.GetDetail().GetGroup().GetName(),
 		Role:           evt.GetDetail().GetGroup().GetRole(),
-		Sidc:           getSIDC(i.cottype),
-		ParentUID:      i.parentUID,
-		ParentCallsign: i.parentCallsign,
-		Color:          i.color,
-		Icon:           i.icon,
+		Sidc:           getSIDC(i.msg.GetType()),
+		ParentUID:      parentUID,
+		ParentCallsign: parentCallsign,
+		Color:          i.msg.GetColor(),
+		Icon:           i.msg.GetIcon(),
 		Local:          i.local,
 		Send:           i.send,
+		Text:           i.msg.Detail.GetFirst("remarks").GetText(),
+		TakVersion:     "",
+		Status:         "",
 	}
 
 	if i.class == CONTACT {
@@ -98,8 +104,6 @@ func (i *Item) ToWeb() *WebUnit {
 			w.TakVersion = strings.Trim(fmt.Sprintf("%s %s on %s", v.GetPlatform(), v.GetVersion(), v.GetDevice()), " ")
 		}
 	}
-
-	w.Text = i.msg.Detail.GetFirst("remarks").GetText()
 
 	return w
 }

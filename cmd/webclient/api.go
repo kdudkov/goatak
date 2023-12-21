@@ -40,10 +40,10 @@ func (r *RemoteAPI) getURL(path string) string {
 	return fmt.Sprintf("http://%s:8080%s", r.host, path)
 }
 
-func (r *RemoteAPI) request(method, path string) (io.ReadCloser, error) {
+func (r *RemoteAPI) request(ctx context.Context, method, path string) (io.ReadCloser, error) {
 	url := r.getURL(path)
 
-	req, err := http.NewRequest(method, url, nil)
+	req, err := http.NewRequestWithContext(ctx, method, url, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -66,8 +66,8 @@ func (r *RemoteAPI) request(method, path string) (io.ReadCloser, error) {
 	return res.Body, nil
 }
 
-func (r *RemoteAPI) getContacts() ([]*model.Contact, error) {
-	b, err := r.request("GET", "/Marti/api/contacts/all")
+func (r *RemoteAPI) getContacts(ctx context.Context) ([]*model.Contact, error) {
+	b, err := r.request(ctx, "GET", "/Marti/api/contacts/all")
 
 	if b != nil {
 		defer b.Close()
@@ -89,7 +89,7 @@ func (app *App) periodicGetter(ctx context.Context) {
 	ticker := time.NewTicker(renewContacts)
 	defer ticker.Stop()
 
-	d, _ := app.remoteAPI.getContacts()
+	d, _ := app.remoteAPI.getContacts(ctx)
 	for _, c := range d {
 		app.Logger.Debugf("contact %s %s", c.UID, c.Callsign)
 		app.messages.Contacts.Store(c.UID, c)
@@ -100,7 +100,7 @@ func (app *App) periodicGetter(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			dat, err := app.remoteAPI.getContacts()
+			dat, err := app.remoteAPI.getContacts(ctx)
 			if err != nil {
 				app.Logger.Warnf("error getting contacts: %s", err.Error())
 
