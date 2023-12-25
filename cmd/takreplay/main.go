@@ -90,12 +90,11 @@ func readFile(f *os.File, uid, typ string, dmp Dumper) error {
 			continue
 		}
 
-		d, err := cot.DetailsFromString(m.GetCotEvent().GetDetail().GetXmlDetail())
+		msg, err := cot.CotFromProto(m, "", "")
 		if err != nil {
 			return err
 		}
 
-		msg := &cot.CotMessage{TakMessage: m, Detail: d}
 		if err = dmp.Process(msg); err != nil {
 			return err
 		}
