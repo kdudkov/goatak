@@ -30,9 +30,11 @@ import (
 	"github.com/kdudkov/goatak/pkg/model"
 )
 
+const unknown = "unknown"
+
 var (
-	gitRevision            = "unknown"
-	gitBranch              = "unknown"
+	gitRevision            = unknown
+	gitBranch              = unknown
 	lastSeenOfflineTimeout = time.Minute * 5
 )
 
@@ -502,7 +504,7 @@ func processCerts(conf *AppConfig) error {
 }
 
 func getVersion() string {
-	if gitBranch != "master" && gitBranch != "unknowm" {
+	if gitBranch != "master" && gitBranch != unknown {
 		return fmt.Sprintf("%s:%s", gitBranch, gitRevision)
 	}
 
@@ -512,7 +514,7 @@ func getVersion() string {
 func main() {
 	fmt.Printf("version %s\n", getVersion())
 
-	debug := flag.Bool("debug", false, "debug node")
+	debug := flag.Bool("debug", false, "debug mode")
 	conf := flag.String("config", "goatak_server.yml", "name of config file")
 	flag.Parse()
 
