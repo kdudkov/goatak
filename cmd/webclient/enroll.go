@@ -25,6 +25,7 @@ import (
 )
 
 const minCertAge = time.Hour * 24
+const keySize = 4096
 
 type Enroller struct {
 	logger *zap.SugaredLogger
@@ -61,12 +62,12 @@ func NewEnroller(logger *zap.SugaredLogger, host, user, passwd string, save bool
 	}
 }
 
-func (e *Enroller) getUrl(path string) string {
+func (e *Enroller) getURL(path string) string {
 	return fmt.Sprintf("https://%s:%d%s", e.host, e.port, path)
 }
 
 func (e *Enroller) request(ctx context.Context, method, path string, args map[string]string, body io.Reader) (io.ReadCloser, error) {
-	url := e.getUrl(path)
+	url := e.getURL(path)
 
 	req, err := http.NewRequestWithContext(ctx, method, url, body)
 	if err != nil {
@@ -232,7 +233,7 @@ func (e *Enroller) getProfile(ctx context.Context, uid string) error {
 }
 
 func makeCsr(subj *pkix.Name) (string, *rsa.PrivateKey) {
-	keyBytes, _ := rsa.GenerateKey(rand.Reader, 4096)
+	keyBytes, _ := rsa.GenerateKey(rand.Reader, keySize)
 
 	template := x509.CertificateRequest{
 		Subject:            *subj,
