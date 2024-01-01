@@ -87,7 +87,15 @@ func (n *Node) String() string {
 	return s.String()
 }
 
-func (n *Node) GetDest() []string {
+func (n *Node) GetDestCallsign() []string {
+	return n.getDestFor("callsign")
+}
+
+func (n *Node) GetDestMission() []string {
+	return n.getDestFor("mission")
+}
+
+func (n *Node) getDestFor(name string) []string {
 	r := make([]string, 0)
 
 	marti := n.GetFirst("marti")
@@ -95,11 +103,9 @@ func (n *Node) GetDest() []string {
 		return r
 	}
 
-	for _, n := range marti.Nodes {
-		if n.XMLName.Local == "dest" {
-			if c := n.GetAttr("callsign"); c != "" {
-				r = append(r, c)
-			}
+	for _, n := range marti.GetAll("dest") {
+		if c := n.GetAttr(name); c != "" {
+			r = append(r, c)
 		}
 	}
 

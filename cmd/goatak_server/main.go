@@ -342,7 +342,7 @@ func (app *App) MessageProcessor() {
 }
 
 func (app *App) route(msg *cot.CotMessage) {
-	if dest := msg.Detail.GetDest(); len(dest) > 0 {
+	if dest := msg.Detail.GetDestCallsign(); len(dest) > 0 {
 		for _, s := range dest {
 			app.SendToCallsign(s, msg)
 		}
