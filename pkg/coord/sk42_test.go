@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"math"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestConvert(t *testing.T) {
@@ -31,11 +33,7 @@ func TestConvertBoth(t *testing.T) {
 	lat, lon := Wgs84_sk42(50, 50, 0)
 
 	lat2, lon2 := Sk42_wgs84(lat, lon, 0)
-	if math.Abs(lat2-50) > 0.0000001 {
-		t.Errorf("result: %f, %f", lat2, lon2)
-	}
 
-	if math.Abs(lon2-50) > 0.0000001 {
-		t.Errorf("result: %f, %f", lat2, lon2)
-	}
+	assert.InDelta(t, 50, lat2, 0.000001)
+	assert.InDelta(t, 50, lon2, 0.000001)
 }
