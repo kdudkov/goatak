@@ -12,7 +12,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/air-gases/authenticator"
 	"github.com/aofei/air"
 	"github.com/google/uuid"
 
@@ -20,7 +19,6 @@ import (
 )
 
 const (
-	usernameKey = "username"
 	p12Password = "atakatak"
 )
 
@@ -36,16 +34,7 @@ func getCertAPI(app *App, addr string) *air.Air {
 	certApi := air.New()
 	certApi.Address = addr
 
-	auth := authenticator.BasicAuthGas(authenticator.BasicAuthGasConfig{
-		Validator: func(username string, password string, req *air.Request, _ *air.Response) (bool, error) {
-			app.Logger.Infof("tls api login with user %s", username)
-			req.SetValue(usernameKey, username)
-
-			return app.users.CheckUserAuth(username, password), nil
-		},
-	})
-
-	certApi.Gases = []air.Gas{LoggerGas(app.Logger, "cert_api"), auth}
+	certApi.Gases = []air.Gas{LoggerGas(app.Logger, "cert_api"), AuthGas(app)}
 
 	certApi.GET("/Marti/api/tls/config", getTLSConfigHandler(app))
 	certApi.POST("/Marti/api/tls/signClient", getSignHandler(app))

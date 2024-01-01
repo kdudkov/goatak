@@ -6,10 +6,15 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/air-gases/authenticator"
 	"github.com/aofei/air"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"go.uber.org/zap"
+)
+
+const (
+	usernameKey = "username"
 )
 
 var (
@@ -28,6 +33,15 @@ var (
 		Help:      "Number of the HTTP requests.",
 	}, []string{"api", "path", "method", "code"})
 )
+
+func AuthGas(app *App) air.Gas {
+	return authenticator.BasicAuthGas(authenticator.BasicAuthGasConfig{
+		Validator: func(username string, password string, req *air.Request, _ *air.Response) (bool, error) {
+			req.SetValue(usernameKey, username)
+			return app.users.CheckUserAuth(username, password), nil
+		},
+	})
+}
 
 func SSLCheckHandlerGas(app *App) air.Gas {
 	err := errors.New("unauthorized")
