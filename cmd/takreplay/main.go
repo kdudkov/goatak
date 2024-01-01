@@ -23,7 +23,7 @@ func main() {
 	file := flag.Arg(0)
 
 	if file == "" {
-		fmt.Println("usege: takreplay <filename>")
+		fmt.Println("usage: takreplay <filename>")
 		flag.PrintDefaults()
 		os.Exit(1)
 	}
