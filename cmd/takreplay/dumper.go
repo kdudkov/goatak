@@ -23,7 +23,7 @@ func (g *TextDumper) Stop() {
 }
 
 func (g *TextDumper) Process(msg *cot.CotMessage) error {
-	fmt.Println(msg.GetSendTime().Format(time.DateTime), msg.GetType(), msg.GetCallsign(), cot.GetMsgType(msg.GetType()))
+	fmt.Println(msg.GetSendTime().Format(time.DateTime), msg.GetUID(), msg.GetType(), msg.GetCallsign(), cot.GetMsgType(msg.GetType()))
 
 	return nil
 }
