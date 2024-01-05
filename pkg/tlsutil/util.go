@@ -104,6 +104,38 @@ func LogCert(logger *zap.SugaredLogger, name string, cert *x509.Certificate) {
 	}
 }
 
+func DecodeAllCerts(bytes []byte) ([]*x509.Certificate, error) {
+	return DecodeAllByType("CERTIFICATE", bytes)
+}
+
+func DecodeAllByType(typ string, bytes []byte) ([]*x509.Certificate, error) {
+	var block *pem.Block
+
+	certs := make([]*x509.Certificate, 0)
+
+	for {
+		block, bytes = pem.Decode(bytes)
+		if block == nil {
+			break
+		}
+
+		if block.Type == typ {
+			cert, err := x509.ParseCertificate(block.Bytes)
+			if err != nil {
+				return certs, err
+			}
+
+			certs = append(certs, cert)
+		}
+	}
+
+	if len(certs) == 0 {
+		return nil, fmt.Errorf("no %s in found", typ)
+	}
+
+	return certs, nil
+}
+
 func LogCerts(logger *zap.SugaredLogger, certs ...*x509.Certificate) {
 	for i, c := range certs {
 		LogCert(logger, fmt.Sprintf("cert #%d", i), c)

@@ -5,7 +5,6 @@ import (
 	"crypto"
 	"crypto/tls"
 	"crypto/x509"
-	"encoding/pem"
 	"flag"
 	"fmt"
 	"log"
@@ -28,6 +27,7 @@ import (
 	"github.com/kdudkov/goatak/internal/repository"
 	"github.com/kdudkov/goatak/pkg/cot"
 	"github.com/kdudkov/goatak/pkg/model"
+	"github.com/kdudkov/goatak/pkg/tlsutil"
 )
 
 const unknown = "unknown"
@@ -432,31 +432,7 @@ func loadPem(name string) ([]*x509.Certificate, error) {
 		return nil, fmt.Errorf("error loading %s: %s", name, err.Error())
 	}
 
-	var certs []*x509.Certificate
-
-	var pemBlock *pem.Block
-
-	for {
-		pemBlock, pemBytes = pem.Decode(pemBytes)
-		if pemBlock == nil {
-			break
-		}
-
-		if pemBlock.Type == "CERTIFICATE" {
-			cert, err := x509.ParseCertificate(pemBlock.Bytes)
-			if err != nil {
-				return nil, err
-			}
-
-			certs = append(certs, cert)
-		}
-	}
-
-	if len(certs) == 0 {
-		return nil, fmt.Errorf("no cert in file")
-	}
-
-	return certs, nil
+	return tlsutil.DecodeAllCerts(pemBytes)
 }
 
 func processCerts(conf *AppConfig) error {
