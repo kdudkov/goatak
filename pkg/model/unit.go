@@ -27,7 +27,6 @@ type Item struct {
 	send     bool
 	track    []*Pos
 	msg      *cot.CotMessage
-	missions []string
 }
 
 func (i *Item) String() string {
@@ -149,6 +148,19 @@ func GetClass(msg *cot.CotMessage) string {
 	}
 
 	return ""
+}
+
+func (i *Item) HasMission(name string) bool {
+	i.mx.RLock()
+	defer i.mx.RUnlock()
+
+	for _, m := range i.msg.GetDetail().GetDestMission() {
+		if m == name {
+			return true
+		}
+	}
+
+	return false
 }
 
 func FromMsg(msg *cot.CotMessage) *Item {

@@ -11,6 +11,7 @@ type CotTime time.Time
 
 func (s CotTime) MarshalJSON() ([]byte, error) {
 	t := time.Time(s)
+
 	return []byte(t.UTC().Format("\"2006-01-02T15:04:05.999Z07:00\"")), nil
 }
 

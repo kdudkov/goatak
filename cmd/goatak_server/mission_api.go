@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"encoding/xml"
 	"io"
 	"net/http"
 	"strings"
@@ -11,6 +12,7 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/kdudkov/goatak/internal/model"
+	model2 "github.com/kdudkov/goatak/pkg/model"
 )
 
 func addMissionApi(app *App, api *air.Air) {
@@ -320,6 +322,7 @@ func getMissionCotHandler(app *App) func(req *air.Request, res *air.Response) er
 		name := getStringParam(req, "missionname")
 		if app.missions.GetMission(name) == nil {
 			res.Status = http.StatusNotFound
+
 			return nil
 		}
 
@@ -327,9 +330,19 @@ func getMissionCotHandler(app *App) func(req *air.Request, res *air.Response) er
 
 		fb := new(strings.Builder)
 		fb.WriteString("<?xml version='1.0' encoding='UTF-8' standalone='yes'?>\n")
-		fb.WriteString("<events>")
+		fb.WriteString("<events>\n")
+		enc := xml.NewEncoder(fb)
 
-		fb.WriteString("</events>")
+		app.items.ForEach(func(item *model2.Item) bool {
+			if item.HasMission(name) {
+				if err := enc.Encode(item.GetMsg()); err != nil {
+					app.Logger.Errorf("xml encode error %v", err)
+				}
+			}
+
+			return true
+		})
+		fb.WriteString("\n</events>")
 
 		return res.WriteString(fb.String())
 	}
@@ -340,6 +353,7 @@ func getMissionContactsHandler(app *App) func(req *air.Request, res *air.Respons
 		name := getStringParam(req, "missionname")
 		if app.missions.GetMission(name) == nil {
 			res.Status = http.StatusNotFound
+
 			return nil
 		}
 
@@ -352,6 +366,7 @@ func getInviteClientHandler(app *App) func(req *air.Request, res *air.Response) 
 		name := getStringParam(req, "missionname")
 		if app.missions.GetMission(name) == nil {
 			res.Status = http.StatusNotFound
+
 			return nil
 		}
 
@@ -360,6 +375,7 @@ func getInviteClientHandler(app *App) func(req *air.Request, res *air.Response) 
 		if req.Body != nil {
 			defer req.Body.Close()
 			body, _ := io.ReadAll(req.Body)
+
 			if len(body) > 0 {
 				app.Logger.Infof("body: %s", string(body))
 			}

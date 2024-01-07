@@ -87,10 +87,10 @@ func (i *Item) ToWeb() *WebUnit {
 		ParentCallsign: parentCallsign,
 		Color:          i.msg.GetColor(),
 		Icon:           i.msg.GetIconsetPath(),
-		Missions:       i.missions,
+		Missions:       i.msg.GetDetail().GetDestMission(),
 		Local:          i.local,
 		Send:           i.send,
-		Text:           i.msg.Detail.GetFirst("remarks").GetText(),
+		Text:           i.msg.GetDetail().GetFirst("remarks").GetText(),
 		TakVersion:     "",
 		Status:         "",
 	}

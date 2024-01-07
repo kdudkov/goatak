@@ -368,7 +368,7 @@ func (app *App) MessageProcessor() {
 }
 
 func (app *App) route(msg *cot.CotMessage) {
-	if missions := msg.Detail.GetDestMission(); len(missions) > 0 {
+	if missions := msg.GetDetail().GetDestMission(); len(missions) > 0 {
 		for _, name := range missions {
 			for _, uid := range app.missions.GetSubscribers(name) {
 				app.SendToUID(uid, msg)
@@ -378,7 +378,7 @@ func (app *App) route(msg *cot.CotMessage) {
 		return
 	}
 
-	if dest := msg.Detail.GetDestCallsign(); len(dest) > 0 {
+	if dest := msg.GetDetail().GetDestCallsign(); len(dest) > 0 {
 		for _, s := range dest {
 			app.SendToCallsign(s, msg)
 		}

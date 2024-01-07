@@ -75,7 +75,7 @@ func (m *CotMessage) GetCallsign() string {
 	}
 
 	// if phonenumber is in contact - contact is in xmldetails
-	return m.Detail.GetFirst("contact").GetAttr("callsign")
+	return m.GetDetail().GetFirst("contact").GetAttr("callsign")
 }
 
 func (m *CotMessage) GetEndpoint() string {
@@ -87,7 +87,7 @@ func (m *CotMessage) GetEndpoint() string {
 		return s
 	}
 
-	return m.Detail.GetFirst("contact").GetAttr("endpoint")
+	return m.GetDetail().GetFirst("contact").GetAttr("endpoint")
 }
 
 func (m *CotMessage) GetTeam() string {
@@ -130,6 +130,14 @@ func (m *CotMessage) IsChat() bool {
 	return m.GetType() == "b-t-f"
 }
 
+func (m *CotMessage) GetDetail() *Node {
+	if m == nil {
+		return nil
+	}
+
+	return m.Detail
+}
+
 func (m *CotMessage) IsChatReceipt() bool {
 	if m == nil || m.TakMessage == nil {
 		return false
@@ -139,14 +147,14 @@ func (m *CotMessage) IsChatReceipt() bool {
 }
 
 func (m *CotMessage) PrintChat() string {
-	chat := m.Detail.GetFirst("__chat")
+	chat := m.GetDetail().GetFirst("__chat")
 	if chat == nil {
 		return ""
 	}
 
 	from := chat.GetAttr("senderCallsign")
 	to := chat.GetAttr("chatroom")
-	text := m.Detail.GetFirst("remarks").GetText()
+	text := m.GetDetail().GetFirst("remarks").GetText()
 
 	return fmt.Sprintf("%s -> %s: \"%s\"", from, to, text)
 }
@@ -176,11 +184,11 @@ func (m *CotMessage) GetLon() float64 {
 }
 
 func (m *CotMessage) GetParent() (string, string) {
-	if m.Detail == nil {
+	if m.GetDetail() == nil {
 		return "", ""
 	}
 
-	for _, link := range m.Detail.GetAll("link") {
+	for _, link := range m.GetDetail().GetAll("link") {
 		if link.GetAttr("relation") == "p-p" {
 			return link.GetAttr("uid"), link.GetAttr("parent_callsign")
 		}
@@ -190,19 +198,19 @@ func (m *CotMessage) GetParent() (string, string) {
 }
 
 func (m *CotMessage) GetIconsetPath() string {
-	return m.Detail.GetFirst("usericon").GetAttr("iconsetpath")
+	return m.GetDetail().GetFirst("usericon").GetAttr("iconsetpath")
 }
 
 func (m *CotMessage) GetColor() string {
-	return m.Detail.GetFirst("color").GetAttr("argb")
+	return m.GetDetail().GetFirst("color").GetAttr("argb")
 }
 
 func (m *CotMessage) GetFirstLink(relation string) *Node {
-	if m.Detail == nil {
+	if m.GetDetail() == nil {
 		return nil
 	}
 
-	for _, link := range m.Detail.GetAll("link") {
+	for _, link := range m.GetDetail().GetAll("link") {
 		if link.GetAttr("relation") == relation {
 			return link
 		}
