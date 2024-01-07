@@ -72,3 +72,19 @@ func (r *ItemsMemoryRepo) GetCallsign(uid string) string {
 
 	return ""
 }
+
+func (r *ItemsMemoryRepo) ForMission(name string) []*model.Item {
+	var res []*model.Item
+
+	r.items.Range(func(_, value any) bool {
+		i := value.(*model.Item)
+
+		if i.HasMission(name) {
+			res = append(res, i)
+		}
+
+		return true
+	})
+
+	return res
+}

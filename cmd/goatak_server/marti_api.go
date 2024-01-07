@@ -53,6 +53,8 @@ func addMartiRoutes(app *App, api *air.Air) {
 	api.GET("/Marti/api/sync/metadata/:hash/tool", getMetadataGetHandler(app))
 	api.PUT("/Marti/api/sync/metadata/:hash/tool", getMetadataPutHandler(app))
 
+	api.GET("/Marti/api/cot/xml/:uid", getXmlHandler(app))
+
 	api.GET("/Marti/api/util/user/roles", getUserRolesHandler(app))
 
 	api.GET("/Marti/api/groups/all", getAllGroupsHandler(app))
@@ -437,6 +439,19 @@ func getVideoPostHandler(app *App) func(req *air.Request, res *air.Response) err
 		}
 
 		return nil
+	}
+}
+
+func getXmlHandler(app *App) func(req *air.Request, res *air.Response) error {
+	return func(req *air.Request, res *air.Response) error {
+		item := app.items.Get(getStringParam(req, "uid"))
+
+		if item == nil {
+			res.Status = http.StatusNotFound
+			return nil
+		}
+
+		return res.WriteXML(item)
 	}
 }
 

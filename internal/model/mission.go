@@ -22,6 +22,7 @@ type Mission struct {
 	Tool           string
 	Groups         string
 	Keywords       string
+	Items          []DataItem
 }
 
 type Subscription struct {
@@ -39,4 +40,19 @@ type Invitation struct {
 	MissionName string `gorm:"index"`
 	ClientUID   string `gorm:"index"`
 	CreatorUID  string
+}
+
+type DataItem struct {
+	ID          uint `gorm:"primarykey"`
+	MissionID   uint
+	UID         string `gorm:"index"`
+	CreatorUID  string
+	Timestamp   time.Time
+	Type        string
+	Callsign    string
+	Title       string
+	IconsetPath string
+	Color       string
+	Lat         float64
+	Lon         float64
 }

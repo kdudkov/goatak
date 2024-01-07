@@ -224,6 +224,7 @@ func deleteItemHandler(app *App) func(req *air.Request, res *air.Response) error
 	return func(req *air.Request, res *air.Response) error {
 		uid := getStringParam(req, "uid")
 		app.items.Remove(uid)
+		app.missions.DeletePoint(uid)
 
 		r := make(map[string]any, 0)
 		r["units"] = getUnits(app)

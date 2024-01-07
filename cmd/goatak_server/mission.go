@@ -4,14 +4,18 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"gorm.io/gorm"
 
 	"github.com/kdudkov/goatak/internal/model"
+	"github.com/kdudkov/goatak/internal/repository"
+	"github.com/kdudkov/goatak/pkg/cot"
 )
 
 type MissionManager struct {
-	db *gorm.DB
+	db    *gorm.DB
+	items *repository.ItemsRepository
 }
 
 func NewMissionManager(db *gorm.DB) *MissionManager {
@@ -37,6 +41,10 @@ func (mm *MissionManager) Migrate() error {
 	}
 
 	if err := mm.db.AutoMigrate(&model.Invitation{}); err != nil {
+		return err
+	}
+
+	if err := mm.db.AutoMigrate(&model.DataItem{}); err != nil {
 		return err
 	}
 
@@ -71,7 +79,8 @@ func (mm *MissionManager) GetAll() []*model.Mission {
 	}
 
 	var result []*model.Mission
-	mm.db.Find(&result)
+
+	mm.db.Preload("Items").Find(&result)
 
 	return result
 }
@@ -79,7 +88,7 @@ func (mm *MissionManager) GetAll() []*model.Mission {
 func (mm *MissionManager) GetMission(name string) *model.Mission {
 	var m *model.Mission
 
-	result := mm.db.Where("name = ?", name).Take(&m)
+	result := mm.db.Preload("Items").Take(&m, "name = ?", name)
 
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 		return nil
@@ -96,6 +105,62 @@ func (mm *MissionManager) DeleteMission(name string) {
 
 func (mm *MissionManager) AddKw(name string, kw []string) {
 	mm.db.Model(&model.Mission{}).Where("name = ?", name).Update("keywords", strings.Join(kw, ","))
+}
+
+func (mm *MissionManager) AddPoint(name string, msg *cot.CotMessage) {
+	if mm == nil || mm.db == nil {
+		return
+	}
+
+	m := mm.GetMission(name)
+
+	if m == nil {
+		return
+	}
+
+	p, _ := msg.GetParent()
+
+	for _, dp := range m.Items {
+		if dp.UID == msg.GetUID() {
+			dp.CreatorUID = p
+			dp.Timestamp = msg.GetStartTime()
+			dp.Type = msg.GetType()
+			dp.Callsign = msg.GetCallsign()
+			dp.IconsetPath = msg.GetIconsetPath()
+			dp.Color = msg.GetColor()
+			dp.Lat = msg.GetLat()
+			dp.Lon = msg.GetLon()
+
+			m.LastEdit = time.Now()
+			mm.db.Save(m)
+			return
+		}
+	}
+
+	i := model.DataItem{
+		UID:         msg.GetUID(),
+		CreatorUID:  p,
+		Timestamp:   time.Now(),
+		Type:        msg.GetType(),
+		Callsign:    msg.GetCallsign(),
+		Title:       "",
+		IconsetPath: msg.GetIconsetPath(),
+		Color:       msg.GetColor(),
+		Lat:         msg.GetLat(),
+		Lon:         msg.GetLon(),
+	}
+
+	m.Items = append(m.Items, i)
+	m.LastEdit = time.Now()
+	mm.db.Save(m)
+}
+
+func (mm *MissionManager) DeletePoint(uid string) {
+	if mm == nil || mm.db == nil {
+		return
+	}
+
+	mm.db.Where("uid = ?", uid).Delete(&model.DataItem{})
 }
 
 func (mm *MissionManager) PutSubscription(s *model.Subscription) {

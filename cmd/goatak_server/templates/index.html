@@ -70,6 +70,7 @@
                             <th></th>
                             <th>Callsign</th>
                             <th>coords</th>
+                            <th>mission</th>
                             <th>stale time</th>
                         </tr>
                         <tr v-for="u in byCategory('unit')">
@@ -78,6 +79,7 @@
                             </td>
                             <td>{{ u.callsign }}</td>
                             <td>{{ printCoords(u.lat, u.lon) }}</td>
+                            <td>{{ u.missions }}</td>
                             <td>{{ dt(u.stale_time) }}</td>
                         </tr>
                     </table>
@@ -91,6 +93,7 @@
                             <th></th>
                             <th>Callsign</th>
                             <th>coords</th>
+                            <th>mission</th>
                             <th>send time</th>
                             <th>stale time</th>
                         </tr>
@@ -98,6 +101,7 @@
                             <td><img v-bind:src="getImg(u)"/></td>
                             <td>{{ u.callsign }}</td>
                             <td>{{ printCoords(u.lat, u.lon) }}</td>
+                            <td>{{ u.missions }}</td>
                             <td>{{ dt(u.send_time) }}</td>
                             <td>{{ dt(u.stale_time) }}</td>
                         </tr>

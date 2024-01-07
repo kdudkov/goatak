@@ -22,6 +22,7 @@ type ItemsRepository interface {
 	Remove(uid string)
 	ForEach(f func(item *model.Item) bool)
 	GetCallsign(uid string) string
+	ForMission(name string) []*model.Item
 }
 
 type FeedsRepository interface {

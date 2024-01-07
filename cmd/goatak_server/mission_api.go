@@ -54,7 +54,8 @@ func getMissionsHandler(app *App) func(req *air.Request, res *air.Response) erro
 
 func getMissionHandler(app *App) func(req *air.Request, res *air.Response) error {
 	return func(req *air.Request, res *air.Response) error {
-		m := app.missions.GetMission(getStringParam(req, "missionname"))
+		name := getStringParam(req, "missionname")
+		m := app.missions.GetMission(name)
 
 		if m == nil {
 			res.Status = http.StatusNotFound
@@ -308,12 +309,24 @@ func getMissionSubscriptionRolesHandler(app *App) func(req *air.Request, res *ai
 func getMissionChangesHandler(app *App) func(req *air.Request, res *air.Response) error {
 	return func(req *air.Request, res *air.Response) error {
 		name := getStringParam(req, "missionname")
-		if app.missions.GetMission(name) == nil {
+		_ = getIntParam(req, "secago", 0)
+		mission := app.missions.GetMission(name)
+
+		if mission == nil {
 			res.Status = http.StatusNotFound
 			return nil
 		}
 
-		return res.WriteJSON(makeAnswer("MissionChange", nil))
+		items := app.items.ForMission(name)
+		result := make([]*model.MissionChangeDTO, len(items)+1)
+
+		for i, item := range items {
+			result[i+1] = model.NewAddChange(name, item.GetMsg())
+		}
+
+		result[0] = model.NewCreateChange(mission)
+
+		return res.WriteJSON(makeAnswer("MissionChange", result))
 	}
 }
 

@@ -370,6 +370,8 @@ func (app *App) MessageProcessor() {
 func (app *App) route(msg *cot.CotMessage) {
 	if missions := msg.GetDetail().GetDestMission(); len(missions) > 0 {
 		for _, name := range missions {
+			app.missions.AddPoint(name, msg)
+
 			for _, uid := range app.missions.GetSubscribers(name) {
 				app.SendToUID(uid, msg)
 			}
@@ -419,6 +421,7 @@ func (app *App) cleanOldUnits() {
 
 	for _, uid := range toDelete {
 		app.items.Remove(uid)
+		app.missions.DeletePoint(uid)
 	}
 }
 

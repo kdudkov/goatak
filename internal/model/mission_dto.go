@@ -78,7 +78,7 @@ type MissionSubscriptionDTO struct {
 	Role       *MissionRoleDTO `json:"role"`
 }
 
-type MissionChange struct {
+type MissionChangeDTO struct {
 	Type        string             `json:"type"`
 	MissionName string             `json:"missionName"`
 	Timestamp   CotTime            `json:"timestamp"`
@@ -120,6 +120,12 @@ func ToMissionDTO(m *Mission) *MissionDTO {
 		return nil
 	}
 
+	uids := make([]*MissionItemDTO, len(m.Items)+1)
+
+	for i, item := range m.Items {
+		uids[i] = NewItemDTO(&item)
+	}
+
 	return &MissionDTO{
 		Name:           m.Name,
 		CreatorUID:     m.CreatorUID,
@@ -145,7 +151,7 @@ func ToMissionDTO(m *Mission) *MissionDTO {
 		PasswordProtected: m.Password != "",
 		Path:              m.Path,
 		Tool:              m.Tool,
-		Uids:              nil,
+		Uids:              uids,
 	}
 }
 
@@ -172,8 +178,8 @@ func ToMissionSubscriptionsDTO(subscriptions []*Subscription) []*MissionSubscrip
 	return res
 }
 
-func NewCreateChange(m *MissionDTO) *MissionChange {
-	return &MissionChange{
+func NewCreateChange(m *Mission) *MissionChangeDTO {
+	return &MissionChangeDTO{
 		Type:        "CREATE_MISSION",
 		MissionName: m.Name,
 		CreatorUID:  m.CreatorUID,
@@ -195,15 +201,15 @@ func NewDetails(msg *cot.CotMessage) *MissionDetailsDTO {
 	}
 }
 
-func NewAddChange(name string, msg *cot.CotMessage) *MissionChange {
+func NewAddChange(name string, msg *cot.CotMessage) *MissionChangeDTO {
 	creator, _ := msg.GetParent()
 
-	return &MissionChange{
+	return &MissionChangeDTO{
 		Type:        "ADD_CONTENT",
 		MissionName: name,
 		CreatorUID:  creator,
-		Timestamp:   CotTime(time.Now()),
-		ServerTime:  CotTime(time.Now()),
+		Timestamp:   CotTime(msg.GetStartTime()),
+		ServerTime:  CotTime(msg.GetSendTime()),
 		Details:     NewDetails(msg),
 	}
 }
@@ -216,6 +222,25 @@ func NewUID(msg *cot.CotMessage) *MissionItemDTO {
 		Timestamp:  CotTime(time.Now()),
 		Data:       msg.GetUID(),
 		Details:    NewDetails(msg),
+	}
+}
+
+func NewItemDTO(i *DataItem) *MissionItemDTO {
+	return &MissionItemDTO{
+		CreatorUID: i.CreatorUID,
+		Timestamp:  CotTime(i.Timestamp),
+		Data:       i.UID,
+		Details: &MissionDetailsDTO{
+			Type:        i.Type,
+			Callsign:    i.Callsign,
+			Title:       i.Title,
+			IconsetPath: i.IconsetPath,
+			Color:       i.Color,
+			Location: &LocationDTO{
+				Lat: i.Lat,
+				Lon: i.Lon,
+			},
+		},
 	}
 }
 
