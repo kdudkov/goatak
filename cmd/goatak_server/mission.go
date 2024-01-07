@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 
@@ -42,16 +43,34 @@ func (mm *MissionManager) Migrate() error {
 	return nil
 }
 
-func (mm *MissionManager) PutMission(m *model.Mission) {
-	if mm == nil || m == nil {
-		return
+func (mm *MissionManager) PutMission(m *model.Mission) error {
+	if mm == nil || mm.db == nil {
+		return nil
 	}
 
-	mm.db.Save(m)
+	if m == nil {
+		return fmt.Errorf("null mission")
+	}
+
+	if m.Name == "" {
+		return fmt.Errorf("null mission name")
+	}
+
+	if mm.GetMission(m.Name) != nil {
+		return fmt.Errorf("mission %s exists", m.Name)
+	}
+
+	tx := mm.db.Save(m)
+
+	return tx.Error
 }
 
 func (mm *MissionManager) GetAll() []*model.Mission {
-	result := make([]*model.Mission, 0)
+	if mm == nil || mm.db == nil {
+		return nil
+	}
+
+	var result []*model.Mission
 	mm.db.Find(&result)
 
 	return result
@@ -60,7 +79,11 @@ func (mm *MissionManager) GetAll() []*model.Mission {
 func (mm *MissionManager) GetMission(name string) *model.Mission {
 	var m *model.Mission
 
-	mm.db.Where("name = ?", name).Take(&m)
+	result := mm.db.Where("name = ?", name).Take(&m)
+
+	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+		return nil
+	}
 
 	return m
 }
@@ -88,29 +111,45 @@ func (mm *MissionManager) PutSubscription(s *model.Subscription) {
 func (mm *MissionManager) GetSubscriptions(name string) []*model.Subscription {
 	var s []*model.Subscription
 
-	mm.db.Where("mission_name = ?", name).Find(&s)
+	result := mm.db.Where("mission_name = ?", name).Find(&s)
+
+	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+		return nil
+	}
 
 	return s
 }
 
 func (mm *MissionManager) GetSubscribers(name string) []string {
-	var subscriptions []*model.Subscription
-
-	mm.db.Where("mission_name = ?", name).Find(&subscriptions)
-
-	result := make([]string, len(subscriptions))
-
-	for i, s := range subscriptions {
-		result[i] = s.ClientUID
+	if mm == nil || mm.db == nil {
+		return nil
 	}
 
-	return result
+	var subscriptions []*model.Subscription
+
+	result := mm.db.Where("mission_name = ?", name).Find(&subscriptions)
+
+	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+		return nil
+	}
+
+	res := make([]string, len(subscriptions))
+
+	for i, s := range subscriptions {
+		res[i] = s.ClientUID
+	}
+
+	return res
 }
 
 func (mm *MissionManager) GetSubscription(name string, uid string) *model.Subscription {
 	var s *model.Subscription
 
-	mm.db.Where("mission_name = ? AND client_uid = ?", name, uid).Take(&s)
+	result := mm.db.Where("mission_name = ? AND client_uid = ?", name, uid).Take(&s)
+
+	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+		return nil
+	}
 
 	return s
 }
@@ -134,7 +173,11 @@ func (mm *MissionManager) PutInvitation(s *model.Invitation) {
 func (mm *MissionManager) GetInvitation(name string, uid string) *model.Invitation {
 	var s *model.Invitation
 
-	mm.db.Where("mission_name = ? AND client_uid = ?", name, uid).Take(&s)
+	result := mm.db.Where("mission_name = ? AND client_uid = ?", name, uid).Take(&s)
+
+	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+		return nil
+	}
 
 	return s
 }
@@ -142,9 +185,9 @@ func (mm *MissionManager) GetInvitation(name string, uid string) *model.Invitati
 func (mm *MissionManager) GetInvitations(uid string) []string {
 	var m []*model.Invitation
 
-	mm.db.Where("client_uid = ?", uid).Find(&m)
+	result := mm.db.Where("client_uid = ?", uid).Find(&m)
 
-	if m == nil {
+	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 		return nil
 	}
 

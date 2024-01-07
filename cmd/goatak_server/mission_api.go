@@ -96,7 +96,10 @@ func getMissionPutHandler(app *App) func(req *air.Request, res *air.Response) er
 			Keywords:       "",
 		}
 
-		app.missions.PutMission(m)
+		if err := app.missions.PutMission(m); err != nil {
+			res.Status = http.StatusBadRequest
+			return res.WriteString(err.Error())
+		}
 
 		return res.WriteJSON(makeAnswer("Mission", []*model.MissionDTO{model.ToMissionDTO(m)}))
 	}

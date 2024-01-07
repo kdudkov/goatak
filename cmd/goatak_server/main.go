@@ -66,7 +66,8 @@ type AppConfig struct {
 
 	webtakRoot string
 
-	debug bool
+	debug    bool
+	dataSync bool
 
 	certTTLDays int
 	connections []string
@@ -102,12 +103,6 @@ type App struct {
 }
 
 func NewApp(config *AppConfig, logger *zap.SugaredLogger) *App {
-	db, err := getDatabase()
-
-	if err != nil {
-		panic(err)
-	}
-
 	app := &App{
 		Logger:          logger,
 		config:          config,
@@ -117,12 +112,22 @@ func NewApp(config *AppConfig, logger *zap.SugaredLogger) *App {
 		handlers:        sync.Map{},
 		items:           repository.NewItemsMemoryRepo(),
 		feeds:           repository.NewFeedsFileRepo(logger.Named("feedsRepo"), filepath.Join(config.dataDir, "feeds")),
-		missions:        NewMissionManager(db),
 		uid:             uuid.NewString(),
 		eventProcessors: make([]*EventProcessor, 0),
 	}
 
-	app.missions.Migrate()
+	if app.config.dataSync {
+		db, err := getDatabase()
+
+		if err != nil {
+			panic(err)
+		}
+
+		app.missions = NewMissionManager(db)
+		if err := app.missions.Migrate(); err != nil {
+			panic(err)
+		}
+	}
 
 	return app
 }
@@ -576,6 +581,7 @@ func main() {
 		usersFile:   viper.GetString("users_file"),
 		webtakRoot:  viper.GetString("webtak_root"),
 		certTTLDays: viper.GetInt("ssl.cert_ttl_days"),
+		dataSync:    viper.GetBool("datasync"),
 	}
 
 	if err := processCerts(config); err != nil {

@@ -44,8 +44,9 @@ func TestMissionCRUD(t *testing.T) {
 	m := NewMissionManager(db)
 	require.NoError(t, m.Migrate())
 
-	m.PutMission(&model.Mission{Name: "m1"})
-	m.PutMission(&model.Mission{Name: "m2"})
+	require.NoError(t, m.PutMission(&model.Mission{Name: "m1"}))
+	require.NoError(t, m.PutMission(&model.Mission{Name: "m2"}))
+	require.Error(t, m.PutMission(&model.Mission{Name: "m2"}))
 
 	assert.Len(t, m.GetAll(), 2)
 

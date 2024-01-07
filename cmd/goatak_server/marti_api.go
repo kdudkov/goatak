@@ -71,7 +71,9 @@ func addMartiRoutes(app *App, api *air.Air) {
 
 	api.GET("/Marti/api/video", getVideo2ListHandler(app))
 
-	addMissionApi(app, api)
+	if app.config.dataSync {
+		addMissionApi(app, api)
+	}
 }
 
 func getVersionHandler(app *App) func(req *air.Request, res *air.Response) error {
