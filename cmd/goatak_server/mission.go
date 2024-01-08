@@ -80,7 +80,9 @@ func (mm *MissionManager) GetAll() []*model.Mission {
 
 	var result []*model.Mission
 
-	mm.db.Preload("Items").Find(&result)
+	mm.db.Preload("Items", func(db *gorm.DB) *gorm.DB {
+		return db.Order("timestamp desc")
+	}).Find(&result)
 
 	return result
 }
@@ -88,7 +90,9 @@ func (mm *MissionManager) GetAll() []*model.Mission {
 func (mm *MissionManager) GetMission(name string) *model.Mission {
 	var m *model.Mission
 
-	result := mm.db.Preload("Items").Take(&m, "name = ?", name)
+	result := mm.db.Preload("Items", func(db *gorm.DB) *gorm.DB {
+		return db.Order("timestamp desc")
+	}).Take(&m, "name = ?", name)
 
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 		return nil
@@ -101,6 +105,7 @@ func (mm *MissionManager) DeleteMission(name string) {
 	mm.db.Where("name = ?", name).Delete(&model.Mission{})
 	mm.db.Where("mission_name = ?", name).Delete(&model.Subscription{})
 	mm.db.Where("mission_name = ?", name).Delete(&model.Invitation{})
+	mm.db.Where("mission_id = ?", name).Delete(&model.DataItem{})
 }
 
 func (mm *MissionManager) AddKw(name string, kw []string) {

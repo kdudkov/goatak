@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 
 	"github.com/kdudkov/goatak/internal/model"
 	"github.com/kdudkov/goatak/pkg/cot"
@@ -97,7 +98,7 @@ func TestAddPoint(t *testing.T) {
 func prepare() *gorm.DB {
 	rmDatabase()
 
-	db, err := gorm.Open(sqlite.Open(db_name), &gorm.Config{})
+	db, err := gorm.Open(sqlite.Open(db_name), &gorm.Config{Logger: logger.Default.LogMode(logger.Info)})
 	if err != nil {
 		panic("failed to connect database")
 	}

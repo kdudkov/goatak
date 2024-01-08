@@ -309,7 +309,8 @@ func getMissionSubscriptionRolesHandler(app *App) func(req *air.Request, res *ai
 func getMissionChangesHandler(app *App) func(req *air.Request, res *air.Response) error {
 	return func(req *air.Request, res *air.Response) error {
 		name := getStringParam(req, "missionname")
-		_ = getIntParam(req, "secago", 0)
+		d1 := time.Now().Add(-time.Second * time.Duration(getIntParam(req, "secago", 0)))
+
 		mission := app.missions.GetMission(name)
 
 		if mission == nil {
@@ -317,14 +318,17 @@ func getMissionChangesHandler(app *App) func(req *air.Request, res *air.Response
 			return nil
 		}
 
-		items := app.items.ForMission(name)
-		result := make([]*model.MissionChangeDTO, len(items)+1)
+		result := make([]*model.MissionChangeDTO, 0)
 
-		for i, item := range items {
-			result[i+1] = model.NewAddChange(name, item.GetMsg())
+		for _, item := range mission.Items {
+			if item.Timestamp.After(d1) {
+				result = append(result, model.NewAddChangeItem(name, &item))
+			}
 		}
 
-		result[0] = model.NewCreateChange(mission)
+		if mission.CreateTime.After(d1) {
+			result = append(result, model.NewCreateChange(mission))
+		}
 
 		return res.WriteJSON(makeAnswer("MissionChange", result))
 	}

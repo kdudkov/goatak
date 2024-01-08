@@ -214,6 +214,27 @@ func NewAddChange(name string, msg *cot.CotMessage) *MissionChangeDTO {
 	}
 }
 
+func NewAddChangeItem(name string, item *DataItem) *MissionChangeDTO {
+	return &MissionChangeDTO{
+		Type:        "ADD_CONTENT",
+		MissionName: name,
+		CreatorUID:  item.CreatorUID,
+		Timestamp:   CotTime(item.Timestamp),
+		ServerTime:  CotTime(item.Timestamp),
+		Details: &MissionDetailsDTO{
+			Type:        item.Type,
+			Callsign:    item.Callsign,
+			Title:       item.Title,
+			IconsetPath: item.IconsetPath,
+			Color:       item.Color,
+			Location: &LocationDTO{
+				Lat: item.Lat,
+				Lon: item.Lon,
+			},
+		},
+	}
+}
+
 func NewUID(msg *cot.CotMessage) *MissionItemDTO {
 	creator, _ := msg.GetParent()
 
