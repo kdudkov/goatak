@@ -28,20 +28,23 @@ func addMissionApi(app *App, api *air.Air) {
 	g.GET("/:missionname/changes", getMissionChangesHandler(app))
 	g.GET("/:missionname/cot", getMissionCotHandler(app))
 	g.GET("/:missionname/contacts", getMissionContactsHandler(app))
+	g.DELETE("/:missionname/contents", getMissionContentDeleteHandler(app))
 	g.GET("/:missionname/log", getMissionLogHandler(app))
 	g.PUT("/:missionname/keywords", getMissionKeywordsPutHandler(app))
 	g.GET("/:missionname/role", getMissionRoleHandler(app))
 	g.PUT("/:missionname/role", getMissionRolePutHandler(app))
+	g.GET("/:missionname/subscription", getMissionSubscriptionHandler(app))
 	g.PUT("/:missionname/subscription", getMissionSubscriptionPutHandler(app))
 	g.DELETE("/:missionname/subscription", getMissionSubscriptionDeleteHandler(app))
 	g.GET("/:missionname/subscriptions", getMissionSubscriptionsHandler(app))
 	g.GET("/:missionname/subscriptions/roles", getMissionSubscriptionRolesHandler(app))
-	g.PUT("/:missionname/invite/clientUid/:uid", getInviteClientHandler(app))
+	g.PUT("/:missionname/invite/:type/:uid", getInvitePutHandler(app))
+	g.DELETE("/:missionname/invite/:type/:uid", getInviteDeleteHandler(app))
 }
 
 func getMissionsHandler(app *App) func(req *air.Request, res *air.Response) error {
 	return func(req *air.Request, res *air.Response) error {
-		data := app.missions.GetAll()
+		data := app.missions.GetAllMissions()
 		result := make([]*model.MissionDTO, len(data))
 
 		for i, m := range data {
@@ -241,6 +244,26 @@ func getMissionSubscriptionsHandler(app *App) func(req *air.Request, res *air.Re
 	}
 }
 
+func getMissionSubscriptionHandler(app *App) func(req *air.Request, res *air.Response) error {
+	return func(req *air.Request, res *air.Response) error {
+		mname := getStringParam(req, "missionname")
+		m := app.missions.GetMission(mname)
+
+		if m == nil {
+			res.Status = http.StatusNotFound
+			return nil
+		}
+
+		s := app.missions.GetSubscription(mname, getStringParam(req, "uid"))
+		if s == nil {
+			res.Status = http.StatusNotFound
+			return nil
+		}
+
+		return res.WriteJSON(makeAnswer("MissionSubscription", model.ToMissionSubscriptionDTO(s)))
+	}
+}
+
 func getMissionSubscriptionPutHandler(app *App) func(req *air.Request, res *air.Response) error {
 	return func(req *air.Request, res *air.Response) error {
 		m := app.missions.GetMission(getStringParam(req, "missionname"))
@@ -252,26 +275,27 @@ func getMissionSubscriptionPutHandler(app *App) func(req *air.Request, res *air.
 
 		printParams(req, app.Logger)
 
-		if req.Body != nil {
-			defer req.Body.Close()
-			body, _ := io.ReadAll(req.Body)
-			if len(body) > 0 {
-				app.Logger.Infof("body: %s", string(body))
-			}
+		if m.InviteOnly {
+			res.Status = http.StatusForbidden
+			return res.WriteString("Illegal attempt to subscribe to invite only mission!")
+		}
+
+		if m.Password != "" && getStringParam(req, "password") != m.Password {
+			res.Status = http.StatusForbidden
+			return res.WriteString("Illegal attempt to subscribe to mission! Password did not match.")
 		}
 
 		s := &model.Subscription{
 			MissionName: getStringParam(req, "missionname"),
 			ClientUID:   getStringParam(req, "uid"),
-			Username:    "",
+			Username:    getUsernameFromReq(req),
 			CreateTime:  time.Now(),
-			RoleType:    "",
-			Permissions: "",
+			Role:        "",
 		}
 
 		app.missions.PutSubscription(s)
 
-		return nil
+		return res.WriteJSON(makeAnswer("MissionSubscription", model.ToMissionSubscriptionDTO(s)))
 	}
 }
 
@@ -309,7 +333,7 @@ func getMissionSubscriptionRolesHandler(app *App) func(req *air.Request, res *ai
 func getMissionChangesHandler(app *App) func(req *air.Request, res *air.Response) error {
 	return func(req *air.Request, res *air.Response) error {
 		name := getStringParam(req, "missionname")
-		d1 := time.Now().Add(-time.Second * time.Duration(getIntParam(req, "secago", 0)))
+		d1 := time.Now().Add(-time.Second * time.Duration(getIntParam(req, "secago", 31536000)))
 
 		mission := app.missions.GetMission(name)
 
@@ -378,12 +402,38 @@ func getMissionContactsHandler(app *App) func(req *air.Request, res *air.Respons
 	}
 }
 
-func getInviteClientHandler(app *App) func(req *air.Request, res *air.Response) error {
+func getMissionContentDeleteHandler(app *App) func(req *air.Request, res *air.Response) error {
+	return func(req *air.Request, res *air.Response) error {
+		name := getStringParam(req, "missionname")
+		mission := app.missions.GetMission(name)
+
+		if mission == nil {
+			res.Status = http.StatusNotFound
+
+			return nil
+		}
+
+		app.missions.DeleteDataItem(mission.ID, getStringParam(req, "uid"))
+
+		return nil
+	}
+}
+
+func getInvitePutHandler(app *App) func(req *air.Request, res *air.Response) error {
 	return func(req *air.Request, res *air.Response) error {
 		name := getStringParam(req, "missionname")
 		if app.missions.GetMission(name) == nil {
 			res.Status = http.StatusNotFound
 
+			return nil
+		}
+
+		// type can be: clientUid, callsign, userName, group, team
+		typ := getStringParam(req, "type")
+
+		if typ != "clientUid" {
+			app.Logger.Warnf("we do not support invitation with type %s now", typ)
+			res.Status = http.StatusBadRequest
 			return nil
 		}
 
@@ -399,13 +449,30 @@ func getInviteClientHandler(app *App) func(req *air.Request, res *air.Response) 
 		}
 
 		inv := &model.Invitation{
-			ClientUID:   getStringParam(req, "uid"),
+			MissionName: name,
+			Typ:         typ,
+			Invitee:     getStringParam(req, "uid"),
 			CreatorUID:  getStringParam(req, "creatorUid"),
-			MissionName: getStringParam(req, "missionname"),
+			CreateTime:  time.Now(),
+			Role:        getStringParam(req, "role"),
 		}
 
 		app.missions.PutInvitation(inv)
 
+		return nil
+	}
+}
+
+func getInviteDeleteHandler(app *App) func(req *air.Request, res *air.Response) error {
+	return func(req *air.Request, res *air.Response) error {
+		name := getStringParam(req, "missionname")
+		if app.missions.GetMission(name) == nil {
+			res.Status = http.StatusNotFound
+
+			return nil
+		}
+
+		app.missions.DeleteInvitation(name, getStringParam(req, "uid"), getStringParam(req, "type"))
 		return nil
 	}
 }

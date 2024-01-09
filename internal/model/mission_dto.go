@@ -115,6 +115,15 @@ type MissionLogEntryDTO struct {
 	EntryUID      string    `json:"entryUid"`
 }
 
+type MissionInvitationDTO struct {
+	MissionName string          `json:"mission_name"`
+	Invitee     string          `json:"invitee"`
+	Type        string          `json:"type"`
+	CreatorUID  string          `json:"creator_uid"`
+	CreateTime  CotTime         `json:"create_time"`
+	Role        *MissionRoleDTO `json:"role"`
+}
+
 func ToMissionDTO(m *Mission) *MissionDTO {
 	if m == nil {
 		return nil
@@ -127,19 +136,17 @@ func ToMissionDTO(m *Mission) *MissionDTO {
 	}
 
 	return &MissionDTO{
-		Name:           m.Name,
-		CreatorUID:     m.CreatorUID,
-		CreateTime:     CotTime(m.CreateTime),
-		LastEdit:       CotTime(m.LastEdit),
-		BaseLayer:      m.BaseLayer,
-		Bbox:           m.Bbox,
-		ChatRoom:       m.ChatRoom,
-		Classification: m.Classification,
-		Contents:       nil,
-		DefaultRole:    NewRole("MISSION_SUBSCRIBER", "MISSION_WRITE", "MISSION_READ"),
-		OwnerRole: NewRole("MISSION_OWNER", "MISSION_MANAGE_FEEDS", "MISSION_SET_PASSWORD",
-			"MISSION_WRITE", "MISSION_MANAGE_LAYERS", "MISSION_UPDATE_GROUPS", "MISSION_READ", "MISSION_DELETE",
-			"MISSION_SET_ROLE"),
+		Name:              m.Name,
+		CreatorUID:        m.CreatorUID,
+		CreateTime:        CotTime(m.CreateTime),
+		LastEdit:          CotTime(m.LastEdit),
+		BaseLayer:         m.BaseLayer,
+		Bbox:              m.Bbox,
+		ChatRoom:          m.ChatRoom,
+		Classification:    m.Classification,
+		Contents:          nil,
+		DefaultRole:       GetRole("MISSION_SUBSCRIBER"),
+		OwnerRole:         GetRole("MISSION_OWNER"),
 		Description:       m.Description,
 		Expiration:        0,
 		ExternalData:      nil,
@@ -164,7 +171,7 @@ func ToMissionSubscriptionDTO(s *Subscription) *MissionSubscriptionDTO {
 		ClientUID:  s.ClientUID,
 		Username:   s.Username,
 		CreateTime: CotTime(s.CreateTime),
-		Role:       NewRole(s.RoleType, strings.Split(s.Permissions, ",")...),
+		Role:       GetRole(s.Role),
 	}
 }
 
@@ -176,6 +183,17 @@ func ToMissionSubscriptionsDTO(subscriptions []*Subscription) []*MissionSubscrip
 	}
 
 	return res
+}
+
+func ToMissionInvitationDTO(m *Invitation) *MissionInvitationDTO {
+	return &MissionInvitationDTO{
+		MissionName: m.MissionName,
+		Invitee:     m.Invitee,
+		Type:        m.Typ,
+		CreatorUID:  m.CreatorUID,
+		CreateTime:  CotTime(m.CreateTime),
+		Role:        GetRole(m.Role),
+	}
 }
 
 func NewCreateChange(m *Mission) *MissionChangeDTO {
@@ -269,5 +287,18 @@ func NewRole(typ string, perms ...string) *MissionRoleDTO {
 	return &MissionRoleDTO{
 		Type:        typ,
 		Permissions: perms,
+	}
+}
+
+func GetRole(name string) *MissionRoleDTO {
+	switch name {
+	case "MISSION_OWNER":
+		return NewRole(name, "MISSION_MANAGE_FEEDS", "MISSION_SET_PASSWORD",
+			"MISSION_WRITE", "MISSION_MANAGE_LAYERS", "MISSION_UPDATE_GROUPS", "MISSION_READ", "MISSION_DELETE",
+			"MISSION_SET_ROLE")
+	case "MISSION_SUBSCRIBER", "":
+		return NewRole("MISSION_SUBSCRIBER", "MISSION_WRITE", "MISSION_READ")
+	default:
+		return NewRole(name)
 	}
 }

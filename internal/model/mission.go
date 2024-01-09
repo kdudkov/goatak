@@ -31,15 +31,17 @@ type Subscription struct {
 	ClientUID   string `gorm:"index"`
 	Username    string
 	CreateTime  time.Time
-	RoleType    string
-	Permissions string
+	Role        string
 }
 
 type Invitation struct {
 	ID          uint   `gorm:"primarykey"`
 	MissionName string `gorm:"index"`
-	ClientUID   string `gorm:"index"`
+	Typ         string `gorm:"index"`
+	Invitee     string `gorm:"index"`
 	CreatorUID  string
+	CreateTime  time.Time
+	Role        string
 }
 
 type DataItem struct {

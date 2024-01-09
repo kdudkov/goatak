@@ -51,29 +51,7 @@ func (mm *MissionManager) Migrate() error {
 	return nil
 }
 
-func (mm *MissionManager) PutMission(m *model.Mission) error {
-	if mm == nil || mm.db == nil {
-		return nil
-	}
-
-	if m == nil {
-		return fmt.Errorf("null mission")
-	}
-
-	if m.Name == "" {
-		return fmt.Errorf("null mission name")
-	}
-
-	if mm.GetMission(m.Name) != nil {
-		return fmt.Errorf("mission %s exists", m.Name)
-	}
-
-	tx := mm.db.Save(m)
-
-	return tx.Error
-}
-
-func (mm *MissionManager) GetAll() []*model.Mission {
+func (mm *MissionManager) GetAllMissions() []*model.Mission {
 	if mm == nil || mm.db == nil {
 		return nil
 	}
@@ -99,6 +77,28 @@ func (mm *MissionManager) GetMission(name string) *model.Mission {
 	}
 
 	return m
+}
+
+func (mm *MissionManager) PutMission(m *model.Mission) error {
+	if mm == nil || mm.db == nil {
+		return nil
+	}
+
+	if m == nil {
+		return fmt.Errorf("null mission")
+	}
+
+	if m.Name == "" {
+		return fmt.Errorf("null mission name")
+	}
+
+	if mm.GetMission(m.Name) != nil {
+		return fmt.Errorf("mission %s exists", m.Name)
+	}
+
+	tx := mm.db.Save(m)
+
+	return tx.Error
 }
 
 func (mm *MissionManager) DeleteMission(name string) {
@@ -167,6 +167,13 @@ func (mm *MissionManager) DeletePoint(uid string) {
 
 	mm.db.Where("uid = ?", uid).Delete(&model.DataItem{})
 }
+func (mm *MissionManager) DeleteDataItem(missionId uint, uid string) {
+	if mm == nil || mm.db == nil {
+		return
+	}
+
+	mm.db.Where("mission_id = ? AND uid = ?", missionId, uid).Delete(&model.DataItem{})
+}
 
 func (mm *MissionManager) PutSubscription(s *model.Subscription) {
 	old := mm.GetSubscription(s.MissionName, s.ClientUID)
@@ -225,13 +232,23 @@ func (mm *MissionManager) GetSubscription(name string, uid string) *model.Subscr
 }
 
 func (mm *MissionManager) DeleteSubscription(name string, uid string) {
-	if s := mm.GetSubscription(name, uid); s != nil {
-		mm.db.Delete(s, s.ID)
+	mm.db.Where("mission_name = ? AND client_uid = ?", name, uid).Delete(&model.Subscription{})
+}
+
+func (mm *MissionManager) GetInvitation(name string, uid string, typ string) *model.Invitation {
+	var s *model.Invitation
+
+	result := mm.db.Where("mission_name = ? AND client_uid = ? AND typ = ?", name, uid, typ).Take(&s)
+
+	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+		return nil
 	}
+
+	return s
 }
 
 func (mm *MissionManager) PutInvitation(s *model.Invitation) {
-	old := mm.GetInvitation(s.MissionName, s.ClientUID)
+	old := mm.GetInvitation(s.MissionName, s.Invitee, s.Typ)
 
 	if old != nil {
 		mm.db.Delete(old, old.ID)
@@ -240,16 +257,8 @@ func (mm *MissionManager) PutInvitation(s *model.Invitation) {
 	mm.db.Save(s)
 }
 
-func (mm *MissionManager) GetInvitation(name string, uid string) *model.Invitation {
-	var s *model.Invitation
-
-	result := mm.db.Where("mission_name = ? AND client_uid = ?", name, uid).Take(&s)
-
-	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-		return nil
-	}
-
-	return s
+func (mm *MissionManager) DeleteInvitation(name string, uid string, typ string) {
+	mm.db.Where("mission_name = ? AND client_uid = ? AND typ = ?", name, uid, typ).Delete(&model.Invitation{})
 }
 
 func (mm *MissionManager) GetInvitations(uid string) []string {

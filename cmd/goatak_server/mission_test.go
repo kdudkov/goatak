@@ -50,7 +50,7 @@ func TestMissionCRUD(t *testing.T) {
 	require.NoError(t, m.PutMission(&model.Mission{Name: "m2"}))
 	require.Error(t, m.PutMission(&model.Mission{Name: "m2"}))
 
-	assert.Len(t, m.GetAll(), 2)
+	assert.Len(t, m.GetAllMissions(), 2)
 
 	m.PutSubscription(getSubscription("m1", "uid1"))
 	m.PutSubscription(getSubscription("m1", "uid1"))
@@ -63,7 +63,7 @@ func TestMissionCRUD(t *testing.T) {
 	assert.Len(t, m.GetSubscribers("m2"), 1)
 
 	m.DeleteMission("m2")
-	assert.Len(t, m.GetAll(), 1)
+	assert.Len(t, m.GetAllMissions(), 1)
 
 	assert.Len(t, m.GetSubscriptions("m1"), 2)
 	assert.Len(t, m.GetSubscribers("m1"), 2)
