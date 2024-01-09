@@ -78,6 +78,7 @@ func getMissionPutHandler(app *App) func(req *air.Request, res *air.Response) er
 		if req.Body != nil {
 			defer req.Body.Close()
 			body, _ := io.ReadAll(req.Body)
+
 			if len(body) > 0 {
 				app.Logger.Infof("body: %s", string(body))
 			}
@@ -144,7 +145,7 @@ func getMissionRoleHandler(app *App) func(req *air.Request, res *air.Response) e
 			return nil
 		}
 
-		return res.WriteJSON(makeAnswer("com.bbn.marti.sync.model.MissionRole", nil))
+		return res.WriteJSON(makeAnswer("MissionRole", model.GetRole("")))
 	}
 }
 
@@ -163,23 +164,13 @@ func getMissionRolePutHandler(app *App) func(req *air.Request, res *air.Response
 		if req.Body != nil {
 			defer req.Body.Close()
 			body, _ := io.ReadAll(req.Body)
+
 			if len(body) > 0 {
 				app.Logger.Infof("body: %s", string(body))
 			}
 		}
 
-		//s := &model.Subscription{
-		//	MissionName: mname,
-		//	ClientUID:   getStringParam(req, "clientUid"),
-		//	Username:    getStringParam(req, "username"),
-		//	CreateTime:  time.Now(),
-		//	RoleType:    getStringParam(req, "role"),
-		//	Permissions: "",
-		//}
-		//
-		//app.missions.PutSubscription(s)
-
-		return nil
+		return res.WriteJSON(makeAnswer("MissionRole", model.GetRole("")))
 	}
 }
 
