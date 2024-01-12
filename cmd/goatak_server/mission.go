@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"google.golang.org/protobuf/proto"
 	"gorm.io/gorm"
 
 	"github.com/kdudkov/goatak/internal/model"
@@ -142,6 +143,8 @@ func (mm *MissionManager) AddPoint(name string, msg *cot.CotMessage) {
 		}
 	}
 
+	d, _ := proto.Marshal(msg.TakMessage.GetCotEvent())
+
 	i := model.DataItem{
 		UID:         msg.GetUID(),
 		CreatorUID:  p,
@@ -153,6 +156,7 @@ func (mm *MissionManager) AddPoint(name string, msg *cot.CotMessage) {
 		Color:       msg.GetColor(),
 		Lat:         msg.GetLat(),
 		Lon:         msg.GetLon(),
+		Event:       d,
 	}
 
 	m.Items = append(m.Items, i)
@@ -167,7 +171,7 @@ func (mm *MissionManager) DeletePoint(uid string) {
 
 	mm.db.Where("uid = ?", uid).Delete(&model.DataItem{})
 }
-func (mm *MissionManager) DeleteDataItem(missionId uint, uid string) {
+func (mm *MissionManager) DeleteMissionPoints(missionId uint, uid string) {
 	if mm == nil || mm.db == nil {
 		return
 	}

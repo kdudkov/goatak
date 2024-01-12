@@ -57,4 +57,5 @@ type DataItem struct {
 	Color       string
 	Lat         float64
 	Lon         float64
+	Event       []byte
 }

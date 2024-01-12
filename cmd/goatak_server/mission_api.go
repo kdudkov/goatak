@@ -10,9 +10,10 @@ import (
 
 	"github.com/aofei/air"
 	"go.uber.org/zap"
+	"google.golang.org/protobuf/proto"
 
 	"github.com/kdudkov/goatak/internal/model"
-	model2 "github.com/kdudkov/goatak/pkg/model"
+	"github.com/kdudkov/goatak/pkg/cotproto"
 )
 
 func addMissionApi(app *App, api *air.Air) {
@@ -352,7 +353,8 @@ func getMissionChangesHandler(app *App) func(req *air.Request, res *air.Response
 func getMissionCotHandler(app *App) func(req *air.Request, res *air.Response) error {
 	return func(req *air.Request, res *air.Response) error {
 		name := getStringParam(req, "missionname")
-		if app.missions.GetMission(name) == nil {
+		mission := app.missions.GetMission(name)
+		if mission == nil {
 			res.Status = http.StatusNotFound
 
 			return nil
@@ -365,15 +367,19 @@ func getMissionCotHandler(app *App) func(req *air.Request, res *air.Response) er
 		fb.WriteString("<events>\n")
 		enc := xml.NewEncoder(fb)
 
-		app.items.ForEach(func(item *model2.Item) bool {
-			if item.HasMission(name) {
-				if err := enc.Encode(item.GetMsg()); err != nil {
-					app.Logger.Errorf("xml encode error %v", err)
-				}
+		for _, item := range mission.Items {
+			var c *cotproto.CotEvent
+
+			if err := proto.Unmarshal(item.Data, c); err != nil {
+				app.Logger.Errorf("error unmarshal data, %v", err)
+				continue
 			}
 
-			return true
-		})
+			if err := enc.Encode(c); err != nil {
+				app.Logger.Errorf("xml encode error %v", err)
+			}
+		}
+
 		fb.WriteString("\n</events>")
 
 		return res.WriteString(fb.String())
@@ -404,7 +410,7 @@ func getMissionContentDeleteHandler(app *App) func(req *air.Request, res *air.Re
 			return nil
 		}
 
-		app.missions.DeleteDataItem(mission.ID, getStringParam(req, "uid"))
+		app.missions.DeleteMissionPoints(mission.ID, getStringParam(req, "uid"))
 
 		return nil
 	}
