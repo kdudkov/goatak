@@ -132,7 +132,7 @@ func ToMissionDTO(m *Mission) *MissionDTO {
 	uids := make([]*MissionItemDTO, len(m.Items)+1)
 
 	for i, item := range m.Items {
-		uids[i] = NewItemDTO(&item)
+		uids[i] = NewItemDTO(item)
 	}
 
 	return &MissionDTO{

@@ -99,3 +99,11 @@ func LoggerGas(log *zap.SugaredLogger, apiName string) air.Gas {
 		}
 	}
 }
+
+func getUsernameFromReq(req *air.Request) string {
+	if u := req.Value(usernameKey); u != nil {
+		return u.(string)
+	}
+
+	return ""
+}

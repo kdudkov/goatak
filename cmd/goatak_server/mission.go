@@ -6,17 +6,14 @@ import (
 	"strings"
 	"time"
 
-	"google.golang.org/protobuf/proto"
 	"gorm.io/gorm"
 
 	"github.com/kdudkov/goatak/internal/model"
-	"github.com/kdudkov/goatak/internal/repository"
 	"github.com/kdudkov/goatak/pkg/cot"
 )
 
 type MissionManager struct {
-	db    *gorm.DB
-	items *repository.ItemsRepository
+	db *gorm.DB
 }
 
 func NewMissionManager(db *gorm.DB) *MissionManager {
@@ -77,6 +74,10 @@ func (mm *MissionManager) GetMission(name string) *model.Mission {
 		return nil
 	}
 
+	for _, p := range m.Items {
+		_ = p.PostLoad()
+	}
+
 	return m
 }
 
@@ -113,6 +114,22 @@ func (mm *MissionManager) AddKw(name string, kw []string) {
 	mm.db.Model(&model.Mission{}).Where("name = ?", name).Update("keywords", strings.Join(kw, ","))
 }
 
+func (mm *MissionManager) GetPoint(uid string) *model.DataItem {
+	if mm == nil || mm.db == nil {
+		return nil
+	}
+
+	var d *model.DataItem
+
+	result := mm.db.Where("uid = ?", uid).Find(&d)
+
+	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+		return nil
+	}
+
+	return d
+}
+
 func (mm *MissionManager) AddPoint(name string, msg *cot.CotMessage) {
 	if mm == nil || mm.db == nil {
 		return
@@ -143,9 +160,7 @@ func (mm *MissionManager) AddPoint(name string, msg *cot.CotMessage) {
 		}
 	}
 
-	d, _ := proto.Marshal(msg.TakMessage.GetCotEvent())
-
-	i := model.DataItem{
+	i := &model.DataItem{
 		UID:         msg.GetUID(),
 		CreatorUID:  p,
 		Timestamp:   time.Now(),
@@ -156,11 +171,13 @@ func (mm *MissionManager) AddPoint(name string, msg *cot.CotMessage) {
 		Color:       msg.GetColor(),
 		Lat:         msg.GetLat(),
 		Lon:         msg.GetLon(),
-		Event:       d,
+		Event:       msg.TakMessage.GetCotEvent(),
 	}
 
 	m.Items = append(m.Items, i)
 	m.LastEdit = time.Now()
+	m.PreSave()
+
 	mm.db.Save(m)
 }
 

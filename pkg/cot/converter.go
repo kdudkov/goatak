@@ -11,33 +11,41 @@ import (
 )
 
 func ProtoToEvent(msg *cotproto.TakMessage) *Event {
-	if msg == nil || msg.GetCotEvent() == nil {
+	if msg == nil {
+		return nil
+	}
+
+	return CotToEvent(msg.GetCotEvent())
+}
+
+func CotToEvent(c *cotproto.CotEvent) *Event {
+	if c == nil {
 		return nil
 	}
 
 	ev := &Event{
 		XMLName: xml.Name{Local: "event"},
 		Version: "2.0",
-		Type:    msg.GetCotEvent().GetType(),
-		Access:  msg.GetCotEvent().GetAccess(),
-		Qos:     msg.GetCotEvent().GetQos(),
-		Opex:    msg.GetCotEvent().GetOpex(),
-		UID:     msg.GetCotEvent().GetUid(),
-		Time:    TimeFromMillis(msg.GetCotEvent().GetSendTime()).UTC(),
-		Start:   TimeFromMillis(msg.GetCotEvent().GetStartTime()).UTC(),
-		Stale:   TimeFromMillis(msg.GetCotEvent().GetStaleTime()).UTC(),
-		How:     msg.GetCotEvent().GetHow(),
+		Type:    c.GetType(),
+		Access:  c.GetAccess(),
+		Qos:     c.GetQos(),
+		Opex:    c.GetOpex(),
+		UID:     c.GetUid(),
+		Time:    TimeFromMillis(c.GetSendTime()).UTC(),
+		Start:   TimeFromMillis(c.GetStartTime()).UTC(),
+		Stale:   TimeFromMillis(c.GetStaleTime()).UTC(),
+		How:     c.GetHow(),
 		Point: Point{
-			Lat: msg.GetCotEvent().GetLat(),
-			Lon: msg.GetCotEvent().GetLon(),
-			Hae: msg.GetCotEvent().GetHae(),
-			Ce:  msg.GetCotEvent().GetCe(),
-			Le:  msg.GetCotEvent().GetLe(),
+			Lat: c.GetLat(),
+			Lon: c.GetLon(),
+			Hae: c.GetHae(),
+			Ce:  c.GetCe(),
+			Le:  c.GetLe(),
 		},
 		Detail: NewXMLDetails(),
 	}
 
-	if d := msg.GetCotEvent().GetDetail(); d != nil {
+	if d := c.GetDetail(); d != nil {
 		if d.GetXmlDetail() != "" {
 			b := bytes.Buffer{}
 			b.WriteString("<detail>" + d.GetXmlDetail() + "</detail>")

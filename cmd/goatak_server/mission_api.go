@@ -10,10 +10,9 @@ import (
 
 	"github.com/aofei/air"
 	"go.uber.org/zap"
-	"google.golang.org/protobuf/proto"
 
 	"github.com/kdudkov/goatak/internal/model"
-	"github.com/kdudkov/goatak/pkg/cotproto"
+	"github.com/kdudkov/goatak/pkg/cot"
 )
 
 func addMissionApi(app *App, api *air.Air) {
@@ -338,7 +337,7 @@ func getMissionChangesHandler(app *App) func(req *air.Request, res *air.Response
 
 		for _, item := range mission.Items {
 			if item.Timestamp.After(d1) {
-				result = append(result, model.NewAddChangeItem(name, &item))
+				result = append(result, model.NewAddChangeItem(name, item))
 			}
 		}
 
@@ -368,14 +367,12 @@ func getMissionCotHandler(app *App) func(req *air.Request, res *air.Response) er
 		enc := xml.NewEncoder(fb)
 
 		for _, item := range mission.Items {
-			var c *cotproto.CotEvent
-
-			if err := proto.Unmarshal(item.Data, c); err != nil {
+			if err := item.PostLoad(); err != nil {
 				app.Logger.Errorf("error unmarshal data, %v", err)
 				continue
 			}
 
-			if err := enc.Encode(c); err != nil {
+			if err := enc.Encode(cot.CotToEvent(item.Event)); err != nil {
 				app.Logger.Errorf("xml encode error %v", err)
 			}
 		}

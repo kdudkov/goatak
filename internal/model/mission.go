@@ -2,6 +2,10 @@ package model
 
 import (
 	"time"
+
+	"google.golang.org/protobuf/proto"
+
+	"github.com/kdudkov/goatak/pkg/cotproto"
 )
 
 type Mission struct {
@@ -22,7 +26,7 @@ type Mission struct {
 	Tool           string
 	Groups         string
 	Keywords       string
-	Items          []DataItem
+	Items          []*DataItem
 }
 
 type Subscription struct {
@@ -57,5 +61,60 @@ type DataItem struct {
 	Color       string
 	Lat         float64
 	Lon         float64
-	Event       []byte
+	EventData   []byte
+	Event       *cotproto.CotEvent `gorm:"-"`
+}
+
+func (m *Mission) PostLoad() error {
+	if m == nil {
+		return nil
+	}
+
+	for _, i := range m.Items {
+		if err := i.PostLoad(); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (m *Mission) PreSave() error {
+	if m == nil {
+		return nil
+	}
+
+	for _, i := range m.Items {
+		if err := i.PreSave(); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (d *DataItem) PostLoad() error {
+	if d == nil || len(d.EventData) == 0 {
+		return nil
+	}
+
+	d.Event = new(cotproto.CotEvent)
+
+	return proto.Unmarshal(d.EventData, d.Event)
+}
+
+func (d *DataItem) PreSave() error {
+	if d == nil {
+		return nil
+	}
+
+	if d.Event == nil {
+		d.EventData = nil
+		return nil
+	}
+
+	var err error
+
+	d.EventData, err = proto.Marshal(d.Event)
+	return err
 }

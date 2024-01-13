@@ -36,7 +36,7 @@ func TestMissionSubscriptions(t *testing.T) {
 
 	s1 := m.GetSubscription("m1", "uid1")
 	assert.Equal(t, "m1", s1.MissionName)
-	assert.Equal(t, "aaa", s1.RoleType)
+	assert.Equal(t, "aaa", s1.Role)
 }
 
 func TestMissionCRUD(t *testing.T) {
@@ -116,8 +116,7 @@ func getSubscription(name, uid string) *model.Subscription {
 		ClientUID:   uid,
 		Username:    "aaa",
 		CreateTime:  time.Now(),
-		RoleType:    "aaa",
-		Permissions: "aaa",
+		Role:        "aaa",
 	}
 }
 

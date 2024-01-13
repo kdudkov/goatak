@@ -13,6 +13,7 @@ import (
 	"github.com/aofei/air"
 	"github.com/google/uuid"
 
+	"github.com/kdudkov/goatak/pkg/cotproto"
 	"github.com/kdudkov/goatak/pkg/model"
 )
 
@@ -445,13 +446,25 @@ func getVideoPostHandler(app *App) func(req *air.Request, res *air.Response) err
 func getXmlHandler(app *App) func(req *air.Request, res *air.Response) error {
 	return func(req *air.Request, res *air.Response) error {
 		item := app.items.Get(getStringParam(req, "uid"))
+		var evt *cotproto.CotEvent
 
-		if item == nil {
+		if item != nil {
+			evt = item.GetMsg().TakMessage.GetCotEvent()
+		} else {
+			di := app.missions.GetPoint(getStringParam(req, "uid"))
+			if di != nil {
+				if err := di.PostLoad(); err == nil {
+					evt = di.Event
+				}
+			}
+		}
+
+		if evt == nil {
 			res.Status = http.StatusNotFound
 			return nil
 		}
 
-		return res.WriteXML(item)
+		return res.WriteXML(evt)
 	}
 }
 
