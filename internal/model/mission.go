@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"google.golang.org/protobuf/proto"
+	"gorm.io/gorm"
 
 	"github.com/kdudkov/goatak/pkg/cotproto"
 )
@@ -65,35 +66,7 @@ type DataItem struct {
 	Event       *cotproto.CotEvent `gorm:"-"`
 }
 
-func (m *Mission) PostLoad() error {
-	if m == nil {
-		return nil
-	}
-
-	for _, i := range m.Items {
-		if err := i.PostLoad(); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func (m *Mission) PreSave() error {
-	if m == nil {
-		return nil
-	}
-
-	for _, i := range m.Items {
-		if err := i.PreSave(); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func (d *DataItem) PostLoad() error {
+func (d *DataItem) AfterFind(tx *gorm.DB) error {
 	if d == nil || len(d.EventData) == 0 {
 		return nil
 	}
@@ -103,7 +76,7 @@ func (d *DataItem) PostLoad() error {
 	return proto.Unmarshal(d.EventData, d.Event)
 }
 
-func (d *DataItem) PreSave() error {
+func (d *DataItem) BeforeUpdate(tx *gorm.DB) error {
 	if d == nil {
 		return nil
 	}

@@ -453,9 +453,7 @@ func getXmlHandler(app *App) func(req *air.Request, res *air.Response) error {
 		} else {
 			di := app.missions.GetPoint(getStringParam(req, "uid"))
 			if di != nil {
-				if err := di.PostLoad(); err == nil {
-					evt = di.Event
-				}
+				evt = di.Event
 			}
 		}
 

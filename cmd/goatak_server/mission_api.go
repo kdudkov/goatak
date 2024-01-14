@@ -367,11 +367,6 @@ func getMissionCotHandler(app *App) func(req *air.Request, res *air.Response) er
 		enc := xml.NewEncoder(fb)
 
 		for _, item := range mission.Items {
-			if err := item.PostLoad(); err != nil {
-				app.Logger.Errorf("error unmarshal data, %v", err)
-				continue
-			}
-
 			if err := enc.Encode(cot.CotToEvent(item.Event)); err != nil {
 				app.Logger.Errorf("xml encode error %v", err)
 			}

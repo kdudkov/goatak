@@ -1,7 +1,6 @@
 package main
 
 import (
-	"os"
 	"testing"
 	"time"
 
@@ -15,11 +14,8 @@ import (
 	"github.com/kdudkov/goatak/pkg/cot"
 )
 
-const db_name = "test.db"
-
 func TestMissionSubscriptions(t *testing.T) {
 	db := prepare()
-	defer rmDatabase()
 
 	m := NewMissionManager(db)
 	require.NoError(t, m.Migrate())
@@ -41,7 +37,6 @@ func TestMissionSubscriptions(t *testing.T) {
 
 func TestMissionCRUD(t *testing.T) {
 	db := prepare()
-	defer rmDatabase()
 
 	m := NewMissionManager(db)
 	require.NoError(t, m.Migrate())
@@ -73,7 +68,6 @@ func TestMissionCRUD(t *testing.T) {
 
 func TestAddPoint(t *testing.T) {
 	db := prepare()
-	defer rmDatabase()
 
 	m := NewMissionManager(db)
 	require.NoError(t, m.Migrate())
@@ -96,18 +90,12 @@ func TestAddPoint(t *testing.T) {
 }
 
 func prepare() *gorm.DB {
-	rmDatabase()
-
-	db, err := gorm.Open(sqlite.Open(db_name), &gorm.Config{Logger: logger.Default.LogMode(logger.Info)})
+	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{Logger: logger.Default.LogMode(logger.Info)})
 	if err != nil {
 		panic("failed to connect database")
 	}
 
 	return db
-}
-
-func rmDatabase() {
-	_ = os.Remove(db_name)
 }
 
 func getSubscription(name, uid string) *model.Subscription {

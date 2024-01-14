@@ -30,19 +30,7 @@ func (mm *MissionManager) Migrate() error {
 	}
 
 	// Migrate the schema
-	if err := mm.db.AutoMigrate(&model.Mission{}); err != nil {
-		return err
-	}
-
-	if err := mm.db.AutoMigrate(&model.Subscription{}); err != nil {
-		return err
-	}
-
-	if err := mm.db.AutoMigrate(&model.Invitation{}); err != nil {
-		return err
-	}
-
-	if err := mm.db.AutoMigrate(&model.DataItem{}); err != nil {
+	if err := mm.db.AutoMigrate(&model.Mission{}, &model.Subscription{}, &model.Invitation{}, &model.DataItem{}); err != nil {
 		return err
 	}
 
@@ -72,10 +60,6 @@ func (mm *MissionManager) GetMission(name string) *model.Mission {
 
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 		return nil
-	}
-
-	for _, p := range m.Items {
-		_ = p.PostLoad()
 	}
 
 	return m
@@ -176,7 +160,6 @@ func (mm *MissionManager) AddPoint(name string, msg *cot.CotMessage) {
 
 	m.Items = append(m.Items, i)
 	m.LastEdit = time.Now()
-	m.PreSave()
 
 	mm.db.Save(m)
 }
