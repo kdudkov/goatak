@@ -5,9 +5,10 @@ import (
 	"sync"
 	"time"
 
+	"golang.org/x/net/html"
+
 	"github.com/kdudkov/goatak/pkg/cot"
 	"github.com/kdudkov/goatak/pkg/cotproto"
-	"golang.org/x/net/html"
 )
 
 type Messages struct {
@@ -80,7 +81,7 @@ func (m *ChatMessage) String() string {
 }
 
 func MsgToChat(m *cot.CotMessage) *ChatMessage {
-	chat := m.Detail.GetFirst("__chat")
+	chat := m.GetDetail().GetFirst("__chat")
 	if chat == nil {
 		return nil
 	}
@@ -108,7 +109,7 @@ func MsgToChat(m *cot.CotMessage) *ChatMessage {
 		c.Direct = true
 	}
 
-	if rem := m.Detail.GetFirst("remarks"); rem != nil {
+	if rem := m.GetDetail().GetFirst("remarks"); rem != nil {
 		c.Text = html.UnescapeString(rem.GetText())
 	} else {
 		return nil

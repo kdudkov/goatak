@@ -6,9 +6,10 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/kdudkov/goatak/pkg/cotproto"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/kdudkov/goatak/pkg/cotproto"
 )
 
 func TestConvert(t *testing.T) {

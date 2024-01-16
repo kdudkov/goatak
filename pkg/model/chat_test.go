@@ -5,9 +5,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/kdudkov/goatak/pkg/cot"
 	"github.com/kdudkov/goatak/pkg/cotproto"
-	"github.com/stretchr/testify/assert"
 )
 
 func getChatMsg(msgID, uidFrom, userFrom, uidTo, userTo, text string) *cot.CotMessage {

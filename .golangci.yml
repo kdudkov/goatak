@@ -155,7 +155,6 @@ linters-settings:
           - pkg: "github.com/pkg/errors"
             desc: Should be replaced by standard lib errors package
       test:
-        list-mode: lax
         files:
           - "$test"
         allow:

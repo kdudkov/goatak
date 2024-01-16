@@ -13,6 +13,7 @@ import (
 	"github.com/aofei/air"
 	"github.com/google/uuid"
 
+	"github.com/kdudkov/goatak/pkg/cotproto"
 	"github.com/kdudkov/goatak/pkg/model"
 )
 
@@ -53,6 +54,8 @@ func addMartiRoutes(app *App, api *air.Air) {
 	api.GET("/Marti/api/sync/metadata/:hash/tool", getMetadataGetHandler(app))
 	api.PUT("/Marti/api/sync/metadata/:hash/tool", getMetadataPutHandler(app))
 
+	api.GET("/Marti/api/cot/xml/:uid", getXmlHandler(app))
+
 	api.GET("/Marti/api/util/user/roles", getUserRolesHandler(app))
 
 	api.GET("/Marti/api/groups/all", getAllGroupsHandler(app))
@@ -71,7 +74,9 @@ func addMartiRoutes(app *App, api *air.Air) {
 
 	api.GET("/Marti/api/video", getVideo2ListHandler(app))
 
-	addMissionApi(app, api)
+	if app.config.dataSync {
+		addMissionApi(app, api)
+	}
 }
 
 func getVersionHandler(app *App) func(req *air.Request, res *air.Response) error {
@@ -332,7 +337,15 @@ func getAllGroupsHandler(app *App) func(req *air.Request, res *air.Response) err
 	g["bitpos"] = 2
 	g["active"] = true
 
-	result := makeAnswer("com.bbn.marti.remote.groups.Group", []map[string]any{g})
+	g1 := make(map[string]any)
+	g1["name"] = "grp1"
+	g1["direction"] = "OUT"
+	g1["created"] = "2023-01-01"
+	g1["type"] = "SYSTEM"
+	g1["bitpos"] = 2
+	g1["active"] = true
+
+	result := makeAnswer("com.bbn.marti.remote.groups.Group", []map[string]any{g, g1})
 
 	return func(req *air.Request, res *air.Response) error {
 		return res.WriteJSON(result)
@@ -430,6 +443,29 @@ func getVideoPostHandler(app *App) func(req *air.Request, res *air.Response) err
 	}
 }
 
+func getXmlHandler(app *App) func(req *air.Request, res *air.Response) error {
+	return func(req *air.Request, res *air.Response) error {
+		item := app.items.Get(getStringParam(req, "uid"))
+		var evt *cotproto.CotEvent
+
+		if item != nil {
+			evt = item.GetMsg().TakMessage.GetCotEvent()
+		} else {
+			di := app.missions.GetPoint(getStringParam(req, "uid"))
+			if di != nil {
+				evt = di.Event
+			}
+		}
+
+		if evt == nil {
+			res.Status = http.StatusNotFound
+			return nil
+		}
+
+		return res.WriteXML(evt)
+	}
+}
+
 func makeAnswer(typ string, data any) map[string]any {
 	result := make(map[string]any)
 	result["version"] = apiVersion
@@ -447,6 +483,31 @@ func getStringParam(req *air.Request, name string) string {
 	}
 
 	return p.Value().String()
+}
+
+func getBoolParam(req *air.Request, name string, def bool) bool {
+	p := req.Param(name)
+	if p == nil {
+		return def
+	}
+
+	v, _ := p.Value().Bool()
+	return v
+}
+
+func getStringParams(req *air.Request, name string) []string {
+	p := req.Param(name)
+	if p == nil {
+		return nil
+	}
+
+	result := make([]string, len(p.Values))
+
+	for i, v := range p.Values {
+		result[i] = v.String()
+	}
+
+	return result
 }
 
 func getIntParam(req *air.Request, name string, def int) int {

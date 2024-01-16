@@ -1,78 +1,93 @@
 package model
 
-import "time"
+import (
+	"time"
+
+	"google.golang.org/protobuf/proto"
+	"gorm.io/gorm"
+
+	"github.com/kdudkov/goatak/pkg/cotproto"
+)
 
 type Mission struct {
-	Name           string         `json:"name"`
-	CreatorUID     string         `json:"creatorUid"`
-	CreateTime     time.Time      `json:"createTime"`
-	BaseLayer      string         `json:"baseLayer"`
-	Bbox           string         `json:"bbox"`
-	ChatRoom       string         `json:"chatRoom"`
-	Classification string         `json:"classification"`
-	Contents       []*ContentItem `json:"contents"`
-	DefaultRole    struct {
-		Permissions []string `json:"permissions"`
-		Type        string   `json:"type"`
-	} `json:"defaultRole"`
-	OwnerRole struct {
-		Permissions []string `json:"permissions"`
-		Type        string   `json:"type"`
-	} `json:"ownerRole"`
-	Description       string         `json:"description"`
-	Expiration        int            `json:"expiration"`
-	ExternalData      []any          `json:"externalData"`
-	Feeds             []any          `json:"feeds"`
-	Groups            []any          `json:"groups"`
-	InviteOnly        bool           `json:"inviteOnly"`
-	Keywords          []string       `json:"keywords"`
-	MapLayers         []any          `json:"mapLayers"`
-	PasswordProtected bool           `json:"passwordProtected"`
-	Path              string         `json:"path"`
-	Tool              string         `json:"tool"`
-	Uids              []*MissionItem `json:"uids"`
+	ID             uint   `gorm:"primarykey"`
+	Name           string `gorm:"index"`
+	Username       string
+	CreatorUID     string
+	CreateTime     time.Time
+	LastEdit       time.Time
+	BaseLayer      string
+	Bbox           string
+	ChatRoom       string
+	Classification string
+	Description    string
+	InviteOnly     bool
+	Password       string
+	Path           string
+	Tool           string
+	Groups         string
+	Keywords       string
+	Items          []*DataItem
 }
 
-type ContentItem struct {
-	CreatorUID string    `json:"creatorUid"`
-	Timestamp  time.Time `json:"timestamp"`
-	Data       struct {
-		UID            string    `json:"uid"`
-		Name           string    `json:"name"`
-		Keywords       []string  `json:"keywords"`
-		MimeType       string    `json:"mimeType"`
-		SubmissionTime time.Time `json:"submissionTime"`
-		Submitter      string    `json:"submitter"`
-		CreatorUID     string    `json:"creatorUid"`
-		Hash           string    `json:"hash"`
-		Size           int       `json:"size"`
-	} `json:"data"`
+type Subscription struct {
+	ID          uint   `gorm:"primarykey"`
+	MissionName string `gorm:"index"`
+	ClientUID   string `gorm:"index"`
+	Username    string
+	CreateTime  time.Time
+	Role        string
 }
 
-type MissionItem struct {
-	CreatorUID string    `json:"creatorUid"`
-	Timestamp  time.Time `json:"timestamp"`
-	Data       string    `json:"data"`
-	Details    struct {
-		Type        string `json:"type"`
-		Callsign    string `json:"callsign"`
-		IconsetPath string `json:"iconsetPath"`
-		Color       string `json:"color"`
-		Location    struct {
-			Lat float64 `json:"lat"`
-			Lon float64 `json:"lon"`
-		} `json:"location"`
-	} `json:"details"`
+type Invitation struct {
+	ID          uint   `gorm:"primarykey"`
+	MissionName string `gorm:"index"`
+	Typ         string `gorm:"index"`
+	Invitee     string `gorm:"index"`
+	CreatorUID  string
+	CreateTime  time.Time
+	Role        string
 }
 
-func GetDefaultMission(name string) *Mission {
-	m := new(Mission)
+type DataItem struct {
+	ID          uint `gorm:"primarykey"`
+	MissionID   uint
+	UID         string `gorm:"index"`
+	CreatorUID  string
+	Timestamp   time.Time
+	Type        string
+	Callsign    string
+	Title       string
+	IconsetPath string
+	Color       string
+	Lat         float64
+	Lon         float64
+	EventData   []byte
+	Event       *cotproto.CotEvent `gorm:"-"`
+}
 
-	m.Name = name
-	m.DefaultRole.Type = "MISSION_SUBSCRIBER"
-	m.DefaultRole.Permissions = []string{"MISSION_WRITE", "MISSION_READ"}
-	m.OwnerRole.Type = "MISSION_OWNER"
-	m.OwnerRole.Permissions = []string{"MISSION_MANAGE_FEEDS", "MISSION_SET_PASSWORD", "MISSION_WRITE", "MISSION_MANAGE_LAYERS", "MISSION_UPDATE_GROUPS", "MISSION_READ", "MISSION_DELETE", "MISSION_SET_ROLE"}
+func (d *DataItem) AfterFind(tx *gorm.DB) error {
+	if d == nil || len(d.EventData) == 0 {
+		return nil
+	}
 
-	return m
+	d.Event = new(cotproto.CotEvent)
+
+	return proto.Unmarshal(d.EventData, d.Event)
+}
+
+func (d *DataItem) BeforeUpdate(tx *gorm.DB) error {
+	if d == nil {
+		return nil
+	}
+
+	if d.Event == nil {
+		d.EventData = nil
+		return nil
+	}
+
+	var err error
+
+	d.EventData, err = proto.Marshal(d.Event)
+	return err
 }

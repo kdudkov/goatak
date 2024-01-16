@@ -22,14 +22,6 @@ const (
 	p12Password = "atakatak"
 )
 
-func getUsernameFromReq(req *air.Request) string {
-	if u := req.Value(usernameKey); u != nil {
-		return u.(string)
-	}
-
-	return ""
-}
-
 func getCertAPI(app *App, addr string) *air.Air {
 	certApi := air.New()
 	certApi.Address = addr

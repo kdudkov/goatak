@@ -101,9 +101,9 @@ func (app *App) LogMessage(msg *cot.CotMessage) {
 	case msg.GetType() == "t-x-d-d":
 		extra = "remove msg"
 
-		if msg.Detail != nil && msg.Detail.Has("link") {
-			uid := msg.Detail.GetFirst("link").GetAttr("uid")
-			typ := msg.Detail.GetFirst("link").GetAttr("type")
+		if msg.GetDetail() != nil && msg.GetDetail().Has("link") {
+			uid := msg.GetDetail().GetFirst("link").GetAttr("uid")
+			typ := msg.GetDetail().GetFirst("link").GetAttr("type")
 			extra += fmt.Sprintf(" uid: %s, type %s", uid, typ)
 
 			if uid != "" {

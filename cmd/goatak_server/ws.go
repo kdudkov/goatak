@@ -157,8 +157,8 @@ func (w *WsClientHandler) binaryReader(b []byte) error {
 	}
 
 	// remove contact
-	if cotmsg.GetType() == "t-x-d-d" && cotmsg.Detail != nil && cotmsg.Detail.Has("link") {
-		uid := cotmsg.Detail.GetFirst("link").GetAttr("uid")
+	if cotmsg.GetType() == "t-x-d-d" && cotmsg.GetDetail() != nil && cotmsg.GetDetail().Has("link") {
+		uid := cotmsg.GetDetail().GetFirst("link").GetAttr("uid")
 		w.uids.Delete(uid)
 	}
 

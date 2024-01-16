@@ -296,6 +296,6 @@ func getStringParam(req *air.Request, name string) string {
 	return p.Value().String()
 }
 
-func getTypes(req *air.Request, res *air.Response) error {
+func getTypes(_ *air.Request, res *air.Response) error {
 	return res.WriteJSON(cot.Root)
 }

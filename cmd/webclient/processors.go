@@ -51,7 +51,7 @@ func (app *App) removeItemProcessor(msg *cot.CotMessage) {
 		typ := link.GetAttr("type")
 
 		if uid == "" {
-			app.Logger.Warnf("invalid remove message: %s", msg.Detail)
+			app.Logger.Warnf("invalid remove message: %s", msg.GetDetail())
 
 			return
 		}

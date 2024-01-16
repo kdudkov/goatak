@@ -48,7 +48,7 @@ func (app *App) removeItemProcessor(msg *cot.CotMessage) {
 		typ := link.GetAttr("type")
 
 		if uid == "" {
-			app.Logger.Warnf("invalid remove message: %s", msg.Detail)
+			app.Logger.Warnf("invalid remove message: %s", msg.GetDetail())
 
 			return
 		}
@@ -63,6 +63,7 @@ func (app *App) removeItemProcessor(msg *cot.CotMessage) {
 			case model.UNIT, model.POINT:
 				app.Logger.Debugf("remove unit/point %s type %s by message", uid, typ)
 				app.items.Remove(uid)
+				app.missions.DeletePoint(uid)
 
 				return
 			}

@@ -221,8 +221,8 @@ func (h *ConnClientHandler) handleRead(ctx context.Context) {
 		}
 
 		// remove contact
-		if msg.GetType() == "t-x-d-d" && msg.Detail != nil && msg.Detail.Has("link") {
-			uid := msg.Detail.GetFirst("link").GetAttr("uid")
+		if msg.GetType() == "t-x-d-d" && msg.GetDetail().Has("link") {
+			uid := msg.GetDetail().GetFirst("link").GetAttr("uid")
 			h.logger.Debugf("delete uid %s by message", uid)
 			h.uids.Delete(uid)
 		}
