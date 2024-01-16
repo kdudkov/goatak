@@ -4,11 +4,11 @@ import (
 	"bytes"
 	"crypto/tls"
 	"encoding/xml"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"strings"
-	"time"
 
 	"github.com/aofei/air"
 	"github.com/google/uuid"
@@ -51,8 +51,6 @@ func addMartiRoutes(app *App, api *air.Air) {
 	api.GET("/Marti/api/version/config", getVersionConfigHandler(app))
 	api.GET("/Marti/api/clientEndPoints", getEndpointsHandler(app))
 	api.GET("/Marti/api/contacts/all", getContactsHandler(app))
-	api.GET("/Marti/api/sync/metadata/:hash/tool", getMetadataGetHandler(app))
-	api.PUT("/Marti/api/sync/metadata/:hash/tool", getMetadataPutHandler(app))
 
 	api.GET("/Marti/api/cot/xml/:uid", getXmlHandler(app))
 
@@ -63,10 +61,12 @@ func addMartiRoutes(app *App, api *air.Air) {
 
 	api.GET("/Marti/api/device/profile/connection", getProfileConnectionHandler(app))
 
-	api.GET("/Marti/sync/content", getMetadataGetHandler(app))
+	api.GET("/Marti/sync/content", getContentGetHandler(app))
 	api.GET("/Marti/sync/search", getSearchHandler(app))
 	api.GET("/Marti/sync/missionquery", getMissionQueryHandler(app))
 	api.POST("/Marti/sync/missionupload", getMissionUploadHandler(app))
+	api.GET("/Marti/api/sync/metadata/:hash/tool", getMetadataGetHandler(app))
+	api.PUT("/Marti/api/sync/metadata/:hash/tool", getMetadataPutHandler(app))
 	api.POST("/Marti/sync/upload", getUploadHandler(app))
 
 	api.GET("/Marti/vcm", getVideoListHandler(app))
@@ -155,7 +155,7 @@ func getMissionQueryHandler(app *App) func(req *air.Request, res *air.Response) 
 			return res.WriteString("no hash")
 		}
 
-		if _, ok := app.packageManager.Get(hash); ok {
+		if p := app.packageManager.GetByHash(hash); p != nil {
 			return res.WriteString(fmt.Sprintf("/Marti/sync/content?hash=%s", hash))
 		}
 		res.Status = http.StatusNotFound
@@ -166,7 +166,6 @@ func getMissionQueryHandler(app *App) func(req *air.Request, res *air.Response) 
 
 func getMissionUploadHandler(app *App) func(req *air.Request, res *air.Response) error {
 	return func(req *air.Request, res *air.Response) error {
-		username := getUsernameFromReq(req)
 		hash := getStringParam(req, "hash")
 		fname := getStringParam(req, "filename")
 
@@ -179,7 +178,6 @@ func getMissionUploadHandler(app *App) func(req *air.Request, res *air.Response)
 
 		if hash == "" {
 			app.Logger.Errorf("no hash: %s", req.RawQuery())
-
 			res.Status = http.StatusNotAcceptable
 
 			return res.WriteString("no hash")
@@ -187,79 +185,156 @@ func getMissionUploadHandler(app *App) func(req *air.Request, res *air.Response)
 
 		if fname == "" {
 			app.Logger.Errorf("no filename: %s", req.RawQuery())
-
 			res.Status = http.StatusNotAcceptable
 
 			return res.WriteString("no filename")
 		}
 
-		if f, fh, err := req.HTTPRequest().FormFile("assetfile"); err == nil {
-			n, err := app.packageManager.SaveFile(hash, fh.Filename, f)
-			if err != nil {
-				app.Logger.Errorf("%v", err)
+		uid := uuid.NewString()
 
-				return err
-			}
-
-			info := &PackageInfo{
-				PrimaryKey:         1,
-				UID:                uuid.New().String(),
-				SubmissionDateTime: time.Now(),
-				Hash:               hash,
-				Name:               fname,
-				CreatorUID:         getStringParam(req, "creatorUid"),
-				SubmissionUser:     username,
-				Tool:               "public",
-				Keywords:           []string{"missionpackage"},
-				Size:               n,
-				MIMEType:           fh.Header.Get("Content-type"),
-				User:               username,
-			}
-
-			app.packageManager.Store(hash, info)
-
-			app.Logger.Infof("save packege %s %s", fname, hash)
-
-			return res.WriteString(fmt.Sprintf("/Marti/sync/content?hash=%s", hash))
-		} else {
-			app.Logger.Errorf("%v", err)
-
-			return err
+		_, err := app.uploadMultipart(req, uid, hash, fname, true)
+		if err != nil {
+			app.Logger.Errorf("error: %v", err)
+			res.Status = http.StatusNotAcceptable
+			return nil
 		}
+
+		app.Logger.Infof("save packege %s %s %s", fname, uid, hash)
+
+		return res.WriteString(fmt.Sprintf("/Marti/sync/content?hash=%s", hash))
 	}
 }
 
 func getUploadHandler(app *App) func(req *air.Request, res *air.Response) error {
 	return func(req *air.Request, res *air.Response) error {
-		username := getUsernameFromReq(req)
+		uid := getStringParam(req, "uid")
+		fname := getStringParam(req, "name")
 
-		params := []string{}
-		for _, r := range req.Params() {
-			params = append(params, r.Name+"="+r.Value().String())
+		if fname == "" {
+			app.Logger.Errorf("no name: %s", req.RawQuery())
+			res.Status = http.StatusNotAcceptable
+
+			return res.WriteString("no name")
 		}
 
-		app.Logger.Infof("params: %s", strings.Join(params, ","))
+		switch req.Header.Get("Content-type") {
+		case "multipart/form-data":
+			pi, err := app.uploadMultipart(req, uid, "", fname, false)
+			if err != nil {
+				app.Logger.Errorf("error: %v", err)
+				res.Status = http.StatusNotAcceptable
+				return nil
+			}
 
-		info := &PackageInfo{
-			PrimaryKey:         1,
-			UID:                getStringParam(req, "uid"),
-			SubmissionDateTime: time.Now(),
-			Name:               getStringParam(req, "name"),
-			CreatorUID:         getStringParam(req, "CreatorUid"),
-			SubmissionUser:     username,
-			Tool:               getStringParam(req, "tool"),
-			Keywords:           []string{"missionpackage"},
-			MIMEType:           req.Header.Get("Content-Type"),
-			Size:               req.ContentLength,
+			return res.WriteString(fmt.Sprintf("/Marti/sync/content?hash=%s", pi.Hash))
+
+		default:
+			pi, err := app.uploadFile(req, uid, fname)
+			if err != nil {
+				app.Logger.Errorf("error: %v", err)
+				res.Status = http.StatusNotAcceptable
+				return nil
+			}
+
+			return res.WriteString(fmt.Sprintf("/Marti/sync/content?hash=%s", pi.Hash))
+		}
+	}
+}
+
+func (app *App) uploadMultipart(req *air.Request, uid, hash, filename string, pack bool) (*PackageInfo, error) {
+	username := getUsernameFromReq(req)
+	f, fh, err := req.HTTPRequest().FormFile("assetfile")
+
+	if err != nil {
+		app.Logger.Errorf("error: %v", err)
+		return nil, err
+	}
+
+	data, err := io.ReadAll(f)
+
+	if err != nil {
+		app.Logger.Errorf("error: %v", err)
+		return nil, err
+	}
+
+	pi, err := app.packageManager.SaveData(uid, hash, filename, fh.Header.Get("Content-type"), data, func(pi1 *PackageInfo) {
+		pi1.SubmissionUser = username
+		pi1.CreatorUID = getStringParamIgnoreCaps(req, "creatorUid")
+
+		if pack {
+			pi1.Keywords = []string{"missionpackage"}
+			pi1.Tool = "public"
+		}
+	})
+
+	if err != nil {
+		app.Logger.Errorf("error: %v", err)
+		return nil, err
+	}
+
+	return pi, nil
+}
+
+func (app *App) uploadFile(req *air.Request, uid, filename string) (*PackageInfo, error) {
+	username := getUsernameFromReq(req)
+
+	if req.Body == nil {
+		return nil, errors.New("no body")
+	}
+
+	defer req.Body.Close()
+
+	data, err := io.ReadAll(req.Body)
+
+	if err != nil {
+		app.Logger.Errorf("error: %v", err)
+		return nil, err
+	}
+
+	pi, err := app.packageManager.SaveData(uid, "", filename, req.Header.Get("Content-type"), data, func(pi1 *PackageInfo) {
+		pi1.SubmissionUser = username
+		pi1.CreatorUID = getStringParamIgnoreCaps(req, "creatorUid")
+	})
+
+	if err != nil {
+		app.Logger.Errorf("error: %v", err)
+		return nil, err
+	}
+
+	return pi, nil
+}
+
+func getContentGetHandler(app *App) func(req *air.Request, res *air.Response) error {
+	return func(req *air.Request, res *air.Response) error {
+		if hash := getStringParam(req, "hash"); hash != "" {
+			if pi := app.packageManager.GetByHash(hash); pi != nil {
+				res.Header.Set("Content-type", pi.MIMEType)
+
+				return res.WriteFile(app.packageManager.GetFilePath(pi))
+			}
+			app.Logger.Infof("not found - hash %s", hash)
+
+			res.Status = http.StatusNotFound
+
+			return res.WriteString("not found")
 		}
 
-		if info.UID == "" || info.Name == "" {
-			res.Status = http.StatusBadRequest
+		if uid := getStringParam(req, "uid"); uid != "" {
+			if pi := app.packageManager.Get(uid); pi != nil {
+				res.Header.Set("Content-type", pi.MIMEType)
 
-			return nil
+				return res.WriteFile(app.packageManager.GetFilePath(pi))
+			}
+			app.Logger.Infof("not found - uid %s", uid)
+
+			res.Status = http.StatusNotFound
+
+			return res.WriteString("not found")
 		}
 
-		return nil
+		res.Status = http.StatusNotAcceptable
+
+		return res.WriteString("no hash or uid")
 	}
 }
 
@@ -273,16 +348,13 @@ func getMetadataGetHandler(app *App) func(req *air.Request, res *air.Response) e
 			return res.WriteString("no hash")
 		}
 
-		if pi, ok := app.packageManager.Get(hash); ok {
-			res.Header.Set("Content-type", pi.MIMEType)
-
-			return res.WriteFile(app.packageManager.GetFilePath(hash))
+		if pi := app.packageManager.GetByHash(hash); pi != nil {
+			return res.WriteString(pi.Tool)
 		}
-		app.Logger.Infof("not found - %s", hash)
 
 		res.Status = http.StatusNotFound
 
-		return res.WriteString("not found")
+		return nil
 	}
 }
 
@@ -298,9 +370,9 @@ func getMetadataPutHandler(app *App) func(req *air.Request, res *air.Response) e
 
 		s, _ := io.ReadAll(req.Body)
 
-		if pi, ok := app.packageManager.Get(hash); ok {
+		if pi := app.packageManager.GetByHash(hash); pi != nil {
 			pi.Tool = string(s)
-			app.packageManager.Store(hash, pi)
+			app.packageManager.Store(pi.UID, pi)
 		}
 
 		return nil

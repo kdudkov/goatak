@@ -1,14 +1,15 @@
 package main
 
 import (
+	"crypto/sha256"
 	"encoding/json"
 	"fmt"
-	"io"
 	"os"
 	"path/filepath"
 	"sync"
 	"time"
 
+	"github.com/google/uuid"
 	"go.uber.org/zap"
 )
 
@@ -42,7 +43,6 @@ type PackageInfo struct {
 	CreatorUID         string    `json:"CreatorUid"`
 	Name               string    `json:"Name"`
 	Tool               string    `json:"Tool"`
-	User               string    `json:"-"`
 }
 
 func (pm *PackageManager) Start() error {
@@ -60,11 +60,11 @@ func (pm *PackageManager) Start() error {
 			continue
 		}
 
-		hash := f.Name()
-		if pi, err := loadInfo(pm.baseDir, hash); err == nil {
-			pm.data.Store(hash, pi)
+		uid := f.Name()
+		if pi, err := loadInfo(pm.baseDir, uid); err == nil {
+			pm.data.Store(uid, pi)
 		} else {
-			pm.logger.Errorf("error loading info for hash %s: %s", hash, err.Error())
+			pm.logger.Errorf("error loading info for %s: %s", uid, err.Error())
 		}
 	}
 
@@ -75,21 +75,37 @@ func (pm *PackageManager) Stop() {
 	// noop
 }
 
-func (pm *PackageManager) Store(hash string, pi *PackageInfo) {
-	pm.data.Store(hash, pi)
+func (pm *PackageManager) Store(uid string, pi *PackageInfo) {
+	pm.data.Store(uid, pi)
 
-	if err := saveInfo(pm.baseDir, hash, pi); err != nil {
+	if err := saveInfo(pm.baseDir, uid, pi); err != nil {
 		pm.logger.Errorf("%v", err)
 	}
 }
 
-func (pm *PackageManager) Get(hash string) (*PackageInfo, bool) {
-	i, ok := pm.data.Load(hash)
-	if ok {
-		return i.(*PackageInfo), ok
+func (pm *PackageManager) Get(uid string) *PackageInfo {
+	if i, ok := pm.data.Load(uid); ok {
+		return i.(*PackageInfo)
 	}
 
-	return nil, ok
+	return nil
+}
+
+func (pm *PackageManager) GetByHash(hash string) *PackageInfo {
+	var pi *PackageInfo
+
+	pm.data.Range(func(_, value any) bool {
+		p := value.(*PackageInfo)
+
+		if p.Hash == hash {
+			pi = p
+			return false
+		}
+
+		return true
+	})
+
+	return pi
 }
 
 func (pm *PackageManager) ForEach(f func(key string, pi *PackageInfo) bool) {
@@ -126,8 +142,8 @@ func (pm *PackageManager) GetList(kw, tool string) []*PackageInfo {
 	return res
 }
 
-func saveInfo(baseDir, hash string, finfo *PackageInfo) error {
-	fn, err := os.Create(filepath.Join(baseDir, hash, infoFileName))
+func saveInfo(baseDir, uid string, finfo *PackageInfo) error {
+	fn, err := os.Create(filepath.Join(baseDir, uid, infoFileName))
 	if err != nil {
 		return err
 	}
@@ -138,8 +154,8 @@ func saveInfo(baseDir, hash string, finfo *PackageInfo) error {
 	return enc.Encode(finfo)
 }
 
-func loadInfo(baseDir, hash string) (*PackageInfo, error) {
-	fname := filepath.Join(baseDir, hash, infoFileName)
+func loadInfo(baseDir, uid string) (*PackageInfo, error) {
+	fname := filepath.Join(baseDir, uid, infoFileName)
 
 	if !fileExists(fname) {
 		return nil, fmt.Errorf("info file %s does not exists", fname)
@@ -163,29 +179,78 @@ func loadInfo(baseDir, hash string) (*PackageInfo, error) {
 	return pi, nil
 }
 
-func (pm *PackageManager) GetFilePath(hash string) string {
-	if pi, ok := pm.Get(hash); ok {
-		return filepath.Join(pm.baseDir, hash, pi.Name)
-	}
-
-	return ""
+func (pm *PackageManager) GetFilePath(pi *PackageInfo) string {
+	return filepath.Join(pm.baseDir, pi.UID, pi.Name)
 }
 
-func (pm *PackageManager) SaveFile(hash, fname string, reader io.Reader) (int64, error) {
-	dir := filepath.Join(pm.baseDir, hash)
+func (pm *PackageManager) SaveData(uid, hash, fname, content string, data []byte, updater func(pi *PackageInfo)) (*PackageInfo, error) {
+	hash1 := Hash(data)
+
+	if hash != "" && hash != hash1 {
+		return nil, fmt.Errorf("bad hash")
+	}
+
+	if uid == "" {
+		if pi := pm.GetByHash(hash); pi != nil {
+			if pi.Name == fname {
+				pm.logger.Infof("file with hash %s exists", hash)
+				return pi, nil
+			}
+		}
+
+		uid = uuid.NewString()
+	}
+
+	if err := pm.SaveFile(uid, fname, data); err != nil {
+		return nil, err
+	}
+
+	info := &PackageInfo{
+		PrimaryKey:         1,
+		UID:                uid,
+		SubmissionDateTime: time.Now(),
+		Hash:               hash1,
+		Name:               fname,
+		CreatorUID:         "",
+		SubmissionUser:     "",
+		Tool:               "",
+		Keywords:           nil,
+		Size:               int64(len(data)),
+		MIMEType:           content,
+	}
+
+	if updater != nil {
+		updater(info)
+	}
+
+	pm.Store(uid, info)
+	pm.logger.Infof("save packege %s %s", fname, uid)
+
+	return info, nil
+}
+
+func (pm *PackageManager) SaveFile(uid, fname string, b []byte) error {
+	dir := filepath.Join(pm.baseDir, uid)
 	if !fileExists(dir) {
 		if err := os.MkdirAll(dir, 0777); err != nil {
-			return 0, err
+			return err
 		}
 	}
 
 	fn, err := os.Create(filepath.Join(dir, fname))
 	if err != nil {
-		return 0, err
+		return err
 	}
 	defer fn.Close()
 
-	return io.Copy(fn, reader)
+	_, err = fn.Write(b)
+
+	return err
+}
+
+func Hash(b []byte) string {
+	h := sha256.New()
+	return fmt.Sprintf("%x", h.Sum(b))
 }
 
 func fileExists(path string) bool {

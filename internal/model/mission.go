@@ -27,26 +27,27 @@ type Mission struct {
 	Tool           string
 	Groups         string
 	Keywords       string
+	Hashes         string
 	Items          []*DataItem
 }
 
 type Subscription struct {
-	ID          uint   `gorm:"primarykey"`
-	MissionName string `gorm:"index"`
-	ClientUID   string `gorm:"index"`
-	Username    string
-	CreateTime  time.Time
-	Role        string
+	ID         uint   `gorm:"primarykey"`
+	MissionID  uint   `gorm:"index"`
+	ClientUID  string `gorm:"index"`
+	Username   string
+	CreateTime time.Time
+	Role       string
 }
 
 type Invitation struct {
-	ID          uint   `gorm:"primarykey"`
-	MissionName string `gorm:"index"`
-	Typ         string `gorm:"index"`
-	Invitee     string `gorm:"index"`
-	CreatorUID  string
-	CreateTime  time.Time
-	Role        string
+	ID         uint   `gorm:"primarykey"`
+	MissionID  uint   `gorm:"index"`
+	Typ        string `gorm:"index"`
+	Invitee    string `gorm:"index"`
+	CreatorUID string
+	CreateTime time.Time
+	Role       string
 }
 
 type DataItem struct {

@@ -1,9 +1,10 @@
-package model
+package main
 
 import (
 	"strings"
 	"time"
 
+	"github.com/kdudkov/goatak/internal/model"
 	"github.com/kdudkov/goatak/pkg/cot"
 )
 
@@ -47,9 +48,9 @@ type MissionRoleDTO struct {
 }
 
 type ContentItemDTO struct {
-	CreatorUID string    `json:"creatorUid"`
-	Timestamp  time.Time `json:"timestamp"`
-	Data       DataDTO   `json:"data"`
+	CreatorUID string  `json:"creatorUid"`
+	Timestamp  CotTime `json:"timestamp"`
+	Data       DataDTO `json:"data"`
 }
 
 type DataDTO struct {
@@ -124,7 +125,7 @@ type MissionInvitationDTO struct {
 	Role        *MissionRoleDTO `json:"role"`
 }
 
-func ToMissionDTO(m *Mission) *MissionDTO {
+func ToMissionDTO(m *model.Mission, pm *PackageManager) *MissionDTO {
 	if m == nil {
 		return nil
 	}
@@ -135,7 +136,7 @@ func ToMissionDTO(m *Mission) *MissionDTO {
 		uids[i] = NewItemDTO(item)
 	}
 
-	return &MissionDTO{
+	mDTO := &MissionDTO{
 		Name:              m.Name,
 		CreatorUID:        m.CreatorUID,
 		CreateTime:        CotTime(m.CreateTime),
@@ -160,9 +161,39 @@ func ToMissionDTO(m *Mission) *MissionDTO {
 		Tool:              m.Tool,
 		Uids:              uids,
 	}
+
+	if pm != nil {
+		mDTO.Contents = make([]*ContentItemDTO, len(m.Hashes))
+
+		for _, h := range strings.Split(m.Hashes, ",") {
+			if pi := pm.GetByHash(h); pi != nil {
+				mDTO.Contents = append(mDTO.Contents, toContentItemDTO(pi))
+			}
+		}
+	}
+
+	return mDTO
 }
 
-func ToMissionSubscriptionDTO(s *Subscription) *MissionSubscriptionDTO {
+func toContentItemDTO(pi *PackageInfo) *ContentItemDTO {
+	return &ContentItemDTO{
+		CreatorUID: pi.CreatorUID,
+		Timestamp:  CotTime(pi.SubmissionDateTime),
+		Data: DataDTO{
+			UID:            pi.UID,
+			Name:           pi.Name,
+			Keywords:       pi.Keywords,
+			MimeType:       pi.MIMEType,
+			SubmissionTime: CotTime(pi.SubmissionDateTime),
+			Submitter:      pi.SubmissionUser,
+			CreatorUID:     pi.CreatorUID,
+			Hash:           pi.Hash,
+			Size:           int(pi.Size),
+		},
+	}
+}
+
+func ToMissionSubscriptionDTO(s *model.Subscription) *MissionSubscriptionDTO {
 	if s == nil {
 		return nil
 	}
@@ -175,7 +206,7 @@ func ToMissionSubscriptionDTO(s *Subscription) *MissionSubscriptionDTO {
 	}
 }
 
-func ToMissionSubscriptionsDTO(subscriptions []*Subscription) []*MissionSubscriptionDTO {
+func ToMissionSubscriptionsDTO(subscriptions []*model.Subscription) []*MissionSubscriptionDTO {
 	res := make([]*MissionSubscriptionDTO, len(subscriptions))
 
 	for i, s := range subscriptions {
@@ -185,9 +216,9 @@ func ToMissionSubscriptionsDTO(subscriptions []*Subscription) []*MissionSubscrip
 	return res
 }
 
-func ToMissionInvitationDTO(m *Invitation) *MissionInvitationDTO {
+func ToMissionInvitationDTO(m *model.Invitation, name string) *MissionInvitationDTO {
 	return &MissionInvitationDTO{
-		MissionName: m.MissionName,
+		MissionName: name,
 		Invitee:     m.Invitee,
 		Type:        m.Typ,
 		CreatorUID:  m.CreatorUID,
@@ -196,13 +227,13 @@ func ToMissionInvitationDTO(m *Invitation) *MissionInvitationDTO {
 	}
 }
 
-func NewCreateChange(m *Mission) *MissionChangeDTO {
+func NewCreateChange(m *model.Mission) *MissionChangeDTO {
 	return &MissionChangeDTO{
 		Type:        "CREATE_MISSION",
 		MissionName: m.Name,
 		CreatorUID:  m.CreatorUID,
-		Timestamp:   CotTime(time.Now()),
-		ServerTime:  CotTime(time.Now()),
+		Timestamp:   CotTime(m.CreateTime),
+		ServerTime:  CotTime(m.CreateTime),
 	}
 }
 
@@ -232,7 +263,7 @@ func NewAddChange(name string, msg *cot.CotMessage) *MissionChangeDTO {
 	}
 }
 
-func NewAddChangeItem(name string, item *DataItem) *MissionChangeDTO {
+func NewAddChangeItem(name string, item *model.DataItem) *MissionChangeDTO {
 	return &MissionChangeDTO{
 		Type:        "ADD_CONTENT",
 		MissionName: name,
@@ -264,7 +295,7 @@ func NewUID(msg *cot.CotMessage) *MissionItemDTO {
 	}
 }
 
-func NewItemDTO(i *DataItem) *MissionItemDTO {
+func NewItemDTO(i *model.DataItem) *MissionItemDTO {
 	return &MissionItemDTO{
 		CreatorUID: i.CreatorUID,
 		Timestamp:  CotTime(i.Timestamp),

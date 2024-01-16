@@ -28,6 +28,7 @@ func addMissionApi(app *App, api *air.Air) {
 	g.GET("/:missionname/changes", getMissionChangesHandler(app))
 	g.GET("/:missionname/cot", getMissionCotHandler(app))
 	g.GET("/:missionname/contacts", getMissionContactsHandler(app))
+	g.PUT("/:missionname/contents", getMissionContentPutHandler(app))
 	g.DELETE("/:missionname/contents", getMissionContentDeleteHandler(app))
 	g.GET("/:missionname/log", getMissionLogHandler(app))
 	g.PUT("/:missionname/keywords", getMissionKeywordsPutHandler(app))
@@ -45,10 +46,10 @@ func addMissionApi(app *App, api *air.Air) {
 func getMissionsHandler(app *App) func(req *air.Request, res *air.Response) error {
 	return func(req *air.Request, res *air.Response) error {
 		data := app.missions.GetAllMissions()
-		result := make([]*model.MissionDTO, len(data))
+		result := make([]*MissionDTO, len(data))
 
 		for i, m := range data {
-			result[i] = model.ToMissionDTO(m)
+			result[i] = ToMissionDTO(m, app.packageManager)
 		}
 
 		return res.WriteJSON(makeAnswer("Mission", result))
@@ -65,7 +66,7 @@ func getMissionHandler(app *App) func(req *air.Request, res *air.Response) error
 			return nil
 		}
 
-		return res.WriteJSON(makeAnswer("Mission", []*model.MissionDTO{model.ToMissionDTO(m)}))
+		return res.WriteJSON(makeAnswer("Mission", []*MissionDTO{ToMissionDTO(m, app.packageManager)}))
 	}
 }
 
@@ -108,7 +109,7 @@ func getMissionPutHandler(app *App) func(req *air.Request, res *air.Response) er
 			return res.WriteString(err.Error())
 		}
 
-		return res.WriteJSON(makeAnswer("Mission", []*model.MissionDTO{model.ToMissionDTO(m)}))
+		return res.WriteJSON(makeAnswer("Mission", []*MissionDTO{ToMissionDTO(m, app.packageManager)}))
 	}
 }
 
@@ -122,7 +123,7 @@ func getMissionDeleteHandler(app *App) func(req *air.Request, res *air.Response)
 			return nil
 		}
 
-		app.missions.DeleteMission(mname)
+		app.missions.DeleteMission(m.ID)
 		return nil
 	}
 }
@@ -145,7 +146,7 @@ func getMissionRoleHandler(app *App) func(req *air.Request, res *air.Response) e
 			return nil
 		}
 
-		return res.WriteJSON(makeAnswer("MissionRole", model.GetRole("")))
+		return res.WriteJSON(makeAnswer("MissionRole", GetRole("")))
 	}
 }
 
@@ -170,12 +171,12 @@ func getMissionRolePutHandler(app *App) func(req *air.Request, res *air.Response
 			}
 		}
 
-		return res.WriteJSON(makeAnswer("MissionRole", model.GetRole("")))
+		return res.WriteJSON(makeAnswer("MissionRole", GetRole("")))
 	}
 }
 
 func getMissionLogHandler(app *App) func(req *air.Request, res *air.Response) error {
-	result := makeAnswer("com.bbn.marti.sync.model.LogEntry", []*model.MissionLogEntryDTO{})
+	result := makeAnswer("com.bbn.marti.sync.model.LogEntry", []*MissionLogEntryDTO{})
 
 	return func(req *air.Request, res *air.Response) error {
 		m := app.missions.GetMission(getStringParam(req, "missionname"))
@@ -237,21 +238,20 @@ func getMissionSubscriptionsHandler(app *App) func(req *air.Request, res *air.Re
 
 func getMissionSubscriptionHandler(app *App) func(req *air.Request, res *air.Response) error {
 	return func(req *air.Request, res *air.Response) error {
-		mname := getStringParam(req, "missionname")
-		m := app.missions.GetMission(mname)
+		m := app.missions.GetMission(getStringParam(req, "missionname"))
 
 		if m == nil {
 			res.Status = http.StatusNotFound
 			return nil
 		}
 
-		s := app.missions.GetSubscription(mname, getStringParam(req, "uid"))
+		s := app.missions.GetSubscription(m.ID, getStringParam(req, "uid"))
 		if s == nil {
 			res.Status = http.StatusNotFound
 			return nil
 		}
 
-		return res.WriteJSON(makeAnswer("MissionSubscription", model.ToMissionSubscriptionDTO(s)))
+		return res.WriteJSON(makeAnswer("MissionSubscription", ToMissionSubscriptionDTO(s)))
 	}
 }
 
@@ -277,16 +277,16 @@ func getMissionSubscriptionPutHandler(app *App) func(req *air.Request, res *air.
 		}
 
 		s := &model.Subscription{
-			MissionName: getStringParam(req, "missionname"),
-			ClientUID:   getStringParam(req, "uid"),
-			Username:    getUsernameFromReq(req),
-			CreateTime:  time.Now(),
-			Role:        "",
+			MissionID:  m.ID,
+			ClientUID:  getStringParam(req, "uid"),
+			Username:   getUsernameFromReq(req),
+			CreateTime: time.Now(),
+			Role:       "",
 		}
 
 		app.missions.PutSubscription(s)
 
-		return res.WriteJSON(makeAnswer("MissionSubscription", model.ToMissionSubscriptionDTO(s)))
+		return res.WriteJSON(makeAnswer("MissionSubscription", ToMissionSubscriptionDTO(s)))
 	}
 }
 
@@ -315,9 +315,9 @@ func getMissionSubscriptionRolesHandler(app *App) func(req *air.Request, res *ai
 			return nil
 		}
 
-		s := app.missions.GetSubscriptions(missionName)
+		s := app.missions.GetSubscriptions(m.ID)
 
-		return res.WriteJSON(makeAnswer("MissionSubscription", model.ToMissionSubscriptionsDTO(s)))
+		return res.WriteJSON(makeAnswer("MissionSubscription", ToMissionSubscriptionsDTO(s)))
 	}
 }
 
@@ -333,16 +333,16 @@ func getMissionChangesHandler(app *App) func(req *air.Request, res *air.Response
 			return nil
 		}
 
-		result := make([]*model.MissionChangeDTO, 0)
+		result := make([]*MissionChangeDTO, 0)
 
 		for _, item := range mission.Items {
 			if item.Timestamp.After(d1) {
-				result = append(result, model.NewAddChangeItem(name, item))
+				result = append(result, NewAddChangeItem(name, item))
 			}
 		}
 
 		if mission.CreateTime.After(d1) {
-			result = append(result, model.NewCreateChange(mission))
+			result = append(result, NewCreateChange(mission))
 		}
 
 		return res.WriteJSON(makeAnswer("MissionChange", result))
@@ -391,6 +391,40 @@ func getMissionContactsHandler(app *App) func(req *air.Request, res *air.Respons
 	}
 }
 
+func getMissionContentPutHandler(app *App) func(req *air.Request, res *air.Response) error {
+	return func(req *air.Request, res *air.Response) error {
+		mission := app.missions.GetMission(getStringParam(req, "missionname"))
+
+		if mission == nil {
+			res.Status = http.StatusNotFound
+
+			return nil
+		}
+
+		if req.Body == nil {
+			return nil
+		}
+
+		defer req.Body.Close()
+
+		var data map[string][]string
+
+		dec := json.NewDecoder(req.Body)
+
+		if err := dec.Decode(&data); err != nil {
+			res.Status = http.StatusInternalServerError
+			return res.WriteString(err.Error())
+		}
+
+		if d, ok := data["hashes"]; ok {
+			mission.Hashes = strings.Join(d, ",")
+			app.missions.Save(mission)
+		}
+
+		return res.WriteJSON(makeAnswer("Mission", []*MissionDTO{ToMissionDTO(mission, app.packageManager)}))
+	}
+}
+
 func getMissionContentDeleteHandler(app *App) func(req *air.Request, res *air.Response) error {
 	return func(req *air.Request, res *air.Response) error {
 		name := getStringParam(req, "missionname")
@@ -403,15 +437,18 @@ func getMissionContentDeleteHandler(app *App) func(req *air.Request, res *air.Re
 		}
 
 		app.missions.DeleteMissionPoints(mission.ID, getStringParam(req, "uid"))
+		app.missions.DeleteMissionContent(mission.ID, getStringParam(req, "hash"))
 
-		return nil
+		m1 := app.missions.GetMissionById(mission.ID)
+
+		return res.WriteJSON(makeAnswer("Mission", []*MissionDTO{ToMissionDTO(m1, app.packageManager)}))
 	}
 }
 
 func getInvitePutHandler(app *App) func(req *air.Request, res *air.Response) error {
 	return func(req *air.Request, res *air.Response) error {
-		name := getStringParam(req, "missionname")
-		if app.missions.GetMission(name) == nil {
+		mission := app.missions.GetMission(getStringParam(req, "missionname"))
+		if mission == nil {
 			res.Status = http.StatusNotFound
 
 			return nil
@@ -438,12 +475,12 @@ func getInvitePutHandler(app *App) func(req *air.Request, res *air.Response) err
 		}
 
 		inv := &model.Invitation{
-			MissionName: name,
-			Typ:         typ,
-			Invitee:     getStringParam(req, "uid"),
-			CreatorUID:  getStringParam(req, "creatorUid"),
-			CreateTime:  time.Now(),
-			Role:        getStringParam(req, "role"),
+			MissionID:  mission.ID,
+			Typ:        typ,
+			Invitee:    getStringParam(req, "uid"),
+			CreatorUID: getStringParam(req, "creatorUid"),
+			CreateTime: time.Now(),
+			Role:       getStringParam(req, "role"),
 		}
 
 		app.missions.PutInvitation(inv)
@@ -454,14 +491,14 @@ func getInvitePutHandler(app *App) func(req *air.Request, res *air.Response) err
 
 func getInviteDeleteHandler(app *App) func(req *air.Request, res *air.Response) error {
 	return func(req *air.Request, res *air.Response) error {
-		name := getStringParam(req, "missionname")
-		if app.missions.GetMission(name) == nil {
+		mission := app.missions.GetMission(getStringParam(req, "missionname"))
+		if mission == nil {
 			res.Status = http.StatusNotFound
 
 			return nil
 		}
 
-		app.missions.DeleteInvitation(name, getStringParam(req, "uid"), getStringParam(req, "type"))
+		app.missions.DeleteInvitation(mission.ID, getStringParam(req, "uid"), getStringParam(req, "type"))
 		return nil
 	}
 }
