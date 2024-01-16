@@ -34,13 +34,10 @@ import (
 )
 
 const (
-	unknown = "unknown"
-	dbName  = "db.sqlite"
+	dbName = "db.sqlite"
 )
 
 var (
-	gitRevision            = unknown
-	gitBranch              = unknown
 	lastSeenOfflineTimeout = time.Minute * 5
 )
 
@@ -71,14 +68,6 @@ type AppConfig struct {
 
 	certTTLDays int
 	connections []string
-}
-
-func getVersion() string {
-	if gitBranch != "master" && gitBranch != unknown {
-		return fmt.Sprintf("%s:%s", gitBranch, gitRevision)
-	}
-
-	return gitRevision
 }
 
 type App struct {

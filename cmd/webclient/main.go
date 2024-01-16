@@ -31,15 +31,9 @@ import (
 )
 
 const (
-	unknown                = "unknown"
 	selfPosSendPeriod      = time.Minute
 	lastSeenOfflineTimeout = time.Minute * 15
 	alfaNum                = "abcdefghijklmnopqrstuvwxyz012346789"
-)
-
-var (
-	gitRevision = unknown
-	gitBranch   = unknown
 )
 
 type App struct {
@@ -347,14 +341,6 @@ func (app *App) sendMyPoints() {
 
 		return true
 	})
-}
-
-func getVersion() string {
-	if gitBranch != "master" && gitBranch != unknown {
-		return fmt.Sprintf("%s:%s", gitBranch, gitRevision)
-	}
-
-	return gitRevision
 }
 
 func main() {
