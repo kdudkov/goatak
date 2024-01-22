@@ -517,15 +517,14 @@ func getVideoPostHandler(app *App) func(req *air.Request, res *air.Response) err
 
 func getXmlHandler(app *App) func(req *air.Request, res *air.Response) error {
 	return func(req *air.Request, res *air.Response) error {
-		item := app.items.Get(getStringParam(req, "uid"))
 		var evt *cotproto.CotEvent
 
-		if item != nil {
+		if item := app.items.Get(getStringParam(req, "uid")); item != nil {
 			evt = item.GetMsg().TakMessage.GetCotEvent()
 		} else {
 			di := app.missions.GetPoint(getStringParam(req, "uid"))
 			if di != nil {
-				evt = di.Event
+				evt = di.GetEvent()
 			}
 		}
 

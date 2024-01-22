@@ -118,6 +118,25 @@ func TestHash(t *testing.T) {
 
 	assert.Len(t, m.GetHashes(), 3)
 }
+
+func TestGetPoint(t *testing.T) {
+	db := prepare()
+
+	m := NewMissionManager(db, nil)
+	require.NoError(t, m.Migrate())
+
+	m1 := &model.Mission{Name: "mission1", Scope: "scope1"}
+	require.NoError(t, m.PutMission(m1))
+
+	m.AddPoint(m1.Name, newCotMessage("scope1", "uid1", 10, 20))
+
+	di := m.GetPoint("uid1")
+
+	require.NotNil(t, di)
+	require.NotNil(t, di.GetEvent())
+	assert.Equal(t, 10., di.GetEvent().GetLat())
+}
+
 func prepare() *gorm.DB {
 	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{Logger: logger.Default.LogMode(logger.Info)})
 	if err != nil {

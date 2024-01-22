@@ -37,6 +37,10 @@ func getAdminAPI(app *App, addr string, renderer *staticfiles.Renderer, webtakRo
 	adminAPI.POST("/cot", getCotPostHandler(app))
 	adminAPI.POST("/cot_xml", getCotXMLPostHandler(app))
 
+	if app.missions != nil {
+		adminAPI.GET("/mission", getAllMissionHandler(app))
+	}
+
 	if webtakRoot != "" {
 		adminAPI.FILE("/webtak/", filepath.Join(webtakRoot, "index.html"))
 		adminAPI.FILES("/webtak", webtakRoot)
@@ -235,5 +239,19 @@ func getCotXMLPostHandler(app *App) func(req *air.Request, res *air.Response) er
 		app.NewCotMessage(c)
 
 		return nil
+	}
+}
+
+func getAllMissionHandler(app *App) func(req *air.Request, res *air.Response) error {
+	return func(req *air.Request, res *air.Response) error {
+		data := app.missions.GetAllMissionsAdm()
+
+		result := make([]*MissionDTO, len(data))
+
+		for i, m := range data {
+			result[i] = ToMissionDTO(m, app.packageManager)
+		}
+
+		return res.WriteJSON(result)
 	}
 }

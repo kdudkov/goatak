@@ -119,32 +119,56 @@ type DataItem struct {
 	Lat         float64
 	Lon         float64
 	EventData   []byte
-	Event       *cotproto.CotEvent `gorm:"-"`
+	event       *cotproto.CotEvent `gorm:"-"`
 }
 
-func (d *DataItem) AfterFind(tx *gorm.DB) error {
-	if d == nil || len(d.EventData) == 0 {
-		return nil
-	}
-
-	d.Event = new(cotproto.CotEvent)
-
-	return proto.Unmarshal(d.EventData, d.Event)
-}
-
-func (d *DataItem) BeforeUpdate(tx *gorm.DB) error {
+func (d *DataItem) GetEvent() *cotproto.CotEvent {
 	if d == nil {
 		return nil
 	}
 
-	if d.Event == nil {
+	if d.event != nil {
+		return d.event
+	}
+
+	d.event = new(cotproto.CotEvent)
+
+	if len(d.EventData) > 0 {
+		_ = proto.Unmarshal(d.EventData, d.event)
+	}
+
+	return d.event
+}
+
+func (d *DataItem) BeforeCreate(_ *gorm.DB) error {
+	if d == nil {
+		return nil
+	}
+
+	if d.event == nil {
 		d.EventData = nil
 		return nil
 	}
 
 	var err error
 
-	d.EventData, err = proto.Marshal(d.Event)
+	d.EventData, err = proto.Marshal(d.event)
+	return err
+}
+
+func (d *DataItem) BeforeUpdate(_ *gorm.DB) error {
+	if d == nil {
+		return nil
+	}
+
+	if d.event == nil {
+		d.EventData = nil
+		return nil
+	}
+
+	var err error
+
+	d.EventData, err = proto.Marshal(d.event)
 	return err
 }
 
@@ -158,6 +182,7 @@ func (d *DataItem) UpdateFromMsg(msg *cot.CotMessage) {
 	d.Color = msg.GetColor()
 	d.Lat = msg.GetLat()
 	d.Lon = msg.GetLon()
+	d.event = msg.TakMessage.GetCotEvent()
 
 	return
 }

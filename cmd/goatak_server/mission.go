@@ -53,6 +53,20 @@ func (mm *MissionManager) Migrate() error {
 	return nil
 }
 
+func (mm *MissionManager) GetAllMissionsAdm() []*model.Mission {
+	if mm == nil || mm.db == nil {
+		return nil
+	}
+
+	var result []*model.Mission
+
+	mm.db.Preload("Items", func(db *gorm.DB) *gorm.DB {
+		return db.Order("timestamp desc")
+	}).Find(&result)
+
+	return result
+}
+
 func (mm *MissionManager) GetAllMissions(scope string) []*model.Mission {
 	if mm == nil || mm.db == nil {
 		return nil
@@ -147,9 +161,9 @@ func (mm *MissionManager) GetPoint(uid string) *model.DataItem {
 
 	var d *model.DataItem
 
-	result := mm.db.Where("uid = ?", uid).Find(&d)
+	err := mm.db.Where("uid = ?", uid).Find(&d).Error
 
-	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil
 	}
 
