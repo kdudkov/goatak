@@ -1,16 +1,21 @@
 package model
 
 import (
+	"strings"
 	"time"
 
 	"google.golang.org/protobuf/proto"
 	"gorm.io/gorm"
 
+	"github.com/kdudkov/goatak/pkg/cot"
 	"github.com/kdudkov/goatak/pkg/cotproto"
 )
 
+const sep = ","
+
 type Mission struct {
 	ID             uint   `gorm:"primarykey"`
+	Scope          string `gorm:"index"`
 	Name           string `gorm:"index"`
 	Username       string
 	CreatorUID     string
@@ -29,6 +34,56 @@ type Mission struct {
 	Keywords       string
 	Hashes         string
 	Items          []*DataItem
+}
+
+func (m *Mission) GetHashes() []string {
+	if m.Hashes == "" {
+		return nil
+	}
+
+	return strings.Split(m.Hashes, sep)
+}
+
+func (m *Mission) AddHashes(hashes ...string) bool {
+	oldHashes := m.GetHashes()
+
+	added := false
+
+	for _, hash := range hashes {
+		h := strings.Trim(hash, " \t\r\n")
+		if hasItem(oldHashes, h) {
+			continue
+		}
+
+		oldHashes = append(oldHashes, h)
+		added = true
+	}
+
+	if added {
+		m.Hashes = strings.Join(oldHashes, sep)
+
+		return true
+	}
+
+	return false
+}
+
+func (m *Mission) RemoveHash(hash string) bool {
+	hashes := m.GetHashes()
+	newHashes := make([]string, 0)
+
+	for _, h := range hashes {
+		if h != hash && h != "" {
+			newHashes = append(newHashes, h)
+		}
+	}
+
+	if len(newHashes) != len(hashes) {
+		m.Hashes = strings.Join(newHashes, sep)
+		return true
+	}
+
+	return false
 }
 
 type Subscription struct {
@@ -91,4 +146,43 @@ func (d *DataItem) BeforeUpdate(tx *gorm.DB) error {
 
 	d.EventData, err = proto.Marshal(d.Event)
 	return err
+}
+
+func (d *DataItem) UpdateFromMsg(msg *cot.CotMessage) {
+	p, _ := msg.GetParent()
+	d.CreatorUID = p
+	d.Timestamp = msg.GetStartTime()
+	d.Type = msg.GetType()
+	d.Callsign = msg.GetCallsign()
+	d.IconsetPath = msg.GetIconsetPath()
+	d.Color = msg.GetColor()
+	d.Lat = msg.GetLat()
+	d.Lon = msg.GetLon()
+
+	return
+}
+
+type Change struct {
+	ID          uint      `gorm:"primarykey"`
+	CreateTime  time.Time `gorm:"index"`
+	Type        string
+	MissionID   uint
+	CreatorUID  string
+	ContentUID  string `gorm:"index"`
+	CotType     string
+	Callsign    string
+	IconsetPath string
+	Color       string
+	Lat         float64
+	Lon         float64
+}
+
+func hasItem(items []string, item string) bool {
+	for _, s := range items {
+		if s == item {
+			return true
+		}
+	}
+
+	return false
 }

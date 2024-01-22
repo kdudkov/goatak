@@ -45,7 +45,9 @@ func addMissionApi(app *App, api *air.Air) {
 
 func getMissionsHandler(app *App) func(req *air.Request, res *air.Response) error {
 	return func(req *air.Request, res *air.Response) error {
-		data := app.missions.GetAllMissions()
+		user := app.users.GetUser(getUsernameFromReq(req))
+
+		data := app.missions.GetAllMissions(user.GetScope())
 		result := make([]*MissionDTO, len(data))
 
 		for i, m := range data {
@@ -58,8 +60,8 @@ func getMissionsHandler(app *App) func(req *air.Request, res *air.Response) erro
 
 func getMissionHandler(app *App) func(req *air.Request, res *air.Response) error {
 	return func(req *air.Request, res *air.Response) error {
-		name := getStringParam(req, "missionname")
-		m := app.missions.GetMission(name)
+		user := app.users.GetUser(getUsernameFromReq(req))
+		m := app.missions.GetMission(user.GetScope(), getStringParam(req, "missionname"))
 
 		if m == nil {
 			res.Status = http.StatusNotFound
@@ -73,6 +75,7 @@ func getMissionHandler(app *App) func(req *air.Request, res *air.Response) error
 func getMissionPutHandler(app *App) func(req *air.Request, res *air.Response) error {
 	return func(req *air.Request, res *air.Response) error {
 		username := getUsernameFromReq(req)
+		user := app.users.GetUser(username)
 
 		printParams(req, app.Logger)
 
@@ -87,6 +90,7 @@ func getMissionPutHandler(app *App) func(req *air.Request, res *air.Response) er
 
 		m := &model.Mission{
 			Name:           getStringParam(req, "missionname"),
+			Scope:          user.GetScope(),
 			Username:       username,
 			CreatorUID:     getStringParam(req, "creatorUid"),
 			CreateTime:     time.Now(),
@@ -115,8 +119,8 @@ func getMissionPutHandler(app *App) func(req *air.Request, res *air.Response) er
 
 func getMissionDeleteHandler(app *App) func(req *air.Request, res *air.Response) error {
 	return func(req *air.Request, res *air.Response) error {
-		mname := getStringParam(req, "missionname")
-		m := app.missions.GetMission(mname)
+		user := app.users.GetUser(getUsernameFromReq(req))
+		m := app.missions.GetMission(user.GetScope(), getStringParam(req, "missionname"))
 
 		if m == nil {
 			res.Status = http.StatusNotFound
@@ -138,8 +142,8 @@ func getMissionsInvitationsHandler(app *App) func(req *air.Request, res *air.Res
 
 func getMissionRoleHandler(app *App) func(req *air.Request, res *air.Response) error {
 	return func(req *air.Request, res *air.Response) error {
-		mname := getStringParam(req, "missionname")
-		m := app.missions.GetMission(mname)
+		user := app.users.GetUser(getUsernameFromReq(req))
+		m := app.missions.GetMission(user.GetScope(), getStringParam(req, "missionname"))
 
 		if m == nil {
 			res.Status = http.StatusNotFound
@@ -152,8 +156,8 @@ func getMissionRoleHandler(app *App) func(req *air.Request, res *air.Response) e
 
 func getMissionRolePutHandler(app *App) func(req *air.Request, res *air.Response) error {
 	return func(req *air.Request, res *air.Response) error {
-		mname := getStringParam(req, "missionname")
-		m := app.missions.GetMission(mname)
+		user := app.users.GetUser(getUsernameFromReq(req))
+		m := app.missions.GetMission(user.GetScope(), getStringParam(req, "missionname"))
 
 		if m == nil {
 			res.Status = http.StatusNotFound
@@ -179,7 +183,8 @@ func getMissionLogHandler(app *App) func(req *air.Request, res *air.Response) er
 	result := makeAnswer("com.bbn.marti.sync.model.LogEntry", []*MissionLogEntryDTO{})
 
 	return func(req *air.Request, res *air.Response) error {
-		m := app.missions.GetMission(getStringParam(req, "missionname"))
+		user := app.users.GetUser(getUsernameFromReq(req))
+		m := app.missions.GetMission(user.GetScope(), getStringParam(req, "missionname"))
 
 		if m == nil {
 			res.Status = http.StatusNotFound
@@ -192,7 +197,8 @@ func getMissionLogHandler(app *App) func(req *air.Request, res *air.Response) er
 
 func getMissionKeywordsPutHandler(app *App) func(req *air.Request, res *air.Response) error {
 	return func(req *air.Request, res *air.Response) error {
-		m := app.missions.GetMission(getStringParam(req, "missionname"))
+		user := app.users.GetUser(getUsernameFromReq(req))
+		m := app.missions.GetMission(user.GetScope(), getStringParam(req, "missionname"))
 
 		if m == nil {
 			res.Status = http.StatusNotFound
@@ -224,21 +230,22 @@ func getMissionKeywordsPutHandler(app *App) func(req *air.Request, res *air.Resp
 
 func getMissionSubscriptionsHandler(app *App) func(req *air.Request, res *air.Response) error {
 	return func(req *air.Request, res *air.Response) error {
-		missionName := getStringParam(req, "missionname")
-		m := app.missions.GetMission(missionName)
+		user := app.users.GetUser(getUsernameFromReq(req))
+		m := app.missions.GetMission(user.GetScope(), getStringParam(req, "missionname"))
 
 		if m == nil {
 			res.Status = http.StatusNotFound
 			return nil
 		}
 
-		return res.WriteJSON(makeAnswer("MissionSubscription", app.missions.GetSubscribers(missionName)))
+		return res.WriteJSON(makeAnswer("MissionSubscription", app.missions.GetSubscribers(m.ID)))
 	}
 }
 
 func getMissionSubscriptionHandler(app *App) func(req *air.Request, res *air.Response) error {
 	return func(req *air.Request, res *air.Response) error {
-		m := app.missions.GetMission(getStringParam(req, "missionname"))
+		user := app.users.GetUser(getUsernameFromReq(req))
+		m := app.missions.GetMission(user.GetScope(), getStringParam(req, "missionname"))
 
 		if m == nil {
 			res.Status = http.StatusNotFound
@@ -257,7 +264,8 @@ func getMissionSubscriptionHandler(app *App) func(req *air.Request, res *air.Res
 
 func getMissionSubscriptionPutHandler(app *App) func(req *air.Request, res *air.Response) error {
 	return func(req *air.Request, res *air.Response) error {
-		m := app.missions.GetMission(getStringParam(req, "missionname"))
+		user := app.users.GetUser(getUsernameFromReq(req))
+		m := app.missions.GetMission(user.GetScope(), getStringParam(req, "missionname"))
 
 		if m == nil {
 			res.Status = http.StatusNotFound
@@ -292,7 +300,8 @@ func getMissionSubscriptionPutHandler(app *App) func(req *air.Request, res *air.
 
 func getMissionSubscriptionDeleteHandler(app *App) func(req *air.Request, res *air.Response) error {
 	return func(req *air.Request, res *air.Response) error {
-		m := app.missions.GetMission(getStringParam(req, "missionname"))
+		user := app.users.GetUser(getUsernameFromReq(req))
+		m := app.missions.GetMission(user.GetScope(), getStringParam(req, "missionname"))
 
 		if m == nil {
 			res.Status = http.StatusNotFound
@@ -307,8 +316,8 @@ func getMissionSubscriptionDeleteHandler(app *App) func(req *air.Request, res *a
 
 func getMissionSubscriptionRolesHandler(app *App) func(req *air.Request, res *air.Response) error {
 	return func(req *air.Request, res *air.Response) error {
-		missionName := getStringParam(req, "missionname")
-		m := app.missions.GetMission(missionName)
+		user := app.users.GetUser(getUsernameFromReq(req))
+		m := app.missions.GetMission(user.GetScope(), getStringParam(req, "missionname"))
 
 		if m == nil {
 			res.Status = http.StatusNotFound
@@ -323,26 +332,21 @@ func getMissionSubscriptionRolesHandler(app *App) func(req *air.Request, res *ai
 
 func getMissionChangesHandler(app *App) func(req *air.Request, res *air.Response) error {
 	return func(req *air.Request, res *air.Response) error {
-		name := getStringParam(req, "missionname")
+		user := app.users.GetUser(getUsernameFromReq(req))
+		mission := app.missions.GetMission(user.GetScope(), getStringParam(req, "missionname"))
 		d1 := time.Now().Add(-time.Second * time.Duration(getIntParam(req, "secago", 31536000)))
-
-		mission := app.missions.GetMission(name)
 
 		if mission == nil {
 			res.Status = http.StatusNotFound
 			return nil
 		}
 
-		result := make([]*MissionChangeDTO, 0)
+		ch := app.missions.GetChanges(mission.ID, d1)
 
-		for _, item := range mission.Items {
-			if item.Timestamp.After(d1) {
-				result = append(result, NewAddChangeItem(name, item))
-			}
-		}
+		result := make([]*MissionChangeDTO, len(ch))
 
-		if mission.CreateTime.After(d1) {
-			result = append(result, NewCreateChange(mission))
+		for i, c := range ch {
+			result[i] = NewChangeDTO(c, mission.Name)
 		}
 
 		return res.WriteJSON(makeAnswer("MissionChange", result))
@@ -351,8 +355,9 @@ func getMissionChangesHandler(app *App) func(req *air.Request, res *air.Response
 
 func getMissionCotHandler(app *App) func(req *air.Request, res *air.Response) error {
 	return func(req *air.Request, res *air.Response) error {
-		name := getStringParam(req, "missionname")
-		mission := app.missions.GetMission(name)
+		user := app.users.GetUser(getUsernameFromReq(req))
+		mission := app.missions.GetMission(user.GetScope(), getStringParam(req, "missionname"))
+
 		if mission == nil {
 			res.Status = http.StatusNotFound
 
@@ -380,8 +385,10 @@ func getMissionCotHandler(app *App) func(req *air.Request, res *air.Response) er
 
 func getMissionContactsHandler(app *App) func(req *air.Request, res *air.Response) error {
 	return func(req *air.Request, res *air.Response) error {
-		name := getStringParam(req, "missionname")
-		if app.missions.GetMission(name) == nil {
+		user := app.users.GetUser(getUsernameFromReq(req))
+		m := app.missions.GetMission(user.GetScope(), getStringParam(req, "missionname"))
+
+		if m == nil {
 			res.Status = http.StatusNotFound
 
 			return nil
@@ -393,7 +400,8 @@ func getMissionContactsHandler(app *App) func(req *air.Request, res *air.Respons
 
 func getMissionContentPutHandler(app *App) func(req *air.Request, res *air.Response) error {
 	return func(req *air.Request, res *air.Response) error {
-		mission := app.missions.GetMission(getStringParam(req, "missionname"))
+		user := app.users.GetUser(getUsernameFromReq(req))
+		mission := app.missions.GetMission(user.GetScope(), getStringParam(req, "missionname"))
 
 		if mission == nil {
 			res.Status = http.StatusNotFound
@@ -417,8 +425,10 @@ func getMissionContentPutHandler(app *App) func(req *air.Request, res *air.Respo
 		}
 
 		if d, ok := data["hashes"]; ok {
-			mission.Hashes = strings.Join(d, ",")
-			app.missions.Save(mission)
+			if mission.AddHashes(d...) {
+				mission.LastEdit = time.Now()
+				app.missions.Save(mission)
+			}
 		}
 
 		return res.WriteJSON(makeAnswer("Mission", []*MissionDTO{ToMissionDTO(mission, app.packageManager)}))
@@ -427,8 +437,8 @@ func getMissionContentPutHandler(app *App) func(req *air.Request, res *air.Respo
 
 func getMissionContentDeleteHandler(app *App) func(req *air.Request, res *air.Response) error {
 	return func(req *air.Request, res *air.Response) error {
-		name := getStringParam(req, "missionname")
-		mission := app.missions.GetMission(name)
+		user := app.users.GetUser(getUsernameFromReq(req))
+		mission := app.missions.GetMission(user.GetScope(), getStringParam(req, "missionname"))
 
 		if mission == nil {
 			res.Status = http.StatusNotFound
@@ -447,7 +457,9 @@ func getMissionContentDeleteHandler(app *App) func(req *air.Request, res *air.Re
 
 func getInvitePutHandler(app *App) func(req *air.Request, res *air.Response) error {
 	return func(req *air.Request, res *air.Response) error {
-		mission := app.missions.GetMission(getStringParam(req, "missionname"))
+		user := app.users.GetUser(getUsernameFromReq(req))
+		mission := app.missions.GetMission(user.GetScope(), getStringParam(req, "missionname"))
+
 		if mission == nil {
 			res.Status = http.StatusNotFound
 
@@ -491,7 +503,9 @@ func getInvitePutHandler(app *App) func(req *air.Request, res *air.Response) err
 
 func getInviteDeleteHandler(app *App) func(req *air.Request, res *air.Response) error {
 	return func(req *air.Request, res *air.Response) error {
-		mission := app.missions.GetMission(getStringParam(req, "missionname"))
+		user := app.users.GetUser(getUsernameFromReq(req))
+		mission := app.missions.GetMission(user.GetScope(), getStringParam(req, "missionname"))
+
 		if mission == nil {
 			res.Status = http.StatusNotFound
 

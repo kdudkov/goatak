@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/kdudkov/goatak/internal/model"
-	"github.com/kdudkov/goatak/pkg/cot"
 )
 
 type CotTime time.Time
@@ -163,9 +162,9 @@ func ToMissionDTO(m *model.Mission, pm *PackageManager) *MissionDTO {
 	}
 
 	if pm != nil {
-		mDTO.Contents = make([]*ContentItemDTO, len(m.Hashes))
+		mDTO.Contents = make([]*ContentItemDTO, 0)
 
-		for _, h := range strings.Split(m.Hashes, ",") {
+		for _, h := range m.GetHashes() {
 			if pi := pm.GetByHash(h); pi != nil {
 				mDTO.Contents = append(mDTO.Contents, toContentItemDTO(pi))
 			}
@@ -227,72 +226,30 @@ func ToMissionInvitationDTO(m *model.Invitation, name string) *MissionInvitation
 	}
 }
 
-func NewCreateChange(m *model.Mission) *MissionChangeDTO {
-	return &MissionChangeDTO{
-		Type:        "CREATE_MISSION",
-		MissionName: m.Name,
-		CreatorUID:  m.CreatorUID,
-		Timestamp:   CotTime(m.CreateTime),
-		ServerTime:  CotTime(m.CreateTime),
-	}
-}
-
-func NewDetails(msg *cot.CotMessage) *MissionDetailsDTO {
-	return &MissionDetailsDTO{
-		Type:        msg.GetType(),
-		Callsign:    msg.GetCallsign(),
-		IconsetPath: msg.GetIconsetPath(),
-		Color:       msg.GetColor(),
-		Location: &LocationDTO{
-			Lat: msg.GetLat(),
-			Lon: msg.GetLon(),
-		},
-	}
-}
-
-func NewAddChange(name string, msg *cot.CotMessage) *MissionChangeDTO {
-	creator, _ := msg.GetParent()
-
-	return &MissionChangeDTO{
-		Type:        "ADD_CONTENT",
+func NewChangeDTO(c *model.Change, name string) *MissionChangeDTO {
+	cd := &MissionChangeDTO{
+		Type:        c.Type,
 		MissionName: name,
-		CreatorUID:  creator,
-		Timestamp:   CotTime(msg.GetStartTime()),
-		ServerTime:  CotTime(msg.GetSendTime()),
-		Details:     NewDetails(msg),
+		Timestamp:   CotTime(c.CreateTime),
+		ServerTime:  CotTime(c.CreateTime),
+		CreatorUID:  c.CreatorUID,
+		ContentUID:  c.ContentUID,
 	}
-}
 
-func NewAddChangeItem(name string, item *model.DataItem) *MissionChangeDTO {
-	return &MissionChangeDTO{
-		Type:        "ADD_CONTENT",
-		MissionName: name,
-		CreatorUID:  item.CreatorUID,
-		Timestamp:   CotTime(item.Timestamp),
-		ServerTime:  CotTime(item.Timestamp),
-		Details: &MissionDetailsDTO{
-			Type:        item.Type,
-			Callsign:    item.Callsign,
-			Title:       item.Title,
-			IconsetPath: item.IconsetPath,
-			Color:       item.Color,
+	if c.ContentUID != "" {
+		cd.Details = &MissionDetailsDTO{
+			Type:        c.CotType,
+			Callsign:    c.Callsign,
+			IconsetPath: c.IconsetPath,
+			Color:       c.Color,
 			Location: &LocationDTO{
-				Lat: item.Lat,
-				Lon: item.Lon,
+				Lat: c.Lat,
+				Lon: c.Lon,
 			},
-		},
+		}
 	}
-}
 
-func NewUID(msg *cot.CotMessage) *MissionItemDTO {
-	creator, _ := msg.GetParent()
-
-	return &MissionItemDTO{
-		CreatorUID: creator,
-		Timestamp:  CotTime(time.Now()),
-		Data:       msg.GetUID(),
-		Details:    NewDetails(msg),
-	}
+	return cd
 }
 
 func NewItemDTO(i *model.DataItem) *MissionItemDTO {

@@ -112,7 +112,7 @@ func NewApp(config *AppConfig, logger *zap.SugaredLogger) *App {
 			panic(err)
 		}
 
-		app.missions = NewMissionManager(db)
+		app.missions = NewMissionManager(db, app.Logger.Named("missions"))
 		if err := app.missions.Migrate(); err != nil {
 			panic(err)
 		}
@@ -358,11 +358,15 @@ func (app *App) MessageProcessor() {
 
 func (app *App) route(msg *cot.CotMessage) {
 	if missions := msg.GetDetail().GetDestMission(); len(missions) > 0 {
-		for _, name := range missions {
-			app.missions.AddPoint(name, msg)
+		for _, missionName := range missions {
+			app.missions.AddPoint(missionName, msg)
 
-			for _, uid := range app.missions.GetSubscribers(name) {
-				app.SendToUID(uid, msg)
+			m := app.missions.GetMission(msg.Scope, missionName)
+
+			if m != nil {
+				for _, uid := range app.missions.GetSubscribers(m.ID) {
+					app.SendToUID(uid, msg)
+				}
 			}
 		}
 
