@@ -188,7 +188,7 @@ func FromMsg(msg *cot.CotMessage) *Item {
 				time:  msg.GetSendTime(),
 				lat:   msg.GetLat(),
 				lon:   msg.GetLon(),
-				speed: msg.TakMessage.GetCotEvent().GetDetail().GetTrack().GetSpeed(),
+				speed: msg.GetTakMessage().GetCotEvent().GetDetail().GetTrack().GetSpeed(),
 				mx:    sync.RWMutex{},
 			}
 
@@ -225,8 +225,8 @@ func (i *Item) Update(msg *cot.CotMessage) {
 				time:  msg.GetSendTime(),
 				lat:   msg.GetLat(),
 				lon:   msg.GetLon(),
-				speed: msg.TakMessage.GetCotEvent().GetDetail().GetTrack().GetSpeed(),
-				ce:    msg.TakMessage.GetCotEvent().GetCe(),
+				speed: msg.GetTakMessage().GetCotEvent().GetDetail().GetTrack().GetSpeed(),
+				ce:    msg.GetTakMessage().GetCotEvent().GetCe(),
 				mx:    sync.RWMutex{},
 			}
 

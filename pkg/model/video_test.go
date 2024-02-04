@@ -1,6 +1,10 @@
 package model
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+)
 
 type TestData struct {
 	url   string
@@ -29,9 +33,7 @@ func TestParse(t *testing.T) {
 
 			newURL := toURL(proto, addr, port, path)
 
-			if newURL != td.url {
-				t.Errorf("%s %s", td.url, newURL)
-			}
+			assert.Equal(t, td.url, newURL)
 		})
 	}
 }

@@ -76,7 +76,7 @@ func NewWsClient(name string, user *model.User, ws *air.WebSocket, log *zap.Suga
 }
 
 func (w *WsClientHandler) SendMsg(msg *cot.CotMessage) error {
-	return w.SendCot(msg.TakMessage)
+	return w.SendCot(msg.GetTakMessage())
 }
 
 func (w *WsClientHandler) SendCot(msg *cotproto.TakMessage) error {

@@ -182,7 +182,7 @@ func (d *DataItem) UpdateFromMsg(msg *cot.CotMessage) {
 	d.Color = msg.GetColor()
 	d.Lat = msg.GetLat()
 	d.Lon = msg.GetLon()
-	d.event = msg.TakMessage.GetCotEvent()
+	d.event = msg.GetTakMessage().GetCotEvent()
 
 	return
 }

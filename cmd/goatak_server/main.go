@@ -27,6 +27,7 @@ import (
 	"software.sslmate.com/src/go-pkcs12"
 
 	"github.com/kdudkov/goatak/internal/client"
+	"github.com/kdudkov/goatak/internal/pm"
 	"github.com/kdudkov/goatak/internal/repository"
 	"github.com/kdudkov/goatak/pkg/cot"
 	"github.com/kdudkov/goatak/pkg/model"
@@ -72,7 +73,7 @@ type AppConfig struct {
 
 type App struct {
 	Logger         *zap.SugaredLogger
-	packageManager *PackageManager
+	packageManager *pm.PackageManager
 	config         *AppConfig
 	lat            float64
 	lon            float64
@@ -95,7 +96,7 @@ func NewApp(config *AppConfig, logger *zap.SugaredLogger) *App {
 	app := &App{
 		Logger:          logger,
 		config:          config,
-		packageManager:  NewPackageManager(logger.Named("packageManager"), filepath.Join(config.dataDir, "mp")),
+		packageManager:  pm.NewPackageManager(logger.Named("packageManager"), filepath.Join(config.dataDir, "mp")),
 		users:           repository.NewFileUserRepo(logger.Named("userManager"), config.usersFile),
 		ch:              make(chan *cot.CotMessage, 20),
 		handlers:        sync.Map{},

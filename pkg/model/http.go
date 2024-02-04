@@ -58,7 +58,7 @@ type DigitalPointer struct {
 }
 
 func (i *Item) ToWeb() *WebUnit {
-	evt := i.msg.TakMessage.GetCotEvent()
+	evt := i.msg.GetTakMessage().GetCotEvent()
 
 	i.mx.RLock()
 	defer i.mx.RUnlock()
@@ -102,7 +102,7 @@ func (i *Item) ToWeb() *WebUnit {
 			w.Status = "Offline"
 		}
 
-		if v := i.msg.TakMessage.GetCotEvent().GetDetail().GetTakv(); v != nil {
+		if v := i.msg.GetTakMessage().GetCotEvent().GetDetail().GetTakv(); v != nil {
 			w.TakVersion = strings.Trim(fmt.Sprintf("%s %s on %s", v.GetPlatform(), v.GetVersion(), v.GetDevice()), " ")
 		}
 	}

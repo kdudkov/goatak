@@ -25,52 +25,60 @@ func CotFromProto(msg *cotproto.TakMessage, from, scope string) (*CotMessage, er
 	return &CotMessage{From: from, Scope: scope, TakMessage: msg, Detail: d}, err
 }
 
+func (m *CotMessage) GetTakMessage() *cotproto.TakMessage {
+	if m == nil {
+		return nil
+	}
+
+	return m.TakMessage
+}
+
 func (m *CotMessage) GetSendTime() time.Time {
-	if m == nil || m.TakMessage == nil {
+	if m == nil {
 		return time.Time{}
 	}
 
-	return TimeFromMillis(m.TakMessage.GetCotEvent().GetSendTime())
+	return TimeFromMillis(m.GetTakMessage().GetCotEvent().GetSendTime())
 }
 
 func (m *CotMessage) GetStartTime() time.Time {
-	if m == nil || m.TakMessage == nil {
+	if m == nil {
 		return time.Time{}
 	}
 
-	return TimeFromMillis(m.TakMessage.GetCotEvent().GetStartTime())
+	return TimeFromMillis(m.GetTakMessage().GetCotEvent().GetStartTime())
 }
 
 func (m *CotMessage) GetStaleTime() time.Time {
-	if m == nil || m.TakMessage == nil {
+	if m == nil {
 		return time.Time{}
 	}
 
-	return TimeFromMillis(m.TakMessage.GetCotEvent().GetStaleTime())
+	return TimeFromMillis(m.GetTakMessage().GetCotEvent().GetStaleTime())
 }
 
 func (m *CotMessage) GetUID() string {
-	if m == nil || m.TakMessage == nil {
+	if m == nil {
 		return ""
 	}
 
-	return m.TakMessage.GetCotEvent().GetUid()
+	return m.GetTakMessage().GetCotEvent().GetUid()
 }
 
 func (m *CotMessage) GetType() string {
-	if m == nil || m.TakMessage == nil {
+	if m == nil {
 		return ""
 	}
 
-	return m.TakMessage.GetCotEvent().GetType()
+	return m.GetTakMessage().GetCotEvent().GetType()
 }
 
 func (m *CotMessage) GetCallsign() string {
-	if m == nil || m.TakMessage == nil {
+	if m == nil {
 		return ""
 	}
 
-	if s := m.TakMessage.GetCotEvent().GetDetail().GetContact().GetCallsign(); s != "" {
+	if s := m.GetTakMessage().GetCotEvent().GetDetail().GetContact().GetCallsign(); s != "" {
 		return s
 	}
 
@@ -79,11 +87,11 @@ func (m *CotMessage) GetCallsign() string {
 }
 
 func (m *CotMessage) GetEndpoint() string {
-	if m == nil || m.TakMessage == nil {
+	if m == nil {
 		return ""
 	}
 
-	if s := m.TakMessage.GetCotEvent().GetDetail().GetContact().GetEndpoint(); s != "" {
+	if s := m.GetTakMessage().GetCotEvent().GetDetail().GetContact().GetEndpoint(); s != "" {
 		return s
 	}
 
@@ -91,31 +99,31 @@ func (m *CotMessage) GetEndpoint() string {
 }
 
 func (m *CotMessage) GetTeam() string {
-	if m == nil || m.TakMessage == nil {
+	if m == nil {
 		return ""
 	}
 
-	return m.TakMessage.GetCotEvent().GetDetail().GetGroup().GetName()
+	return m.GetTakMessage().GetCotEvent().GetDetail().GetGroup().GetName()
 }
 
 func (m *CotMessage) GetRole() string {
-	if m == nil || m.TakMessage == nil {
+	if m == nil {
 		return ""
 	}
 
-	return m.TakMessage.GetCotEvent().GetDetail().GetGroup().GetRole()
+	return m.GetTakMessage().GetCotEvent().GetDetail().GetGroup().GetRole()
 }
 
 func (m *CotMessage) GetStale() time.Time {
-	if m == nil || m.TakMessage == nil {
-		return time.Unix(0, 0)
+	if m == nil {
+		return time.Time{}
 	}
 
-	return TimeFromMillis(m.TakMessage.GetCotEvent().GetStaleTime())
+	return TimeFromMillis(m.GetTakMessage().GetCotEvent().GetStaleTime())
 }
 
 func (m *CotMessage) IsContact() bool {
-	if m == nil || m.TakMessage == nil {
+	if m == nil || m.GetTakMessage() == nil {
 		return false
 	}
 
@@ -123,7 +131,7 @@ func (m *CotMessage) IsContact() bool {
 }
 
 func (m *CotMessage) IsChat() bool {
-	if m == nil || m.TakMessage == nil {
+	if m == nil || m.GetTakMessage() == nil {
 		return false
 	}
 
@@ -139,7 +147,7 @@ func (m *CotMessage) GetDetail() *Node {
 }
 
 func (m *CotMessage) IsChatReceipt() bool {
-	if m == nil || m.TakMessage == nil {
+	if m == nil {
 		return false
 	}
 
@@ -164,7 +172,7 @@ func (m *CotMessage) GetLatLon() (float64, float64) {
 		return 0, 0
 	}
 
-	return m.TakMessage.GetCotEvent().GetLat(), m.TakMessage.GetCotEvent().GetLon()
+	return m.GetTakMessage().GetCotEvent().GetLat(), m.GetTakMessage().GetCotEvent().GetLon()
 }
 
 func (m *CotMessage) GetLat() float64 {
@@ -172,7 +180,7 @@ func (m *CotMessage) GetLat() float64 {
 		return 0
 	}
 
-	return m.TakMessage.GetCotEvent().GetLat()
+	return m.GetTakMessage().GetCotEvent().GetLat()
 }
 
 func (m *CotMessage) GetLon() float64 {
@@ -180,7 +188,7 @@ func (m *CotMessage) GetLon() float64 {
 		return 0
 	}
 
-	return m.TakMessage.GetCotEvent().GetLon()
+	return m.GetTakMessage().GetCotEvent().GetLon()
 }
 
 func (m *CotMessage) GetParent() (string, string) {

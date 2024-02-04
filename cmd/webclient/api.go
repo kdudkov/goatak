@@ -3,12 +3,13 @@ package main
 import (
 	"context"
 	"crypto/tls"
-	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"time"
 
+	"github.com/kdudkov/goatak/internal/client"
+	mp "github.com/kdudkov/goatak/internal/model"
 	"github.com/kdudkov/goatak/pkg/model"
 )
 
@@ -40,49 +41,50 @@ func (r *RemoteAPI) getURL(path string) string {
 	return fmt.Sprintf("http://%s:8080%s", r.host, path)
 }
 
-func (r *RemoteAPI) request(ctx context.Context, method, path string) (io.ReadCloser, error) {
-	url := r.getURL(path)
+func (r *RemoteAPI) getContacts(ctx context.Context) ([]*model.Contact, error) {
+	dat := make([]*model.Contact, 0)
 
-	req, err := http.NewRequestWithContext(ctx, method, url, nil)
-	if err != nil {
-		return nil, err
-	}
+	err := client.NewRequest(r.client, r.getURL("/Marti/api/contacts/all")).GetJSON(ctx, &dat)
 
-	req.Header.Del("User-Agent")
-
-	res, err := r.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-
-	if res.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("status is %s", res.Status)
-	}
-
-	if res.Body == nil {
-		return nil, fmt.Errorf("null body")
-	}
-
-	return res.Body, nil
+	return dat, err
 }
 
-func (r *RemoteAPI) getContacts(ctx context.Context) ([]*model.Contact, error) {
-	b, err := r.request(ctx, "GET", "/Marti/api/contacts/all")
+func (r *RemoteAPI) NewMission(ctx context.Context, uid string) error {
+	b, err := client.NewRequest(r.client, r.getURL("/Marti/api/missions/test_mission_55567/subscription")).
+		Put().
+		Args(map[string]string{"uid": uid}).
+		Do(ctx)
 
 	if b != nil {
 		defer b.Close()
 	}
 
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	dat := make([]*model.Contact, 0)
+	dat, err := io.ReadAll(b)
 
-	unm := json.NewDecoder(b)
-	err = unm.Decode(&dat)
+	fmt.Println(string(dat))
 
-	return dat, err
+	return err
+}
+
+func (r *RemoteAPI) GetMissions(ctx context.Context) error {
+	res := make(map[string]any)
+
+	err := client.NewRequest(r.client, r.getURL("/Marti/api/missions")).
+		GetJSON(ctx, &res)
+
+	if d, ok := res["data"]; ok {
+		if n, ok1 := d.([]*mp.MissionDTO); ok1 {
+			for _, nn := range n {
+				fmt.Println(nn.Name)
+			}
+		}
+	}
+
+	return err
 }
 
 func (app *App) periodicGetter(ctx context.Context) {

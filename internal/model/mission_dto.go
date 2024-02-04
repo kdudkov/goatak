@@ -1,18 +1,26 @@
-package main
+package model
 
 import (
 	"strings"
 	"time"
 
-	"github.com/kdudkov/goatak/internal/model"
+	"github.com/kdudkov/goatak/internal/pm"
 )
 
 type CotTime time.Time
 
-func (s CotTime) MarshalJSON() ([]byte, error) {
-	t := time.Time(s)
+func (x CotTime) MarshalText() ([]byte, error) {
+	return []byte(time.Time(x).UTC().Format("2006-01-02T15:04:05.999Z07:00")), nil
+}
 
-	return []byte(t.UTC().Format("\"2006-01-02T15:04:05.999Z07:00\"")), nil
+// UnmarshalText implements the text unmarshaller method.
+func (x *CotTime) UnmarshalText(text []byte) error {
+	t, err := time.Parse("2006-01-02T15:04:05.999Z07:00", string(text))
+	if err != nil {
+		return err
+	}
+	*x = CotTime(t)
+	return nil
 }
 
 type MissionDTO struct {
@@ -54,9 +62,9 @@ type ContentItemDTO struct {
 
 type DataDTO struct {
 	UID            string   `json:"uid"`
-	Name           string   `json:"name"`
 	Keywords       []string `json:"keywords"`
 	MimeType       string   `json:"mimeType"`
+	Name           string   `json:"name"`
 	SubmissionTime CotTime  `json:"submissionTime"`
 	Submitter      string   `json:"submitter"`
 	CreatorUID     string   `json:"creatorUid"`
@@ -124,7 +132,7 @@ type MissionInvitationDTO struct {
 	Role        *MissionRoleDTO `json:"role"`
 }
 
-func ToMissionDTO(m *model.Mission, pm *PackageManager) *MissionDTO {
+func ToMissionDTO(m *Mission, pm *pm.PackageManager) *MissionDTO {
 	if m == nil {
 		return nil
 	}
@@ -136,17 +144,17 @@ func ToMissionDTO(m *model.Mission, pm *PackageManager) *MissionDTO {
 	}
 
 	mDTO := &MissionDTO{
-		Name:              m.Name,
-		CreatorUID:        m.CreatorUID,
-		CreateTime:        CotTime(m.CreateTime),
-		LastEdit:          CotTime(m.LastEdit),
-		BaseLayer:         m.BaseLayer,
-		Bbox:              m.Bbox,
-		ChatRoom:          m.ChatRoom,
-		Classification:    m.Classification,
-		Contents:          nil,
-		DefaultRole:       GetRole("MISSION_SUBSCRIBER"),
-		OwnerRole:         GetRole("MISSION_OWNER"),
+		Name:           m.Name,
+		CreatorUID:     m.CreatorUID,
+		CreateTime:     CotTime(m.CreateTime),
+		LastEdit:       CotTime(m.LastEdit),
+		BaseLayer:      m.BaseLayer,
+		Bbox:           m.Bbox,
+		ChatRoom:       m.ChatRoom,
+		Classification: m.Classification,
+		Contents:       nil,
+		DefaultRole:    GetRole("MISSION_SUBSCRIBER"),
+		//OwnerRole:         GetRole("MISSION_OWNER"),
 		Description:       m.Description,
 		Expiration:        0,
 		ExternalData:      nil,
@@ -174,7 +182,7 @@ func ToMissionDTO(m *model.Mission, pm *PackageManager) *MissionDTO {
 	return mDTO
 }
 
-func toContentItemDTO(pi *PackageInfo) *ContentItemDTO {
+func toContentItemDTO(pi *pm.PackageInfo) *ContentItemDTO {
 	return &ContentItemDTO{
 		CreatorUID: pi.CreatorUID,
 		Timestamp:  CotTime(pi.SubmissionDateTime),
@@ -192,7 +200,7 @@ func toContentItemDTO(pi *PackageInfo) *ContentItemDTO {
 	}
 }
 
-func ToMissionSubscriptionDTO(s *model.Subscription) *MissionSubscriptionDTO {
+func ToMissionSubscriptionDTO(s *Subscription) *MissionSubscriptionDTO {
 	if s == nil {
 		return nil
 	}
@@ -205,7 +213,7 @@ func ToMissionSubscriptionDTO(s *model.Subscription) *MissionSubscriptionDTO {
 	}
 }
 
-func ToMissionSubscriptionsDTO(subscriptions []*model.Subscription) []*MissionSubscriptionDTO {
+func ToMissionSubscriptionsDTO(subscriptions []*Subscription) []*MissionSubscriptionDTO {
 	res := make([]*MissionSubscriptionDTO, len(subscriptions))
 
 	for i, s := range subscriptions {
@@ -215,7 +223,7 @@ func ToMissionSubscriptionsDTO(subscriptions []*model.Subscription) []*MissionSu
 	return res
 }
 
-func ToMissionInvitationDTO(m *model.Invitation, name string) *MissionInvitationDTO {
+func ToMissionInvitationDTO(m *Invitation, name string) *MissionInvitationDTO {
 	return &MissionInvitationDTO{
 		MissionName: name,
 		Invitee:     m.Invitee,
@@ -226,7 +234,7 @@ func ToMissionInvitationDTO(m *model.Invitation, name string) *MissionInvitation
 	}
 }
 
-func NewChangeDTO(c *model.Change, name string) *MissionChangeDTO {
+func NewChangeDTO(c *Change, name string) *MissionChangeDTO {
 	cd := &MissionChangeDTO{
 		Type:        c.Type,
 		MissionName: name,
@@ -252,7 +260,7 @@ func NewChangeDTO(c *model.Change, name string) *MissionChangeDTO {
 	return cd
 }
 
-func NewItemDTO(i *model.DataItem) *MissionItemDTO {
+func NewItemDTO(i *DataItem) *MissionItemDTO {
 	return &MissionItemDTO{
 		CreatorUID: i.CreatorUID,
 		Timestamp:  CotTime(i.Timestamp),

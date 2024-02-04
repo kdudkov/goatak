@@ -13,6 +13,8 @@ import (
 	"github.com/aofei/air"
 	"github.com/google/uuid"
 
+	"github.com/kdudkov/goatak/internal/pm"
+
 	"github.com/kdudkov/goatak/pkg/cotproto"
 	"github.com/kdudkov/goatak/pkg/model"
 )
@@ -241,7 +243,7 @@ func getUploadHandler(app *App) func(req *air.Request, res *air.Response) error 
 	}
 }
 
-func (app *App) uploadMultipart(req *air.Request, uid, hash, filename string, pack bool) (*PackageInfo, error) {
+func (app *App) uploadMultipart(req *air.Request, uid, hash, filename string, pack bool) (*pm.PackageInfo, error) {
 	username := getUsernameFromReq(req)
 	f, fh, err := req.HTTPRequest().FormFile("assetfile")
 
@@ -257,7 +259,7 @@ func (app *App) uploadMultipart(req *air.Request, uid, hash, filename string, pa
 		return nil, err
 	}
 
-	pi, err := app.packageManager.SaveData(uid, hash, filename, fh.Header.Get("Content-type"), data, func(pi1 *PackageInfo) {
+	pi, err := app.packageManager.SaveData(uid, hash, filename, fh.Header.Get("Content-type"), data, func(pi1 *pm.PackageInfo) {
 		pi1.SubmissionUser = username
 		pi1.CreatorUID = getStringParamIgnoreCaps(req, "creatorUid")
 
@@ -275,7 +277,7 @@ func (app *App) uploadMultipart(req *air.Request, uid, hash, filename string, pa
 	return pi, nil
 }
 
-func (app *App) uploadFile(req *air.Request, uid, filename string) (*PackageInfo, error) {
+func (app *App) uploadFile(req *air.Request, uid, filename string) (*pm.PackageInfo, error) {
 	username := getUsernameFromReq(req)
 
 	if req.Body == nil {
@@ -291,7 +293,7 @@ func (app *App) uploadFile(req *air.Request, uid, filename string) (*PackageInfo
 		return nil, err
 	}
 
-	pi, err := app.packageManager.SaveData(uid, "", filename, req.Header.Get("Content-type"), data, func(pi1 *PackageInfo) {
+	pi, err := app.packageManager.SaveData(uid, "", filename, req.Header.Get("Content-type"), data, func(pi1 *pm.PackageInfo) {
 		pi1.SubmissionUser = username
 		pi1.CreatorUID = getStringParamIgnoreCaps(req, "creatorUid")
 	})
@@ -409,15 +411,7 @@ func getAllGroupsHandler(app *App) func(req *air.Request, res *air.Response) err
 	g["bitpos"] = 2
 	g["active"] = true
 
-	g1 := make(map[string]any)
-	g1["name"] = "grp1"
-	g1["direction"] = "OUT"
-	g1["created"] = "2023-01-01"
-	g1["type"] = "SYSTEM"
-	g1["bitpos"] = 2
-	g1["active"] = true
-
-	result := makeAnswer("com.bbn.marti.remote.groups.Group", []map[string]any{g, g1})
+	result := makeAnswer("com.bbn.marti.remote.groups.Group", []map[string]any{g})
 
 	return func(req *air.Request, res *air.Response) error {
 		return res.WriteJSON(result)
@@ -520,7 +514,7 @@ func getXmlHandler(app *App) func(req *air.Request, res *air.Response) error {
 		var evt *cotproto.CotEvent
 
 		if item := app.items.Get(getStringParam(req, "uid")); item != nil {
-			evt = item.GetMsg().TakMessage.GetCotEvent()
+			evt = item.GetMsg().GetTakMessage().GetCotEvent()
 		} else {
 			di := app.missions.GetPoint(getStringParam(req, "uid"))
 			if di != nil {
@@ -530,6 +524,7 @@ func getXmlHandler(app *App) func(req *air.Request, res *air.Response) error {
 
 		if evt == nil {
 			res.Status = http.StatusNotFound
+
 			return nil
 		}
 

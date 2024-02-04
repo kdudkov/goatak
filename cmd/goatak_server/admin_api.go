@@ -13,6 +13,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	"github.com/kdudkov/goatak/internal/client"
+	"github.com/kdudkov/goatak/internal/model"
 	"github.com/kdudkov/goatak/pkg/cot"
 	"github.com/kdudkov/goatak/staticfiles"
 )
@@ -246,10 +247,10 @@ func getAllMissionHandler(app *App) func(req *air.Request, res *air.Response) er
 	return func(req *air.Request, res *air.Response) error {
 		data := app.missions.GetAllMissionsAdm()
 
-		result := make([]*MissionDTO, len(data))
+		result := make([]*model.MissionDTO, len(data))
 
 		for i, m := range data {
-			result[i] = ToMissionDTO(m, app.packageManager)
+			result[i] = model.ToMissionDTO(m, app.packageManager)
 		}
 
 		return res.WriteJSON(result)

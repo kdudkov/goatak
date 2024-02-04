@@ -442,11 +442,11 @@ func (h *ConnClientHandler) sendEvent(evt *cot.Event) error {
 
 func (h *ConnClientHandler) SendMsg(msg *cot.CotMessage) error {
 	if h.GetUser().CanSeeScope(msg.Scope) {
-		return h.SendCot(msg.TakMessage)
+		return h.SendCot(msg.GetTakMessage())
 	}
 
 	if msg.IsChat() || msg.IsChatReceipt() {
-		return h.SendCot(cot.CloneMessageNoCoords(msg.TakMessage))
+		return h.SendCot(cot.CloneMessageNoCoords(msg.GetTakMessage()))
 	}
 
 	return nil

@@ -49,14 +49,16 @@ func TestConvert(t *testing.T) {
 
 	evt := ProtoToEvent(msg)
 
-	b, _ := xml.Marshal(evt)
+	b, err := xml.Marshal(evt)
+	require.NoError(t, err)
 	fmt.Println(string(b))
 
-	cot, _ := EventToProto(evt)
+	cot, err := EventToProto(evt)
+	require.NoError(t, err)
 
-	assert.Equal(t, "<uid Droid=\"callsign\"></uid><remarks>remark text</remarks>", cot.TakMessage.GetCotEvent().GetDetail().GetXmlDetail())
+	assert.Equal(t, "<uid Droid=\"callsign\"></uid><remarks>remark text</remarks>", cot.GetTakMessage().GetCotEvent().GetDetail().GetXmlDetail())
 
-	if !reflect.DeepEqual(msg.GetCotEvent(), cot.TakMessage.GetCotEvent()) {
+	if !reflect.DeepEqual(msg.GetCotEvent(), cot.GetTakMessage().GetCotEvent()) {
 		t.Fail()
 	}
 }
@@ -105,9 +107,9 @@ func TestConvert2(t *testing.T) {
 
 	cot, _ := EventToProto(evt)
 
-	assert.Equal(t, "<contact callsign=\"callsign\" endpoint=\"*:-1:stcp\" phone=\"555\"></contact><uid Droid=\"callsign\"></uid><remarks>remark text</remarks>", cot.TakMessage.GetCotEvent().GetDetail().GetXmlDetail())
+	assert.Equal(t, "<contact callsign=\"callsign\" endpoint=\"*:-1:stcp\" phone=\"555\"></contact><uid Droid=\"callsign\"></uid><remarks>remark text</remarks>", cot.GetTakMessage().GetCotEvent().GetDetail().GetXmlDetail())
 
-	if !reflect.DeepEqual(msg.GetCotEvent(), cot.TakMessage.GetCotEvent()) {
+	if !reflect.DeepEqual(msg.GetCotEvent(), cot.GetTakMessage().GetCotEvent()) {
 		t.Fail()
 	}
 }

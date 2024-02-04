@@ -1,4 +1,4 @@
-package main
+package client
 
 import (
 	"context"
@@ -7,7 +7,6 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"crypto/x509/pkix"
-	"encoding/json"
 	"encoding/pem"
 	"encoding/xml"
 	"fmt"
@@ -66,46 +65,13 @@ func (e *Enroller) getURL(path string) string {
 	return fmt.Sprintf("https://%s:%d%s", e.host, e.port, path)
 }
 
-func (e *Enroller) request(ctx context.Context, method, path string, args map[string]string, body io.Reader) (io.ReadCloser, error) {
-	url := e.getURL(path)
-
-	req, err := http.NewRequestWithContext(ctx, method, url, body)
-	if err != nil {
-		return nil, err
-	}
-
-	req.SetBasicAuth(e.user, e.passwd)
-	req.Header.Del("User-Agent")
-
-	if len(args) > 0 {
-		q := req.URL.Query()
-
-		for k, v := range args {
-			q.Add(k, v)
-		}
-
-		req.URL.RawQuery = q.Encode()
-	}
-
-	res, err := e.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-
-	if res.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("status is %s", res.Status)
-	}
-
-	if res.Body == nil {
-		return nil, fmt.Errorf("null body")
-	}
-
-	return res.Body, nil
-}
-
 func (e *Enroller) getConfig(ctx context.Context) (*CertificateConfig, error) {
 	e.logger.Infof("getting tls config")
-	body, err := e.request(ctx, http.MethodGet, "/Marti/api/tls/config", nil, nil)
+
+	body, err := NewRequest(e.client, e.getURL("/Marti/api/tls/config")).
+		Logger(e.logger).
+		Auth(e.user, e.passwd).
+		Do(ctx)
 
 	if err != nil {
 		return nil, err
@@ -120,9 +86,9 @@ func (e *Enroller) getConfig(ctx context.Context) (*CertificateConfig, error) {
 	return conf, err
 }
 
-func (e *Enroller) getOrEnrollCert(ctx context.Context, uid, version string) (*tls.Certificate, []*x509.Certificate, error) {
+func (e *Enroller) GetOrEnrollCert(ctx context.Context, uid, version string) (*tls.Certificate, []*x509.Certificate, error) {
 	fname := fmt.Sprintf("%s_%s.p12", e.host, e.user)
-	if cert, cas, err := loadP12(fname, viper.GetString("ssl.password")); err == nil {
+	if cert, cas, err := LoadP12(fname, viper.GetString("ssl.password")); err == nil {
 		e.logger.Infof("loading cert from file %s", fname)
 
 		return cert, cas, nil
@@ -154,17 +120,17 @@ func (e *Enroller) getOrEnrollCert(ctx context.Context, uid, version string) (*t
 	e.logger.Infof("signing cert on server")
 
 	args := map[string]string{"clientUID": uid, "version": version}
-	body, err := e.request(ctx, http.MethodPost, "/Marti/api/tls/signClient/v2", args, strings.NewReader(csr))
-
-	if err != nil {
-		return nil, nil, err
-	}
-
-	defer body.Close()
 
 	var certs map[string]string
 
-	if err := json.NewDecoder(body).Decode(&certs); err != nil {
+	err = NewRequest(e.client, e.getURL("/Marti/api/tls/signClient/v2")).Auth(e.user, e.passwd).
+		Logger(e.logger).
+		Post().
+		Args(args).
+		Body(strings.NewReader(csr)).
+		GetJSON(ctx, &certs)
+
+	if err != nil {
 		return nil, nil, err
 	}
 
@@ -211,8 +177,11 @@ func (e *Enroller) getOrEnrollCert(ctx context.Context, uid, version string) (*t
 }
 
 func (e *Enroller) getProfile(ctx context.Context, uid string) error {
-	args := map[string]string{"clientUID": uid}
-	body, err := e.request(ctx, http.MethodGet, "/Marti/api/tls/profile/enrollment", args, nil)
+	body, err := NewRequest(e.client, e.getURL("/Marti/api/tls/profile/enrollment")).
+		Logger(e.logger).
+		Auth(e.user, e.passwd).
+		Args(map[string]string{"clientUID": uid}).
+		Do(ctx)
 
 	if err != nil {
 		return err
@@ -267,7 +236,7 @@ func (e *Enroller) saveP12(key interface{}, cert *x509.Certificate, ca []*x509.C
 	return nil
 }
 
-func loadP12(filename, password string) (*tls.Certificate, []*x509.Certificate, error) {
+func LoadP12(filename, password string) (*tls.Certificate, []*x509.Certificate, error) {
 	p12Data, err := os.ReadFile(filename)
 	if err != nil {
 		return nil, nil, err

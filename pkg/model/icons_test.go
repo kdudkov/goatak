@@ -2,6 +2,8 @@ package model
 
 import (
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestSiDC(t *testing.T) {
@@ -13,8 +15,5 @@ func TestSiDC(t *testing.T) {
 
 func checkSIDC(t *testing.T, fn, sidc string) {
 	t.Helper()
-
-	if getSIDC(fn) != sidc {
-		t.Errorf("got %s, must be %s", getSIDC(fn), sidc)
-	}
+	assert.Equal(t, sidc, getSIDC(fn))
 }

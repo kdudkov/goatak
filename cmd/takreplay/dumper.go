@@ -37,7 +37,7 @@ func (g *JsonDumper) Stop() {
 }
 
 func (g *JsonDumper) Process(msg *cot.CotMessage) error {
-	b, err := json.Marshal(msg.TakMessage)
+	b, err := json.Marshal(msg.GetTakMessage())
 	if err != nil {
 		return err
 	}
@@ -56,13 +56,13 @@ func (g *Json2Dumper) Stop() {
 }
 
 func (g *Json2Dumper) Process(msg *cot.CotMessage) error {
-	b, err := json.Marshal(msg.TakMessage)
+	b, err := json.Marshal(msg.GetTakMessage())
 	if err != nil {
 		return err
 	}
 
 	fmt.Println(string(b))
-	fmt.Println(msg.TakMessage.GetCotEvent().GetDetail().GetXmlDetail())
+	fmt.Println(msg.GetTakMessage().GetCotEvent().GetDetail().GetXmlDetail())
 
 	return nil
 }
@@ -86,11 +86,11 @@ func (g *GpxDumper) Stop() {
 }
 
 func (g *GpxDumper) Process(msg *cot.CotMessage) error {
-	if msg == nil || msg.TakMessage.GetCotEvent() == nil || (msg.TakMessage.GetCotEvent().GetLat() == 0 && msg.TakMessage.GetCotEvent().GetLon() == 0) {
+	if msg == nil || msg.GetTakMessage().GetCotEvent() == nil || (msg.GetTakMessage().GetCotEvent().GetLat() == 0 && msg.GetTakMessage().GetCotEvent().GetLon() == 0) {
 		return nil
 	}
 
-	ev := msg.TakMessage.GetCotEvent()
+	ev := msg.GetTakMessage().GetCotEvent()
 
 	if g.hasHistory && msg.GetStartTime().After(g.prevStale) {
 		fmt.Println("</trkseg>\n<trkseg>")

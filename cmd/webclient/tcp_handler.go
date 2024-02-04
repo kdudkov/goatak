@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"net"
 
-	"github.com/spf13/viper"
-
 	"github.com/kdudkov/goatak/pkg/tlsutil"
 )
 
@@ -37,18 +35,4 @@ func (app *App) connect() (net.Conn, error) {
 	app.Logger.Infof("connecting to %s...", addr)
 
 	return net.DialTimeout("tcp", addr, app.dialTimeout)
-}
-
-func (app *App) getTLSConfig() *tls.Config {
-	conf := &tls.Config{ //nolint:exhaustruct
-		Certificates: []tls.Certificate{*app.tlsCert},
-		RootCAs:      app.cas,
-		ClientCAs:    app.cas,
-	}
-
-	if !viper.GetBool("ssl.strict") {
-		conf.InsecureSkipVerify = true
-	}
-
-	return conf
 }

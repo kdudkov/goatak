@@ -150,7 +150,7 @@ func addItemHandler(app *App) func(req *air.Request, res *air.Response) error {
 		msg := wu.ToMsg()
 
 		if wu.Send {
-			app.SendMsg(msg.TakMessage)
+			app.SendMsg(msg.GetTakMessage())
 		}
 
 		if wu.Category == "unit" || wu.Category == "point" {

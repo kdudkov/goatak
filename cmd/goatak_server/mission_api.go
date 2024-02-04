@@ -15,6 +15,15 @@ import (
 	"github.com/kdudkov/goatak/pkg/cot"
 )
 
+const (
+	missionSubscriptionType = "com.bbn.marti.sync.model.MissionSubscription"
+	missionType             = "Mission"
+	missionInvitationType   = "MissionInvitation"
+	missionRoleType         = "MissionRole"
+	logEntryType            = "com.bbn.marti.sync.model.LogEntry"
+	missionChangeType       = "MissionChange"
+)
+
 func addMissionApi(app *App, api *air.Air) {
 	g := api.Group("/Marti/api/missions")
 
@@ -48,13 +57,13 @@ func getMissionsHandler(app *App) func(req *air.Request, res *air.Response) erro
 		user := app.users.GetUser(getUsernameFromReq(req))
 
 		data := app.missions.GetAllMissions(user.GetScope())
-		result := make([]*MissionDTO, len(data))
+		result := make([]*model.MissionDTO, len(data))
 
 		for i, m := range data {
-			result[i] = ToMissionDTO(m, app.packageManager)
+			result[i] = model.ToMissionDTO(m, app.packageManager)
 		}
 
-		return res.WriteJSON(makeAnswer("Mission", result))
+		return res.WriteJSON(makeAnswer(missionType, result))
 	}
 }
 
@@ -65,10 +74,11 @@ func getMissionHandler(app *App) func(req *air.Request, res *air.Response) error
 
 		if m == nil {
 			res.Status = http.StatusNotFound
+
 			return nil
 		}
 
-		return res.WriteJSON(makeAnswer("Mission", []*MissionDTO{ToMissionDTO(m, app.packageManager)}))
+		return res.WriteJSON(makeAnswer(missionType, []*model.MissionDTO{model.ToMissionDTO(m, app.packageManager)}))
 	}
 }
 
@@ -113,7 +123,9 @@ func getMissionPutHandler(app *App) func(req *air.Request, res *air.Response) er
 			return res.WriteString(err.Error())
 		}
 
-		return res.WriteJSON(makeAnswer("Mission", []*MissionDTO{ToMissionDTO(m, app.packageManager)}))
+		res.Status = http.StatusCreated
+
+		return res.WriteJSON(makeAnswer(missionType, []*model.MissionDTO{model.ToMissionDTO(m, app.packageManager)}))
 	}
 }
 
@@ -128,7 +140,8 @@ func getMissionDeleteHandler(app *App) func(req *air.Request, res *air.Response)
 		}
 
 		app.missions.DeleteMission(m.ID)
-		return nil
+
+		return res.WriteJSON(makeAnswer(missionType, []*model.MissionDTO{model.ToMissionDTO(m, app.packageManager)}))
 	}
 }
 
@@ -136,7 +149,7 @@ func getMissionsInvitationsHandler(app *App) func(req *air.Request, res *air.Res
 	return func(req *air.Request, res *air.Response) error {
 		uid := getStringParam(req, "clientUid")
 
-		return res.WriteJSON(makeAnswer("MissionInvitation", app.missions.GetInvitations(uid)))
+		return res.WriteJSON(makeAnswer(missionInvitationType, app.missions.GetInvitations(uid)))
 	}
 }
 
@@ -150,7 +163,7 @@ func getMissionRoleHandler(app *App) func(req *air.Request, res *air.Response) e
 			return nil
 		}
 
-		return res.WriteJSON(makeAnswer("MissionRole", GetRole("")))
+		return res.WriteJSON(makeAnswer(missionRoleType, model.GetRole("")))
 	}
 }
 
@@ -175,12 +188,12 @@ func getMissionRolePutHandler(app *App) func(req *air.Request, res *air.Response
 			}
 		}
 
-		return res.WriteJSON(makeAnswer("MissionRole", GetRole("")))
+		return res.WriteJSON(makeAnswer(missionRoleType, model.GetRole("")))
 	}
 }
 
 func getMissionLogHandler(app *App) func(req *air.Request, res *air.Response) error {
-	result := makeAnswer("com.bbn.marti.sync.model.LogEntry", []*MissionLogEntryDTO{})
+	result := makeAnswer(logEntryType, []*model.MissionLogEntryDTO{})
 
 	return func(req *air.Request, res *air.Response) error {
 		user := app.users.GetUser(getUsernameFromReq(req))
@@ -238,7 +251,7 @@ func getMissionSubscriptionsHandler(app *App) func(req *air.Request, res *air.Re
 			return nil
 		}
 
-		return res.WriteJSON(makeAnswer("MissionSubscription", app.missions.GetSubscribers(m.ID)))
+		return res.WriteJSON(makeAnswer(missionSubscriptionType, app.missions.GetSubscribers(m.ID)))
 	}
 }
 
@@ -258,7 +271,7 @@ func getMissionSubscriptionHandler(app *App) func(req *air.Request, res *air.Res
 			return nil
 		}
 
-		return res.WriteJSON(makeAnswer("MissionSubscription", ToMissionSubscriptionDTO(s)))
+		return res.WriteJSON(makeAnswer(missionSubscriptionType, model.ToMissionSubscriptionDTO(s)))
 	}
 }
 
@@ -269,6 +282,7 @@ func getMissionSubscriptionPutHandler(app *App) func(req *air.Request, res *air.
 
 		if m == nil {
 			res.Status = http.StatusNotFound
+
 			return nil
 		}
 
@@ -284,17 +298,26 @@ func getMissionSubscriptionPutHandler(app *App) func(req *air.Request, res *air.
 			return res.WriteString("Illegal attempt to subscribe to mission! Password did not match.")
 		}
 
+		var role string
+
+		if m.CreatorUID == getStringParam(req, "uid") {
+			role = "MISSION_OWNER"
+		} else {
+			role = "MISSION_SUBSCRIBER"
+		}
+
 		s := &model.Subscription{
 			MissionID:  m.ID,
 			ClientUID:  getStringParam(req, "uid"),
 			Username:   getUsernameFromReq(req),
 			CreateTime: time.Now(),
-			Role:       "",
+			Role:       role,
 		}
 
 		app.missions.PutSubscription(s)
+		res.Status = http.StatusCreated
 
-		return res.WriteJSON(makeAnswer("MissionSubscription", ToMissionSubscriptionDTO(s)))
+		return res.WriteJSON(makeAnswer(missionSubscriptionType, model.ToMissionSubscriptionDTO(s)))
 	}
 }
 
@@ -305,6 +328,7 @@ func getMissionSubscriptionDeleteHandler(app *App) func(req *air.Request, res *a
 
 		if m == nil {
 			res.Status = http.StatusNotFound
+
 			return nil
 		}
 
@@ -321,12 +345,13 @@ func getMissionSubscriptionRolesHandler(app *App) func(req *air.Request, res *ai
 
 		if m == nil {
 			res.Status = http.StatusNotFound
+
 			return nil
 		}
 
 		s := app.missions.GetSubscriptions(m.ID)
 
-		return res.WriteJSON(makeAnswer("MissionSubscription", ToMissionSubscriptionsDTO(s)))
+		return res.WriteJSON(makeAnswer(missionSubscriptionType, model.ToMissionSubscriptionsDTO(s)))
 	}
 }
 
@@ -343,13 +368,13 @@ func getMissionChangesHandler(app *App) func(req *air.Request, res *air.Response
 
 		ch := app.missions.GetChanges(mission.ID, d1)
 
-		result := make([]*MissionChangeDTO, len(ch))
+		result := make([]*model.MissionChangeDTO, len(ch))
 
 		for i, c := range ch {
-			result[i] = NewChangeDTO(c, mission.Name)
+			result[i] = model.NewChangeDTO(c, mission.Name)
 		}
 
-		return res.WriteJSON(makeAnswer("MissionChange", result))
+		return res.WriteJSON(makeAnswer(missionChangeType, result))
 	}
 }
 
@@ -431,7 +456,7 @@ func getMissionContentPutHandler(app *App) func(req *air.Request, res *air.Respo
 			}
 		}
 
-		return res.WriteJSON(makeAnswer("Mission", []*MissionDTO{ToMissionDTO(mission, app.packageManager)}))
+		return res.WriteJSON(makeAnswer(missionType, []*model.MissionDTO{model.ToMissionDTO(mission, app.packageManager)}))
 	}
 }
 
@@ -451,7 +476,7 @@ func getMissionContentDeleteHandler(app *App) func(req *air.Request, res *air.Re
 
 		m1 := app.missions.GetMissionById(mission.ID)
 
-		return res.WriteJSON(makeAnswer("Mission", []*MissionDTO{ToMissionDTO(m1, app.packageManager)}))
+		return res.WriteJSON(makeAnswer(missionType, []*model.MissionDTO{model.ToMissionDTO(m1, app.packageManager)}))
 	}
 }
 
@@ -513,6 +538,7 @@ func getInviteDeleteHandler(app *App) func(req *air.Request, res *air.Response) 
 		}
 
 		app.missions.DeleteInvitation(mission.ID, getStringParam(req, "uid"), getStringParam(req, "type"))
+
 		return nil
 	}
 }

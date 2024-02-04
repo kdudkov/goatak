@@ -74,7 +74,7 @@ func (app *App) removeItemProcessor(msg *cot.CotMessage) {
 func (app *App) chatProcessor(msg *cot.CotMessage) {
 	c := model.MsgToChat(msg)
 	if c == nil {
-		app.Logger.Errorf("invalid chat message %s", msg.TakMessage)
+		app.Logger.Errorf("invalid chat message %s", msg.GetTakMessage())
 
 		return
 	}
@@ -133,7 +133,7 @@ func logMessage(msg *cot.CotMessage, dir string) error {
 	}
 	defer f.Close()
 
-	d, err := proto.Marshal(msg.TakMessage)
+	d, err := proto.Marshal(msg.GetTakMessage())
 	if err != nil {
 		return err
 	}

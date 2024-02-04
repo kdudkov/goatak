@@ -60,11 +60,15 @@ func (m *Messages) Add(msg *ChatMessage) {
 	if msg.Direct && msg.ToUID == m.uid {
 		uid = msg.FromUID
 		callsign = msg.From
+
+		if callsign == "" {
+			callsign = msg.FromUID
+		}
 	}
 
 	if c, ok := m.Chats[uid]; ok {
 		c.Messages = append([]*ChatMessage{msg}, c.Messages...)
-		if c.From == "" && callsign != "" {
+		if c.From == "" {
 			c.From = callsign
 		}
 	} else {
@@ -88,7 +92,7 @@ func MsgToChat(m *cot.CotMessage) *ChatMessage {
 
 	c := &ChatMessage{
 		ID:       chat.GetAttr("messageId"),
-		Time:     cot.TimeFromMillis(m.TakMessage.GetCotEvent().GetStartTime()),
+		Time:     m.GetStartTime(),
 		Parent:   chat.GetAttr("parent"),
 		Chatroom: chat.GetAttr("chatroom"),
 		From:     chat.GetAttr("senderCallsign"),

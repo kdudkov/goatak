@@ -6,7 +6,6 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/hex"
-	"errors"
 	"flag"
 	"fmt"
 	"math/rand"
@@ -18,7 +17,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/jroimartin/gocui"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
 
@@ -37,8 +35,6 @@ const (
 )
 
 type App struct {
-	g               *gocui.Gui
-	ui              bool
 	dialTimeout     time.Duration
 	host            string
 	tcpPort         string
@@ -52,7 +48,6 @@ type App struct {
 	cas             *x509.CertPool
 	cl              *client.ConnClientHandler
 	listeners       sync.Map
-	textLogger      *TextLogger
 	eventProcessors []*EventProcessor
 	remoteAPI       *RemoteAPI
 	saveFile        string
@@ -111,24 +106,6 @@ func NewApp(uid string, callsign string, connectStr string, webPort int, logger 
 }
 
 func (app *App) Init(cancel context.CancelFunc) {
-	if app.ui {
-		var err error
-
-		app.g, err = gocui.NewGui(gocui.OutputNormal)
-		if err != nil {
-			panic(err)
-		}
-
-		app.g.SetManagerFunc(app.layout)
-
-		if err := app.g.SetKeybinding("", gocui.KeyCtrlC, gocui.ModNone,
-			func(_ *gocui.Gui, _ *gocui.View) error { cancel(); return gocui.ErrQuit }); err != nil {
-			panic(err)
-		}
-
-		app.textLogger = NewTextLogger()
-	}
-
 	app.remoteAPI = NewRemoteAPI(app.host)
 
 	if app.tls {
@@ -140,11 +117,7 @@ func (app *App) Init(cancel context.CancelFunc) {
 }
 
 func (app *App) Run(ctx context.Context) {
-	if app.ui {
-		defer app.g.Close()
-	}
-
-	if app.webPort != 0 {
+	if app.webPort >= 0 {
 		go func() {
 			addr := fmt.Sprintf(":%d", app.webPort)
 			app.Logger.Infof("listening %s", addr)
@@ -201,8 +174,6 @@ func (app *App) SetConnected(connected bool) {
 	} else {
 		atomic.StoreUint32(&app.connected, 0)
 	}
-
-	app.redraw()
 }
 
 func (app *App) IsConnected() bool {
@@ -336,17 +307,30 @@ func (app *App) cleanOldUnits() {
 func (app *App) sendMyPoints() {
 	app.items.ForEach(func(item *model.Item) bool {
 		if item.IsSend() {
-			app.SendMsg(item.GetMsg().TakMessage)
+			app.SendMsg(item.GetMsg().GetTakMessage())
 		}
 
 		return true
 	})
 }
 
+func (app *App) getTLSConfig() *tls.Config {
+	conf := &tls.Config{ //nolint:exhaustruct
+		Certificates: []tls.Certificate{*app.tlsCert},
+		RootCAs:      app.cas,
+		ClientCAs:    app.cas,
+	}
+
+	if !viper.GetBool("ssl.strict") {
+		conf.InsecureSkipVerify = true
+	}
+
+	return conf
+}
+
 func main() {
 	conf := flag.String("config", "goatak_client.yml", "name of config file")
 	noweb := flag.Bool("noweb", false, "do not start web server")
-	ui := flag.Bool("ui", false, "do not start web server")
 	debug := flag.Bool("debug", false, "debug")
 	saveFile := flag.String("file", "", "record all events to file")
 	flag.Parse()
@@ -381,10 +365,6 @@ func main() {
 		cfg.Encoding = "console"
 	}
 
-	if *ui {
-		cfg.OutputPaths = []string{"webclient.log"}
-	}
-
 	logger, _ := cfg.Build()
 	defer logger.Sync()
 
@@ -401,11 +381,10 @@ func main() {
 		logger.Sugar(),
 	)
 
-	app.ui = *ui
 	app.saveFile = *saveFile
 
 	if *noweb {
-		app.webPort = 0
+		app.webPort = -1
 	}
 
 	app.pos.Store(model.NewPos(viper.GetFloat64("me.lat"), viper.GetFloat64("me.lon")))
@@ -436,9 +415,9 @@ func main() {
 				return
 			}
 
-			enr := NewEnroller(app.Logger.Named("enroller"), app.host, user, passw, viper.GetBool("ssl.save_cert"))
+			enr := client.NewEnroller(app.Logger.Named("enroller"), app.host, user, passw, viper.GetBool("ssl.save_cert"))
 
-			cert, cas, err := enr.getOrEnrollCert(ctx, app.uid, app.GetVersion())
+			cert, cas, err := enr.GetOrEnrollCert(ctx, app.uid, app.GetVersion())
 			if err != nil {
 				app.Logger.Errorf("error while enroll cert: %s", err.Error())
 
@@ -450,7 +429,7 @@ func main() {
 		} else {
 			app.Logger.Infof("loading cert from file %s", viper.GetString("ssl.cert"))
 
-			cert, cas, err := loadP12(viper.GetString("ssl.cert"), viper.GetString("ssl.password"))
+			cert, cas, err := client.LoadP12(viper.GetString("ssl.cert"), viper.GetString("ssl.password"))
 			if err != nil {
 				app.Logger.Errorf("error while loading cert: %s", err.Error())
 
@@ -467,15 +446,9 @@ func main() {
 
 	go app.Run(ctx)
 
-	if app.ui {
-		if err := app.g.MainLoop(); err != nil && !errors.Is(err, gocui.ErrQuit) {
-			app.Logger.Errorf(err.Error())
-		}
-	} else {
-		c := make(chan os.Signal, 1)
-		signal.Notify(c, syscall.SIGINT, syscall.SIGTERM)
-		<-c
-	}
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, syscall.SIGINT, syscall.SIGTERM)
+	<-c
 
 	cancel()
 }
