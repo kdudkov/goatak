@@ -39,7 +39,7 @@ type MissionDTO struct {
 	Expiration        int               `json:"expiration"`
 	ExternalData      []any             `json:"externalData"`
 	Feeds             []string          `json:"feeds"`
-	Groups            []string          `json:"groups"`
+	Groups            []string          `json:"groups,omitempty"`
 	InviteOnly        bool              `json:"inviteOnly"`
 	Keywords          []string          `json:"keywords"`
 	MapLayers         []string          `json:"mapLayers"`
@@ -47,6 +47,7 @@ type MissionDTO struct {
 	Path              string            `json:"path"`
 	Tool              string            `json:"tool"`
 	Uids              []*MissionItemDTO `json:"uids"`
+	Token             string            `json:"token"`
 }
 
 type MissionRoleDTO struct {
@@ -84,6 +85,7 @@ type MissionSubscriptionDTO struct {
 	Username   string          `json:"username"`
 	CreateTime CotTime         `json:"createTime"`
 	Role       *MissionRoleDTO `json:"role"`
+	Token      string          `json:"token,omitempty"`
 }
 
 type MissionChangeDTO struct {
@@ -132,41 +134,45 @@ type MissionInvitationDTO struct {
 	Role        *MissionRoleDTO `json:"role"`
 }
 
-func ToMissionDTO(m *Mission, pm *pm.PackageManager) *MissionDTO {
+func ToMissionDTO(m *Mission, pm *pm.PackageManager, withToken bool) *MissionDTO {
 	if m == nil {
 		return nil
 	}
 
-	uids := make([]*MissionItemDTO, len(m.Items)+1)
+	uids := make([]*MissionItemDTO, len(m.Items))
 
 	for i, item := range m.Items {
 		uids[i] = NewItemDTO(item)
 	}
 
 	mDTO := &MissionDTO{
-		Name:           m.Name,
-		CreatorUID:     m.CreatorUID,
-		CreateTime:     CotTime(m.CreateTime),
-		LastEdit:       CotTime(m.LastEdit),
-		BaseLayer:      m.BaseLayer,
-		Bbox:           m.Bbox,
-		ChatRoom:       m.ChatRoom,
-		Classification: m.Classification,
-		Contents:       nil,
-		DefaultRole:    GetRole("MISSION_SUBSCRIBER"),
-		//OwnerRole:         GetRole("MISSION_OWNER"),
+		Name:              m.Name,
+		CreatorUID:        m.CreatorUID,
+		CreateTime:        CotTime(m.CreateTime),
+		LastEdit:          CotTime(m.LastEdit),
+		BaseLayer:         m.BaseLayer,
+		Bbox:              m.Bbox,
+		ChatRoom:          m.ChatRoom,
+		Classification:    m.Classification,
+		Contents:          []*ContentItemDTO{},
+		DefaultRole:       GetRole("MISSION_SUBSCRIBER"),
+		OwnerRole:         GetRole("MISSION_OWNER"),
 		Description:       m.Description,
-		Expiration:        0,
-		ExternalData:      nil,
-		Feeds:             nil,
-		Groups:            strings.Split(m.Groups, ","),
+		Expiration:        -1,
+		ExternalData:      []any{},
+		Feeds:             []string{},
 		InviteOnly:        m.InviteOnly,
 		Keywords:          strings.Split(m.Keywords, ","),
-		MapLayers:         nil,
+		MapLayers:         []string{},
 		PasswordProtected: m.Password != "",
 		Path:              m.Path,
 		Tool:              m.Tool,
 		Uids:              uids,
+		Token:             m.Token,
+	}
+
+	if withToken {
+		mDTO.Token = m.Token
 	}
 
 	if pm != nil {
@@ -200,7 +206,7 @@ func toContentItemDTO(pi *pm.PackageInfo) *ContentItemDTO {
 	}
 }
 
-func ToMissionSubscriptionDTO(s *Subscription) *MissionSubscriptionDTO {
+func ToMissionSubscriptionDTO(s *Subscription, token string) *MissionSubscriptionDTO {
 	if s == nil {
 		return nil
 	}
@@ -210,6 +216,7 @@ func ToMissionSubscriptionDTO(s *Subscription) *MissionSubscriptionDTO {
 		Username:   s.Username,
 		CreateTime: CotTime(s.CreateTime),
 		Role:       GetRole(s.Role),
+		Token:      token,
 	}
 }
 
@@ -217,7 +224,7 @@ func ToMissionSubscriptionsDTO(subscriptions []*Subscription) []*MissionSubscrip
 	res := make([]*MissionSubscriptionDTO, len(subscriptions))
 
 	for i, s := range subscriptions {
-		res[i] = ToMissionSubscriptionDTO(s)
+		res[i] = ToMissionSubscriptionDTO(s, "")
 	}
 
 	return res

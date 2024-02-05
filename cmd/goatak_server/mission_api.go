@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/aofei/air"
+	"github.com/google/uuid"
 	"go.uber.org/zap"
 
 	"github.com/kdudkov/goatak/internal/model"
@@ -60,7 +61,7 @@ func getMissionsHandler(app *App) func(req *air.Request, res *air.Response) erro
 		result := make([]*model.MissionDTO, len(data))
 
 		for i, m := range data {
-			result[i] = model.ToMissionDTO(m, app.packageManager)
+			result[i] = model.ToMissionDTO(m, app.packageManager, false)
 		}
 
 		return res.WriteJSON(makeAnswer(missionType, result))
@@ -78,7 +79,7 @@ func getMissionHandler(app *App) func(req *air.Request, res *air.Response) error
 			return nil
 		}
 
-		return res.WriteJSON(makeAnswer(missionType, []*model.MissionDTO{model.ToMissionDTO(m, app.packageManager)}))
+		return res.WriteJSON(makeAnswer(missionType, []*model.MissionDTO{model.ToMissionDTO(m, app.packageManager, false)}))
 	}
 }
 
@@ -114,18 +115,19 @@ func getMissionPutHandler(app *App) func(req *air.Request, res *air.Response) er
 			Password:       getStringParam(req, "password"),
 			Path:           getStringParam(req, "path"),
 			Tool:           getStringParam(req, "tool"),
-			Groups:         strings.Join(getStringParams(req, "group"), ","),
+			Groups:         "",
 			Keywords:       "",
+			Token:          uuid.NewString(),
 		}
 
 		if err := app.missions.PutMission(m); err != nil {
-			res.Status = http.StatusBadRequest
+			res.Status = http.StatusConflict
 			return res.WriteString(err.Error())
 		}
 
 		res.Status = http.StatusCreated
 
-		return res.WriteJSON(makeAnswer(missionType, []*model.MissionDTO{model.ToMissionDTO(m, app.packageManager)}))
+		return res.WriteJSON(makeAnswer(missionType, []*model.MissionDTO{model.ToMissionDTO(m, app.packageManager, true)}))
 	}
 }
 
@@ -141,7 +143,7 @@ func getMissionDeleteHandler(app *App) func(req *air.Request, res *air.Response)
 
 		app.missions.DeleteMission(m.ID)
 
-		return res.WriteJSON(makeAnswer(missionType, []*model.MissionDTO{model.ToMissionDTO(m, app.packageManager)}))
+		return res.WriteJSON(makeAnswer(missionType, []*model.MissionDTO{model.ToMissionDTO(m, app.packageManager, false)}))
 	}
 }
 
@@ -271,7 +273,7 @@ func getMissionSubscriptionHandler(app *App) func(req *air.Request, res *air.Res
 			return nil
 		}
 
-		return res.WriteJSON(makeAnswer(missionSubscriptionType, model.ToMissionSubscriptionDTO(s)))
+		return res.WriteJSON(makeAnswer(missionSubscriptionType, model.ToMissionSubscriptionDTO(s, m.Token)))
 	}
 }
 
@@ -298,26 +300,18 @@ func getMissionSubscriptionPutHandler(app *App) func(req *air.Request, res *air.
 			return res.WriteString("Illegal attempt to subscribe to mission! Password did not match.")
 		}
 
-		var role string
-
-		if m.CreatorUID == getStringParam(req, "uid") {
-			role = "MISSION_OWNER"
-		} else {
-			role = "MISSION_SUBSCRIBER"
-		}
-
 		s := &model.Subscription{
 			MissionID:  m.ID,
 			ClientUID:  getStringParam(req, "uid"),
 			Username:   getUsernameFromReq(req),
 			CreateTime: time.Now(),
-			Role:       role,
+			Role:       "MISSION_SUBSCRIBER",
 		}
 
 		app.missions.PutSubscription(s)
 		res.Status = http.StatusCreated
 
-		return res.WriteJSON(makeAnswer(missionSubscriptionType, model.ToMissionSubscriptionDTO(s)))
+		return res.WriteJSON(makeAnswer(missionSubscriptionType, model.ToMissionSubscriptionDTO(s, m.Token)))
 	}
 }
 
@@ -456,7 +450,7 @@ func getMissionContentPutHandler(app *App) func(req *air.Request, res *air.Respo
 			}
 		}
 
-		return res.WriteJSON(makeAnswer(missionType, []*model.MissionDTO{model.ToMissionDTO(mission, app.packageManager)}))
+		return res.WriteJSON(makeAnswer(missionType, []*model.MissionDTO{model.ToMissionDTO(mission, app.packageManager, false)}))
 	}
 }
 
@@ -476,7 +470,7 @@ func getMissionContentDeleteHandler(app *App) func(req *air.Request, res *air.Re
 
 		m1 := app.missions.GetMissionById(mission.ID)
 
-		return res.WriteJSON(makeAnswer(missionType, []*model.MissionDTO{model.ToMissionDTO(m1, app.packageManager)}))
+		return res.WriteJSON(makeAnswer(missionType, []*model.MissionDTO{model.ToMissionDTO(m1, app.packageManager, false)}))
 	}
 }
 

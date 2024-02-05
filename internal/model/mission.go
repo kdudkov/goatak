@@ -34,6 +34,7 @@ type Mission struct {
 	Keywords       string
 	Hashes         string
 	Items          []*DataItem
+	Token          string
 }
 
 func (m *Mission) GetHashes() []string {

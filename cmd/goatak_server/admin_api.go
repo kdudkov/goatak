@@ -250,7 +250,7 @@ func getAllMissionHandler(app *App) func(req *air.Request, res *air.Response) er
 		result := make([]*model.MissionDTO, len(data))
 
 		for i, m := range data {
-			result[i] = model.ToMissionDTO(m, app.packageManager)
+			result[i] = model.ToMissionDTO(m, app.packageManager, false)
 		}
 
 		return res.WriteJSON(result)

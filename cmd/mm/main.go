@@ -93,14 +93,16 @@ func NewApp(uid string, callsign string, connectStr string, webPort int, logger 
 	}
 }
 
-func (app *App) Init(cancel context.CancelFunc) {
+func (app *App) Run(ctx context.Context) {
 	var err error
 
-	app.cancel = cancel
 	app.g, err = gocui.NewGui(gocui.OutputNormal)
+
 	if err != nil {
 		panic(err)
 	}
+
+	defer app.g.Close()
 
 	app.g.SetManagerFunc(app.layout)
 
@@ -108,15 +110,11 @@ func (app *App) Init(cancel context.CancelFunc) {
 		panic(err)
 	}
 
-	app.remoteAPI = NewRemoteAPI(app.host)
+	app.remoteAPI = NewRemoteAPI(app.host, app.Logger)
 
 	if app.tls {
 		app.remoteAPI.SetTLS(app.getTLSConfig())
 	}
-}
-
-func (app *App) Run(ctx context.Context) {
-	defer app.g.Close()
 
 	if m, err := app.remoteAPI.GetMissions(ctx); err == nil {
 		for _, mm := range m {
@@ -224,7 +222,7 @@ func main() {
 		cfg.Encoding = "console"
 	}
 
-	cfg.OutputPaths = []string{"webclient.log"}
+	//cfg.OutputPaths = []string{"webclient.log"}
 
 	logger, _ := cfg.Build()
 	defer logger.Sync()
@@ -298,7 +296,6 @@ func main() {
 		}
 	}
 
-	app.Init(cancel)
 	app.Run(ctx)
 	cancel()
 }

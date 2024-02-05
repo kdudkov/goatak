@@ -9,6 +9,8 @@ import (
 	"net/http"
 	"time"
 
+	"go.uber.org/zap"
+
 	"github.com/kdudkov/goatak/internal/client"
 	mp "github.com/kdudkov/goatak/internal/model"
 	"github.com/kdudkov/goatak/pkg/model"
@@ -17,14 +19,16 @@ import (
 const renewContacts = time.Second * 30
 
 type RemoteAPI struct {
+	logger *zap.SugaredLogger
 	host   string
 	client *http.Client
 	tls    bool
 }
 
-func NewRemoteAPI(host string) *RemoteAPI {
+func NewRemoteAPI(host string, logger *zap.SugaredLogger) *RemoteAPI {
 	return &RemoteAPI{
 		host:   host,
+		logger: logger,
 		client: &http.Client{Timeout: time.Second * 3},
 	}
 }
@@ -85,7 +89,7 @@ func (r *RemoteAPI) GetSubscriptions(ctx context.Context, name string) ([]string
 }
 
 func (r *RemoteAPI) GetSubscriptionRoles(ctx context.Context, name string) (string, error) {
-	b, err := client.NewRequest(r.client, r.getURL(fmt.Sprintf("/Marti/api/missions/%s/subscriptions/roles", name))).
+	b, err := client.NewRequest(r.client, r.getURL("/Marti/api/groups/all")).
 		Do(ctx)
 
 	if err != nil {
@@ -101,4 +105,52 @@ func (r *RemoteAPI) GetSubscriptionRoles(ctx context.Context, name string) (stri
 	d, err := io.ReadAll(b)
 
 	return string(d), err
+}
+
+func (r *RemoteAPI) CreateMission(ctx context.Context, name string, uid string) error {
+	b, err := client.NewRequest(r.client, r.getURL("/Marti/api/missions/"+name)).
+		Logger(r.logger).
+		Put().
+		Args(map[string]string{"creatorUid": uid, "tool": "public", "group": "__ANON__"}).
+		Do(ctx)
+
+	if err != nil {
+		return err
+	}
+
+	if b == nil {
+		return nil
+	}
+
+	defer b.Close()
+
+	d, err := io.ReadAll(b)
+
+	fmt.Println(string(d))
+
+	return nil
+}
+
+func (r *RemoteAPI) Subscribe(ctx context.Context, name string, uid string) error {
+	b, err := client.NewRequest(r.client, r.getURL("/Marti/api/missions/"+name+"/subscription")).
+		Logger(r.logger).
+		Put().
+		Args(map[string]string{"uid": uid}).
+		Do(ctx)
+
+	if err != nil {
+		return err
+	}
+
+	if b == nil {
+		return nil
+	}
+
+	defer b.Close()
+
+	d, err := io.ReadAll(b)
+
+	fmt.Println(string(d))
+
+	return nil
 }
