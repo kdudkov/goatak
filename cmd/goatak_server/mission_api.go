@@ -450,6 +450,8 @@ func getMissionContentPutHandler(app *App) func(req *air.Request, res *air.Respo
 			}
 		}
 
+		res.Status = http.StatusCreated
+
 		return res.WriteJSON(makeAnswer(missionType, []*model.MissionDTO{model.ToMissionDTO(mission, app.packageManager, false)}))
 	}
 }
