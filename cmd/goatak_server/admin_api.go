@@ -27,6 +27,7 @@ func getAdminAPI(app *App, addr string, renderer *staticfiles.Renderer, webtakRo
 	staticfiles.EmbedFiles(adminAPI, "/static")
 	adminAPI.GET("/", getIndexHandler(app, renderer))
 	adminAPI.GET("/map", getMapHandler(app, renderer))
+	adminAPI.GET("/missions", getMissionsPageHandler(app, renderer))
 	adminAPI.GET("/config", getConfigHandler(app))
 	adminAPI.GET("/connections", getConnHandler(app))
 
@@ -60,10 +61,12 @@ func getAdminAPI(app *App, addr string, renderer *staticfiles.Renderer, webtakRo
 func getIndexHandler(app *App, r *staticfiles.Renderer) func(req *air.Request, res *air.Response) error {
 	return func(req *air.Request, res *air.Response) error {
 		data := map[string]any{
-			"js": []string{"main.js"},
+			"theme": "auto",
+			"page":  "dash",
+			"js":    []string{"main.js"},
 		}
 
-		s, err := r.Render(data, "index.html", "header.html")
+		s, err := r.Render(data, "index.html", "menu.html", "header.html")
 		if err != nil {
 			app.Logger.Errorf("%v", err)
 			_ = res.WriteString(err.Error())
@@ -78,10 +81,31 @@ func getIndexHandler(app *App, r *staticfiles.Renderer) func(req *air.Request, r
 func getMapHandler(app *App, r *staticfiles.Renderer) func(req *air.Request, res *air.Response) error {
 	return func(req *air.Request, res *air.Response) error {
 		data := map[string]any{
-			"js": []string{"map.js"},
+			"theme": "auto",
+			"js":    []string{"map.js"},
 		}
 
 		s, err := r.Render(data, "map.html", "header.html")
+		if err != nil {
+			app.Logger.Errorf("%v", err)
+			_ = res.WriteString(err.Error())
+
+			return err
+		}
+
+		return res.WriteHTML(s)
+	}
+}
+
+func getMissionsPageHandler(app *App, r *staticfiles.Renderer) func(req *air.Request, res *air.Response) error {
+	return func(req *air.Request, res *air.Response) error {
+		data := map[string]any{
+			"theme": "auto",
+			"page":  "missions",
+			"js":    []string{"missions.js"},
+		}
+
+		s, err := r.Render(data, "missions.html", "menu.html", "header.html")
 		if err != nil {
 			app.Logger.Errorf("%v", err)
 			_ = res.WriteString(err.Error())
@@ -158,7 +182,6 @@ func deleteItemHandler(app *App) func(req *air.Request, res *air.Response) error
 	return func(req *air.Request, res *air.Response) error {
 		uid := getStringParam(req, "uid")
 		app.items.Remove(uid)
-		app.missions.DeletePoint(uid)
 
 		r := make(map[string]any, 0)
 		r["units"] = getUnits(app)

@@ -95,18 +95,19 @@ func TestAddPoint(t *testing.T) {
 	require.NoError(t, m.PutMission(m1))
 	require.NoError(t, m.PutMission(m2))
 
-	m.AddPoint(m1.Name, newCotMessage("scope1", "uid1", 10, 20))
-	m.AddPoint(m1.Name, newCotMessage("scope1", "uid2", 10, 20))
-	m.AddPoint(m1.Name, newCotMessage("scope1", "uid1", 15, 20))
-	m.AddPoint(m2.Name, newCotMessage("scope1", "uid1", 15, 20))
+	assert.True(t, m.AddPoint(m1, newCotMessage("scope1", "uid1", 10, 20)))
+	assert.True(t, m.AddPoint(m1, newCotMessage("scope1", "uid2", 10, 20)))
+	assert.False(t, m.AddPoint(m1, newCotMessage("scope1", "uid1", 15, 20)))
+	assert.True(t, m.AddPoint(m2, newCotMessage("scope1", "uid1", 15, 20)))
 
 	assert.Len(t, m.GetMission("scope1", m1.Name).Items, 2)
 	assert.Len(t, m.GetMission("scope1", m2.Name).Items, 1)
 
-	m.DeletePoint("uid1")
+	assert.True(t, m.DeleteMissionPoint(m1.ID, "uid1", ""))
+	assert.False(t, m.DeleteMissionPoint(m1.ID, "uid1", ""))
 
 	assert.Len(t, m.GetMission("scope1", m1.Name).Items, 1)
-	assert.Empty(t, m.GetMission("scope1", m2.Name).Items)
+	assert.Len(t, m.GetMission("scope1", m2.Name).Items, 1)
 }
 
 func TestHash(t *testing.T) {
@@ -128,7 +129,7 @@ func TestGetPoint(t *testing.T) {
 	m1 := &model.Mission{Name: "mission1", Scope: "scope1"}
 	require.NoError(t, m.PutMission(m1))
 
-	m.AddPoint(m1.Name, newCotMessage("scope1", "uid1", 10, 20))
+	m.AddPoint(m1, newCotMessage("scope1", "uid1", 10, 20))
 
 	di := m.GetPoint("uid1")
 

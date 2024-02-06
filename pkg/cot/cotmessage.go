@@ -33,6 +33,26 @@ func (m *CotMessage) GetTakMessage() *cotproto.TakMessage {
 	return m.TakMessage
 }
 
+func (m *CotMessage) GetUpdatedTakMessage() *cotproto.TakMessage {
+	if m == nil {
+		return nil
+	}
+
+	msg := m.GetTakMessage()
+
+	if m.Detail != nil {
+		if cot := msg.GetCotEvent(); cot != nil {
+			if cot.GetDetail() == nil {
+				cot.Detail = &cotproto.Detail{}
+			}
+
+			cot.Detail.XmlDetail = m.Detail.AsXMLString()
+		}
+	}
+
+	return msg
+}
+
 func (m *CotMessage) GetSendTime() time.Time {
 	if m == nil {
 		return time.Time{}

@@ -170,25 +170,19 @@ func (mm *MissionManager) GetPoint(uid string) *model.DataItem {
 	return d
 }
 
-func (mm *MissionManager) AddPoint(name string, msg *cot.CotMessage) {
-	if mm == nil || mm.db == nil {
-		return
-	}
-
-	m := mm.GetMission(msg.Scope, name)
-
-	if m == nil {
-		return
+func (mm *MissionManager) AddPoint(mission *model.Mission, msg *cot.CotMessage) bool {
+	if mission == nil {
+		return false
 	}
 
 	now := time.Now()
 
-	for _, dp := range m.Items {
+	for _, dp := range mission.Items {
 		if dp.UID == msg.GetUID() {
 			dp.UpdateFromMsg(msg)
 			mm.db.Save(dp)
 
-			return
+			return false
 		}
 	}
 
@@ -198,17 +192,18 @@ func (mm *MissionManager) AddPoint(name string, msg *cot.CotMessage) {
 
 	i.UpdateFromMsg(msg)
 
-	m.Items = append(m.Items, i)
-	m.LastEdit = now
+	mission.Items = append(mission.Items, i)
+	mission.LastEdit = now
 
-	mm.db.Save(m)
+	mm.db.Save(mission)
 
+	// todo: use sender uid, not parent
 	p, _ := msg.GetParent()
 
 	c := &model.Change{
 		CreateTime:  now,
 		Type:        "ADD_CONTENT",
-		MissionID:   m.ID,
+		MissionID:   mission.ID,
 		CreatorUID:  p,
 		ContentUID:  msg.GetUID(),
 		CotType:     msg.GetType(),
@@ -220,46 +215,28 @@ func (mm *MissionManager) AddPoint(name string, msg *cot.CotMessage) {
 	}
 
 	mm.db.Create(c)
+
+	return true
 }
 
-func (mm *MissionManager) DeletePoint(uid string) {
-	if mm == nil || mm.db == nil {
-		return
-	}
-
-	mm.db.Where("uid = ?", uid).Delete(&model.DataItem{})
-}
-
-func (mm *MissionManager) DeleteMissionPoints(missionId uint, uid string) {
+func (mm *MissionManager) DeleteMissionPoint(missionId uint, uid string, authorUID string) bool {
 	if mm == nil || mm.db == nil || uid == "" {
-		return
+		return false
 	}
 
 	var mp *model.DataItem
 
-	err := mm.db.Where("mission_id = ? AND uid = ?", missionId, uid).Find(&mp).Error
+	res := mm.db.Where("mission_id = ? AND uid = ?", missionId, uid).Delete(&mp)
 
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return
-	}
-
-	err = mm.db.Where("id = ?", mp.ID).Delete(&model.DataItem{}).Error
-
-	if err != nil {
-		mm.logger.Errorf("error %v", err)
-		return
-	}
-
-	if mp == nil {
-		mm.logger.Errorf("mp is nil")
-		return
+	if res.RowsAffected == 0 {
+		return false
 	}
 
 	c := &model.Change{
 		CreateTime:  time.Now(),
 		Type:        "REMOVE_CONTENT",
 		MissionID:   missionId,
-		CreatorUID:  "",
+		CreatorUID:  authorUID,
 		ContentUID:  mp.UID,
 		CotType:     mp.Type,
 		Callsign:    mp.Callsign,
@@ -270,23 +247,28 @@ func (mm *MissionManager) DeleteMissionPoints(missionId uint, uid string) {
 	}
 
 	mm.db.Create(c)
+
+	return true
 }
 
-func (mm *MissionManager) DeleteMissionContent(missionId uint, hash string) {
+func (mm *MissionManager) DeleteMissionContent(missionId uint, hash string, authorUID string) bool {
 	if mm == nil || mm.db == nil || hash == "" {
-		return
+		return false
 	}
 
 	m := mm.GetMissionById(missionId)
 
 	if m == nil {
-		return
+		return false
 	}
 
 	if m.RemoveHash(hash) {
 		m.LastEdit = time.Now()
 		mm.db.Save(m)
+		return true
 	}
+
+	return false
 }
 
 func (mm *MissionManager) PutSubscription(s *model.Subscription) {

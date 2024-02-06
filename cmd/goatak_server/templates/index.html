@@ -1,114 +1,110 @@
-<div class="container-fluid" id="app">
-    <h5>ATAK Server</h5>
-    <a href="/map">Map</a> <a href="/webtak/index.html">Webtak</a><br/>
-    <div class="row">
-        <div class="col-6">
-            <div class="overflow-auto">
-                <div class="alert alert-secondary info" role="alert" v-if="alert != null">
-                    {{ alert }}
-                </div>
-                <div class="card mb-2">
-                    <div class="card-header">Connections</div>
-                    <div class="card-body">
-                        <table class="table table-hover table-sm units">
-                            <tr>
-                                <th>addr</th>
-                                <th>UIDS</th>
-                                <th>user</th>
-                                <th>scope</th>
-                                <th>proto</th>
-                                <th>last seen</th>
-                            </tr>
-                            <tr v-for="c in all_conns">
-                                <td>{{ c.addr }}</td>
-                                <td>
+<div class="row">
+    <div class="col-6">
+        <div class="overflow-auto">
+            <div class="alert alert-secondary info" role="alert" v-if="alert != null">
+                {{ alert }}
+            </div>
+            <div class="card mb-2">
+                <div class="card-header">Connections</div>
+                <div class="card-body">
+                    <table class="table table-hover table-sm units">
+                        <tr>
+                            <th>addr</th>
+                            <th>UIDS</th>
+                            <th>user</th>
+                            <th>scope</th>
+                            <th>proto</th>
+                            <th>last seen</th>
+                        </tr>
+                        <tr v-for="c in all_conns">
+                            <td>{{ c.addr }}</td>
+                            <td>
                                     <span v-for="(k, v) in c.uids">
                                         {{ k }}: {{ v }}
                                     </span>
-                                </td>
-                                <td>{{ c.user }}</td>
-                                <td>{{ c.scope }}</td>
-                                <td>{{ c.ver }}</td>
-                                <td>{{ c.last_seen }}</td>
-                            </tr>
-                        </table>
-                    </div>
-                </div>
-                <div class="card mb-2">
-                    <div class="card-header">Contacts</div>
-                    <div class="card-body">
-                        <table class="table table-hover table-sm units">
-                            <tr>
-                                <th></th>
-                                <th>Callsign</th>
-                                <th>Status</th>
-                                <th>coords</th>
-                                <th>TAK ver.</th>
-                            </tr>
-                            <tr v-for="u in byCategory('contact')">
-                                <td>
-                                    <img v-bind:src="getImg(u)"/>
-                                </td>
-                                <td>{{ u.callsign }}</td>
-                                <td><span class="badge"
-                                          v-bind:class="[u.status=='Online' ? 'bg-success' : 'bg-secondary']">{{ u.status }}</span>
-                                </td>
-                                <td>{{ printCoords(u.lat, u.lon) }}</td>
-                                <td>{{ u.tak_version }}</td>
-                            </tr>
-                        </table>
-                    </div>
+                            </td>
+                            <td>{{ c.user }}</td>
+                            <td>{{ c.scope }}</td>
+                            <td>{{ c.ver }}</td>
+                            <td>{{ c.last_seen }}</td>
+                        </tr>
+                    </table>
                 </div>
             </div>
-        </div>
-        <div class="col-6">
             <div class="card mb-2">
-                <div class="card-header">Units</div>
+                <div class="card-header">Contacts</div>
                 <div class="card-body">
                     <table class="table table-hover table-sm units">
                         <tr>
                             <th></th>
                             <th>Callsign</th>
+                            <th>Status</th>
                             <th>coords</th>
-                            <th>mission</th>
-                            <th>stale time</th>
+                            <th>TAK ver.</th>
                         </tr>
-                        <tr v-for="u in byCategory('unit')">
+                        <tr v-for="u in byCategory('contact')">
                             <td>
                                 <img v-bind:src="getImg(u)"/>
                             </td>
                             <td>{{ u.callsign }}</td>
+                            <td><span class="badge"
+                                      v-bind:class="[u.status=='Online' ? 'bg-success' : 'bg-secondary']">{{ u.status }}</span>
+                            </td>
                             <td>{{ printCoords(u.lat, u.lon) }}</td>
-                            <td>{{ u.missions }}</td>
-                            <td>{{ dt(u.stale_time) }}</td>
+                            <td>{{ u.tak_version }}</td>
                         </tr>
                     </table>
                 </div>
             </div>
-            <div class="card mb-2">
-                <div class="card-header">Points</div>
-                <div class="card-body">
-                    <table class="table table-hover table-sm units">
-                        <tr>
-                            <th></th>
-                            <th>Callsign</th>
-                            <th>coords</th>
-                            <th>mission</th>
-                            <th>send time</th>
-                            <th>stale time</th>
-                        </tr>
-                        <tr v-for="u in byCategory('point')">
-                            <td><img v-bind:src="getImg(u)"/></td>
-                            <td>{{ u.callsign }}</td>
-                            <td>{{ printCoords(u.lat, u.lon) }}</td>
-                            <td>{{ u.missions }}</td>
-                            <td>{{ dt(u.send_time) }}</td>
-                            <td>{{ dt(u.stale_time) }}</td>
-                        </tr>
-                    </table>
-                </div>
+        </div>
+    </div>
+    <div class="col-6">
+        <div class="card mb-2">
+            <div class="card-header">Units</div>
+            <div class="card-body">
+                <table class="table table-hover table-sm units">
+                    <tr>
+                        <th></th>
+                        <th>Callsign</th>
+                        <th>coords</th>
+                        <th>mission</th>
+                        <th>stale time</th>
+                    </tr>
+                    <tr v-for="u in byCategory('unit')">
+                        <td>
+                            <img v-bind:src="getImg(u)"/>
+                        </td>
+                        <td>{{ u.callsign }}</td>
+                        <td>{{ printCoords(u.lat, u.lon) }}</td>
+                        <td>{{ u.missions }}</td>
+                        <td>{{ dt(u.stale_time) }}</td>
+                    </tr>
+                </table>
             </div>
-
+        </div>
+        <div class="card mb-2">
+            <div class="card-header">Points</div>
+            <div class="card-body">
+                <table class="table table-hover table-sm units">
+                    <tr>
+                        <th></th>
+                        <th>Callsign</th>
+                        <th>coords</th>
+                        <th>mission</th>
+                        <th>send time</th>
+                        <th>stale time</th>
+                    </tr>
+                    <tr v-for="u in byCategory('point')">
+                        <td><img v-bind:src="getImg(u)"/></td>
+                        <td>{{ u.callsign }}</td>
+                        <td>{{ printCoords(u.lat, u.lon) }}</td>
+                        <td>{{ u.missions }}</td>
+                        <td>{{ dt(u.send_time) }}</td>
+                        <td>{{ dt(u.stale_time) }}</td>
+                    </tr>
+                </table>
+            </div>
         </div>
     </div>
 </div>
+

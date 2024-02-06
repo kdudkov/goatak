@@ -21,6 +21,7 @@ type PackageManager struct {
 	logger  *zap.SugaredLogger
 	baseDir string
 	data    sync.Map
+	noSave  bool
 }
 
 func NewPackageManager(logger *zap.SugaredLogger, basedir string) *PackageManager {
@@ -78,6 +79,10 @@ func (pm *PackageManager) Stop() {
 func (pm *PackageManager) Store(uid string, pi *PackageInfo) {
 	pm.data.Store(uid, pi)
 
+	if pm.noSave {
+		return
+	}
+
 	if err := saveInfo(pm.baseDir, uid, pi); err != nil {
 		pm.logger.Errorf("%v", err)
 	}
@@ -99,6 +104,7 @@ func (pm *PackageManager) GetByHash(hash string) *PackageInfo {
 
 		if p.Hash == hash {
 			pi = p
+
 			return false
 		}
 
@@ -108,7 +114,7 @@ func (pm *PackageManager) GetByHash(hash string) *PackageInfo {
 	return pi
 }
 
-func (pm *PackageManager) ForEach(f func(key string, pi *PackageInfo) bool) {
+func (pm *PackageManager) ForEach(f func(uid string, pi *PackageInfo) bool) {
 	pm.data.Range(func(key, value any) bool {
 		return f(key.(string), value.(*PackageInfo))
 	})
@@ -201,8 +207,10 @@ func (pm *PackageManager) SaveData(uid, hash, fname, content string, data []byte
 		uid = uuid.NewString()
 	}
 
-	if err := pm.SaveFile(uid, fname, data); err != nil {
-		return nil, err
+	if !pm.noSave {
+		if err := pm.SaveFile(uid, fname, data); err != nil {
+			return nil, err
+		}
 	}
 
 	info := &PackageInfo{
@@ -250,7 +258,8 @@ func (pm *PackageManager) SaveFile(uid, fname string, b []byte) error {
 
 func Hash(b []byte) string {
 	h := sha256.New()
-	return fmt.Sprintf("%x", h.Sum(b))
+	h.Write(b)
+	return fmt.Sprintf("%x", h.Sum(nil))
 }
 
 func fileExists(path string) bool {

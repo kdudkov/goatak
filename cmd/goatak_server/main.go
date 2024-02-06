@@ -30,6 +30,7 @@ import (
 	"github.com/kdudkov/goatak/internal/pm"
 	"github.com/kdudkov/goatak/internal/repository"
 	"github.com/kdudkov/goatak/pkg/cot"
+	"github.com/kdudkov/goatak/pkg/cotproto"
 	"github.com/kdudkov/goatak/pkg/model"
 	"github.com/kdudkov/goatak/pkg/tlsutil"
 )
@@ -359,16 +360,9 @@ func (app *App) MessageProcessor() {
 
 func (app *App) route(msg *cot.CotMessage) {
 	if missions := msg.GetDetail().GetDestMission(); len(missions) > 0 {
+		app.Logger.Debugf("point %s %s: missions: %s", msg.GetUID(), msg.GetCallsign(), strings.Join(missions, ","))
 		for _, missionName := range missions {
-			app.missions.AddPoint(missionName, msg)
-
-			m := app.missions.GetMission(msg.Scope, missionName)
-
-			if m != nil {
-				for _, uid := range app.missions.GetSubscribers(m.ID) {
-					app.SendToUID(uid, msg)
-				}
-			}
+			app.processMissionPoint(missionName, msg)
 		}
 
 		return
@@ -383,6 +377,36 @@ func (app *App) route(msg *cot.CotMessage) {
 	}
 
 	app.SendBroadcast(msg)
+}
+
+func (app *App) processMissionPoint(missionName string, msg *cot.CotMessage) {
+	m := app.missions.GetMission(msg.Scope, missionName)
+
+	if m == nil {
+		return
+	}
+
+	var send bool
+	var ackMsg *cotproto.TakMessage
+
+	if msg.GetType() == "t-x-d-d" {
+		uid := msg.GetFirstLink("p-p").GetAttr("uid")
+		if uid == "" {
+			return
+		}
+
+		send = app.missions.DeleteMissionPoint(m.ID, uid, "")
+		ackMsg = cot.MissionPointDelMsg(missionName, uid)
+	} else {
+		send = app.missions.AddPoint(m, msg)
+		ackMsg = cot.MissionPointAddMsg(missionName, msg)
+	}
+
+	if send && ackMsg != nil {
+		for _, uid := range app.missions.GetSubscribers(m.ID) {
+			app.SendToUID(uid, ackMsg)
+		}
+	}
 }
 
 func (app *App) cleaner() {
@@ -415,7 +439,7 @@ func (app *App) cleanOldUnits() {
 
 	for _, uid := range toDelete {
 		app.items.Remove(uid)
-		app.missions.DeletePoint(uid)
+		//app.missions.DeletePoint(uid)
 	}
 }
 
@@ -445,10 +469,10 @@ func (app *App) SendToCallsign(callsign string, msg *cot.CotMessage) {
 	})
 }
 
-func (app *App) SendToUID(uid string, msg *cot.CotMessage) {
+func (app *App) SendToUID(uid string, msg *cotproto.TakMessage) {
 	app.ForAllClients(func(ch client.ClientHandler) bool {
 		if ch.HasUID(uid) {
-			if err := ch.SendMsg(msg); err != nil {
+			if err := ch.SendCot(msg); err != nil {
 				app.Logger.Errorf("error: %v", err)
 			}
 		}
@@ -526,7 +550,6 @@ func getDatabase() (*gorm.DB, error) {
 func main() {
 	fmt.Printf("version %s\n", getVersion())
 
-	debug := flag.Bool("debug", false, "debug mode")
 	conf := flag.String("config", "goatak_server.yml", "name of config file")
 	flag.Parse()
 
@@ -553,8 +576,10 @@ func main() {
 
 	flag.Parse()
 
+	debug := viper.GetBool("debug")
+
 	var cfg zap.Config
-	if *debug {
+	if debug {
 		cfg = zap.NewDevelopmentConfig()
 	} else {
 		cfg = zap.NewProductionConfig()
@@ -573,7 +598,7 @@ func main() {
 		useSsl:      viper.GetBool("ssl.use_ssl"),
 		logging:     viper.GetBool("log"),
 		dataDir:     viper.GetString("data_dir"),
-		debug:       *debug,
+		debug:       debug,
 		connections: viper.GetStringSlice("connections"),
 		usersFile:   viper.GetString("users_file"),
 		webtakRoot:  viper.GetString("webtak_root"),

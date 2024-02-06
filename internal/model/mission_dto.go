@@ -176,8 +176,6 @@ func ToMissionDTO(m *Mission, pm *pm.PackageManager, withToken bool) *MissionDTO
 	}
 
 	if pm != nil {
-		mDTO.Contents = make([]*ContentItemDTO, 0)
-
 		for _, h := range m.GetHashes() {
 			if pi := pm.GetByHash(h); pi != nil {
 				mDTO.Contents = append(mDTO.Contents, toContentItemDTO(pi))

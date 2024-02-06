@@ -440,17 +440,22 @@ func getMissionContentPutHandler(app *App) func(req *air.Request, res *air.Respo
 
 		if err := dec.Decode(&data); err != nil {
 			res.Status = http.StatusInternalServerError
+
 			return res.WriteString(err.Error())
 		}
 
+		var added = false
+
 		if d, ok := data["hashes"]; ok {
-			if mission.AddHashes(d...) {
-				mission.LastEdit = time.Now()
-				app.missions.Save(mission)
-			}
+			added = mission.AddHashes(d...)
 		}
 
-		res.Status = http.StatusCreated
+		if added {
+			mission.LastEdit = time.Now()
+			app.missions.Save(mission)
+
+			res.Status = http.StatusCreated
+		}
 
 		return res.WriteJSON(makeAnswer(missionType, []*model.MissionDTO{model.ToMissionDTO(mission, app.packageManager, false)}))
 	}
@@ -467,8 +472,15 @@ func getMissionContentDeleteHandler(app *App) func(req *air.Request, res *air.Re
 			return nil
 		}
 
-		app.missions.DeleteMissionPoints(mission.ID, getStringParam(req, "uid"))
-		app.missions.DeleteMissionContent(mission.ID, getStringParam(req, "hash"))
+		author := getStringParam(req, "creatorUid")
+
+		if uid := getStringParam(req, "uid"); uid != "" {
+			app.missions.DeleteMissionPoint(mission.ID, uid, author)
+		}
+
+		if hash := getStringParam(req, "hash"); hash != "" {
+			app.missions.DeleteMissionContent(mission.ID, hash, author)
+		}
 
 		m1 := app.missions.GetMissionById(mission.ID)
 
