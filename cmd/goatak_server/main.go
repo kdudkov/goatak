@@ -398,7 +398,8 @@ func (app *App) processMissionPoint(missionName string, msg *cot.CotMessage) {
 		send = app.missions.DeleteMissionPoint(m.ID, uid, "")
 		ackMsg = cot.MissionPointDelMsg(missionName, uid)
 	} else {
-		send = app.missions.AddPoint(m, msg)
+		send = true
+		app.missions.AddPoint(m, msg)
 		ackMsg = cot.MissionPointAddMsg(missionName, msg)
 	}
 
