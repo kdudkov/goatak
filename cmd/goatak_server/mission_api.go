@@ -475,7 +475,9 @@ func getMissionContentDeleteHandler(app *App) func(req *air.Request, res *air.Re
 		author := getStringParam(req, "creatorUid")
 
 		if uid := getStringParam(req, "uid"); uid != "" {
-			app.missions.DeleteMissionPoint(mission.ID, uid, author)
+			change := app.missions.DeleteMissionPoint(mission.ID, uid, author)
+
+			app.NotifyMissionSubscribers(mission, change)
 		}
 
 		if hash := getStringParam(req, "hash"); hash != "" {

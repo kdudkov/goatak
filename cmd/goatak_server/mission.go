@@ -170,9 +170,9 @@ func (mm *MissionManager) GetPoint(uid string) *model.DataItem {
 	return d
 }
 
-func (mm *MissionManager) AddPoint(mission *model.Mission, msg *cot.CotMessage) bool {
+func (mm *MissionManager) AddPoint(mission *model.Mission, msg *cot.CotMessage) *model.Change {
 	if mission == nil {
-		return false
+		return nil
 	}
 
 	now := time.Now()
@@ -182,7 +182,7 @@ func (mm *MissionManager) AddPoint(mission *model.Mission, msg *cot.CotMessage) 
 			dp.UpdateFromMsg(msg)
 			mm.db.Save(dp)
 
-			return false
+			return nil
 		}
 	}
 
@@ -216,12 +216,12 @@ func (mm *MissionManager) AddPoint(mission *model.Mission, msg *cot.CotMessage) 
 
 	mm.db.Create(c)
 
-	return true
+	return c
 }
 
-func (mm *MissionManager) DeleteMissionPoint(missionId uint, uid string, authorUID string) bool {
+func (mm *MissionManager) DeleteMissionPoint(missionId uint, uid string, authorUID string) *model.Change {
 	if mm == nil || mm.db == nil || uid == "" {
-		return false
+		return nil
 	}
 
 	var mp *model.DataItem
@@ -229,7 +229,7 @@ func (mm *MissionManager) DeleteMissionPoint(missionId uint, uid string, authorU
 	res := mm.db.Where("mission_id = ? AND uid = ?", missionId, uid).Delete(&mp)
 
 	if res.RowsAffected == 0 {
-		return false
+		return nil
 	}
 
 	c := &model.Change{
@@ -248,7 +248,7 @@ func (mm *MissionManager) DeleteMissionPoint(missionId uint, uid string, authorU
 
 	mm.db.Create(c)
 
-	return true
+	return c
 }
 
 func (mm *MissionManager) DeleteMissionContent(missionId uint, hash string, authorUID string) bool {

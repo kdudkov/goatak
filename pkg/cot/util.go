@@ -1,7 +1,6 @@
 package cot
 
 import (
-	"strconv"
 	"time"
 
 	"github.com/google/uuid"
@@ -86,43 +85,4 @@ func CloneMessageNoCoords(msg *cotproto.TakMessage) *cotproto.TakMessage {
 	}
 
 	return msg1
-}
-
-func MissionPointAddMsg(missionName string, m *CotMessage) *cotproto.TakMessage {
-	msg := BasicMsg("t-x-m-c", uuid.NewString(), time.Second*5)
-	msg.CotEvent.How = "h-g-i-g-o"
-
-	xd := NewXMLDetails()
-
-	ch := xd.AddChild("mission", map[string]string{"type": "CHANGE", "name": missionName}, "").
-		AddChild("MissionChanges", nil, "").AddChild("MissionChange", nil, "")
-
-	ch.AddChild("contentUid", nil, m.GetUID())
-	ch.AddChild("type", nil, "ADD_CONTENT")
-	ch.AddChild("isFederatedChange", nil, "false")
-	ch.AddChild("missionName", nil, missionName)
-	ch.AddChild("timestamp", nil, strconv.Itoa(int(m.GetTakMessage().GetCotEvent().GetStartTime())))
-
-	msg.CotEvent.Detail = &cotproto.Detail{XmlDetail: xd.AsXMLString()}
-
-	return msg
-}
-
-func MissionPointDelMsg(missionName string, uid string) *cotproto.TakMessage {
-	msg := BasicMsg("t-x-m-c", uuid.NewString(), time.Second*5)
-	msg.CotEvent.How = "h-g-i-g-o"
-
-	xd := NewXMLDetails()
-
-	ch := xd.AddChild("mission", map[string]string{"type": "CHANGE", "name": missionName}, "").
-		AddChild("MissionChanges", nil, "").AddChild("MissionChange", nil, "")
-
-	ch.AddChild("contentUid", nil, uid)
-	ch.AddChild("type", nil, "REMOVE_CONTENT")
-	ch.AddChild("isFederatedChange", nil, "false")
-	ch.AddChild("missionName", nil, missionName)
-
-	msg.CotEvent.Detail = &cotproto.Detail{XmlDetail: xd.AsXMLString()}
-
-	return msg
 }

@@ -27,6 +27,7 @@ import (
 	"software.sslmate.com/src/go-pkcs12"
 
 	"github.com/kdudkov/goatak/internal/client"
+	im "github.com/kdudkov/goatak/internal/model"
 	"github.com/kdudkov/goatak/internal/pm"
 	"github.com/kdudkov/goatak/internal/repository"
 	"github.com/kdudkov/goatak/pkg/cot"
@@ -386,27 +387,29 @@ func (app *App) processMissionPoint(missionName string, msg *cot.CotMessage) {
 		return
 	}
 
-	var send bool
-	var ackMsg *cotproto.TakMessage
+	var change *im.Change
 
 	if msg.GetType() == "t-x-d-d" {
-		uid := msg.GetFirstLink("p-p").GetAttr("uid")
-		if uid == "" {
-			return
+		if uid := msg.GetFirstLink("p-p").GetAttr("uid"); uid != "" {
+			change = app.missions.DeleteMissionPoint(m.ID, uid, "")
 		}
-
-		send = app.missions.DeleteMissionPoint(m.ID, uid, "")
-		ackMsg = cot.MissionPointDelMsg(missionName, uid)
 	} else {
-		send = true
-		app.missions.AddPoint(m, msg)
-		ackMsg = cot.MissionPointAddMsg(missionName, msg)
+		change = app.missions.AddPoint(m, msg)
 	}
 
-	if send && ackMsg != nil {
-		for _, uid := range app.missions.GetSubscribers(m.ID) {
-			app.SendToUID(uid, ackMsg)
-		}
+	if change != nil {
+		app.NotifyMissionSubscribers(m, change)
+	}
+}
+
+func (app *App) NotifyMissionSubscribers(mission *im.Mission, c *im.Change) {
+	if mission == nil || c == nil {
+		return
+	}
+
+	msg := im.MissionChangePountMsg(mission.Name, c)
+	for _, uid := range app.missions.GetSubscribers(mission.ID) {
+		app.SendToUID(uid, msg)
 	}
 }
 

@@ -95,16 +95,16 @@ func TestAddPoint(t *testing.T) {
 	require.NoError(t, m.PutMission(m1))
 	require.NoError(t, m.PutMission(m2))
 
-	assert.True(t, m.AddPoint(m1, newCotMessage("scope1", "uid1", 10, 20)))
-	assert.True(t, m.AddPoint(m1, newCotMessage("scope1", "uid2", 10, 20)))
-	assert.False(t, m.AddPoint(m1, newCotMessage("scope1", "uid1", 15, 20)))
-	assert.True(t, m.AddPoint(m2, newCotMessage("scope1", "uid1", 15, 20)))
+	assert.NotNil(t, m.AddPoint(m1, newCotMessage("scope1", "uid1", 10, 20)))
+	assert.NotNil(t, m.AddPoint(m1, newCotMessage("scope1", "uid2", 10, 20)))
+	assert.Nil(t, m.AddPoint(m1, newCotMessage("scope1", "uid1", 15, 20)))
+	assert.NotNil(t, m.AddPoint(m2, newCotMessage("scope1", "uid1", 15, 20)))
 
 	assert.Len(t, m.GetMission("scope1", m1.Name).Items, 2)
 	assert.Len(t, m.GetMission("scope1", m2.Name).Items, 1)
 
-	assert.True(t, m.DeleteMissionPoint(m1.ID, "uid1", ""))
-	assert.False(t, m.DeleteMissionPoint(m1.ID, "uid1", ""))
+	assert.NotNil(t, m.DeleteMissionPoint(m1.ID, "uid1", ""))
+	assert.Nil(t, m.DeleteMissionPoint(m1.ID, "uid1", ""))
 
 	assert.Len(t, m.GetMission("scope1", m1.Name).Items, 1)
 	assert.Len(t, m.GetMission("scope1", m2.Name).Items, 1)
