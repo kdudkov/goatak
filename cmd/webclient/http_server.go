@@ -86,6 +86,8 @@ func getConfigHandler(app *App) func(req *air.Request, res *air.Response) error 
 		m["team"] = app.team
 		m["role"] = app.role
 
+		m["layers"] = getLayers()
+
 		return res.WriteJSON(m)
 	}
 }
@@ -298,4 +300,32 @@ func getStringParam(req *air.Request, name string) string {
 
 func getTypes(_ *air.Request, res *air.Response) error {
 	return res.WriteJSON(cot.Root)
+}
+
+func getLayers() []map[string]any {
+	return []map[string]any{
+		{
+			"name":    "Google Hybrid",
+			"url":     "http://mt{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}&s=Galileo",
+			"maxzoom": 20,
+			"parts":   []string{"0", "1", "2", "3"},
+		},
+		{
+			"name":    "OSM",
+			"url":     "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+			"maxzoom": 19,
+			"parts":   []string{"a", "b", "c"},
+		},
+		{
+			"name":    "Opentopo.cz",
+			"url":     "https://tile-{s}.opentopomap.cz/{z}/{x}/{y}.png",
+			"maxzoom": 18,
+			"parts":   []string{"a", "b", "c"},
+		},
+		{
+			"name":    "Yandex maps",
+			"url":     "https://core-renderer-tiles.maps.yandex.net/tiles?l=map&x={x}&y={y}&z={z}&scale=1&lang=ru_RU&projection=web_mercator",
+			"maxzoom": 20,
+		},
+	}
 }

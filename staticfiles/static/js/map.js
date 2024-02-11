@@ -87,9 +87,10 @@ function needUpdate(oldUnit, newUnit) {
 let app = new Vue({
     el: '#app',
     data: {
+        map: null,
+        layers: null,
         units: new Map(),
         messages: [],
-        map: null,
         ts: 0,
         locked_unit_uid: '',
         current_unit_uid: null,
@@ -108,70 +109,23 @@ let app = new Vue({
 
     mounted() {
         this.map = L.map('map');
-        let osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
             maxZoom: 19
-        });
-        let topoAttribution = 'Map data: &copy; <a href="https://openstreetmap.org/copyright">OpenStreetMap</a> contributors, <a href="http://viewfinderpanoramas.org">SRTM</a> | Map style: &copy; <a href="https://opentopomap.org">OpenTopoMap</a>, <a href="https://opentopomap.ru">OpenTopoMap.ru</a> (<a href="https://creativecommons.org/licenses/by-sa/3.0/">CC-BY-SA</a>)';
-        let opentopo = L.tileLayer('https://tile-{s}.opentopomap.ru/{z}/{x}/{y}.png', {
-            attribution: topoAttribution,
-            maxZoom: 17
-        });
-        let topoCzAttribution = 'Map data: &copy; <a href="https://openstreetmap.org/copyright">OpenStreetMap</a> contributors, <a href="http://viewfinderpanoramas.org">SRTM</a> | Map style: &copy; <a href="https://opentopomap.org">OpenTopoMap</a>, <a href="https://opentopomap.cz">OpenTopoMap.cz</a> (<a href="https://creativecommons.org/licenses/by-sa/3.0/">CC-BY-SA</a>)';
-        let topoCz = L.tileLayer('https://tile-{s}.opentopomap.cz/{z}/{x}/{y}.png', {
-            maxZoom: 18,
-            attribution: topoCzAttribution
-        });
-        let google = L.tileLayer('http://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}&s=Galileo', {
-            subdomains: ['mt1', 'mt2', 'mt3'],
-            maxZoom: 20
-        });
-        let ya_map = L.tileLayer('https://core-renderer-tiles.maps.yandex.net/tiles?l=map&x={x}&y={y}&z={z}&scale=1&lang=ru_RU&projection=web_mercator', {
-            maxZoom: 20
-        });
-        let ya_sat = L.tileLayer('https://core-sat.maps.yandex.net/tiles?l=sat&x={x}&y={y}&z={z}&scale=1&lang=ru_RU&g=Gagari', {
-            crs: L.CRS.EPSG3395,
-            maxZoom: 21
-        });
-        osm.addTo(this.map);
+        }).addTo(this.map);
+        this.map.setView([60, 30], 11);
 
         L.control.scale({metric: true}).addTo(this.map);
-        L.control.layers({
-            "OSM": osm,
-            // "OpenTopoMap.ru": opentopo,
-            "OpenTopoMap.cz": topoCz,
-            "Yandex map": ya_map,
-            // "Yandex sat": ya_sat,
-            "Google sat": google
-        }, null, {hideSingleBase: true}).addTo(this.map);
 
+        this.getConfig();
         this.renew();
+
         this.timer = setInterval(this.renew, 3000);
 
         this.map.on('click', this.mapClick);
         this.map.on('mousemove', this.mouseMove);
 
         this.formFromUnit(null);
-        let vm = this;
-        fetch('/config')
-            .then(function (response) {
-                return response.json()
-            })
-            .then(function (data) {
-                vm.config = data;
-                if (vm.map != null) {
-                    vm.map.setView([data.lat, data.lon], data.zoom);
-                }
-
-                if (ne(data.callsign)) {
-                    vm.me = L.marker([data.lat, data.lon]);
-                    vm.me.setIcon(L.icon({
-                        iconUrl: "/static/icons/self.png",
-                        iconAnchor: new L.Point(16, 16),
-                    }));
-                    vm.me.addTo(vm.map);
-                }
-            });
     },
     computed: {
         current_unit: function () {
@@ -183,14 +137,8 @@ let app = new Vue({
         }
     },
     methods: {
-        renew: function () {
+        getConfig: function () {
             let vm = this;
-
-            fetch('/unit')
-                .then(function (response) {
-                    return response.json()
-                })
-                .then(this.processUnits);
 
             fetch('/config')
                 .then(function (response) {
@@ -198,11 +146,17 @@ let app = new Vue({
                 })
                 .then(function (data) {
                     vm.config = data;
-                    if (ne(vm.me)) {
-                        vm.me.setLatLng([data.lat, data.lon]);
-                    }
+
+                    vm.map.setView([data.lat, data.lon], data.zoom);
 
                     if (ne(vm.config.callsign)) {
+                        vm.me = L.marker([data.lat, data.lon]);
+                        vm.me.setIcon(L.icon({
+                            iconUrl: "/static/icons/self.png",
+                            iconAnchor: new L.Point(16, 16),
+                        }));
+                        vm.me.addTo(vm.map);
+
                         fetch('/types')
                             .then(function (response) {
                                 return response.json()
@@ -211,7 +165,30 @@ let app = new Vue({
                                 vm.types = data;
                             });
                     }
+
+                    layers = L.control.layers({}, null, {hideSingleBase: true});
+                    layers.addTo(vm.map);
+
+                    data.layers.forEach(function (i) {
+                        l = L.tileLayer(i.url, {
+                            minZoom: i.minZoom ?? 1,
+                            maxZoom: i.maxZoom ?? 20,
+                            subdomains: i.parts ?? [],
+                        })
+
+                        layers.addBaseLayer(l, i.name);
+                        console.log(i.name, i.url);
+                    });
                 });
+        },
+        renew: function () {
+            let vm = this;
+
+            fetch('/unit')
+                .then(function (response) {
+                    return response.json()
+                })
+                .then(this.processUnits);
 
             if (this.getTool("dp1") != null) {
                 let p = this.getTool("dp1").getLatLng();
