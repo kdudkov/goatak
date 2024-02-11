@@ -62,7 +62,7 @@ func getIndexHandler(app *App, r *staticfiles.Renderer) func(req *air.Request, r
 	return func(req *air.Request, res *air.Response) error {
 		data := map[string]any{
 			"theme": "auto",
-			"page":  "dash",
+			"page":  " dash",
 			"js":    []string{"main.js"},
 		}
 
@@ -101,7 +101,7 @@ func getMissionsPageHandler(app *App, r *staticfiles.Renderer) func(req *air.Req
 	return func(req *air.Request, res *air.Response) error {
 		data := map[string]any{
 			"theme": "auto",
-			"page":  "missions",
+			"page":  " missions",
 			"js":    []string{"missions.js"},
 		}
 
