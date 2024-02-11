@@ -2,8 +2,8 @@
 
 This is fast & simple implementation of TAK server/CoT router and ATAK client with web interface.
 
-[Wiki](https://github.com/kdudkov/goatak/wiki)
-Support chat in Telegram: https://t.me/ru_atak
+- [Wiki](https://github.com/kdudkov/goatak/wiki)
+- Support chat in Telegram: https://t.me/ru_atak
 
 binary builds can be downloaded
 from [releases page](https://github.com/kdudkov/goatak/releases)
@@ -25,8 +25,9 @@ iTAK connect qr-code:
 
 * v1 (XML) and v2 (protobuf) CoT protocol support
 * certificate enrollment (v1 and v2) support
-* user management with cli tool
 * mission packages management
+* datasync / missions basic support
+* user management with cli tool
 * video feeds management
 * visibility scopes for users (devices can communicate and see each other within one scope only)
 * default preferences and maps provisioning to connected devices

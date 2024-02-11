@@ -2,6 +2,7 @@ let app = new Vue({
     el: '#app',
     data: {
         missions: [],
+        current: null,
         alert: null,
         ts: 0,
     },
@@ -18,18 +19,13 @@ let app = new Vue({
     methods: {
         renew: function () {
             let vm = this;
-            let units = vm.units;
-            let conns = vm.connections;
 
             fetch('/mission')
                 .then(function (response) {
                     return response.json()
                 })
                 .then(function (data) {
-                    missions.length = 0;
-                    data.forEach(function (i) {
-                        missions.push(i);
-                    });
+                    vm.missions = data;
                     vm.ts += 1;
                 });
         },

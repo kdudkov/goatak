@@ -60,11 +60,11 @@
             <div id="map" class="col-9 h-100" style="cursor:crosshair;">
             </div>
             <div class="col-3">
-                <div class="card mb-1" v-if="config != null && ne(config.callsign)">
+                <div class="card mb-1" v-if="config && config.callsign">
                     <div class="card-header">Me ({{ config.callsign }})</div>
                     <div class="card-body">
                         <b>UID:</b> {{ config.uid }}<br/>
-                        <div v-if="ne(config.team)">
+                        <div v-if="config.team">
                             <b>Team:</b> {{ config.team }}, <b>Role:</b>{{ config.role }}
                         </div>
                         <div>
@@ -112,7 +112,7 @@
                         <div class="row">
                             <h5 v-on:click="mapToUnit(current_unit)" class="col-9">
                                 <img v-bind:src="milImg(current_unit)"/> {{ getUnitName(current_unit) }} <span
-                                    v-if="ne(current_unit.status)"> ({{ current_unit.status }})</span>
+                                    v-if="current_unit.status"> ({{ current_unit.status }})</span>
                                 <img height="24" src="/static/icons/coord_unlock.png"
                                      v-if="current_unit.category !== 'point' && locked_unit_uid != current_unit.uid"
                                      v-on:click="locked_unit_uid=current_unit.uid"/>
@@ -132,7 +132,7 @@
                     </div>
                     <div class="card-body">
                         <b>UID:</b> {{ current_unit.uid }}<br/>
-                        <div v-if="ne(current_unit.team)">
+                        <div v-if="current_unit.team">
                             <b>Team:</b> {{ current_unit.team }},
                             <b>Role:</b> {{ current_unit.role }}
                         </div>
@@ -148,9 +148,9 @@
                         </div>
                         <b>speed:</b> {{ sp(current_unit.speed) }} km/h,
                         <b>hae:</b> {{ current_unit.hae.toFixed(1) }}<br/>
-                        <div v-if="ne(current_unit.tak_version)"><b>ver:</b> {{ current_unit.tak_version }}</div>
-                        <div v-if="ne(current_unit.parent_uid)"><b>parent:</b> {{ current_unit.parent_uid }}
-                            <span v-if="ne(current_unit.parent_callsign)">({{ current_unit.parent_callsign }})</span>
+                        <div v-if="current_unit.tak_version"><b>ver:</b> {{ current_unit.tak_version }}</div>
+                        <div v-if="current_unit.parent_uid"><b>parent:</b> {{ current_unit.parent_uid }}
+                            <span v-if="current_unit.parent_callsign">({{ current_unit.parent_callsign }})</span>
                         </div>
                         <div>
                             <b>time:</b> {{ dt(current_unit.start_time) }} <b>stale:</b>

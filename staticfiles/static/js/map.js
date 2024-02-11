@@ -15,20 +15,16 @@ const colors = new Map([
     ['Brown', 'brown'],
 ]);
 
-function ne(s) {
-    return s !== undefined && s !== null && s !== "";
-}
-
 function getIcon(item, withText) {
-    if (item.category === "contact" || (ne(item.team) && ne(item.role))) {
+    if (item.category === "contact" || (item.team && item.role)) {
         let col = "#555";
         if (item.status !== "Offline") {
             col = colors.get(item.team);
         }
         return {uri: toUri(roleCircle(24, col, '#000', item.role)), x: 12, y: 12};
     }
-    if (ne(item.icon) && item.icon.startsWith("COT_MAPPING_SPOTMAP/")) {
-        return {uri: toUri(circle(16, ne(item.color) ? item.color : 'green', '#000', null)), x: 8, y: 8}
+    if (item.icon && item.icon.startsWith("COT_MAPPING_SPOTMAP/")) {
+        return {uri: toUri(circle(16, item.color ?? 'green', '#000', null)), x: 8, y: 8}
     }
     if (item.type === "b") {
         return {uri: "/static/icons/b.png", x: 16, y: 16}
@@ -49,7 +45,7 @@ function getIcon(item, withText) {
         return {uri: "/static/icons/aimpoint.png", x: 16, y: 16}
     }
     if (item.category === "point") {
-        return {uri: toUri(circle(16, ne(item.color) ? item.color : 'green', '#000', null)), x: 8, y: 8}
+        return {uri: toUri(circle(16, item.color ?? 'green', '#000', null)), x: 8, y: 8}
     }
     return getMilIcon(item, withText);
 }
@@ -57,7 +53,7 @@ function getIcon(item, withText) {
 function getMilIcon(item, withText) {
     let opts = {size: 24};
 
-    if (!ne(item.sidc)) {
+    if (!item.sidc) {
         return "";
     }
 
@@ -149,7 +145,7 @@ let app = new Vue({
 
                     vm.map.setView([data.lat, data.lon], data.zoom);
 
-                    if (ne(vm.config.callsign)) {
+                    if (vm.config.callsign) {
                         vm.me = L.marker([data.lat, data.lon]);
                         vm.me.setIcon(L.icon({
                             iconUrl: "/static/icons/self.png",
@@ -239,7 +235,7 @@ let app = new Vue({
                 return
             }
 
-            if (ne(item.marker)) {
+            if (item.marker) {
                 if (updateIcon) {
                     let icon = getIcon(item, true);
                     item.marker.setIcon(L.icon({
@@ -372,7 +368,7 @@ let app = new Vue({
                     local: true,
                     send: false,
                 }
-                if (this.config != null && ne(this.config.uid)) {
+                if (this.config && this.config.uid) {
                     u.parent_uid = this.config.uid;
                     u.parent_callsign = this.config.callsign;
                 }
@@ -438,7 +434,7 @@ let app = new Vue({
         },
         saveEditForm: function () {
             let u = this.getCurrentUnit();
-            if (!ne(u)) return;
+            if (!u) return;
 
             u.callsign = this.form_unit.callsign;
             u.category = this.form_unit.category;
@@ -545,7 +541,7 @@ let app = new Vue({
                 this.tools.get(name).setLatLng(coord);
             } else {
                 let p = new L.marker(coord).addTo(this.map);
-                if (ne(icon)) {
+                if (icon) {
                     p.setIcon(L.icon({
                         iconUrl: icon,
                         iconSize: [20, 20],
@@ -629,7 +625,7 @@ let app = new Vue({
             if (this.chat_uid == "") {
                 return [];
             }
-            return ne(this.messages[this.chat_uid]) ? this.messages[this.chat_uid].messages : [];
+            return this.messages[this.chat_uid] ? this.messages[this.chat_uid].messages : [];
         },
         ne: function (s) {
             return s !== undefined && s !== null && s !== "";
@@ -720,8 +716,8 @@ let app = new Vue({
 
 function popup(item) {
     let v = '<b>' + item.callsign + '</b><br/>';
-    if (ne(item.team)) v += item.team + ' ' + item.role + '<br/>';
-    if (ne(item.speed) && item.speed > 0) v += 'Speed: ' + item.speed.toFixed(0) + ' m/s<br/>';
+    if (item.team) v += item.team + ' ' + item.role + '<br/>';
+    if (item.speed && item.speed > 0) v += 'Speed: ' + item.speed.toFixed(0) + ' m/s<br/>';
     if (item.sidc.charAt(2) === 'A') {
         v += "hae: " + item.hae.toFixed(0) + " m<br/>";
     }
