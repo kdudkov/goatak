@@ -125,7 +125,7 @@ let app = new Vue({
     },
     computed: {
         current_unit: function () {
-            if (this.current_unit_uid != null) {
+            if (this.current_unit_uid) {
                 return this.current_unit_uid && this.getCurrentUnit();
             } else {
                 return null;
@@ -186,7 +186,7 @@ let app = new Vue({
                 })
                 .then(this.processUnits);
 
-            if (this.getTool("dp1") != null) {
+            if (this.getTool("dp1")) {
                 let p = this.getTool("dp1").getLatLng();
 
                 const requestOptions = {
@@ -203,7 +203,7 @@ let app = new Vue({
             for (let u of data.units) {
                 let oldUnit = this.units.get(u.uid);
                 let updateMarker = false;
-                if (oldUnit === null || oldUnit === undefined) {
+                if (!oldUnit) {
                     this.units.set(u.uid, u);
                     oldUnit = u;
                     updateMarker = true;
@@ -228,7 +228,7 @@ let app = new Vue({
         },
         updateMarker: function (item, draggable, updateIcon) {
             if (item.lon === 0 && item.lat === 0) {
-                if (item.marker != null) {
+                if (item.marker) {
                     this.map.removeLayer(item.marker);
                     item.marker = null;
                 }
@@ -272,7 +272,7 @@ let app = new Vue({
             if (!this.units.has(uid)) return;
 
             let item = this.units.get(uid);
-            if (item.marker != null) {
+            if (item.marker) {
                 this.map.removeLayer(item.marker);
                 item.marker.remove();
             }
@@ -282,7 +282,7 @@ let app = new Vue({
             }
         },
         setCurrentUnitUid: function (uid, follow) {
-            if (uid != null && this.units.has(uid)) {
+            if (uid && this.units.has(uid)) {
                 this.current_unit_uid = uid;
                 let u = this.units.get(uid);
                 if (follow) this.mapToUnit(u);
@@ -293,7 +293,7 @@ let app = new Vue({
             }
         },
         getCurrentUnit: function () {
-            if (this.current_unit_uid == null || !this.units.has(this.current_unit_uid)) return null;
+            if (!this.current_unit_uid || !this.units.has(this.current_unit_uid)) return null;
             return this.units.get(this.current_unit_uid);
         },
         byCategory: function (s) {
@@ -309,7 +309,7 @@ let app = new Vue({
             return this.ts && arr;
         },
         mapToUnit: function (u) {
-            if (u == null) {
+            if (!u) {
                 return;
             }
             if (u.lat !== 0 || u.lon !== 0) {
@@ -401,7 +401,7 @@ let app = new Vue({
             }
         },
         formFromUnit: function (u) {
-            if (u == null) {
+            if (!u) {
                 this.form_unit = {
                     callsign: "",
                     category: "",
@@ -513,7 +513,7 @@ let app = new Vue({
         },
         setFormRootSidc: function (s) {
             let t = this.getSidc(s);
-            if (t != null && t.next != null) {
+            if (t?.next) {
                 this.form_unit.root_sidc = t;
                 this.form_unit.subtype = t.next[0].code;
             } else {
@@ -599,17 +599,17 @@ let app = new Vue({
             return total;
         },
         msgNum: function () {
-            if (this.messages == null) return 0;
+            if (!this.messages) return 0;
             let n = 0;
             for (const [key, value] of Object.entries(this.messages)) {
-                if (value.messages != null) {
+                if (value.messages) {
                     n += value.messages.length;
                 }
             }
             return n;
         },
         msgNum1: function (k) {
-            if (this.messages == null || this.messages[k].messages == null) return 0;
+            if (!this.messages || !this.messages[k].messages) return 0;
             return this.messages[k].messages.length;
         },
         setChat: function (uid, chatroom) {
@@ -622,13 +622,10 @@ let app = new Vue({
             new bootstrap.Modal(document.getElementById('messages')).show();
         },
         getMessages: function () {
-            if (this.chat_uid == "") {
+            if (!this.chat_uid) {
                 return [];
             }
             return this.messages[this.chat_uid] ? this.messages[this.chat_uid].messages : [];
-        },
-        ne: function (s) {
-            return s !== undefined && s !== null && s !== "";
         },
         getUnitName: function (u) {
             let res = u.callsign;
@@ -683,7 +680,7 @@ let app = new Vue({
             return res;
         },
         deleteCurrentUnit: function () {
-            if (this.current_unit_uid == null) return;
+            if (!this.current_unit_uid) return;
             fetch("unit/" + this.current_unit_uid, {method: "DELETE"})
                 .then(function (response) {
                     return response.json()
@@ -732,7 +729,7 @@ function circle(size, color, bg, text) {
     let s = '<svg width="' + size + '" height="' + size + '" xmlns="http://www.w3.org/2000/svg"><metadata id="metadata1">image/svg+xml</metadata>';
     s += '<circle style="fill: ' + color + '; stroke: ' + bg + ';" cx="' + x + '" cy="' + x + '" r="' + r + '"/>';
 
-    if (text != null && text !== '') {
+    if (text) {
         s += '<text x="50%" y="50%" text-anchor="middle" font-size="12px" font-family="Arial" dy=".3em">' + text + '</text>';
     }
     s += '</svg>';
