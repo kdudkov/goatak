@@ -1,7 +1,7 @@
 <div id="app">
     <nav class="navbar navbar-expand-md navbar-dark fixed-top bg-dark">
         <div class="container-fluid">
-            <a class="navbar-brand" href="#">GoATAK server <span v-if="config != null">{{ config.version }}</span></a>
+            <a class="navbar-brand" href="#">GoATAK server <span v-if="config">{{ config.version }}</span></a>
 
             <div class="collapse navbar-collapse" id="navbarCollapse">
                 <ul class="navbar-nav me-auto mb-2 mb-md-0">
@@ -72,7 +72,7 @@
                             <span class="badge rounded-pill bg-success" style="cursor:default;"
                                   v-on:click="map.setView([config.lat, config.lon])"><i
                                     class="bi bi-geo"></i></span>
-                            <span v-if="coords != null">({{ distBea(latlng(config.lat, config.lon), coords) }} to cursor)</span>
+                            <span v-if="coords">({{ distBea(latlng(config.lat, config.lon), coords) }} to cursor)</span>
                         </div>
                     </div>
                 </div>
@@ -87,27 +87,27 @@
                             <input type="radio" class="btn-check" name="btnradio" id="redx" autocomplete="off">
                             <label class="btn btn-outline-primary btn-sm" for="redx">Red-x</label>
                         </div>
-                        <div v-if="getTool('redx') != null" class="mt-1">
+                        <div v-if="getTool('redx')" class="mt-1">
                             <span class="badge bg-danger">RedX</span>: {{ printCoordsll(getTool('redx').getLatLng()) }}
                             <span class="badge rounded-pill bg-success" style="cursor:default;"
                                   v-on:click="map.setView(getTool('redx').getLatLng())"><i class="bi bi-geo"></i></span>
                             <span class="badge rounded-pill bg-danger" style="cursor:default;"
                                   v-on:click="removeTool('redx')">X</span>
                         </div>
-                        <div v-if="getTool('dp1') != null" class="mt-1">
+                        <div v-if="getTool('dp1')" class="mt-1">
                             <span class="badge bg-success">DP1</span>: {{ printCoordsll(getTool('dp1').getLatLng()) }}
                             <span class="badge rounded-pill bg-success" style="cursor:default;"
                                   v-on:click="map.setView(getTool('dp1').getLatLng())"><i class="bi bi-geo"></i></span>
                             <span class="badge rounded-pill bg-danger" style="cursor:default;"
                                   v-on:click="removeTool('dp1')">X</span>
                         </div>
-                        <div v-if="coords != null" class="mt-1">
+                        <div v-if="coords" class="mt-1">
                             <span class="badge bg-secondary">cursor</span>: {{ printCoordsll(coords) }} <span
-                                v-if="getTool('redx') != null">({{ distBea(getTool('redx').getLatLng(), coords) }} from RedX)</span>
+                                v-if="getTool('redx')">({{ distBea(getTool('redx').getLatLng(), coords) }} from RedX)</span>
                         </div>
                     </div>
                 </div>
-                <div class="card" v-if="current_unit != null">
+                <div class="card" v-if="current_unit">
                     <div class="card-header">
                         <div class="row">
                             <h5 v-on:click="mapToUnit(current_unit)" class="col-9">
@@ -144,7 +144,7 @@
                             <span class="badge rounded-pill bg-success" style="cursor:default;"
                                   v-on:click="map.setView([current_unit.lat, current_unit.lon])"><i
                                     class="bi bi-geo"></i></span>
-                            <span v-if="coords != null">({{ distBea(latlng(current_unit.lat, current_unit.lon), coords) }} to cursor)</span>
+                            <span v-if="coords">({{ distBea(latlng(current_unit.lat, current_unit.lon), coords) }} to cursor)</span>
                         </div>
                         <b>speed:</b> {{ sp(current_unit.speed) }} km/h,
                         <b>hae:</b> {{ current_unit.hae.toFixed(1) }}<br/>
