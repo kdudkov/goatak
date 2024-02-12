@@ -121,11 +121,7 @@ let app = new Vue({
     },
     computed: {
         current_unit: function () {
-            if (this.current_unit_uid) {
-                return this.current_unit_uid && this.getCurrentUnit();
-            } else {
-                return null;
-            }
+            return this.current_unit_uid ? this.current_unit_uid && this.getCurrentUnit() : null;
         }
     },
     methods: {
