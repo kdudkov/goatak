@@ -105,10 +105,6 @@ let app = new Vue({
 
     mounted() {
         this.map = L.map('map');
-        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-            maxZoom: 19
-        }).addTo(this.map);
         this.map.setView([60, 30], 11);
 
         L.control.scale({metric: true}).addTo(this.map);
@@ -165,15 +161,25 @@ let app = new Vue({
                     layers = L.control.layers({}, null, {hideSingleBase: true});
                     layers.addTo(vm.map);
 
+                    let first = true;
                     data.layers.forEach(function (i) {
-                        l = L.tileLayer(i.url, {
+                        let opts = {
                             minZoom: i.minZoom ?? 1,
                             maxZoom: i.maxZoom ?? 20,
-                            subdomains: i.parts ?? [],
-                        })
+                        }
+
+                        if (i.parts) {
+                            opts["subdomains"] = i.parts;
+                        }
+
+                        l = L.tileLayer(i.url, opts);
 
                         layers.addBaseLayer(l, i.name);
-                        console.log(i.name, i.url);
+
+                        if (first) {
+                            first = false;
+                            l.addTo(vm.map);
+                        }
                     });
                 });
         },
