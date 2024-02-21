@@ -15,7 +15,7 @@ const colors = new Map([
     ['Brown', 'brown'],
 ]);
 
-function getIcon(item, withText) {
+function getIconUri(item, withText) {
     if (item.category === "contact" || (item.team && item.role)) {
         let col = "#555";
         if (item.status !== "Offline") {
@@ -50,6 +50,15 @@ function getIcon(item, withText) {
     return getMilIcon(item, withText);
 }
 
+function getIcon(item, withText) {
+    let img = getIconUri(item, withText);
+
+    return L.icon({
+        iconUrl: img.uri,
+        iconAnchor: [img.x, img.y],
+    })
+}
+
 function getMilIcon(item, withText) {
     let opts = {size: 24};
 
@@ -72,7 +81,7 @@ function getMilIcon(item, withText) {
     return {uri: symb.toDataURL(), x: symb.getAnchor().x, y: symb.getAnchor().y}
 }
 
-function needUpdate(oldUnit, newUnit) {
+function needIconUpdate(oldUnit, newUnit) {
     if (oldUnit.sidc !== newUnit.sidc || oldUnit.status !== newUnit.status) return true;
     if (oldUnit.speed !== newUnit.speed || oldUnit.direction !== newUnit.direction) return true;
 
@@ -203,20 +212,23 @@ let app = new Vue({
             let keys = new Set();
 
             for (let u of data.units) {
-                let oldUnit = this.units.get(u.uid);
-                let updateMarker = false;
-                if (!oldUnit) {
+                let unit = this.units.get(u.uid);
+                let updateIcon = false;
+                if (!unit) {
                     this.units.set(u.uid, u);
-                    oldUnit = u;
-                    updateMarker = true;
+                    unit = u;
+                    updateIcon = true;
                 } else {
-                    updateMarker = needUpdate(oldUnit, u);
+                    updateIcon = needIconUpdate(unit, u);
                     for (const k of Object.keys(u)) {
-                        oldUnit[k] = u[k];
+                        unit[k] = u[k];
                     }
                 }
-                this.updateMarker(oldUnit, false, updateMarker);
-                keys.add(oldUnit.uid);
+                this.updateMarker(unit, false, updateIcon);
+                keys.add(unit.uid);
+                if (this.locked_unit_uid === unit.uid) {
+                    this.map.setView([unit.lat, unit.lon]);
+                }
             }
 
             for (const k of this.units.keys()) {
@@ -228,47 +240,36 @@ let app = new Vue({
             this.messages = data.messages;
             this.ts += 1;
         },
-        updateMarker: function (item, draggable, updateIcon) {
-            if (item.lon === 0 && item.lat === 0) {
-                if (item.marker) {
-                    this.map.removeLayer(item.marker);
-                    item.marker = null;
+        updateMarker: function (unit, draggable, updateIcon) {
+            if (unit.lon === 0 && unit.lat === 0) {
+                if (unit.marker) {
+                    this.map.removeLayer(unit.marker);
+                    unit.marker = null;
                 }
                 return
             }
 
-            if (item.marker) {
+            if (unit.marker) {
                 if (updateIcon) {
-                    let icon = getIcon(item, true);
-                    item.marker.setIcon(L.icon({
-                        iconUrl: icon.uri,
-                        iconAnchor: new L.Point(icon.x, icon.y),
-                    }));
+                    unit.marker.setIcon(getIcon(unit, true));
                 }
             } else {
-                item.marker = L.marker([item.lat, item.lon], {draggable: draggable});
-                item.marker.on('click', function (e) {
-                    app.setCurrentUnitUid(item.uid, false);
+                unit.marker = L.marker([unit.lat, unit.lon], {draggable: draggable});
+                unit.marker.on('click', function (e) {
+                    app.setCurrentUnitUid(unit.uid, false);
                 });
                 if (draggable) {
-                    item.marker.on('dragend', function (e) {
-                        item.lat = marker.getLatLng().lat;
-                        item.lon = marker.getLatLng().lng;
+                    unit.marker.on('dragend', function (e) {
+                        unit.lat = marker.getLatLng().lat;
+                        unit.lon = marker.getLatLng().lng;
                     });
                 }
-                let icon = getIcon(item, true);
-                item.marker.setIcon(L.icon({
-                    iconUrl: icon.uri,
-                    iconAnchor: new L.Point(icon.x, icon.y),
-                }));
-                item.marker.addTo(this.map);
+                unit.marker.setIcon(getIcon(unit, true));
+                unit.marker.addTo(this.map);
             }
 
-            item.marker.setLatLng([item.lat, item.lon]);
-            item.marker.bindTooltip(popup(item));
-            if (this.locked_unit_uid === item.uid) {
-                this.map.setView([item.lat, item.lon]);
-            }
+            unit.marker.setLatLng([unit.lat, unit.lon]);
+            unit.marker.bindTooltip(popup(unit));
         },
         removeUnit: function (uid) {
             if (!this.units.has(uid)) return;
@@ -319,7 +320,7 @@ let app = new Vue({
             }
         },
         getImg: function (item) {
-            return getIcon(item, false).uri;
+            return getIconUri(item, false).uri;
         },
         milImg: function (item) {
             return getMilIcon(item, false).uri;
