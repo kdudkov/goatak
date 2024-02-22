@@ -212,23 +212,7 @@ let app = new Vue({
             let keys = new Set();
 
             for (let u of data.units) {
-                let unit = this.units.get(u.uid);
-                let updateIcon = false;
-                if (!unit) {
-                    this.units.set(u.uid, u);
-                    unit = u;
-                    updateIcon = true;
-                } else {
-                    updateIcon = needIconUpdate(unit, u);
-                    for (const k of Object.keys(u)) {
-                        unit[k] = u[k];
-                    }
-                }
-                this.updateMarker(unit, false, updateIcon);
-                keys.add(unit.uid);
-                if (this.locked_unit_uid === unit.uid) {
-                    this.map.setView([unit.lat, unit.lon]);
-                }
+                keys.add(this.processUnit(u).uid);
             }
 
             for (const k of this.units.keys()) {
@@ -239,6 +223,27 @@ let app = new Vue({
 
             this.messages = data.messages;
             this.ts += 1;
+        },
+        processUnit: function (u) {
+            let unit = this.units.get(u.uid);
+            let updateIcon = false;
+            if (!unit) {
+                this.units.set(u.uid, u);
+                unit = u;
+                updateIcon = true;
+            } else {
+                updateIcon = needIconUpdate(unit, u);
+                for (const k of Object.keys(u)) {
+                    unit[k] = u[k];
+                }
+            }
+            this.updateMarker(unit, false, updateIcon);
+
+            if (this.locked_unit_uid === unit.uid) {
+                this.map.setView([unit.lat, unit.lon]);
+            }
+
+            return unit;
         },
         updateMarker: function (unit, draggable, updateIcon) {
             if (unit.lon === 0 && unit.lat === 0) {
@@ -376,20 +381,8 @@ let app = new Vue({
                     u.parent_callsign = this.config.callsign;
                 }
 
-                const requestOptions = {
-                    method: "POST",
-                    headers: {"Content-Type": "application/json"},
-                    body: JSON.stringify(this.cleanUnit(u))
-                };
-                let vm = this;
-                fetch("/unit", requestOptions)
-                    .then(function (response) {
-                        return response.json()
-                    })
-                    .then(function (data) {
-                        vm.processUnits(data);
-                        vm.setCurrentUnitUid(u.uid, true);
-                    });
+                this.sendUnit(u);
+                this.setCurrentUnitUid(u.uid, true);
             }
             if (this.modeIs("me")) {
                 this.config.lat = e.latlng.lat;
@@ -402,6 +395,21 @@ let app = new Vue({
                 };
                 fetch("/pos", requestOptions);
             }
+        },
+        sendUnit: function (u) {
+            const requestOptions = {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify(this.cleanUnit(u))
+            };
+            let vm = this;
+            fetch("/unit", requestOptions)
+                .then(function (response) {
+                    return response.json()
+                })
+                .then(function (data) {
+                    vm.processUnit(data);
+                });
         },
         formFromUnit: function (u) {
             if (!u) {
@@ -451,18 +459,7 @@ let app = new Vue({
                 u.type = this.form_unit.type;
                 u.sidc = "";
             }
-            this.updateMarker(u, false, true);
-
-            const requestOptions = {
-                method: "POST",
-                headers: {"Content-Type": "application/json"},
-                body: JSON.stringify(this.cleanUnit(u))
-            };
-            fetch("/unit", requestOptions)
-                .then(function (response) {
-                    return response.json()
-                })
-                .then(this.processUnits);
+            this.sendUnit(u);
         },
         getRootSidc: function (s) {
             let curr = this.types;

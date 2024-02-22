@@ -58,7 +58,7 @@ func getAdminAPI(app *App, addr string, renderer *staticfiles.Renderer, webtakRo
 	return adminAPI
 }
 
-func getIndexHandler(app *App, r *staticfiles.Renderer) func(req *air.Request, res *air.Response) error {
+func getIndexHandler(app *App, r *staticfiles.Renderer) air.Handler {
 	return func(req *air.Request, res *air.Response) error {
 		data := map[string]any{
 			"theme": "auto",
@@ -78,7 +78,7 @@ func getIndexHandler(app *App, r *staticfiles.Renderer) func(req *air.Request, r
 	}
 }
 
-func getMapHandler(app *App, r *staticfiles.Renderer) func(req *air.Request, res *air.Response) error {
+func getMapHandler(app *App, r *staticfiles.Renderer) air.Handler {
 	return func(req *air.Request, res *air.Response) error {
 		data := map[string]any{
 			"theme": "auto",
@@ -97,7 +97,7 @@ func getMapHandler(app *App, r *staticfiles.Renderer) func(req *air.Request, res
 	}
 }
 
-func getMissionsPageHandler(app *App, r *staticfiles.Renderer) func(req *air.Request, res *air.Response) error {
+func getMissionsPageHandler(app *App, r *staticfiles.Renderer) air.Handler {
 	return func(req *air.Request, res *air.Response) error {
 		data := map[string]any{
 			"theme": "auto",
@@ -117,7 +117,7 @@ func getMissionsPageHandler(app *App, r *staticfiles.Renderer) func(req *air.Req
 	}
 }
 
-func getNotFoundHandler() func(req *air.Request, res *air.Response) error {
+func getNotFoundHandler() air.Handler {
 	return func(req *air.Request, res *air.Response) error {
 		res.Status = http.StatusNotFound
 
@@ -125,7 +125,7 @@ func getNotFoundHandler() func(req *air.Request, res *air.Response) error {
 	}
 }
 
-func getConfigHandler(app *App) func(req *air.Request, res *air.Response) error {
+func getConfigHandler(app *App) air.Handler {
 	m := make(map[string]any, 0)
 	m["lat"] = app.lat
 	m["lon"] = app.lon
@@ -139,7 +139,7 @@ func getConfigHandler(app *App) func(req *air.Request, res *air.Response) error 
 	}
 }
 
-func getUnitsHandler(app *App) func(req *air.Request, res *air.Response) error {
+func getUnitsHandler(app *App) air.Handler {
 	return func(req *air.Request, res *air.Response) error {
 		r := make(map[string]any, 0)
 		r["units"] = getUnits(app)
@@ -149,13 +149,13 @@ func getUnitsHandler(app *App) func(req *air.Request, res *air.Response) error {
 	}
 }
 
-func getStackHandler() func(req *air.Request, res *air.Response) error {
+func getStackHandler() air.Handler {
 	return func(req *air.Request, res *air.Response) error {
 		return pprof.Lookup("goroutine").WriteTo(res.Body, 1)
 	}
 }
 
-func getMetricsHandler() func(req *air.Request, res *air.Response) error {
+func getMetricsHandler() air.Handler {
 	h := promhttp.Handler()
 
 	return func(req *air.Request, res *air.Response) error {
@@ -165,7 +165,7 @@ func getMetricsHandler() func(req *air.Request, res *air.Response) error {
 	}
 }
 
-func getUnitTrackHandler(app *App) func(req *air.Request, res *air.Response) error {
+func getUnitTrackHandler(app *App) air.Handler {
 	return func(req *air.Request, res *air.Response) error {
 		uid := getStringParam(req, "uid")
 
@@ -180,7 +180,7 @@ func getUnitTrackHandler(app *App) func(req *air.Request, res *air.Response) err
 	}
 }
 
-func deleteItemHandler(app *App) func(req *air.Request, res *air.Response) error {
+func deleteItemHandler(app *App) air.Handler {
 	return func(req *air.Request, res *air.Response) error {
 		uid := getStringParam(req, "uid")
 		app.items.Remove(uid)
@@ -193,7 +193,7 @@ func deleteItemHandler(app *App) func(req *air.Request, res *air.Response) error
 	}
 }
 
-func getConnHandler(app *App) func(req *air.Request, res *air.Response) error {
+func getConnHandler(app *App) air.Handler {
 	return func(req *air.Request, res *air.Response) error {
 		conn := make([]*Connection, 0)
 
@@ -219,7 +219,7 @@ func getConnHandler(app *App) func(req *air.Request, res *air.Response) error {
 	}
 }
 
-func getCotPostHandler(app *App) func(req *air.Request, res *air.Response) error {
+func getCotPostHandler(app *App) air.Handler {
 	return func(req *air.Request, res *air.Response) error {
 		c := new(cot.CotMessage)
 
@@ -237,7 +237,7 @@ func getCotPostHandler(app *App) func(req *air.Request, res *air.Response) error
 	}
 }
 
-func getCotXMLPostHandler(app *App) func(req *air.Request, res *air.Response) error {
+func getCotXMLPostHandler(app *App) air.Handler {
 	return func(req *air.Request, res *air.Response) error {
 		scope := getStringParam(req, "scope")
 		if scope == "" {
@@ -268,7 +268,7 @@ func getCotXMLPostHandler(app *App) func(req *air.Request, res *air.Response) er
 	}
 }
 
-func getAllMissionHandler(app *App) func(req *air.Request, res *air.Response) error {
+func getAllMissionHandler(app *App) air.Handler {
 	return func(req *air.Request, res *air.Response) error {
 		data := app.missions.GetAllMissionsAdm()
 

@@ -167,7 +167,7 @@ func (w *WsClientHandler) binaryReader(b []byte) error {
 	return nil
 }
 
-func getWsHandler(app *App) func(req *air.Request, res *air.Response) error {
+func getWsHandler(app *App) air.Handler {
 	return func(req *air.Request, res *air.Response) error {
 		ws, err := res.WebSocket()
 		if err != nil {

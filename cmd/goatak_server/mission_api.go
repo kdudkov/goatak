@@ -53,7 +53,7 @@ func addMissionApi(app *App, api *air.Air) {
 	g.DELETE("/:missionname/invite/:type/:uid", getInviteDeleteHandler(app))
 }
 
-func getMissionsHandler(app *App) func(req *air.Request, res *air.Response) error {
+func getMissionsHandler(app *App) air.Handler {
 	return func(req *air.Request, res *air.Response) error {
 		user := app.users.GetUser(getUsernameFromReq(req))
 
@@ -68,7 +68,7 @@ func getMissionsHandler(app *App) func(req *air.Request, res *air.Response) erro
 	}
 }
 
-func getMissionHandler(app *App) func(req *air.Request, res *air.Response) error {
+func getMissionHandler(app *App) air.Handler {
 	return func(req *air.Request, res *air.Response) error {
 		user := app.users.GetUser(getUsernameFromReq(req))
 		m := app.missions.GetMission(user.GetScope(), getStringParam(req, "missionname"))
@@ -83,7 +83,7 @@ func getMissionHandler(app *App) func(req *air.Request, res *air.Response) error
 	}
 }
 
-func getMissionPutHandler(app *App) func(req *air.Request, res *air.Response) error {
+func getMissionPutHandler(app *App) air.Handler {
 	return func(req *air.Request, res *air.Response) error {
 		username := getUsernameFromReq(req)
 		user := app.users.GetUser(username)
@@ -131,7 +131,7 @@ func getMissionPutHandler(app *App) func(req *air.Request, res *air.Response) er
 	}
 }
 
-func getMissionDeleteHandler(app *App) func(req *air.Request, res *air.Response) error {
+func getMissionDeleteHandler(app *App) air.Handler {
 	return func(req *air.Request, res *air.Response) error {
 		user := app.users.GetUser(getUsernameFromReq(req))
 		m := app.missions.GetMission(user.GetScope(), getStringParam(req, "missionname"))
@@ -147,7 +147,7 @@ func getMissionDeleteHandler(app *App) func(req *air.Request, res *air.Response)
 	}
 }
 
-func getMissionsInvitationsHandler(app *App) func(req *air.Request, res *air.Response) error {
+func getMissionsInvitationsHandler(app *App) air.Handler {
 	return func(req *air.Request, res *air.Response) error {
 		uid := getStringParam(req, "clientUid")
 
@@ -155,7 +155,7 @@ func getMissionsInvitationsHandler(app *App) func(req *air.Request, res *air.Res
 	}
 }
 
-func getMissionRoleHandler(app *App) func(req *air.Request, res *air.Response) error {
+func getMissionRoleHandler(app *App) air.Handler {
 	return func(req *air.Request, res *air.Response) error {
 		user := app.users.GetUser(getUsernameFromReq(req))
 		m := app.missions.GetMission(user.GetScope(), getStringParam(req, "missionname"))
@@ -169,7 +169,7 @@ func getMissionRoleHandler(app *App) func(req *air.Request, res *air.Response) e
 	}
 }
 
-func getMissionRolePutHandler(app *App) func(req *air.Request, res *air.Response) error {
+func getMissionRolePutHandler(app *App) air.Handler {
 	return func(req *air.Request, res *air.Response) error {
 		user := app.users.GetUser(getUsernameFromReq(req))
 		m := app.missions.GetMission(user.GetScope(), getStringParam(req, "missionname"))
@@ -194,7 +194,7 @@ func getMissionRolePutHandler(app *App) func(req *air.Request, res *air.Response
 	}
 }
 
-func getMissionLogHandler(app *App) func(req *air.Request, res *air.Response) error {
+func getMissionLogHandler(app *App) air.Handler {
 	result := makeAnswer(logEntryType, []*model.MissionLogEntryDTO{})
 
 	return func(req *air.Request, res *air.Response) error {
@@ -210,7 +210,7 @@ func getMissionLogHandler(app *App) func(req *air.Request, res *air.Response) er
 	}
 }
 
-func getMissionKeywordsPutHandler(app *App) func(req *air.Request, res *air.Response) error {
+func getMissionKeywordsPutHandler(app *App) air.Handler {
 	return func(req *air.Request, res *air.Response) error {
 		user := app.users.GetUser(getUsernameFromReq(req))
 		m := app.missions.GetMission(user.GetScope(), getStringParam(req, "missionname"))
@@ -243,7 +243,7 @@ func getMissionKeywordsPutHandler(app *App) func(req *air.Request, res *air.Resp
 	}
 }
 
-func getMissionSubscriptionsHandler(app *App) func(req *air.Request, res *air.Response) error {
+func getMissionSubscriptionsHandler(app *App) air.Handler {
 	return func(req *air.Request, res *air.Response) error {
 		user := app.users.GetUser(getUsernameFromReq(req))
 		m := app.missions.GetMission(user.GetScope(), getStringParam(req, "missionname"))
@@ -257,7 +257,7 @@ func getMissionSubscriptionsHandler(app *App) func(req *air.Request, res *air.Re
 	}
 }
 
-func getMissionSubscriptionHandler(app *App) func(req *air.Request, res *air.Response) error {
+func getMissionSubscriptionHandler(app *App) air.Handler {
 	return func(req *air.Request, res *air.Response) error {
 		user := app.users.GetUser(getUsernameFromReq(req))
 		m := app.missions.GetMission(user.GetScope(), getStringParam(req, "missionname"))
@@ -277,7 +277,7 @@ func getMissionSubscriptionHandler(app *App) func(req *air.Request, res *air.Res
 	}
 }
 
-func getMissionSubscriptionPutHandler(app *App) func(req *air.Request, res *air.Response) error {
+func getMissionSubscriptionPutHandler(app *App) air.Handler {
 	return func(req *air.Request, res *air.Response) error {
 		user := app.users.GetUser(getUsernameFromReq(req))
 		m := app.missions.GetMission(user.GetScope(), getStringParam(req, "missionname"))
@@ -315,7 +315,7 @@ func getMissionSubscriptionPutHandler(app *App) func(req *air.Request, res *air.
 	}
 }
 
-func getMissionSubscriptionDeleteHandler(app *App) func(req *air.Request, res *air.Response) error {
+func getMissionSubscriptionDeleteHandler(app *App) air.Handler {
 	return func(req *air.Request, res *air.Response) error {
 		user := app.users.GetUser(getUsernameFromReq(req))
 		m := app.missions.GetMission(user.GetScope(), getStringParam(req, "missionname"))
@@ -332,7 +332,7 @@ func getMissionSubscriptionDeleteHandler(app *App) func(req *air.Request, res *a
 	}
 }
 
-func getMissionSubscriptionRolesHandler(app *App) func(req *air.Request, res *air.Response) error {
+func getMissionSubscriptionRolesHandler(app *App) air.Handler {
 	return func(req *air.Request, res *air.Response) error {
 		user := app.users.GetUser(getUsernameFromReq(req))
 		m := app.missions.GetMission(user.GetScope(), getStringParam(req, "missionname"))
@@ -349,7 +349,7 @@ func getMissionSubscriptionRolesHandler(app *App) func(req *air.Request, res *ai
 	}
 }
 
-func getMissionChangesHandler(app *App) func(req *air.Request, res *air.Response) error {
+func getMissionChangesHandler(app *App) air.Handler {
 	return func(req *air.Request, res *air.Response) error {
 		user := app.users.GetUser(getUsernameFromReq(req))
 		mission := app.missions.GetMission(user.GetScope(), getStringParam(req, "missionname"))
@@ -372,7 +372,7 @@ func getMissionChangesHandler(app *App) func(req *air.Request, res *air.Response
 	}
 }
 
-func getMissionCotHandler(app *App) func(req *air.Request, res *air.Response) error {
+func getMissionCotHandler(app *App) air.Handler {
 	return func(req *air.Request, res *air.Response) error {
 		user := app.users.GetUser(getUsernameFromReq(req))
 		mission := app.missions.GetMission(user.GetScope(), getStringParam(req, "missionname"))
@@ -402,7 +402,7 @@ func getMissionCotHandler(app *App) func(req *air.Request, res *air.Response) er
 	}
 }
 
-func getMissionContactsHandler(app *App) func(req *air.Request, res *air.Response) error {
+func getMissionContactsHandler(app *App) air.Handler {
 	return func(req *air.Request, res *air.Response) error {
 		user := app.users.GetUser(getUsernameFromReq(req))
 		m := app.missions.GetMission(user.GetScope(), getStringParam(req, "missionname"))
@@ -417,7 +417,7 @@ func getMissionContactsHandler(app *App) func(req *air.Request, res *air.Respons
 	}
 }
 
-func getMissionContentPutHandler(app *App) func(req *air.Request, res *air.Response) error {
+func getMissionContentPutHandler(app *App) air.Handler {
 	return func(req *air.Request, res *air.Response) error {
 		user := app.users.GetUser(getUsernameFromReq(req))
 		mission := app.missions.GetMission(user.GetScope(), getStringParam(req, "missionname"))
@@ -461,7 +461,7 @@ func getMissionContentPutHandler(app *App) func(req *air.Request, res *air.Respo
 	}
 }
 
-func getMissionContentDeleteHandler(app *App) func(req *air.Request, res *air.Response) error {
+func getMissionContentDeleteHandler(app *App) air.Handler {
 	return func(req *air.Request, res *air.Response) error {
 		user := app.users.GetUser(getUsernameFromReq(req))
 		mission := app.missions.GetMission(user.GetScope(), getStringParam(req, "missionname"))
@@ -490,7 +490,7 @@ func getMissionContentDeleteHandler(app *App) func(req *air.Request, res *air.Re
 	}
 }
 
-func getInvitePutHandler(app *App) func(req *air.Request, res *air.Response) error {
+func getInvitePutHandler(app *App) air.Handler {
 	return func(req *air.Request, res *air.Response) error {
 		user := app.users.GetUser(getUsernameFromReq(req))
 		mission := app.missions.GetMission(user.GetScope(), getStringParam(req, "missionname"))
@@ -536,7 +536,7 @@ func getInvitePutHandler(app *App) func(req *air.Request, res *air.Response) err
 	}
 }
 
-func getInviteDeleteHandler(app *App) func(req *air.Request, res *air.Response) error {
+func getInviteDeleteHandler(app *App) air.Handler {
 	return func(req *air.Request, res *air.Response) error {
 		user := app.users.GetUser(getUsernameFromReq(req))
 		mission := app.missions.GetMission(user.GetScope(), getStringParam(req, "missionname"))

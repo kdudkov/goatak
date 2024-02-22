@@ -38,7 +38,7 @@ func getCertAPI(app *App, addr string) *air.Air {
 	return certApi
 }
 
-func getTLSConfigHandler(app *App) func(req *air.Request, res *air.Response) error {
+func getTLSConfigHandler(app *App) air.Handler {
 	names := map[string]string{"C": "RU", "O": "goatak", "OU": "goatak"}
 	buf := strings.Builder{}
 	buf.WriteString("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n")
@@ -121,7 +121,7 @@ func (app *App) processSignRequest(req *air.Request) (*x509.Certificate, error) 
 	return signedCert, nil
 }
 
-func getSignHandler(app *App) func(req *air.Request, res *air.Response) error {
+func getSignHandler(app *App) air.Handler {
 	return func(req *air.Request, res *air.Response) error {
 		signedCert, err := app.processSignRequest(req)
 		if err != nil {
@@ -146,7 +146,7 @@ func getSignHandler(app *App) func(req *air.Request, res *air.Response) error {
 	}
 }
 
-func getSignHandlerV2(app *App) func(req *air.Request, res *air.Response) error {
+func getSignHandlerV2(app *App) air.Handler {
 	return func(req *air.Request, res *air.Response) error {
 		signedCert, err := app.processSignRequest(req)
 		if err != nil {
@@ -196,7 +196,7 @@ func getSignHandlerV2(app *App) func(req *air.Request, res *air.Response) error 
 	}
 }
 
-func getProfileEnrollmentHandler(app *App) func(req *air.Request, res *air.Response) error {
+func getProfileEnrollmentHandler(app *App) air.Handler {
 	return func(req *air.Request, res *air.Response) error {
 		username := getUsernameFromReq(req)
 		uid := getStringParamIgnoreCaps(req, "clientUid")

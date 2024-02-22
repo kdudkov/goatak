@@ -81,13 +81,13 @@ func addMartiRoutes(app *App, api *air.Air) {
 	}
 }
 
-func getVersionHandler(app *App) func(req *air.Request, res *air.Response) error {
+func getVersionHandler(app *App) air.Handler {
 	return func(req *air.Request, res *air.Response) error {
 		return res.WriteString(fmt.Sprintf("GoATAK server %s", getVersion()))
 	}
 }
 
-func getVersionConfigHandler(app *App) func(req *air.Request, res *air.Response) error {
+func getVersionConfigHandler(app *App) air.Handler {
 	data := make(map[string]any)
 	data["api"] = apiVersion
 	data["version"] = getVersion()
@@ -98,7 +98,7 @@ func getVersionConfigHandler(app *App) func(req *air.Request, res *air.Response)
 	}
 }
 
-func getEndpointsHandler(app *App) func(req *air.Request, res *air.Response) error {
+func getEndpointsHandler(app *App) air.Handler {
 	return func(req *air.Request, res *air.Response) error {
 		// secAgo := getIntParam(req, "secAgo", 0)
 		data := make([]map[string]any, 0)
@@ -126,7 +126,7 @@ func getEndpointsHandler(app *App) func(req *air.Request, res *air.Response) err
 	}
 }
 
-func getContactsHandler(app *App) func(req *air.Request, res *air.Response) error {
+func getContactsHandler(app *App) air.Handler {
 	return func(req *air.Request, res *air.Response) error {
 		result := make([]*model.Contact, 0)
 
@@ -148,7 +148,7 @@ func getContactsHandler(app *App) func(req *air.Request, res *air.Response) erro
 	}
 }
 
-func getMissionQueryHandler(app *App) func(req *air.Request, res *air.Response) error {
+func getMissionQueryHandler(app *App) air.Handler {
 	return func(req *air.Request, res *air.Response) error {
 		hash := getStringParam(req, "hash")
 		if hash == "" {
@@ -166,7 +166,7 @@ func getMissionQueryHandler(app *App) func(req *air.Request, res *air.Response) 
 	}
 }
 
-func getMissionUploadHandler(app *App) func(req *air.Request, res *air.Response) error {
+func getMissionUploadHandler(app *App) air.Handler {
 	return func(req *air.Request, res *air.Response) error {
 		hash := getStringParam(req, "hash")
 		fname := getStringParam(req, "filename")
@@ -207,7 +207,7 @@ func getMissionUploadHandler(app *App) func(req *air.Request, res *air.Response)
 	}
 }
 
-func getUploadHandler(app *App) func(req *air.Request, res *air.Response) error {
+func getUploadHandler(app *App) air.Handler {
 	return func(req *air.Request, res *air.Response) error {
 		uid := getStringParam(req, "uid")
 		fname := getStringParam(req, "name")
@@ -306,7 +306,7 @@ func (app *App) uploadFile(req *air.Request, uid, filename string) (*pm.PackageI
 	return pi, nil
 }
 
-func getContentGetHandler(app *App) func(req *air.Request, res *air.Response) error {
+func getContentGetHandler(app *App) air.Handler {
 	return func(req *air.Request, res *air.Response) error {
 		if hash := getStringParam(req, "hash"); hash != "" {
 			if pi := app.packageManager.GetByHash(hash); pi != nil {
@@ -340,7 +340,7 @@ func getContentGetHandler(app *App) func(req *air.Request, res *air.Response) er
 	}
 }
 
-func getMetadataGetHandler(app *App) func(req *air.Request, res *air.Response) error {
+func getMetadataGetHandler(app *App) air.Handler {
 	return func(req *air.Request, res *air.Response) error {
 		hash := getStringParam(req, "hash")
 
@@ -360,7 +360,7 @@ func getMetadataGetHandler(app *App) func(req *air.Request, res *air.Response) e
 	}
 }
 
-func getMetadataPutHandler(app *App) func(req *air.Request, res *air.Response) error {
+func getMetadataPutHandler(app *App) air.Handler {
 	return func(req *air.Request, res *air.Response) error {
 		hash := getStringParam(req, "hash")
 
@@ -381,7 +381,7 @@ func getMetadataPutHandler(app *App) func(req *air.Request, res *air.Response) e
 	}
 }
 
-func getSearchHandler(app *App) func(req *air.Request, res *air.Response) error {
+func getSearchHandler(app *App) air.Handler {
 	return func(req *air.Request, res *air.Response) error {
 		kw := getStringParam(req, "keywords")
 		tool := getStringParam(req, "tool")
@@ -396,13 +396,13 @@ func getSearchHandler(app *App) func(req *air.Request, res *air.Response) error 
 	}
 }
 
-func getUserRolesHandler(app *App) func(req *air.Request, res *air.Response) error {
+func getUserRolesHandler(app *App) air.Handler {
 	return func(req *air.Request, res *air.Response) error {
 		return res.WriteJSON([]string{"user", "webuser"})
 	}
 }
 
-func getAllGroupsHandler(app *App) func(req *air.Request, res *air.Response) error {
+func getAllGroupsHandler(app *App) air.Handler {
 	g := make(map[string]any)
 	g["name"] = "__ANON__"
 	g["direction"] = "OUT"
@@ -418,7 +418,7 @@ func getAllGroupsHandler(app *App) func(req *air.Request, res *air.Response) err
 	}
 }
 
-func getAllGroupsCacheHandler(_ *App) func(req *air.Request, res *air.Response) error {
+func getAllGroupsCacheHandler(_ *App) air.Handler {
 	result := makeAnswer("java.lang.Boolean", true)
 
 	return func(req *air.Request, res *air.Response) error {
@@ -426,7 +426,7 @@ func getAllGroupsCacheHandler(_ *App) func(req *air.Request, res *air.Response) 
 	}
 }
 
-func getProfileConnectionHandler(app *App) func(req *air.Request, res *air.Response) error {
+func getProfileConnectionHandler(app *App) air.Handler {
 	return func(req *air.Request, res *air.Response) error {
 		username := getUsernameFromReq(req)
 		_ = getIntParam(req, "syncSecago", 0)
@@ -459,7 +459,7 @@ func getProfileConnectionHandler(app *App) func(req *air.Request, res *air.Respo
 	}
 }
 
-func getVideoListHandler(app *App) func(req *air.Request, res *air.Response) error {
+func getVideoListHandler(app *App) air.Handler {
 	return func(req *air.Request, res *air.Response) error {
 		r := new(model.VideoConnections)
 
@@ -473,7 +473,7 @@ func getVideoListHandler(app *App) func(req *air.Request, res *air.Response) err
 	}
 }
 
-func getVideo2ListHandler(app *App) func(req *air.Request, res *air.Response) error {
+func getVideo2ListHandler(app *App) air.Handler {
 	return func(req *air.Request, res *air.Response) error {
 		conn := make([]*model.VideoConnections2, 0)
 
@@ -490,7 +490,7 @@ func getVideo2ListHandler(app *App) func(req *air.Request, res *air.Response) er
 	}
 }
 
-func getVideoPostHandler(app *App) func(req *air.Request, res *air.Response) error {
+func getVideoPostHandler(app *App) air.Handler {
 	return func(req *air.Request, res *air.Response) error {
 		username := getUsernameFromReq(req)
 
@@ -509,7 +509,7 @@ func getVideoPostHandler(app *App) func(req *air.Request, res *air.Response) err
 	}
 }
 
-func getXmlHandler(app *App) func(req *air.Request, res *air.Response) error {
+func getXmlHandler(app *App) air.Handler {
 	return func(req *air.Request, res *air.Response) error {
 		var evt *cotproto.CotEvent
 

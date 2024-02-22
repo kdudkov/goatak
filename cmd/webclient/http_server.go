@@ -47,7 +47,7 @@ func NewHttp(app *App, address string) *air.Air {
 	return srv
 }
 
-func getIndexHandler(app *App, r *staticfiles.Renderer) func(req *air.Request, res *air.Response) error {
+func getIndexHandler(app *App, r *staticfiles.Renderer) air.Handler {
 	return func(req *air.Request, res *air.Response) error {
 		data := map[string]any{
 			"js": []string{"map.js"},
@@ -62,7 +62,7 @@ func getIndexHandler(app *App, r *staticfiles.Renderer) func(req *air.Request, r
 	}
 }
 
-func getUnitsHandler(app *App) func(req *air.Request, res *air.Response) error {
+func getUnitsHandler(app *App) air.Handler {
 	return func(req *air.Request, res *air.Response) error {
 		r := make(map[string]any, 0)
 		r["units"] = getUnits(app)
@@ -72,7 +72,7 @@ func getUnitsHandler(app *App) func(req *air.Request, res *air.Response) error {
 	}
 }
 
-func getConfigHandler(app *App) func(req *air.Request, res *air.Response) error {
+func getConfigHandler(app *App) air.Handler {
 	return func(req *air.Request, res *air.Response) error {
 		m := make(map[string]any, 0)
 		m["version"] = getVersion()
@@ -92,7 +92,7 @@ func getConfigHandler(app *App) func(req *air.Request, res *air.Response) error 
 	}
 }
 
-func getDpHandler(app *App) func(req *air.Request, res *air.Response) error {
+func getDpHandler(app *App) air.Handler {
 	return func(req *air.Request, res *air.Response) error {
 		dp := new(model.DigitalPointer)
 
@@ -111,7 +111,7 @@ func getDpHandler(app *App) func(req *air.Request, res *air.Response) error {
 	}
 }
 
-func getPosHandler(app *App) func(req *air.Request, res *air.Response) error {
+func getPosHandler(app *App) air.Handler {
 	return func(req *air.Request, res *air.Response) error {
 		pos := make(map[string]float64)
 
@@ -137,7 +137,7 @@ func getPosHandler(app *App) func(req *air.Request, res *air.Response) error {
 	}
 }
 
-func addItemHandler(app *App) func(req *air.Request, res *air.Response) error {
+func addItemHandler(app *App) air.Handler {
 	return func(req *air.Request, res *air.Response) error {
 		wu := new(model.WebUnit)
 
@@ -155,27 +155,24 @@ func addItemHandler(app *App) func(req *air.Request, res *air.Response) error {
 			app.SendMsg(msg.GetTakMessage())
 		}
 
+		var u *model.Item
 		if wu.Category == "unit" || wu.Category == "point" {
-			if u := app.items.Get(msg.GetUID()); u != nil {
+			if u = app.items.Get(msg.GetUID()); u != nil {
 				u.Update(msg)
 				u.SetSend(wu.Send)
 			} else {
-				u1 := model.FromMsg(msg)
-				u1.SetLocal(true)
-				u1.SetSend(wu.Send)
-				app.items.Store(u1)
+				u = model.FromMsg(msg)
+				u.SetLocal(true)
+				u.SetSend(wu.Send)
+				app.items.Store(u)
 			}
 		}
 
-		r := make(map[string]any)
-		r["units"] = getUnits(app)
-		r["messages"] = app.messages
-
-		return res.WriteJSON(r)
+		return res.WriteJSON(u.ToWeb())
 	}
 }
 
-func addMessageHandler(app *App) func(req *air.Request, res *air.Response) error {
+func addMessageHandler(app *App) air.Handler {
 	return func(req *air.Request, res *air.Response) error {
 		msg := new(model.ChatMessage)
 
@@ -198,7 +195,7 @@ func addMessageHandler(app *App) func(req *air.Request, res *air.Response) error
 	}
 }
 
-func getWsHandler(app *App) func(req *air.Request, res *air.Response) error {
+func getWsHandler(app *App) air.Handler {
 	return func(req *air.Request, res *air.Response) error {
 		ws, err := res.WebSocket()
 		if err != nil {
@@ -258,7 +255,7 @@ func getWsHandler(app *App) func(req *air.Request, res *air.Response) error {
 	}
 }
 
-func deleteItemHandler(app *App) func(req *air.Request, res *air.Response) error {
+func deleteItemHandler(app *App) air.Handler {
 	return func(req *air.Request, res *air.Response) error {
 		uid := getStringParam(req, "uid")
 		app.items.Remove(uid)
@@ -271,7 +268,7 @@ func deleteItemHandler(app *App) func(req *air.Request, res *air.Response) error
 	}
 }
 
-func getStackHandler() func(req *air.Request, res *air.Response) error {
+func getStackHandler() air.Handler {
 	return func(req *air.Request, res *air.Response) error {
 		return pprof.Lookup("goroutine").WriteTo(res.Body, 1)
 	}
