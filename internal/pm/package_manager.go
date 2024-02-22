@@ -121,15 +121,11 @@ func (pm *PackageManager) ForEach(f func(uid string, pi *PackageInfo) bool) {
 	})
 }
 
-func (pm *PackageManager) GetList(kw, tool string, scope string) []*PackageInfo {
+func (pm *PackageManager) GetList(kw, tool string) []*PackageInfo {
 	res := make([]*PackageInfo, 0)
 
 	pm.ForEach(func(key string, pi *PackageInfo) bool {
 		if tool != "" && tool != pi.Tool {
-			return true
-		}
-
-		if scope == pi.Scope {
 			return true
 		}
 

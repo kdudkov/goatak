@@ -375,6 +375,7 @@ func getMetadataGetHandler(app *App) air.Handler {
 
 func getMetadataPutHandler(app *App) air.Handler {
 	return func(req *air.Request, res *air.Response) error {
+		user := app.users.GetUser(getUsernameFromReq(req))
 		hash := getStringParam(req, "hash")
 
 		if hash == "" {
@@ -385,7 +386,7 @@ func getMetadataPutHandler(app *App) air.Handler {
 
 		s, _ := io.ReadAll(req.Body)
 
-		if pi := app.packageManager.GetByHash(hash); pi != nil {
+		if pi := app.packageManager.GetByHash(hash); pi != nil && user.CanSeeScope(pi.Scope)  {
 			pi.Tool = string(s)
 			app.packageManager.Store(pi.UID, pi)
 		}
@@ -402,7 +403,13 @@ func getSearchHandler(app *App) air.Handler {
 		user := app.users.GetUser(getUsernameFromReq(req))
 
 		result := make(map[string]any)
-		packages := app.packageManager.GetList(kw, tool, user.GetScope())
+		packages := make([]*pm.PackageInfo, 0)
+
+		for _, pi := range app.packageManager.GetList(kw, tool) {
+			if user.CanSeeScope(pi.Scope) {
+				packages = append(packages, pi)
+			}
+		}		
 
 		result["results"] = packages
 		result["resultCount"] = len(packages)
