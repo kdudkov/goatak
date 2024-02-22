@@ -42,6 +42,7 @@ type PackageInfo struct {
 	PrimaryKey         int       `json:"PrimaryKey"`
 	Hash               string    `json:"Hash"`
 	CreatorUID         string    `json:"CreatorUid"`
+	Scope			   string  	 `json:"Scope"`
 	Name               string    `json:"Name"`
 	Tool               string    `json:"Tool"`
 }
@@ -120,11 +121,15 @@ func (pm *PackageManager) ForEach(f func(uid string, pi *PackageInfo) bool) {
 	})
 }
 
-func (pm *PackageManager) GetList(kw, tool string) []*PackageInfo {
+func (pm *PackageManager) GetList(kw, tool string, scope string) []*PackageInfo {
 	res := make([]*PackageInfo, 0)
 
 	pm.ForEach(func(key string, pi *PackageInfo) bool {
 		if tool != "" && tool != pi.Tool {
+			return true
+		}
+
+		if scope == pi.Scope {
 			return true
 		}
 
