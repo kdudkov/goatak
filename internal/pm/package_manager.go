@@ -42,6 +42,7 @@ type PackageInfo struct {
 	PrimaryKey         int       `json:"PrimaryKey"`
 	Hash               string    `json:"Hash"`
 	CreatorUID         string    `json:"CreatorUid"`
+	Scope              string    `json:"Scope"`
 	Name               string    `json:"Name"`
 	Tool               string    `json:"Tool"`
 }

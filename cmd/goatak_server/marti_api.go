@@ -150,6 +150,9 @@ func getContactsHandler(app *App) air.Handler {
 
 func getMissionQueryHandler(app *App) air.Handler {
 	return func(req *air.Request, res *air.Response) error {
+		username := getUsernameFromReq(req)
+		user := app.users.GetUser(username)
+
 		hash := getStringParam(req, "hash")
 		if hash == "" {
 			res.Status = http.StatusNotAcceptable
@@ -157,7 +160,7 @@ func getMissionQueryHandler(app *App) air.Handler {
 			return res.WriteString("no hash")
 		}
 
-		if p := app.packageManager.GetByHash(hash); p != nil {
+		if p := app.packageManager.GetByHash(hash); p != nil && user.CanSeeScope(p.Scope) {
 			return res.WriteString(fmt.Sprintf("/Marti/sync/content?hash=%s", hash))
 		}
 		res.Status = http.StatusNotFound
@@ -245,6 +248,8 @@ func getUploadHandler(app *App) air.Handler {
 
 func (app *App) uploadMultipart(req *air.Request, uid, hash, filename string, pack bool) (*pm.PackageInfo, error) {
 	username := getUsernameFromReq(req)
+	user := app.users.GetUser(username)
+
 	f, fh, err := req.HTTPRequest().FormFile("assetfile")
 
 	if err != nil {
@@ -260,7 +265,8 @@ func (app *App) uploadMultipart(req *air.Request, uid, hash, filename string, pa
 	}
 
 	pi, err := app.packageManager.SaveData(uid, hash, filename, fh.Header.Get("Content-type"), data, func(pi1 *pm.PackageInfo) {
-		pi1.SubmissionUser = username
+		pi1.SubmissionUser = user.GetLogin()
+		pi1.Scope = user.GetScope()
 		pi1.CreatorUID = getStringParamIgnoreCaps(req, "creatorUid")
 
 		if pack {
@@ -279,6 +285,7 @@ func (app *App) uploadMultipart(req *air.Request, uid, hash, filename string, pa
 
 func (app *App) uploadFile(req *air.Request, uid, filename string) (*pm.PackageInfo, error) {
 	username := getUsernameFromReq(req)
+	user := app.users.GetUser(username)
 
 	if req.Body == nil {
 		return nil, errors.New("no body")
@@ -294,7 +301,8 @@ func (app *App) uploadFile(req *air.Request, uid, filename string) (*pm.PackageI
 	}
 
 	pi, err := app.packageManager.SaveData(uid, "", filename, req.Header.Get("Content-type"), data, func(pi1 *pm.PackageInfo) {
-		pi1.SubmissionUser = username
+		pi1.SubmissionUser = user.GetLogin()
+		pi1.Scope = user.GetScope()
 		pi1.CreatorUID = getStringParamIgnoreCaps(req, "creatorUid")
 	})
 
@@ -308,8 +316,11 @@ func (app *App) uploadFile(req *air.Request, uid, filename string) (*pm.PackageI
 
 func getContentGetHandler(app *App) air.Handler {
 	return func(req *air.Request, res *air.Response) error {
+		username := getUsernameFromReq(req)
+		user := app.users.GetUser(username)
+		
 		if hash := getStringParam(req, "hash"); hash != "" {
-			if pi := app.packageManager.GetByHash(hash); pi != nil {
+			if pi := app.packageManager.GetByHash(hash); pi != nil && user.CanSeeScope(pi.Scope) {
 				res.Header.Set("Content-type", pi.MIMEType)
 
 				return res.WriteFile(app.packageManager.GetFilePath(pi))
@@ -322,7 +333,7 @@ func getContentGetHandler(app *App) air.Handler {
 		}
 
 		if uid := getStringParam(req, "uid"); uid != "" {
-			if pi := app.packageManager.Get(uid); pi != nil {
+			if pi := app.packageManager.Get(uid); pi != nil && user.CanSeeScope(pi.Scope) {
 				res.Header.Set("Content-type", pi.MIMEType)
 
 				return res.WriteFile(app.packageManager.GetFilePath(pi))
@@ -343,6 +354,8 @@ func getContentGetHandler(app *App) air.Handler {
 func getMetadataGetHandler(app *App) air.Handler {
 	return func(req *air.Request, res *air.Response) error {
 		hash := getStringParam(req, "hash")
+		username := getUsernameFromReq(req)
+		user := app.users.GetUser(username)
 
 		if hash == "" {
 			res.Status = http.StatusNotAcceptable
@@ -350,7 +363,7 @@ func getMetadataGetHandler(app *App) air.Handler {
 			return res.WriteString("no hash")
 		}
 
-		if pi := app.packageManager.GetByHash(hash); pi != nil {
+		if pi := app.packageManager.GetByHash(hash); pi != nil && user.CanSeeScope(pi.Scope) {
 			return res.WriteString(pi.Tool)
 		}
 
@@ -362,6 +375,7 @@ func getMetadataGetHandler(app *App) air.Handler {
 
 func getMetadataPutHandler(app *App) air.Handler {
 	return func(req *air.Request, res *air.Response) error {
+		user := app.users.GetUser(getUsernameFromReq(req))
 		hash := getStringParam(req, "hash")
 
 		if hash == "" {
@@ -372,7 +386,7 @@ func getMetadataPutHandler(app *App) air.Handler {
 
 		s, _ := io.ReadAll(req.Body)
 
-		if pi := app.packageManager.GetByHash(hash); pi != nil {
+		if pi := app.packageManager.GetByHash(hash); pi != nil && user.CanSeeScope(pi.Scope)  {
 			pi.Tool = string(s)
 			app.packageManager.Store(pi.UID, pi)
 		}
@@ -386,8 +400,16 @@ func getSearchHandler(app *App) air.Handler {
 		kw := getStringParam(req, "keywords")
 		tool := getStringParam(req, "tool")
 
+		user := app.users.GetUser(getUsernameFromReq(req))
+
 		result := make(map[string]any)
-		packages := app.packageManager.GetList(kw, tool)
+		packages := make([]*pm.PackageInfo, 0)
+
+		for _, pi := range app.packageManager.GetList(kw, tool) {
+			if user.CanSeeScope(pi.Scope) {
+				packages = append(packages, pi)
+			}
+		}		
 
 		result["results"] = packages
 		result["resultCount"] = len(packages)
@@ -599,3 +621,4 @@ func getStringParamIgnoreCaps(req *air.Request, name string) string {
 
 	return ""
 }
+
