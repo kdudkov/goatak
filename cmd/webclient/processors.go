@@ -24,7 +24,7 @@ func (app *App) InitMessageProcessors() {
 	app.AddEventProcessor("remove", app.removeItemProcessor, "t-x-d-d")
 	app.AddEventProcessor("chat", app.chatProcessor, "b-t-f")
 	app.AddEventProcessor("chat_r", app.chatReceiptProcessor, "b-t-f-")
-	app.AddEventProcessor("items", app.saveItemProcessor, "a-", "b-")
+	app.AddEventProcessor("items", app.saveItemProcessor, ".-")
 	app.AddEventProcessor("logger", app.loggerProcessor, ".-")
 
 	if app.saveFile != "" {
@@ -93,7 +93,7 @@ func (app *App) chatReceiptProcessor(msg *cot.CotMessage) {
 }
 
 func (app *App) saveItemProcessor(msg *cot.CotMessage) {
-	if cot.MatchAnyPattern(msg.GetType(), "b-t-f", "b-t-f-") {
+	if msg.GetLat() == 0 && msg.GetLon() == 0 && !strings.HasPrefix(msg.GetType(), "a-") {
 		return
 	}
 
