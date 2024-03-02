@@ -52,6 +52,7 @@ type Feed struct {
 	Heading             string  `xml:"heading"             yaml:"heading,omitempty"`
 	Range               string  `xml:"range"               yaml:"range,omitempty"`
 	User                string  `yaml:"user"`
+	Scope               string  `yaml:"scope"`
 }
 
 type Feed2 struct {
@@ -65,6 +66,7 @@ type Feed2 struct {
 	Heading   string  `json:"heading,omitempty" yaml:"heading,omitempty"`
 	Range     string  `json:"range,omitempty"   yaml:"range,omitempty"`
 	User      string  `json:"-"                 yaml:"user"`
+	Scope     string  `yaml:"scope"`
 }
 
 func (f *Feed2) ToFeed() *Feed {
@@ -98,11 +100,19 @@ func (f *Feed2) ToFeed() *Feed {
 		Heading:             f.Heading,
 		Range:               f.Range,
 		User:                f.User,
+		Scope:               "",
 	}
 }
 
 func (f *Feed2) WithUser(user string) *Feed2 {
 	f.User = user
+
+	return f
+}
+
+func (f *Feed2) WithScope(user string) *Feed2 {
+	f.User = user
+	
 
 	return f
 }

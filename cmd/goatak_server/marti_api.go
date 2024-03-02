@@ -498,9 +498,12 @@ func getVideoListHandler(app *App) air.Handler {
 func getVideo2ListHandler(app *App) air.Handler {
 	return func(req *air.Request, res *air.Response) error {
 		conn := make([]*model.VideoConnections2, 0)
+		user := app.users.GetUser(getUsernameFromReq(req))
 
 		app.feeds.ForEach(func(f *model.Feed2) bool {
-			conn = append(conn, &model.VideoConnections2{Feeds: []*model.Feed2{f}})
+			if user.CanSeeScope(f.Scope) {
+				conn = append(conn, &model.VideoConnections2{Feeds: []*model.Feed2{f}})
+			}
 
 			return true
 		})
@@ -515,6 +518,7 @@ func getVideo2ListHandler(app *App) air.Handler {
 func getVideoPostHandler(app *App) air.Handler {
 	return func(req *air.Request, res *air.Response) error {
 		username := getUsernameFromReq(req)
+		user := app.users.GetUser(username)
 
 		r := new(model.VideoConnections)
 
@@ -524,7 +528,7 @@ func getVideoPostHandler(app *App) air.Handler {
 		}
 
 		for _, f := range r.Feeds {
-			app.feeds.Store(f.ToFeed2().WithUser(username))
+			app.feeds.Store(f.ToFeed2().WithUser(username).WithScope(user.Scope))
 		}
 
 		return nil
