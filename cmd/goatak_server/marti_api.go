@@ -484,9 +484,12 @@ func getProfileConnectionHandler(app *App) air.Handler {
 func getVideoListHandler(app *App) air.Handler {
 	return func(req *air.Request, res *air.Response) error {
 		r := new(model.VideoConnections)
+		user := app.users.GetUser(getUsernameFromReq(req))
 
 		app.feeds.ForEach(func(f *model.Feed2) bool {
-			r.Feeds = append(r.Feeds, f.ToFeed())
+			if user.CanSeeScope(f.Scope) {
+				r.Feeds = append(r.Feeds, f.ToFeed())
+			}			
 
 			return true
 		})
