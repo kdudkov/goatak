@@ -110,9 +110,8 @@ func (f *Feed2) WithUser(user string) *Feed2 {
 	return f
 }
 
-func (f *Feed2) WithScope(user string) *Feed2 {
-	f.User = user
-	
+func (f *Feed2) WithScope(scope string) *Feed2 {
+	f.Scope = scope	
 
 	return f
 }
