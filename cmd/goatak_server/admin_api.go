@@ -12,6 +12,7 @@ import (
 	"github.com/aofei/air"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
+	"github.com/kdudkov/goatak/cmd/goatak_server/tak_ws"
 	"github.com/kdudkov/goatak/internal/client"
 	"github.com/kdudkov/goatak/internal/model"
 	"github.com/kdudkov/goatak/pkg/cot"
@@ -35,7 +36,8 @@ func getAdminAPI(app *App, addr string, renderer *staticfiles.Renderer, webtakRo
 	adminAPI.GET("/unit/:uid/track", getUnitTrackHandler(app))
 	adminAPI.DELETE("/unit/:uid", deleteItemHandler(app))
 
-	adminAPI.GET("/takproto/1", getWsHandler(app))
+	adminAPI.GET("/ws", getWsHandler(app))
+	adminAPI.GET("/takproto/1", getTakWsHandler(app))
 	adminAPI.POST("/cot", getCotPostHandler(app))
 	adminAPI.POST("/cot_xml", getCotXMLPostHandler(app))
 
@@ -279,6 +281,29 @@ func getAllMissionHandler(app *App) air.Handler {
 		}
 
 		return res.WriteJSON(result)
+	}
+}
+
+// handler for WebTAK client - sends/receives protobuf COTs
+func getTakWsHandler(app *App) air.Handler {
+	return func(req *air.Request, res *air.Response) error {
+		ws, err := res.WebSocket()
+		if err != nil {
+			return err
+		}
+
+		defer ws.Close()
+
+		app.Logger.Infof("WS connection from %s", req.ClientAddress())
+		name := "ws:" + req.ClientAddress()
+		w := tak_ws.New(name, nil, ws, app.Logger, app.NewCotMessage)
+
+		app.AddClientHandler(w)
+		w.Listen()
+		app.RemoveHandlerCb(w)
+		app.Logger.Infof("ws disconnected")
+
+		return nil
 	}
 }
 

@@ -2,7 +2,8 @@
     <nav class="navbar navbar-expand-md navbar-dark fixed-top bg-dark">
         <div class="container-fluid">
             <a class="navbar-brand" href="#">GoATAK server <span v-if="config">{{ config.version }}</span></a>
-
+            <span class="badge rounded-pill bg-primary"
+                  v-bind:class="{ 'bg-success': conn, 'bg-secondary': !conn }">.</span>
             <div class="collapse navbar-collapse" id="navbarCollapse">
                 <ul class="navbar-nav me-auto mb-2 mb-md-0">
                     <li class="nav-item dropdown">

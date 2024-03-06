@@ -94,6 +94,7 @@ let app = new Vue({
     data: {
         map: null,
         layers: null,
+        conn: null,
         units: new Map(),
         messages: [],
         ts: 0,
@@ -119,20 +120,29 @@ let app = new Vue({
         L.control.scale({metric: true}).addTo(this.map);
 
         this.getConfig();
-        this.renew();
 
-        this.timer = setInterval(this.renew, 3000);
+        let supportsWebSockets = 'WebSocket' in window || 'MozWebSocket' in window;
+
+        if (supportsWebSockets) {
+            this.connect();
+            setInterval(this.getAllUnits, 60000);
+        }
+
+        this.renew();
+        setInterval(this.renew, 3000);
 
         this.map.on('click', this.mapClick);
         this.map.on('mousemove', this.mouseMove);
 
         this.formFromUnit(null);
     },
+
     computed: {
         current_unit: function () {
             return this.current_unit_uid ? this.current_unit_uid && this.getCurrentUnit() : null;
         }
     },
+
     methods: {
         getConfig: function () {
             let vm = this;
@@ -188,14 +198,48 @@ let app = new Vue({
                     });
                 });
         },
-        renew: function () {
+
+        connect: function () {
+            let url = (window.location.protocol === 'https:' ? 'wss://' : 'ws://') + window.location.host + '/ws';
+            let vm = this;
+
+            this.getAllUnits();
+
+            this.conn = new WebSocket(url);
+
+            this.conn.onmessage = function (e) {
+                vm.processUnit(JSON.parse(e.data));
+            };
+
+            this.conn.onopen = function (e) {
+                console.log("connected");
+            };
+
+            this.conn.onerror = function (e) {
+                console.log("error");
+            };
+
+            this.conn.onclose = function (e) {
+                console.log("closed");
+                vm.conn = null;
+                setTimeout(vm.connect, 3000);
+            };
+        },
+
+        getAllUnits: function () {
             let vm = this;
 
             fetch('/unit')
                 .then(function (response) {
                     return response.json()
                 })
-                .then(this.processUnits);
+                .then(vm.processUnits);
+        },
+
+        renew: function () {
+            if (!this.conn) {
+                this.getAllUnits();
+            }
 
             if (this.getTool("dp1")) {
                 let p = this.getTool("dp1").getLatLng();
@@ -208,6 +252,7 @@ let app = new Vue({
                 fetch("/dp", requestOptions);
             }
         },
+
         processUnits: function (data) {
             let keys = new Set();
 
@@ -224,6 +269,7 @@ let app = new Vue({
             this.messages = data.messages;
             this.ts += 1;
         },
+
         processUnit: function (u) {
             let unit = this.units.get(u.uid);
             let updateIcon = false;
@@ -245,6 +291,7 @@ let app = new Vue({
 
             return unit;
         },
+
         updateMarker: function (unit, draggable, updateIcon) {
             if (unit.lon === 0 && unit.lat === 0) {
                 if (unit.marker) {
@@ -276,6 +323,7 @@ let app = new Vue({
             unit.marker.setLatLng([unit.lat, unit.lon]);
             unit.marker.bindTooltip(popup(unit));
         },
+
         removeUnit: function (uid) {
             if (!this.units.has(uid)) return;
 
@@ -289,6 +337,7 @@ let app = new Vue({
                 this.setCurrentUnitUid(null, false);
             }
         },
+
         setCurrentUnitUid: function (uid, follow) {
             if (uid && this.units.has(uid)) {
                 this.current_unit_uid = uid;
@@ -300,10 +349,12 @@ let app = new Vue({
                 this.formFromUnit(null);
             }
         },
+
         getCurrentUnit: function () {
             if (!this.current_unit_uid || !this.units.has(this.current_unit_uid)) return null;
             return this.units.get(this.current_unit_uid);
         },
+
         byCategory: function (s) {
             let arr = Array.from(this.units.values()).filter(function (u) {
                 return u.category === s
@@ -316,6 +367,7 @@ let app = new Vue({
             });
             return this.ts && arr;
         },
+
         mapToUnit: function (u) {
             if (!u) {
                 return;
@@ -324,23 +376,33 @@ let app = new Vue({
                 this.map.setView([u.lat, u.lon]);
             }
         },
+
         getImg: function (item) {
             return getIconUri(item, false).uri;
         },
+
         milImg: function (item) {
             return getMilIcon(item, false).uri;
         },
+
         dt: function (str) {
             let d = new Date(Date.parse(str));
             return ("0" + d.getDate()).slice(-2) + "-" + ("0" + (d.getMonth() + 1)).slice(-2) + "-" +
                 d.getFullYear() + " " + ("0" + d.getHours()).slice(-2) + ":" + ("0" + d.getMinutes()).slice(-2);
         },
+
         sp: function (v) {
             return (v * 3.6).toFixed(1);
         },
+
         modeIs: function (s) {
             return document.getElementById(s).checked === true;
         },
+
+        mouseMove: function (e) {
+            this.coords = e.latlng;
+        },
+
         mapClick: function (e) {
             if (this.modeIs("redx")) {
                 this.addOrMove("redx", e.latlng, "/static/icons/x.png")
@@ -396,6 +458,7 @@ let app = new Vue({
                 fetch("/pos", requestOptions);
             }
         },
+
         sendUnit: function (u) {
             const requestOptions = {
                 method: "POST",
@@ -411,6 +474,7 @@ let app = new Vue({
                     vm.processUnit(data);
                 });
         },
+
         formFromUnit: function (u) {
             if (!u) {
                 this.form_unit = {
@@ -443,6 +507,7 @@ let app = new Vue({
                 }
             }
         },
+
         saveEditForm: function () {
             let u = this.getCurrentUnit();
             if (!u) return;
@@ -461,6 +526,7 @@ let app = new Vue({
             }
             this.sendUnit(u);
         },
+
         getRootSidc: function (s) {
             let curr = this.types;
 
@@ -486,6 +552,7 @@ let app = new Vue({
                 }
             }
         },
+
         getSidc: function (s) {
             let curr = this.types;
 
@@ -511,6 +578,7 @@ let app = new Vue({
             }
             return null;
         },
+
         setFormRootSidc: function (s) {
             let t = this.getSidc(s);
             if (t?.next) {
@@ -521,9 +589,7 @@ let app = new Vue({
                 this.form_unit.subtype = this.types.next[0].code;
             }
         },
-        mouseMove: function (e) {
-            this.coords = e.latlng;
-        },
+
         removeTool: function (name) {
             if (this.tools.has(name)) {
                 let p = this.tools.get(name);
@@ -533,9 +599,11 @@ let app = new Vue({
                 this.ts++;
             }
         },
+
         getTool: function (name) {
             return this.tools.get(name);
         },
+
         addOrMove(name, coord, icon) {
             if (this.tools.has(name)) {
                 this.tools.get(name).setLatLng(coord);
@@ -552,15 +620,19 @@ let app = new Vue({
             }
             this.ts++;
         },
+
         printCoordsll: function (latlng) {
             return this.printCoords(latlng.lat, latlng.lng);
         },
+
         printCoords: function (lat, lng) {
             return lat.toFixed(6) + "," + lng.toFixed(6);
         },
+
         latlng: function (lat, lon) {
             return L.latLng(lat, lon);
         },
+
         distBea: function (p1, p2) {
             let toRadian = Math.PI / 180;
             // haversine formula
@@ -578,6 +650,7 @@ let app = new Vue({
             let distance = R * c;
             return (distance < 10000 ? distance.toFixed(0) + "m " : (distance / 1000).toFixed(1) + "km ") + brng.toFixed(1) + "°T";
         },
+
         contactsNum: function () {
             let online = 0;
             let total = 0;
@@ -590,6 +663,7 @@ let app = new Vue({
 
             return online + "/" + total;
         },
+
         countByCategory: function (s) {
             let total = 0;
             this.units.forEach(function (u) {
@@ -598,6 +672,7 @@ let app = new Vue({
 
             return total;
         },
+
         msgNum: function () {
             if (!this.messages) return 0;
             let n = 0;
@@ -608,25 +683,30 @@ let app = new Vue({
             }
             return n;
         },
+
         msgNum1: function (k) {
             if (!this.messages || !this.messages[k].messages) return 0;
             return this.messages[k].messages.length;
         },
+
         setChat: function (uid, chatroom) {
             this.chat_uid = uid;
             this.chatroom = chatroom;
         },
+
         openChat: function (uid, chatroom) {
             this.chat_uid = uid;
             this.chatroom = chatroom;
             new bootstrap.Modal(document.getElementById('messages')).show();
         },
+
         getMessages: function () {
             if (!this.chat_uid) {
                 return [];
             }
             return this.messages[this.chat_uid] ? this.messages[this.chat_uid].messages : [];
         },
+
         getUnitName: function (u) {
             let res = u.callsign;
             if (u.parent_uid === this.config.uid) {
@@ -638,9 +718,11 @@ let app = new Vue({
             }
             return res;
         },
+
         cancelEditForm: function () {
             this.formFromUnit(this.getCurrentUnit());
         },
+
         sidcFromType: function (s) {
             if (!s.startsWith('a-')) return "";
 
@@ -669,6 +751,7 @@ let app = new Vue({
 
             return sidc.toUpperCase();
         },
+
         cleanUnit: function (u) {
             let res = {};
 
@@ -679,6 +762,7 @@ let app = new Vue({
             }
             return res;
         },
+
         deleteCurrentUnit: function () {
             if (!this.current_unit_uid) return;
             fetch("unit/" + this.current_unit_uid, {method: "DELETE"})
@@ -688,6 +772,7 @@ let app = new Vue({
                 .then(this.processUnits);
             // this.removeUnit(this.current_unit_uid);
         },
+
         sendMessage: function () {
             let msg = {
                 from: this.config.callsign,

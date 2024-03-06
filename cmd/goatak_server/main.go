@@ -26,6 +26,8 @@ import (
 	"gorm.io/gorm/logger"
 	"software.sslmate.com/src/go-pkcs12"
 
+	"github.com/kdudkov/goatak/cmd/goatak_server/missions"
+	"github.com/kdudkov/goatak/internal/callbacks"
 	"github.com/kdudkov/goatak/internal/client"
 	im "github.com/kdudkov/goatak/internal/model"
 	"github.com/kdudkov/goatak/internal/pm"
@@ -82,10 +84,13 @@ type App struct {
 	zoom           int8
 
 	handlers sync.Map
+
+	changeCb *callbacks.Callback[*model.Item]
+
 	items    repository.ItemsRepository
 	messages []*model.ChatMessage
 	feeds    repository.FeedsRepository
-	missions *MissionManager
+	missions *missions.MissionManager
 
 	users repository.UserRepository
 
@@ -102,6 +107,7 @@ func NewApp(config *AppConfig, logger *zap.SugaredLogger) *App {
 		users:           repository.NewFileUserRepo(logger.Named("userManager"), config.usersFile),
 		ch:              make(chan *cot.CotMessage, 20),
 		handlers:        sync.Map{},
+		changeCb:        callbacks.New[*model.Item](),
 		items:           repository.NewItemsMemoryRepo(),
 		feeds:           repository.NewFeedsFileRepo(logger.Named("feedsRepo"), filepath.Join(config.dataDir, "feeds")),
 		uid:             uuid.NewString(),
@@ -115,7 +121,7 @@ func NewApp(config *AppConfig, logger *zap.SugaredLogger) *App {
 			panic(err)
 		}
 
-		app.missions = NewMissionManager(db, app.Logger.Named("missions"))
+		app.missions = missions.New(db, app.Logger.Named("missions"))
 		if err := app.missions.Migrate(); err != nil {
 			panic(err)
 		}

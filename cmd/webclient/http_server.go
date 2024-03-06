@@ -195,66 +195,6 @@ func addMessageHandler(app *App) air.Handler {
 	}
 }
 
-func getWsHandler(app *App) air.Handler {
-	return func(req *air.Request, res *air.Response) error {
-		ws, err := res.WebSocket()
-		if err != nil {
-			return err
-		}
-
-		defer ws.Close()
-
-		name := uuid.New().String()
-
-		ch := make(chan *model.WebUnit)
-
-		go func() {
-			for ci := range ch {
-				if ws.Closed {
-					return
-				}
-
-				if b, err := json.Marshal(ci); err == nil {
-					if err := ws.WriteText(string(b)); err != nil {
-						ws.Close()
-
-						return
-					}
-				} else {
-					ws.Close()
-
-					return
-				}
-			}
-		}()
-
-		app.listeners.Store(name, func(u *model.WebUnit) {
-			if ws.Closed {
-				return
-			}
-
-			select {
-			case ch <- u:
-			default:
-			}
-		})
-
-		app.Logger.Debug("ws listener connected")
-
-		ws.BinaryHandler = func(b []byte) error {
-			return nil
-		}
-
-		ws.Listen()
-		app.Logger.Debug("ws listener disconnected")
-		app.listeners.Delete(name)
-		ws.Close()
-		close(ch)
-
-		return nil
-	}
-}
-
 func deleteItemHandler(app *App) air.Handler {
 	return func(req *air.Request, res *air.Response) error {
 		uid := getStringParam(req, "uid")

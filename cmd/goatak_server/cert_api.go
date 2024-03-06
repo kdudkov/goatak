@@ -15,6 +15,7 @@ import (
 	"github.com/aofei/air"
 	"github.com/google/uuid"
 
+	"github.com/kdudkov/goatak/cmd/goatak_server/mp"
 	"github.com/kdudkov/goatak/pkg/tlsutil"
 )
 
@@ -208,7 +209,7 @@ func getProfileEnrollmentHandler(app *App) air.Handler {
 			return nil
 		}
 
-		mp := NewMissionPackage("ProfileMissionPackage-"+uuid.NewString(), "Enrollment")
+		mp := mp.NewMissionPackage("ProfileMissionPackage-"+uuid.NewString(), "Enrollment")
 		mp.Param("onReceiveImport", "true")
 		mp.Param("onReceiveDelete", "true")
 

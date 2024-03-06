@@ -1,4 +1,4 @@
-package main
+package missions
 
 import (
 	"errors"
@@ -18,7 +18,7 @@ type MissionManager struct {
 	logger *zap.SugaredLogger
 }
 
-func NewMissionManager(db *gorm.DB, logger *zap.SugaredLogger) *MissionManager {
+func New(db *gorm.DB, logger *zap.SugaredLogger) *MissionManager {
 	mn := &MissionManager{
 		db:     db,
 		logger: logger,

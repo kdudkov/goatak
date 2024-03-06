@@ -107,9 +107,13 @@ func (app *App) saveItemProcessor(msg *cot.CotMessage) {
 	if c := app.items.Get(msg.GetUID()); c != nil {
 		app.Logger.Debugf("update %s %s (%s) %s", cl, msg.GetUID(), msg.GetCallsign(), msg.GetType())
 		c.Update(msg)
+		app.items.Store(c)
+		app.changeCb.AddMessage(c)
 	} else {
 		app.Logger.Infof("new %s %s (%s) %s", cl, msg.GetUID(), msg.GetCallsign(), msg.GetType())
-		app.items.Store(model.FromMsg(msg))
+		item := model.FromMsg(msg)
+		app.items.Store(item)
+		app.changeCb.AddMessage(item)
 	}
 }
 

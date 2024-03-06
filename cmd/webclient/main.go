@@ -20,6 +20,7 @@ import (
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
 
+	"github.com/kdudkov/goatak/internal/callbacks"
 	"github.com/kdudkov/goatak/internal/client"
 	"github.com/kdudkov/goatak/internal/repository"
 	"github.com/kdudkov/goatak/pkg/cot"
@@ -47,7 +48,7 @@ type App struct {
 	tlsCert         *tls.Certificate
 	cas             *x509.CertPool
 	cl              *client.ConnClientHandler
-	listeners       sync.Map
+	changeCb        *callbacks.Callback[*model.Item]
 	eventProcessors []*EventProcessor
 	remoteAPI       *RemoteAPI
 	saveFile        string
@@ -98,14 +99,14 @@ func NewApp(uid string, callsign string, connectStr string, webPort int, logger 
 		webPort:         webPort,
 		items:           repository.NewItemsMemoryRepo(),
 		dialTimeout:     time.Second * 5,
-		listeners:       sync.Map{},
+		changeCb:        callbacks.New[*model.Item](),
 		messages:        model.NewMessages(uid),
 		eventProcessors: make([]*EventProcessor, 0),
 		pos:             atomic.Pointer[model.Pos]{},
 	}
 }
 
-func (app *App) Init(cancel context.CancelFunc) {
+func (app *App) Init() {
 	app.remoteAPI = NewRemoteAPI(app.host)
 
 	if app.tls {
@@ -442,7 +443,7 @@ func main() {
 		}
 	}
 
-	app.Init(cancel)
+	app.Init()
 
 	go app.Run(ctx)
 

@@ -6,10 +6,12 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/kdudkov/goatak/cmd/goatak_server/mp"
 )
 
-func NewUserPrefsFile(prefix, callsign, team, role, typ string) *PrefFile {
-	conf := NewUserProfilePrefFile(prefix)
+func NewUserPrefsFile(prefix, callsign, team, role, typ string) *mp.PrefFile {
+	conf := mp.NewUserProfilePrefFile(prefix)
 	if callsign != "" {
 		conf.AddParam("locationCallsign", callsign)
 	}
@@ -29,8 +31,8 @@ func NewUserPrefsFile(prefix, callsign, team, role, typ string) *PrefFile {
 	return conf
 }
 
-func (app *App) GetProfileFiles(username, uid string) []FileContent {
-	res := make([]FileContent, 0)
+func (app *App) GetProfileFiles(username, uid string) []mp.FileContent {
+	res := make([]mp.FileContent, 0)
 	prefix := fmt.Sprintf("%x", md5.Sum([]byte(username)))
 
 	if app.users != nil && username != "" {
@@ -44,7 +46,7 @@ func (app *App) GetProfileFiles(username, uid string) []FileContent {
 		}
 	}
 
-	if f, err := NewFsFile(prefix+"/defaults.pref", filepath.Join(app.config.dataDir, "defaults.pref")); err == nil {
+	if f, err := mp.NewFsFile(prefix+"/defaults.pref", filepath.Join(app.config.dataDir, "defaults.pref")); err == nil {
 		app.Logger.Debugf("add default.prefs")
 
 		res = append(res, f)
@@ -53,7 +55,7 @@ func (app *App) GetProfileFiles(username, uid string) []FileContent {
 	if paths, err := os.ReadDir(filepath.Join(app.config.dataDir, "maps")); err == nil {
 		for _, p := range paths {
 			if !p.IsDir() && strings.HasSuffix(p.Name(), ".xml") {
-				if f, err := NewFsFile("maps/"+p.Name(), filepath.Join(app.config.dataDir, "maps", p.Name())); err == nil {
+				if f, err := mp.NewFsFile("maps/"+p.Name(), filepath.Join(app.config.dataDir, "maps", p.Name())); err == nil {
 					app.Logger.Debugf("add %s", p.Name())
 
 					res = append(res, f)
