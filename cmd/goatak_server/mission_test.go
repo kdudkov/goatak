@@ -10,6 +10,7 @@ import (
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 
+	"github.com/kdudkov/goatak/cmd/goatak_server/missions"
 	"github.com/kdudkov/goatak/internal/model"
 	"github.com/kdudkov/goatak/pkg/cot"
 )
@@ -17,7 +18,7 @@ import (
 func TestMissionSubscriptions(t *testing.T) {
 	db := prepare()
 
-	m := NewMissionManager(db, nil)
+	m := missions.New(db, nil)
 	require.NoError(t, m.Migrate())
 
 	m1 := &model.Mission{Name: "mission1", Scope: "s1"}
@@ -47,7 +48,7 @@ func TestMissionSubscriptions(t *testing.T) {
 func TestMissionCRUD(t *testing.T) {
 	db := prepare()
 
-	m := NewMissionManager(db, nil)
+	m := missions.New(db, nil)
 	require.NoError(t, m.Migrate())
 
 	m1 := &model.Mission{Name: "mission1", Scope: "scope1"}
@@ -86,7 +87,7 @@ func TestMissionCRUD(t *testing.T) {
 func TestAddPoint(t *testing.T) {
 	db := prepare()
 
-	m := NewMissionManager(db, nil)
+	m := missions.New(db, nil)
 	require.NoError(t, m.Migrate())
 
 	m1 := &model.Mission{Name: "mission1", Scope: "scope1"}
@@ -123,7 +124,7 @@ func TestHash(t *testing.T) {
 func TestGetPoint(t *testing.T) {
 	db := prepare()
 
-	m := NewMissionManager(db, nil)
+	m := missions.New(db, nil)
 	require.NoError(t, m.Migrate())
 
 	m1 := &model.Mission{Name: "mission1", Scope: "scope1"}
