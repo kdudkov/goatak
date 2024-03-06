@@ -93,7 +93,7 @@ func (app *App) periodicGetter(ctx context.Context) {
 
 	d, _ := app.remoteAPI.getContacts(ctx)
 	for _, c := range d {
-		app.Logger.Debugf("contact %s %s", c.UID, c.Callsign)
+		app.logger.Debug(fmt.Sprintf("contact %s %s", c.UID, c.Callsign))
 		app.messages.Contacts.Store(c.UID, c)
 	}
 
@@ -104,13 +104,13 @@ func (app *App) periodicGetter(ctx context.Context) {
 		case <-ticker.C:
 			dat, err := app.remoteAPI.getContacts(ctx)
 			if err != nil {
-				app.Logger.Warnf("error getting contacts: %s", err.Error())
+				app.logger.Warn("error getting contacts", "error", err.Error())
 
 				continue
 			}
 
 			for _, c := range dat {
-				app.Logger.Debugf("contact %s %s", c.UID, c.Callsign)
+				app.logger.Debug(fmt.Sprintf("contact %s %s", c.UID, c.Callsign))
 				app.messages.Contacts.Store(c.UID, c)
 			}
 		}

@@ -18,7 +18,7 @@ import (
 func TestMissionSubscriptions(t *testing.T) {
 	db := prepare()
 
-	m := missions.New(db, nil)
+	m := missions.New(db)
 	require.NoError(t, m.Migrate())
 
 	m1 := &model.Mission{Name: "mission1", Scope: "s1"}
@@ -48,7 +48,7 @@ func TestMissionSubscriptions(t *testing.T) {
 func TestMissionCRUD(t *testing.T) {
 	db := prepare()
 
-	m := missions.New(db, nil)
+	m := missions.New(db)
 	require.NoError(t, m.Migrate())
 
 	m1 := &model.Mission{Name: "mission1", Scope: "scope1"}
@@ -87,7 +87,7 @@ func TestMissionCRUD(t *testing.T) {
 func TestAddPoint(t *testing.T) {
 	db := prepare()
 
-	m := missions.New(db, nil)
+	m := missions.New(db)
 	require.NoError(t, m.Migrate())
 
 	m1 := &model.Mission{Name: "mission1", Scope: "scope1"}
@@ -124,7 +124,7 @@ func TestHash(t *testing.T) {
 func TestGetPoint(t *testing.T) {
 	db := prepare()
 
-	m := missions.New(db, nil)
+	m := missions.New(db)
 	require.NoError(t, m.Migrate())
 
 	m1 := &model.Mission{Name: "mission1", Scope: "scope1"}

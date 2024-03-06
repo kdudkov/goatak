@@ -1,11 +1,12 @@
 package repository
 
 import (
+	"fmt"
+	"log/slog"
 	"os"
 	"sync"
 
 	"github.com/fsnotify/fsnotify"
-	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
 	"gopkg.in/yaml.v3"
 
@@ -14,7 +15,7 @@ import (
 
 type UserFileRepository struct {
 	userFile string
-	logger   *zap.SugaredLogger
+	logger   *slog.Logger
 	users    map[string]*model.User
 
 	watcher *fsnotify.Watcher
@@ -22,20 +23,20 @@ type UserFileRepository struct {
 	mx sync.RWMutex
 }
 
-func NewFileUserRepo(logger *zap.SugaredLogger, userFile string) *UserFileRepository {
+func NewFileUserRepo(userFile string) *UserFileRepository {
 	um := &UserFileRepository{
-		logger:   logger.Named("UserManager"),
+		logger:   slog.Default().With("logger", "UserManager"),
 		userFile: userFile,
 		users:    make(map[string]*model.User),
 		mx:       sync.RWMutex{},
 	}
 
 	if err := um.loadUsersFile(); err != nil {
-		logger.Errorf("error loading users file: %s", err.Error())
+		um.logger.Error("error loading users file", "error", err.Error())
 	}
 
 	if len(um.users) == 0 {
-		um.logger.Infof("no valid users found -  create one")
+		um.logger.Info("no valid users found -  create one")
 
 		const bcryptCost = 14
 		bytes, _ := bcrypt.GenerateFromPassword([]byte("11111"), bcryptCost)
@@ -105,13 +106,13 @@ func (r *UserFileRepository) Start() error {
 					return
 				}
 
-				r.logger.Debugf("event: %v", event)
+				r.logger.Debug(fmt.Sprintf("event: %v", event))
 
 				if event.Has(fsnotify.Write) && event.Name == r.userFile {
-					r.logger.Infof("users file is modified, reloading")
+					r.logger.Info("users file is modified, reloading")
 
 					if err := r.loadUsersFile(); err != nil {
-						r.logger.Errorf("error: %s", err.Error())
+						r.logger.Error("error", "error", err.Error())
 					}
 				}
 			case err, ok := <-r.watcher.Errors:
@@ -119,7 +120,7 @@ func (r *UserFileRepository) Start() error {
 					return
 				}
 
-				r.logger.Errorf("error: %s", err.Error())
+				r.logger.Error("error", "error", err.Error())
 			}
 		}
 	}()
@@ -140,7 +141,7 @@ func (r *UserFileRepository) CheckUserAuth(user, password string) bool {
 	if user, ok := r.users[user]; ok {
 		err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))
 		if err != nil {
-			r.logger.Debugf("password check failed: %w", err)
+			r.logger.Debug("password check failed", "error", err)
 			return false
 		}
 		return true

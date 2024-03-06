@@ -4,13 +4,13 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
+	"log/slog"
 	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
 
 	"github.com/aofei/air"
-	"go.uber.org/zap"
 
 	imodel "github.com/kdudkov/goatak/internal/model"
 	"github.com/kdudkov/goatak/pkg/cot"
@@ -25,7 +25,7 @@ type WsClientHandler struct {
 	uids      sync.Map
 	active    int32
 	messageCb func(msg *cot.CotMessage)
-	logger    *zap.SugaredLogger
+	logger    *slog.Logger
 }
 
 func (w *WsClientHandler) GetName() string {
@@ -62,7 +62,7 @@ func (w *WsClientHandler) GetLastSeen() *time.Time {
 	return nil
 }
 
-func New(name string, user *imodel.User, ws *air.WebSocket, log *zap.SugaredLogger, mc func(msg *cot.CotMessage)) *WsClientHandler {
+func New(name string, user *imodel.User, ws *air.WebSocket, mc func(msg *cot.CotMessage)) *WsClientHandler {
 	return &WsClientHandler{
 		name:      name,
 		user:      user,
@@ -70,7 +70,7 @@ func New(name string, user *imodel.User, ws *air.WebSocket, log *zap.SugaredLogg
 		uids:      sync.Map{},
 		ch:        make(chan []byte, 10),
 		active:    1,
-		logger:    log.Named(name),
+		logger:    slog.Default().With("logger", "tak_ws", "name", name, "user", user),
 		messageCb: mc,
 	}
 }
@@ -111,7 +111,7 @@ func (w *WsClientHandler) IsActive() bool {
 func (w *WsClientHandler) writer() {
 	for b := range w.ch {
 		if err := w.ws.WriteBinary(b); err != nil {
-			w.logger.Errorf("send error: %s", err.Error())
+			w.logger.Error("send error", "error", err.Error())
 			w.stop()
 
 			break
@@ -130,21 +130,21 @@ func (w *WsClientHandler) Listen() {
 	w.ws.BinaryHandler = w.binaryReader
 	go w.writer()
 	w.ws.Listen()
-	w.logger.Infof("stop listening")
+	w.logger.Info("stop listening")
 	w.stop()
 }
 
 func (w *WsClientHandler) binaryReader(b []byte) error {
 	msg, err := cot.ReadProto(bufio.NewReader(bytes.NewReader(b)))
 	if err != nil {
-		w.logger.Errorf("read: %s", err.Error())
+		w.logger.Error("read error", "error", err.Error())
 
 		return err
 	}
 
 	cotmsg, err := cot.CotFromProto(msg, w.name, w.GetUser().GetScope())
 	if err != nil {
-		w.logger.Errorf("details get error: %s", err.Error())
+		w.logger.Error("defaults get error", "error", err.Error())
 
 		return err
 	}

@@ -1,24 +1,24 @@
 package repository
 
 import (
+	"log/slog"
 	"os"
 	"path/filepath"
 	"strings"
 
-	"go.uber.org/zap"
 	"gopkg.in/yaml.v3"
 
 	"github.com/kdudkov/goatak/pkg/model"
 )
 
 type FeedsFileRepository struct {
-	logger  *zap.SugaredLogger
+	logger  *slog.Logger
 	baseDir string
 }
 
-func NewFeedsFileRepo(logger *zap.SugaredLogger, basedir string) *FeedsFileRepository {
+func NewFeedsFileRepo(basedir string) *FeedsFileRepository {
 	return &FeedsFileRepository{
-		logger:  logger,
+		logger:  slog.Default().With("logger", "FeedsRepo"),
 		baseDir: basedir,
 	}
 }
@@ -42,7 +42,7 @@ func (r *FeedsFileRepository) Store(f *model.Feed2) {
 
 	fl, err := os.Create(filepath.Join(r.baseDir, f.UID+".yml"))
 	if err != nil {
-		r.logger.Errorf("error: %s", err.Error())
+		r.logger.Error("error", "error", err.Error())
 
 		return
 	}
@@ -51,7 +51,7 @@ func (r *FeedsFileRepository) Store(f *model.Feed2) {
 	enc := yaml.NewEncoder(fl)
 
 	if err := enc.Encode(f); err != nil {
-		r.logger.Errorf("error: %s", err.Error())
+		r.logger.Error("error", "error", err.Error())
 	}
 }
 
@@ -72,7 +72,7 @@ func (r *FeedsFileRepository) load(fname string) *model.Feed2 {
 	dec := yaml.NewDecoder(fl)
 
 	if err := dec.Decode(&f); err != nil {
-		r.logger.Errorf("error: %s", err.Error())
+		r.logger.Error("error", "error", err.Error())
 	}
 
 	f.Active = true
@@ -87,7 +87,7 @@ func (r *FeedsFileRepository) Remove(uid string) {
 func (r *FeedsFileRepository) ForEach(f func(item *model.Feed2) bool) {
 	files, err := os.ReadDir(r.baseDir)
 	if err != nil {
-		r.logger.Errorf("error: %s", err.Error())
+		r.logger.Error("error", "error", err.Error())
 
 		return
 	}

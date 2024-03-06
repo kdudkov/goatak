@@ -5,13 +5,10 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"go.uber.org/zap"
 )
 
 func TestGetByHash(t *testing.T) {
-	logger, _ := zap.NewDevelopment()
-
-	pm := NewPackageManager(logger.Sugar(), "aaa")
+	pm := NewPackageManager("aaa")
 	pm.noSave = true
 
 	data := []byte{1, 2, 3, 4, 5}

@@ -3,10 +3,10 @@ package missions
 import (
 	"errors"
 	"fmt"
+	"log/slog"
 	"strings"
 	"time"
 
-	"go.uber.org/zap"
 	"gorm.io/gorm"
 
 	"github.com/kdudkov/goatak/internal/model"
@@ -15,13 +15,13 @@ import (
 
 type MissionManager struct {
 	db     *gorm.DB
-	logger *zap.SugaredLogger
+	logger *slog.Logger
 }
 
-func New(db *gorm.DB, logger *zap.SugaredLogger) *MissionManager {
+func New(db *gorm.DB) *MissionManager {
 	mn := &MissionManager{
 		db:     db,
-		logger: logger,
+		logger: slog.Default().With("logger", "MissionManager"),
 	}
 
 	return mn

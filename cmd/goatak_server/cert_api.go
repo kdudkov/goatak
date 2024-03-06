@@ -27,7 +27,7 @@ func getCertAPI(app *App, addr string) *air.Air {
 	certApi := air.New()
 	certApi.Address = addr
 
-	certApi.Gases = []air.Gas{LoggerGas(app.Logger, "cert_api"), AuthGas(app)}
+	certApi.Gases = []air.Gas{LoggerGas("cert_api"), AuthGas(app)}
 
 	certApi.GET("/Marti/api/tls/config", getTLSConfigHandler(app))
 	certApi.POST("/Marti/api/tls/signClient", getSignHandler(app))
@@ -91,7 +91,7 @@ func (app *App) processSignRequest(req *air.Request) (*x509.Certificate, error) 
 	uid := getStringParamIgnoreCaps(req, "clientUid")
 	ver := getStringParam(req, "version")
 
-	app.Logger.Infof("cert sign req from %s %s ver %s", username, uid, ver)
+	app.Logger.Info(fmt.Sprintf("cert sign req from %s %s ver %s", username, uid, ver))
 
 	b, err := io.ReadAll(req.Body)
 	if err != nil {
@@ -126,7 +126,7 @@ func getSignHandler(app *App) air.Handler {
 	return func(req *air.Request, res *air.Response) error {
 		signedCert, err := app.processSignRequest(req)
 		if err != nil {
-			app.Logger.Errorf(err.Error())
+			app.Logger.Error("error", "error", err.Error())
 
 			return err
 		}
@@ -138,7 +138,7 @@ func getSignHandler(app *App) air.Handler {
 
 		p12Bytes, err := tlsutil.MakeP12TrustStore(certs, p12Password)
 		if err != nil {
-			app.Logger.Errorf("error making p12: %v", err)
+			app.Logger.Error("error making p12", "error", err)
 
 			return err
 		}
@@ -151,7 +151,7 @@ func getSignHandlerV2(app *App) air.Handler {
 	return func(req *air.Request, res *air.Response) error {
 		signedCert, err := app.processSignRequest(req)
 		if err != nil {
-			app.Logger.Errorf(err.Error())
+			app.Logger.Error("error", "error", err.Error())
 
 			return err
 		}
@@ -230,5 +230,5 @@ func getProfileEnrollmentHandler(app *App) air.Handler {
 }
 
 func (app *App) onNewCertCreated(user, uid, version, serial string) {
-	app.Logger.Infof("new cert signed for user %s uid %s ver %s serial %s", user, uid, version, serial)
+	app.Logger.Info(fmt.Sprintf("new cert signed for user %s uid %s ver %s serial %s", user, uid, version, serial))
 }

@@ -6,18 +6,16 @@ import (
 	"fmt"
 	"net"
 
-	"go.uber.org/zap"
-
 	"github.com/kdudkov/goatak/internal/client"
 	"github.com/kdudkov/goatak/pkg/tlsutil"
 )
 
 func (app *App) ListenTCP(ctx context.Context, addr string) (err error) {
-	app.Logger.Infof("listening TCP at %s", addr)
+	app.Logger.Info("listening TCP at " + addr)
 
 	listener, err := net.Listen("tcp", addr)
 	if err != nil {
-		app.Logger.Errorf("Failed to listen: %v", err)
+		app.Logger.Error("Failed to listen", "error", err)
 
 		return err
 	}
@@ -27,15 +25,14 @@ func (app *App) ListenTCP(ctx context.Context, addr string) (err error) {
 	for ctx.Err() == nil {
 		conn, err := listener.Accept()
 		if err != nil {
-			app.Logger.Errorf("Unable to accept connections: %#v", err)
+			app.Logger.Error("Unable to accept connections", "error", err)
 
 			return err
 		}
 
-		app.Logger.Infof("TCP connection from %s", conn.RemoteAddr())
+		app.Logger.Info("TCP connection from" + conn.RemoteAddr().String())
 		name := "tcp:" + conn.RemoteAddr().String()
 		h := client.NewConnClientHandler(name, conn, &client.HandlerConfig{
-			Logger:       app.Logger.With(zap.String("addr", name)),
 			MessageCb:    app.NewCotMessage,
 			RemoveCb:     app.RemoveHandlerCb,
 			NewContactCb: app.NewContactCb,
@@ -48,7 +45,7 @@ func (app *App) ListenTCP(ctx context.Context, addr string) (err error) {
 }
 
 func (app *App) listenTLS(ctx context.Context, addr string) error {
-	app.Logger.Infof("listening TCP SSL at %s", addr)
+	app.Logger.Info("listening TCP SSL at " + addr)
 
 	tlsCfg := &tls.Config{
 		Certificates:     []tls.Certificate{*app.config.tlsCert},
@@ -67,16 +64,16 @@ func (app *App) listenTLS(ctx context.Context, addr string) error {
 	for ctx.Err() == nil {
 		conn, err := listener.Accept()
 		if err != nil {
-			app.Logger.Errorf("Unable to accept connections: %#v", err)
+			app.Logger.Error("Unable to accept connections", "error", err)
 
 			continue
 		}
 
-		app.Logger.Debugf("SSL connection from %s", conn.RemoteAddr())
+		app.Logger.Debug("SSL connection from " + conn.RemoteAddr().String())
 
 		c1 := conn.(*tls.Conn)
 		if err := c1.Handshake(); err != nil {
-			app.Logger.Debugf("Handshake error: %#v", err)
+			app.Logger.Debug("Handshake error", "error", err)
 			c1.Close()
 
 			continue
@@ -87,7 +84,6 @@ func (app *App) listenTLS(ctx context.Context, addr string) error {
 
 		name := "ssl:" + conn.RemoteAddr().String()
 		h := client.NewConnClientHandler(name, conn, &client.HandlerConfig{
-			Logger:       app.Logger.With(zap.String("user", username), zap.String("addr", name)),
 			User:         app.users.GetUser(username),
 			Serial:       serial,
 			MessageCb:    app.NewCotMessage,
@@ -107,7 +103,7 @@ func (app *App) verifyConnection(st tls.ConnectionState) error {
 	tlsutil.LogCerts(app.Logger, st.PeerCertificates...)
 
 	if !app.users.UserIsValid(user, sn) {
-		app.Logger.Warnf("bad user %s", user)
+		app.Logger.Warn("bad user " + user)
 
 		return fmt.Errorf("bad user")
 	}

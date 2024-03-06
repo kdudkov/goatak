@@ -3,6 +3,7 @@ package main
 import (
 	"embed"
 	"encoding/json"
+	"fmt"
 	"runtime/pprof"
 
 	"github.com/aofei/air"
@@ -127,7 +128,7 @@ func getPosHandler(app *App) air.Handler {
 		lon, lonOk := pos["lon"]
 
 		if latOk && lonOk {
-			app.Logger.Infof("new my coords: %.5f,%.5f", lat, lon)
+			app.logger.Info(fmt.Sprintf("new my coords: %.5f,%.5f", lat, lon))
 			app.pos.Store(model.NewPos(lat, lon))
 		}
 

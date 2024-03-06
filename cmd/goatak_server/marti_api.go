@@ -32,7 +32,7 @@ func getMartiApi(app *App, addr string) *air.Air {
 	addMartiRoutes(app, api)
 
 	api.NotFoundHandler = getNotFoundHandler()
-	api.Gases = append(api.Gases, LoggerGas(app.Logger, "marti_api"))
+	api.Gases = append(api.Gases, LoggerGas("marti_api"))
 
 	if app.config.useSsl {
 		api.TLSConfig = &tls.Config{
@@ -180,17 +180,17 @@ func getMissionUploadHandler(app *App) air.Handler {
 			params = append(params, r.Name+"="+r.Value().String())
 		}
 
-		app.Logger.Infof("params: %s", strings.Join(params, ","))
+		app.Logger.Info("params: " + strings.Join(params, ","))
 
 		if hash == "" {
-			app.Logger.Errorf("no hash: %s", req.RawQuery())
+			app.Logger.Error("no hash: " + req.RawQuery())
 			res.Status = http.StatusNotAcceptable
 
 			return res.WriteString("no hash")
 		}
 
 		if fname == "" {
-			app.Logger.Errorf("no filename: %s", req.RawQuery())
+			app.Logger.Error("no filename: " + req.RawQuery())
 			res.Status = http.StatusNotAcceptable
 
 			return res.WriteString("no filename")
@@ -200,12 +200,12 @@ func getMissionUploadHandler(app *App) air.Handler {
 
 		_, err := app.uploadMultipart(req, uid, hash, fname, true)
 		if err != nil {
-			app.Logger.Errorf("error: %v", err)
+			app.Logger.Error("error", "error", err)
 			res.Status = http.StatusNotAcceptable
 			return nil
 		}
 
-		app.Logger.Infof("save packege %s %s %s", fname, uid, hash)
+		app.Logger.Info(fmt.Sprintf("save packege %s %s %s", fname, uid, hash))
 
 		return res.WriteString(fmt.Sprintf("/Marti/sync/content?hash=%s", hash))
 	}
@@ -217,7 +217,7 @@ func getUploadHandler(app *App) air.Handler {
 		fname := getStringParam(req, "name")
 
 		if fname == "" {
-			app.Logger.Errorf("no name: %s", req.RawQuery())
+			app.Logger.Error("no name: " + req.RawQuery())
 			res.Status = http.StatusNotAcceptable
 
 			return res.WriteString("no name")
@@ -227,7 +227,7 @@ func getUploadHandler(app *App) air.Handler {
 		case "multipart/form-data":
 			pi, err := app.uploadMultipart(req, uid, "", fname, false)
 			if err != nil {
-				app.Logger.Errorf("error: %v", err)
+				app.Logger.Error("error", "error", err)
 				res.Status = http.StatusNotAcceptable
 				return nil
 			}
@@ -237,7 +237,7 @@ func getUploadHandler(app *App) air.Handler {
 		default:
 			pi, err := app.uploadFile(req, uid, fname)
 			if err != nil {
-				app.Logger.Errorf("error: %v", err)
+				app.Logger.Error("error", "error", err)
 				res.Status = http.StatusNotAcceptable
 				return nil
 			}
@@ -254,14 +254,14 @@ func (app *App) uploadMultipart(req *air.Request, uid, hash, filename string, pa
 	f, fh, err := req.HTTPRequest().FormFile("assetfile")
 
 	if err != nil {
-		app.Logger.Errorf("error: %v", err)
+		app.Logger.Error("error", "error", err)
 		return nil, err
 	}
 
 	data, err := io.ReadAll(f)
 
 	if err != nil {
-		app.Logger.Errorf("error: %v", err)
+		app.Logger.Error("error", "error", err)
 		return nil, err
 	}
 
@@ -277,7 +277,7 @@ func (app *App) uploadMultipart(req *air.Request, uid, hash, filename string, pa
 	})
 
 	if err != nil {
-		app.Logger.Errorf("error: %v", err)
+		app.Logger.Error("error", "error", err)
 		return nil, err
 	}
 
@@ -297,7 +297,7 @@ func (app *App) uploadFile(req *air.Request, uid, filename string) (*pm.PackageI
 	data, err := io.ReadAll(req.Body)
 
 	if err != nil {
-		app.Logger.Errorf("error: %v", err)
+		app.Logger.Error("error", "error", err)
 		return nil, err
 	}
 
@@ -308,7 +308,7 @@ func (app *App) uploadFile(req *air.Request, uid, filename string) (*pm.PackageI
 	})
 
 	if err != nil {
-		app.Logger.Errorf("error: %v", err)
+		app.Logger.Error("error", "error", err)
 		return nil, err
 	}
 
@@ -326,7 +326,7 @@ func getContentGetHandler(app *App) air.Handler {
 
 				return res.WriteFile(app.packageManager.GetFilePath(pi))
 			}
-			app.Logger.Infof("not found - hash %s", hash)
+			app.Logger.Info("not found - hash " + hash)
 
 			res.Status = http.StatusNotFound
 
@@ -339,7 +339,7 @@ func getContentGetHandler(app *App) air.Handler {
 
 				return res.WriteFile(app.packageManager.GetFilePath(pi))
 			}
-			app.Logger.Infof("not found - uid %s", uid)
+			app.Logger.Info("not found - uid " + uid)
 
 			res.Status = http.StatusNotFound
 

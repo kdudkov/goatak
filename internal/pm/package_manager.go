@@ -4,13 +4,13 @@ import (
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"sync"
 	"time"
 
 	"github.com/google/uuid"
-	"go.uber.org/zap"
 )
 
 const (
@@ -18,15 +18,15 @@ const (
 )
 
 type PackageManager struct {
-	logger  *zap.SugaredLogger
+	logger  *slog.Logger
 	baseDir string
 	data    sync.Map
 	noSave  bool
 }
 
-func NewPackageManager(logger *zap.SugaredLogger, basedir string) *PackageManager {
+func NewPackageManager(basedir string) *PackageManager {
 	return &PackageManager{
-		logger:  logger,
+		logger:  slog.Default().With("logger", "package_manager"),
 		baseDir: basedir,
 		data:    sync.Map{},
 	}
@@ -66,7 +66,7 @@ func (pm *PackageManager) Start() error {
 		if pi, err := loadInfo(pm.baseDir, uid); err == nil {
 			pm.data.Store(uid, pi)
 		} else {
-			pm.logger.Errorf("error loading info for %s: %s", uid, err.Error())
+			pm.logger.Error("error loading info for "+uid, "error", err.Error())
 		}
 	}
 
@@ -85,7 +85,7 @@ func (pm *PackageManager) Store(uid string, pi *PackageInfo) {
 	}
 
 	if err := saveInfo(pm.baseDir, uid, pi); err != nil {
-		pm.logger.Errorf("%v", err)
+		pm.logger.Error("store error", "error", err.Error())
 	}
 }
 
@@ -200,7 +200,7 @@ func (pm *PackageManager) SaveData(uid, hash, fname, content string, data []byte
 	if uid == "" {
 		if pi := pm.GetByHash(hash); pi != nil {
 			if pi.Name == fname {
-				pm.logger.Infof("file with hash %s exists", hash)
+				pm.logger.Info(fmt.Sprintf("file with hash %s exists", hash))
 				return pi, nil
 			}
 		}
@@ -233,7 +233,7 @@ func (pm *PackageManager) SaveData(uid, hash, fname, content string, data []byte
 	}
 
 	pm.Store(uid, info)
-	pm.logger.Infof("save packege %s %s", fname, uid)
+	pm.logger.Info(fmt.Sprintf("save packege %s %s", fname, uid))
 
 	return info, nil
 }

@@ -6,10 +6,9 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"time"
-
-	"go.uber.org/zap"
 
 	"github.com/kdudkov/goatak/internal/client"
 	mp "github.com/kdudkov/goatak/internal/model"
@@ -19,16 +18,16 @@ import (
 const renewContacts = time.Second * 30
 
 type RemoteAPI struct {
-	logger *zap.SugaredLogger
+	logger *slog.Logger
 	host   string
 	client *http.Client
 	tls    bool
 }
 
-func NewRemoteAPI(host string, logger *zap.SugaredLogger) *RemoteAPI {
+func NewRemoteAPI(host string) *RemoteAPI {
 	return &RemoteAPI{
 		host:   host,
-		logger: logger,
+		logger: slog.Default().With("logger", "remote_api"),
 		client: &http.Client{Timeout: time.Second * 3},
 	}
 }
@@ -109,7 +108,6 @@ func (r *RemoteAPI) GetSubscriptionRoles(ctx context.Context, name string) (stri
 
 func (r *RemoteAPI) CreateMission(ctx context.Context, name string, uid string) error {
 	b, err := client.NewRequest(r.client, r.getURL("/Marti/api/missions/"+name)).
-		Logger(r.logger).
 		Put().
 		Args(map[string]string{"creatorUid": uid, "tool": "public", "group": "__ANON__"}).
 		Do(ctx)
@@ -133,7 +131,6 @@ func (r *RemoteAPI) CreateMission(ctx context.Context, name string, uid string) 
 
 func (r *RemoteAPI) Subscribe(ctx context.Context, name string, uid string) error {
 	b, err := client.NewRequest(r.client, r.getURL("/Marti/api/missions/"+name+"/subscription")).
-		Logger(r.logger).
 		Put().
 		Args(map[string]string{"uid": uid}).
 		Do(ctx)

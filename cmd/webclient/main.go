@@ -8,6 +8,7 @@ import (
 	"encoding/hex"
 	"flag"
 	"fmt"
+	"log/slog"
 	"math/rand"
 	"os"
 	"os/signal"
@@ -18,13 +19,13 @@ import (
 	"time"
 
 	"github.com/spf13/viper"
-	"go.uber.org/zap"
 
 	"github.com/kdudkov/goatak/internal/callbacks"
 	"github.com/kdudkov/goatak/internal/client"
 	"github.com/kdudkov/goatak/internal/repository"
 	"github.com/kdudkov/goatak/pkg/cot"
 	"github.com/kdudkov/goatak/pkg/cotproto"
+	"github.com/kdudkov/goatak/pkg/log"
 	"github.com/kdudkov/goatak/pkg/model"
 	"github.com/kdudkov/goatak/pkg/tlsutil"
 )
@@ -40,7 +41,7 @@ type App struct {
 	host            string
 	tcpPort         string
 	webPort         int
-	Logger          *zap.SugaredLogger
+	logger          *slog.Logger
 	ch              chan []byte
 	items           repository.ItemsRepository
 	messages        *model.Messages
@@ -67,11 +68,12 @@ type App struct {
 	zoom     int8
 }
 
-func NewApp(uid string, callsign string, connectStr string, webPort int, logger *zap.SugaredLogger) *App {
+func NewApp(uid string, callsign string, connectStr string, webPort int) *App {
+	logger := slog.Default()
 	parts := strings.Split(connectStr, ":")
 
 	if len(parts) != 3 {
-		logger.Errorf("invalid connect string: %s", connectStr)
+		logger.Error("invalid connect string: " + connectStr)
 
 		return nil
 	}
@@ -84,13 +86,13 @@ func NewApp(uid string, callsign string, connectStr string, webPort int, logger 
 	case "ssl":
 		tlsConn = true
 	default:
-		logger.Errorf("invalid connect string: %s", connectStr)
+		logger.Error("invalid connect string " + connectStr)
 
 		return nil
 	}
 
 	return &App{
-		Logger:          logger,
+		logger:          logger,
 		callsign:        callsign,
 		uid:             uid,
 		host:            parts[0],
@@ -121,7 +123,7 @@ func (app *App) Run(ctx context.Context) {
 	if app.webPort >= 0 {
 		go func() {
 			addr := fmt.Sprintf(":%d", app.webPort)
-			app.Logger.Infof("listening %s", addr)
+			app.logger.Info("listening " + addr)
 
 			if err := NewHttp(app, addr).Serve(); err != nil {
 				panic(err)
@@ -134,14 +136,14 @@ func (app *App) Run(ctx context.Context) {
 	for ctx.Err() == nil {
 		conn, err := app.connect()
 		if err != nil {
-			app.Logger.Errorf("connect error: %s", err)
+			app.logger.Error("connect error", "error", err)
 			time.Sleep(time.Second * 5)
 
 			continue
 		}
 
 		app.SetConnected(true)
-		app.Logger.Info("connected")
+		app.logger.Info("connected")
 
 		wg := new(sync.WaitGroup)
 		wg.Add(1)
@@ -149,13 +151,12 @@ func (app *App) Run(ctx context.Context) {
 		ctx1, cancel1 := context.WithCancel(ctx)
 
 		app.cl = client.NewConnClientHandler(fmt.Sprintf("%s:%s", app.host, app.tcpPort), conn, &client.HandlerConfig{
-			Logger:    app.Logger,
 			MessageCb: app.ProcessEvent,
 			RemoveCb: func(ch client.ClientHandler) {
 				app.SetConnected(false)
 				wg.Done()
 				cancel1()
-				app.Logger.Info("disconnected")
+				app.logger.Info("disconnected")
 			},
 			IsClient: true,
 			UID:      app.uid,
@@ -200,7 +201,7 @@ func (app *App) myPosSender(ctx context.Context, wg *sync.WaitGroup) {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			app.Logger.Debugf("sending pos")
+			app.logger.Debug("sending pos")
 			app.SendMsg(app.MakeMe())
 			app.sendMyPoints()
 		}
@@ -210,7 +211,7 @@ func (app *App) myPosSender(ctx context.Context, wg *sync.WaitGroup) {
 func (app *App) SendMsg(msg *cotproto.TakMessage) {
 	if app.cl != nil {
 		if err := app.cl.SendCot(msg); err != nil {
-			app.Logger.Errorf("%v", err)
+			app.logger.Error("error", "error", err)
 		}
 	}
 }
@@ -218,7 +219,7 @@ func (app *App) SendMsg(msg *cotproto.TakMessage) {
 func (app *App) ProcessEvent(msg *cot.CotMessage) {
 	for _, prc := range app.eventProcessors {
 		if cot.MatchAnyPattern(msg.GetType(), prc.include...) {
-			app.Logger.Debugf("msg is processed by %s", prc.name)
+			app.logger.Debug("msg is processed by " + prc.name)
 			prc.cb(msg)
 		}
 	}
@@ -286,12 +287,12 @@ func (app *App) cleanOldUnits() {
 		case model.UNIT, model.POINT:
 			if item.IsOld() {
 				toDelete = append(toDelete, item.GetUID())
-				app.Logger.Debugf("removing %s %s", item.GetClass(), item.GetUID())
+				app.logger.Debug(fmt.Sprintf("removing %s %s", item.GetClass(), item.GetUID()))
 			}
 		case model.CONTACT:
 			if item.IsOld() {
 				toDelete = append(toDelete, item.GetUID())
-				app.Logger.Debugf("removing contact %s", item.GetUID())
+				app.logger.Debug("removing contact " + item.GetUID())
 			} else if item.IsOnline() && item.GetLastSeen().Add(lastSeenOfflineTimeout).Before(time.Now()) {
 				item.SetOffline()
 			}
@@ -358,16 +359,14 @@ func main() {
 		panic(fmt.Errorf("Fatal error config file: %w \n", err))
 	}
 
-	var cfg zap.Config
+	var h slog.Handler
 	if *debug {
-		cfg = zap.NewDevelopmentConfig()
+		h = log.NewHandler(&slog.HandlerOptions{Level: slog.LevelDebug})
 	} else {
-		cfg = zap.NewProductionConfig()
-		cfg.Encoding = "console"
+		h = log.NewHandler(&slog.HandlerOptions{Level: slog.LevelInfo})
 	}
 
-	logger, _ := cfg.Build()
-	defer logger.Sync()
+	slog.SetDefault(slog.New(h))
 
 	uid := viper.GetString("me.uid")
 	if uid == "auto" || uid == "" {
@@ -379,7 +378,6 @@ func main() {
 		viper.GetString("me.callsign"),
 		viper.GetString("server_address"),
 		viper.GetInt("web_port"),
-		logger.Sugar(),
 	)
 
 	app.saveFile = *saveFile
@@ -399,11 +397,11 @@ func main() {
 	app.platform = viper.GetString("me.platform")
 	app.os = viper.GetString("me.os")
 
-	app.Logger.Infof("callsign: %s", app.callsign)
-	app.Logger.Infof("uid: %s", app.uid)
-	app.Logger.Infof("team: %s", app.team)
-	app.Logger.Infof("role: %s", app.role)
-	app.Logger.Infof("server: %s", viper.GetString("server_address"))
+	app.logger.Info("callsign: " + app.callsign)
+	app.logger.Info("uid: " + app.uid)
+	app.logger.Info("team: " + app.team)
+	app.logger.Info("role: " + app.role)
+	app.logger.Info("server: " + viper.GetString("server_address"))
 
 	ctx, cancel := context.WithCancel(context.Background())
 
@@ -416,11 +414,11 @@ func main() {
 				return
 			}
 
-			enr := client.NewEnroller(app.Logger.Named("enroller"), app.host, user, passw, viper.GetBool("ssl.save_cert"))
+			enr := client.NewEnroller(app.host, user, passw, viper.GetBool("ssl.save_cert"))
 
 			cert, cas, err := enr.GetOrEnrollCert(ctx, app.uid, app.GetVersion())
 			if err != nil {
-				app.Logger.Errorf("error while enroll cert: %s", err.Error())
+				app.logger.Error("error while enroll cert: " + err.Error())
 
 				return
 			}
@@ -428,16 +426,16 @@ func main() {
 			app.tlsCert = cert
 			app.cas = tlsutil.MakeCertPool(cas...)
 		} else {
-			app.Logger.Infof("loading cert from file %s", viper.GetString("ssl.cert"))
+			app.logger.Info("loading cert from file " + viper.GetString("ssl.cert"))
 
 			cert, cas, err := client.LoadP12(viper.GetString("ssl.cert"), viper.GetString("ssl.password"))
 			if err != nil {
-				app.Logger.Errorf("error while loading cert: %s", err.Error())
+				app.logger.Error("error while loading cert: " + err.Error())
 
 				return
 			}
 
-			tlsutil.LogCert(app.Logger, "loaded cert", cert.Leaf)
+			tlsutil.LogCert(app.logger, "loaded cert", cert.Leaf)
 			app.tlsCert = cert
 			app.cas = tlsutil.MakeCertPool(cas...)
 		}

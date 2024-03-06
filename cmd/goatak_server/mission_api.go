@@ -3,14 +3,15 @@ package main
 import (
 	"encoding/json"
 	"encoding/xml"
+	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"strings"
 	"time"
 
 	"github.com/aofei/air"
 	"github.com/google/uuid"
-	"go.uber.org/zap"
 
 	"github.com/kdudkov/goatak/internal/model"
 	"github.com/kdudkov/goatak/pkg/cot"
@@ -95,7 +96,7 @@ func getMissionPutHandler(app *App) air.Handler {
 			body, _ := io.ReadAll(req.Body)
 
 			if len(body) > 0 {
-				app.Logger.Infof("body: %s", string(body))
+				app.Logger.Info("body: " + string(body))
 			}
 		}
 
@@ -186,7 +187,7 @@ func getMissionRolePutHandler(app *App) air.Handler {
 			body, _ := io.ReadAll(req.Body)
 
 			if len(body) > 0 {
-				app.Logger.Infof("body: %s", string(body))
+				app.Logger.Info("body: " + string(body))
 			}
 		}
 
@@ -392,7 +393,7 @@ func getMissionCotHandler(app *App) air.Handler {
 
 		for _, item := range mission.Items {
 			if err := enc.Encode(cot.CotToEvent(item.GetEvent())); err != nil {
-				app.Logger.Errorf("xml encode error %v", err)
+				app.Logger.Error("xml encode error", "error", err)
 			}
 		}
 
@@ -505,7 +506,7 @@ func getInvitePutHandler(app *App) air.Handler {
 		typ := getStringParam(req, "type")
 
 		if typ != "clientUid" {
-			app.Logger.Warnf("we do not support invitation with type %s now", typ)
+			app.Logger.Warn(fmt.Sprintf("we do not support invitation with type %s now", typ))
 			res.Status = http.StatusBadRequest
 			return nil
 		}
@@ -517,7 +518,7 @@ func getInvitePutHandler(app *App) air.Handler {
 			body, _ := io.ReadAll(req.Body)
 
 			if len(body) > 0 {
-				app.Logger.Infof("body: %s", string(body))
+				app.Logger.Info("body: " + string(body))
 			}
 		}
 
@@ -553,11 +554,11 @@ func getInviteDeleteHandler(app *App) air.Handler {
 	}
 }
 
-func printParams(req *air.Request, logger *zap.SugaredLogger) {
+func printParams(req *air.Request, logger *slog.Logger) {
 	params := []string{}
 	for _, r := range req.Params() {
 		params = append(params, r.Name+"="+r.Value().String())
 	}
 
-	logger.Infof("params: %s", strings.Join(params, ","))
+	logger.Info("params: " + strings.Join(params, ","))
 }

@@ -37,7 +37,7 @@ func (app *App) InitMessageProcessors() {
 
 func (app *App) loggerProcessor(msg *cot.CotMessage) {
 	if !strings.HasPrefix(msg.GetType(), "a-") {
-		app.Logger.Debugf("%s %s", msg.GetType(), cot.GetMsgType(msg.GetType()))
+		app.Logger.Debug(fmt.Sprintf("%s %s", msg.GetType(), cot.GetMsgType(msg.GetType())))
 	}
 }
 
@@ -48,7 +48,7 @@ func (app *App) removeItemProcessor(msg *cot.CotMessage) {
 		typ := link.GetAttr("type")
 
 		if uid == "" {
-			app.Logger.Warnf("invalid remove message: %s", msg.GetDetail())
+			app.Logger.Warn("invalid remove message: " + msg.GetDetail().String())
 
 			return
 		}
@@ -56,12 +56,12 @@ func (app *App) removeItemProcessor(msg *cot.CotMessage) {
 		if v := app.items.Get(uid); v != nil {
 			switch v.GetClass() {
 			case model.CONTACT:
-				app.Logger.Debugf("remove %s by message", uid)
+				app.Logger.Debug(fmt.Sprintf("remove %s by message", uid))
 				v.SetOffline()
 
 				return
 			case model.UNIT, model.POINT:
-				app.Logger.Debugf("remove unit/point %s type %s by message", uid, typ)
+				app.Logger.Debug(fmt.Sprintf("remove unit/point %s type %s by message", uid, typ))
 				app.items.Remove(uid)
 
 				return
@@ -73,7 +73,7 @@ func (app *App) removeItemProcessor(msg *cot.CotMessage) {
 func (app *App) chatProcessor(msg *cot.CotMessage) {
 	c := model.MsgToChat(msg)
 	if c == nil {
-		app.Logger.Errorf("invalid chat message %s", msg.GetTakMessage())
+		app.Logger.Error("invalid chat message " + msg.GetTakMessage().String())
 
 		return
 	}
@@ -82,11 +82,11 @@ func (app *App) chatProcessor(msg *cot.CotMessage) {
 		c.From = app.items.GetCallsign(c.FromUID)
 	}
 
-	app.Logger.Infof("Chat %s", c.String())
+	app.Logger.Info("Chat " + c.String())
 
 	app.messages = append(app.messages, c)
 	if err := logChatMessage(c); err != nil {
-		app.Logger.Warnf("error logging chat: %s", err.Error())
+		app.Logger.Warn("error logging chat", "error", err.Error())
 	}
 }
 
@@ -97,12 +97,12 @@ func (app *App) saveItemProcessor(msg *cot.CotMessage) {
 
 	cl := model.GetClass(msg)
 	if c := app.items.Get(msg.GetUID()); c != nil {
-		app.Logger.Debugf("update %s %s (%s) %s", cl, msg.GetUID(), msg.GetCallsign(), msg.GetType())
+		app.Logger.Debug(fmt.Sprintf("update %s %s (%s) %s", cl, msg.GetUID(), msg.GetCallsign(), msg.GetType()))
 		c.Update(msg)
 		app.items.Store(c)
 		app.changeCb.AddMessage(c)
 	} else {
-		app.Logger.Infof("new %s %s (%s) %s", cl, msg.GetUID(), msg.GetCallsign(), msg.GetType())
+		app.Logger.Info(fmt.Sprintf("new %s %s (%s) %s", cl, msg.GetUID(), msg.GetCallsign(), msg.GetType()))
 		item := model.FromMsg(msg)
 		app.items.Store(item)
 		app.changeCb.AddMessage(item)
@@ -119,7 +119,7 @@ func (app *App) fileLoggerProcessor(msg *cot.CotMessage) {
 	}
 
 	if err := logMessage(msg, filepath.Join(app.config.dataDir, "log")); err != nil {
-		app.Logger.Warnf("error logging message: %s", err.Error())
+		app.Logger.Warn("error logging message", "error", err.Error())
 	}
 }
 

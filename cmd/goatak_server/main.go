@@ -8,6 +8,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"log/slog"
 	"net"
 	"os"
 	"os/signal"
@@ -21,7 +22,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/spf13/viper"
-	"go.uber.org/zap"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 	"software.sslmate.com/src/go-pkcs12"
@@ -76,7 +76,7 @@ type AppConfig struct {
 }
 
 type App struct {
-	Logger         *zap.SugaredLogger
+	Logger         *slog.Logger
 	packageManager *pm.PackageManager
 	config         *AppConfig
 	lat            float64
@@ -99,17 +99,17 @@ type App struct {
 	eventProcessors []*EventProcessor
 }
 
-func NewApp(config *AppConfig, logger *zap.SugaredLogger) *App {
+func NewApp(config *AppConfig) *App {
 	app := &App{
-		Logger:          logger,
+		Logger:          slog.Default(),
 		config:          config,
-		packageManager:  pm.NewPackageManager(logger.Named("packageManager"), filepath.Join(config.dataDir, "mp")),
-		users:           repository.NewFileUserRepo(logger.Named("userManager"), config.usersFile),
+		packageManager:  pm.NewPackageManager(filepath.Join(config.dataDir, "mp")),
+		users:           repository.NewFileUserRepo(config.usersFile),
 		ch:              make(chan *cot.CotMessage, 20),
 		handlers:        sync.Map{},
 		changeCb:        callbacks.New[*model.Item](),
 		items:           repository.NewItemsMemoryRepo(),
-		feeds:           repository.NewFeedsFileRepo(logger.Named("feedsRepo"), filepath.Join(config.dataDir, "feeds")),
+		feeds:           repository.NewFeedsFileRepo(filepath.Join(config.dataDir, "feeds")),
 		uid:             uuid.NewString(),
 		eventProcessors: make([]*EventProcessor, 0),
 	}
@@ -121,7 +121,7 @@ func NewApp(config *AppConfig, logger *zap.SugaredLogger) *App {
 			panic(err)
 		}
 
-		app.missions = missions.New(db, app.Logger.Named("missions"))
+		app.missions = missions.New(db)
 		if err := app.missions.Migrate(); err != nil {
 			panic(err)
 		}
@@ -181,7 +181,7 @@ func (app *App) Run() {
 	go app.cleaner()
 
 	for _, c := range app.config.connections {
-		app.Logger.Infof("start external connection to %s", c)
+		app.Logger.Info("start external connection to " + c)
 		go app.ConnectTo(ctx, c)
 	}
 
@@ -206,7 +206,7 @@ func (app *App) AddClientHandler(ch client.ClientHandler) {
 
 func (app *App) RemoveClientHandler(name string) {
 	if _, ok := app.handlers.Load(name); ok {
-		app.Logger.Infof("remove handler: %s", name)
+		app.Logger.Info("remove handler: " + name)
 
 		if _, ok := app.handlers.LoadAndDelete(name); ok {
 			connectionsMetric.Dec()
@@ -240,7 +240,7 @@ func (app *App) RemoveHandlerCb(cl client.ClientHandler) {
 }
 
 func (app *App) NewContactCb(uid, callsign string) {
-	app.Logger.Infof("new contact: %s %s", uid, callsign)
+	app.Logger.Info(fmt.Sprintf("new contact: %s %s", uid, callsign))
 }
 
 func (app *App) ConnectTo(ctx context.Context, addr string) {
@@ -249,7 +249,7 @@ func (app *App) ConnectTo(ctx context.Context, addr string) {
 	for ctx.Err() == nil {
 		conn, err := app.connect(addr)
 		if err != nil {
-			app.Logger.Errorf("connect error: %s", err)
+			app.Logger.Error("connect error", "error", err.Error())
 			time.Sleep(time.Second * 5)
 
 			continue
@@ -261,7 +261,6 @@ func (app *App) ConnectTo(ctx context.Context, addr string) {
 		wg.Add(1)
 
 		h := client.NewConnClientHandler(name, conn, &client.HandlerConfig{
-			Logger:    app.Logger,
 			MessageCb: app.NewCotMessage,
 			RemoveCb: func(ch client.ClientHandler) {
 				wg.Done()
@@ -300,14 +299,14 @@ func (app *App) connect(connectStr string) (net.Conn, error) {
 	addr := fmt.Sprintf("%s:%s", parts[0], parts[1])
 
 	if tlsConn {
-		app.Logger.Infof("connecting with SSL to %s...", connectStr)
+		app.Logger.Info(fmt.Sprintf("connecting with SSL to %s...", connectStr))
 
 		conn, err := tls.Dial("tcp", addr, app.getTLSConfig())
 		if err != nil {
 			return nil, err
 		}
 
-		app.Logger.Debugf("handshake...")
+		app.Logger.Debug("handshake...")
 
 		if err := conn.Handshake(); err != nil {
 			return conn, err
@@ -315,19 +314,19 @@ func (app *App) connect(connectStr string) (net.Conn, error) {
 
 		cs := conn.ConnectionState()
 
-		app.Logger.Infof("Handshake complete: %t", cs.HandshakeComplete)
-		app.Logger.Infof("version: %d", cs.Version)
+		app.Logger.Info(fmt.Sprintf("Handshake complete: %t", cs.HandshakeComplete))
+		app.Logger.Info(fmt.Sprintf("version: %d", cs.Version))
 
 		for i, cert := range cs.PeerCertificates {
-			app.Logger.Infof("cert #%d subject: %s", i, cert.Subject.String())
-			app.Logger.Infof("cert #%d issuer: %s", i, cert.Issuer.String())
-			app.Logger.Infof("cert #%d dns_names: %s", i, strings.Join(cert.DNSNames, ","))
+			app.Logger.Info(fmt.Sprintf("cert #%d subject: %s", i, cert.Subject.String()))
+			app.Logger.Info(fmt.Sprintf("cert #%d issuer: %s", i, cert.Issuer.String()))
+			app.Logger.Info(fmt.Sprintf("cert #%d dns_names: %s", i, strings.Join(cert.DNSNames, ",")))
 		}
 
 		return conn, nil
 	}
 
-	app.Logger.Infof("connecting to %s...", connectStr)
+	app.Logger.Info(fmt.Sprintf("connecting to %s...", connectStr))
 
 	return net.DialTimeout("tcp", addr, time.Second*3)
 }
@@ -335,12 +334,14 @@ func (app *App) connect(connectStr string) (net.Conn, error) {
 func (app *App) getTLSConfig() *tls.Config {
 	p12Data, err := os.ReadFile(viper.GetString("ssl.cert"))
 	if err != nil {
-		app.Logger.Fatal(err)
+		app.Logger.Error(err.Error())
+		panic(err)
 	}
 
 	key, cert, _, err := pkcs12.DecodeChain(p12Data, viper.GetString("ssl.password"))
 	if err != nil {
-		app.Logger.Fatal(err)
+		app.Logger.Error(err.Error())
+		panic(err)
 	}
 
 	tlsCert := tls.Certificate{ //nolint:exhaustruct
@@ -356,7 +357,7 @@ func (app *App) MessageProcessor() {
 	for msg := range app.ch {
 		for _, prc := range app.eventProcessors {
 			if cot.MatchAnyPattern(msg.GetType(), prc.include...) {
-				app.Logger.Debugf("msg is processed by %s", prc.name)
+				app.Logger.Debug("msg is processed by " + prc.name)
 				prc.cb(msg)
 			}
 		}
@@ -367,7 +368,7 @@ func (app *App) MessageProcessor() {
 
 func (app *App) route(msg *cot.CotMessage) {
 	if missions := msg.GetDetail().GetDestMission(); len(missions) > 0 {
-		app.Logger.Debugf("point %s %s: missions: %s", msg.GetUID(), msg.GetCallsign(), strings.Join(missions, ","))
+		app.Logger.Debug(fmt.Sprintf("point %s %s: missions: %s", msg.GetUID(), msg.GetCallsign(), strings.Join(missions, ",")))
 		for _, missionName := range missions {
 			app.processMissionPoint(missionName, msg)
 		}
@@ -433,12 +434,12 @@ func (app *App) cleanOldUnits() {
 		case model.UNIT, model.POINT:
 			if item.IsOld() {
 				toDelete = append(toDelete, item.GetUID())
-				app.Logger.Debugf("removing %s %s", item.GetClass(), item.GetUID())
+				app.Logger.Debug(fmt.Sprintf("removing %s %s", item.GetClass(), item.GetUID()))
 			}
 		case model.CONTACT:
 			if item.IsOld() {
 				toDelete = append(toDelete, item.GetUID())
-				app.Logger.Debugf("removing contact %s", item.GetUID())
+				app.Logger.Debug("removing contact " + item.GetUID())
 			} else if item.IsOnline() && item.GetLastSeen().Add(lastSeenOfflineTimeout).Before(time.Now()) {
 				item.SetOffline()
 			}
@@ -457,7 +458,7 @@ func (app *App) SendBroadcast(msg *cot.CotMessage) {
 	app.ForAllClients(func(ch client.ClientHandler) bool {
 		if ch.GetName() != msg.From {
 			if err := ch.SendMsg(msg); err != nil {
-				app.Logger.Errorf("error sending to %s: %v", ch.GetName(), err)
+				app.Logger.Error(fmt.Sprintf("error sending to %s: %v", ch.GetName(), err))
 			}
 		}
 
@@ -470,7 +471,7 @@ func (app *App) SendToCallsign(callsign string, msg *cot.CotMessage) {
 		for _, c := range ch.GetUids() {
 			if c == callsign {
 				if err := ch.SendMsg(msg); err != nil {
-					app.Logger.Errorf("error: %v", err)
+					app.Logger.Error("error", "error", err)
 				}
 			}
 		}
@@ -483,7 +484,7 @@ func (app *App) SendToUID(uid string, msg *cotproto.TakMessage) {
 	app.ForAllClients(func(ch client.ClientHandler) bool {
 		if ch.HasUID(uid) {
 			if err := ch.SendCot(msg); err != nil {
-				app.Logger.Errorf("error: %v", err)
+				app.Logger.Error("error", "error", err)
 			}
 		}
 
@@ -588,15 +589,14 @@ func main() {
 
 	debug := viper.GetBool("debug")
 
-	var cfg zap.Config
+	var h slog.Handler
 	if debug {
-		cfg = zap.NewDevelopmentConfig()
+		h = slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug})
 	} else {
-		cfg = zap.NewProductionConfig()
+		h = slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo})
 	}
 
-	logger, _ := cfg.Build()
-	defer logger.Sync()
+	slog.SetDefault(slog.New(h))
 
 	config := &AppConfig{
 		udpAddr:     viper.GetString("udp_addr"),
@@ -617,10 +617,10 @@ func main() {
 	}
 
 	if err := processCerts(config); err != nil {
-		logger.Error(err.Error())
+		slog.Default().Error(err.Error())
 	}
 
-	app := NewApp(config, logger.Sugar())
+	app := NewApp(config)
 
 	app.lat = viper.GetFloat64("me.lat")
 	app.lon = viper.GetFloat64("me.lon")

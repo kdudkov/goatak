@@ -70,7 +70,7 @@ func getIndexHandler(app *App, r *staticfiles.Renderer) air.Handler {
 
 		s, err := r.Render(data, "index.html", "menu.html", "header.html")
 		if err != nil {
-			app.Logger.Errorf("%v", err)
+			app.Logger.Error("error", "error", err)
 			_ = res.WriteString(err.Error())
 
 			return err
@@ -89,7 +89,7 @@ func getMapHandler(app *App, r *staticfiles.Renderer) air.Handler {
 
 		s, err := r.Render(data, "map.html", "header.html")
 		if err != nil {
-			app.Logger.Errorf("%v", err)
+			app.Logger.Error("error", "error", err)
 			_ = res.WriteString(err.Error())
 
 			return err
@@ -109,7 +109,7 @@ func getMissionsPageHandler(app *App, r *staticfiles.Renderer) air.Handler {
 
 		s, err := r.Render(data, "missions.html", "menu.html", "header.html")
 		if err != nil {
-			app.Logger.Errorf("%v", err)
+			app.Logger.Error("error", "error", err)
 			_ = res.WriteString(err.Error())
 
 			return err
@@ -228,7 +228,7 @@ func getCotPostHandler(app *App) air.Handler {
 		dec := json.NewDecoder(req.Body)
 
 		if err := dec.Decode(c); err != nil {
-			app.Logger.Errorf("cot decode error %s", err)
+			app.Logger.Error("cot decode error", "error", err)
 
 			return err
 		}
@@ -251,14 +251,14 @@ func getCotXMLPostHandler(app *App) air.Handler {
 		dec := xml.NewDecoder(req.Body)
 
 		if err := dec.Decode(ev); err != nil {
-			app.Logger.Errorf("cot decode error %s", err)
+			app.Logger.Error("cot decode error", "error", err)
 
 			return err
 		}
 
 		c, err := cot.EventToProto(ev)
 		if err != nil {
-			app.Logger.Errorf("cot convert error %s", err)
+			app.Logger.Error("cot convert error", "error", err)
 
 			return err
 		}
@@ -294,14 +294,14 @@ func getTakWsHandler(app *App) air.Handler {
 
 		defer ws.Close()
 
-		app.Logger.Infof("WS connection from %s", req.ClientAddress())
+		app.Logger.Info("WS connection from " + req.ClientAddress())
 		name := "ws:" + req.ClientAddress()
-		w := tak_ws.New(name, nil, ws, app.Logger, app.NewCotMessage)
+		w := tak_ws.New(name, nil, ws, app.NewCotMessage)
 
 		app.AddClientHandler(w)
 		w.Listen()
 		app.RemoveHandlerCb(w)
-		app.Logger.Infof("ws disconnected")
+		app.Logger.Info("ws disconnected")
 
 		return nil
 	}

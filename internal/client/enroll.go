@@ -11,13 +11,13 @@ import (
 	"encoding/xml"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"os"
 	"strings"
 	"time"
 
 	"github.com/spf13/viper"
-	"go.uber.org/zap"
 	"software.sslmate.com/src/go-pkcs12"
 
 	"github.com/kdudkov/goatak/pkg/tlsutil"
@@ -27,7 +27,7 @@ const minCertAge = time.Hour * 24
 const keySize = 4096
 
 type Enroller struct {
-	logger *zap.SugaredLogger
+	logger *slog.Logger
 	host   string
 	port   int
 	client *http.Client
@@ -47,11 +47,11 @@ type CertificateConfig struct {
 	} `xml:"nameEntries"`
 }
 
-func NewEnroller(logger *zap.SugaredLogger, host, user, passwd string, save bool) *Enroller {
+func NewEnroller(host, user, passwd string, save bool) *Enroller {
 	tlsConf := &tls.Config{InsecureSkipVerify: true}
 
 	return &Enroller{
-		logger: logger,
+		logger: slog.Default().With("logger", "enroller"),
 		host:   host,
 		user:   user,
 		passwd: passwd,
@@ -66,10 +66,9 @@ func (e *Enroller) getURL(path string) string {
 }
 
 func (e *Enroller) getConfig(ctx context.Context) (*CertificateConfig, error) {
-	e.logger.Infof("getting tls config")
+	e.logger.Info("getting tls config")
 
 	body, err := NewRequest(e.client, e.getURL("/Marti/api/tls/config")).
-		Logger(e.logger).
 		Auth(e.user, e.passwd).
 		Do(ctx)
 
@@ -89,7 +88,7 @@ func (e *Enroller) getConfig(ctx context.Context) (*CertificateConfig, error) {
 func (e *Enroller) GetOrEnrollCert(ctx context.Context, uid, version string) (*tls.Certificate, []*x509.Certificate, error) {
 	fname := fmt.Sprintf("%s_%s.p12", e.host, e.user)
 	if cert, cas, err := LoadP12(fname, viper.GetString("ssl.password")); err == nil {
-		e.logger.Infof("loading cert from file %s", fname)
+		e.logger.Info("loading cert from file " + fname)
 
 		return cert, cas, nil
 	}
@@ -117,14 +116,13 @@ func (e *Enroller) GetOrEnrollCert(ctx context.Context, uid, version string) (*t
 
 	csr, key := makeCsr(subj)
 
-	e.logger.Infof("signing cert on server")
+	e.logger.Info("signing cert on server")
 
 	args := map[string]string{"clientUID": uid, "version": version}
 
 	var certs map[string]string
 
 	err = NewRequest(e.client, e.getURL("/Marti/api/tls/signClient/v2")).Auth(e.user, e.passwd).
-		Logger(e.logger).
 		Post().
 		Args(args).
 		Body(strings.NewReader(csr)).
@@ -163,14 +161,14 @@ func (e *Enroller) GetOrEnrollCert(ctx context.Context, uid, version string) (*t
 
 	if e.save {
 		if err := e.saveP12(key, cert, ca); err != nil {
-			e.logger.Errorf("%s", err)
+			e.logger.Error("error", "error", err.Error())
 		}
 	}
 
-	e.logger.Infof("cert enrollment successful")
+	e.logger.Info("cert enrollment successful")
 
 	if err := e.getProfile(ctx, uid); err != nil {
-		e.logger.Warnf("%s", err.Error())
+		e.logger.Warn("error", "error", err.Error())
 	}
 
 	return &tls.Certificate{Certificate: [][]byte{cert.Raw}, PrivateKey: key, Leaf: cert}, ca, nil
@@ -178,7 +176,6 @@ func (e *Enroller) GetOrEnrollCert(ctx context.Context, uid, version string) (*t
 
 func (e *Enroller) getProfile(ctx context.Context, uid string) error {
 	body, err := NewRequest(e.client, e.getURL("/Marti/api/tls/profile/enrollment")).
-		Logger(e.logger).
 		Auth(e.user, e.passwd).
 		Args(map[string]string{"clientUID": uid}).
 		Do(ctx)

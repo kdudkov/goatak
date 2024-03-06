@@ -5,9 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
-
-	"go.uber.org/zap"
 )
 
 type Request struct {
@@ -19,17 +18,11 @@ type Request struct {
 	body      io.Reader
 	urlGetter func(path string) string
 	args      map[string]string
-	logger    *zap.SugaredLogger
+	logger    *slog.Logger
 }
 
 func NewRequest(c *http.Client, url string) *Request {
-	return &Request{client: c, url: url, method: "GET"}
-}
-
-func (r *Request) Logger(l *zap.SugaredLogger) *Request {
-	r.logger = l
-
-	return r
+	return &Request{client: c, url: url, method: "GET", logger: slog.Default()}
 }
 
 func (r *Request) Put() *Request {
@@ -88,14 +81,14 @@ func (r *Request) Do(ctx context.Context) (io.ReadCloser, error) {
 	res, err := r.client.Do(req)
 	if err != nil {
 		if r.logger != nil {
-			r.logger.Infof("%s %s - error %s", r.method, req.URL, err.Error())
+			r.logger.Info(fmt.Sprintf("%s %s - error %s", r.method, req.URL, err.Error()))
 		}
 
 		return nil, err
 	}
 
 	if r.logger != nil {
-		r.logger.Infof("%s %s - %d", r.method, req.URL, res.StatusCode)
+		r.logger.Info(fmt.Sprintf("%s %s - %d", r.method, req.URL, res.StatusCode))
 	}
 
 	if res.StatusCode < 200 || res.StatusCode > 299 {

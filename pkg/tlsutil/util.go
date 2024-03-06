@@ -5,9 +5,9 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
+	"log/slog"
 	"strings"
 
-	"go.uber.org/zap"
 	"software.sslmate.com/src/go-pkcs12"
 )
 
@@ -78,20 +78,20 @@ func MakeCertPool(certs ...*x509.Certificate) *x509.CertPool {
 	return cp
 }
 
-func LogCert(logger *zap.SugaredLogger, name string, cert *x509.Certificate) {
+func LogCert(logger *slog.Logger, name string, cert *x509.Certificate) {
 	if cert == nil {
-		logger.Errorf("no %s!!!", name)
+		logger.Error("no cert for " + name)
 
 		return
 	}
 
-	logger.Infof("%s sn: %x", name, cert.SerialNumber)
-	logger.Infof("%s subject: %s", name, cert.Subject.String())
-	logger.Infof("%s issuer: %s", name, cert.Issuer.String())
-	logger.Infof("%s valid till %s", name, cert.NotAfter)
+	logger.Info(fmt.Sprintf("%s sn: %x", name, cert.SerialNumber))
+	logger.Info(fmt.Sprintf("%s subject: %s", name, cert.Subject.String()))
+	logger.Info(fmt.Sprintf("%s issuer: %s", name, cert.Issuer.String()))
+	logger.Info(fmt.Sprintf("%s valid till %s", name, cert.NotAfter))
 
 	if len(cert.DNSNames) > 0 {
-		logger.Infof("%s dns_names: %s", name, strings.Join(cert.DNSNames, ","))
+		logger.Info(fmt.Sprintf("%s dns_names: %s", name, strings.Join(cert.DNSNames, ",")))
 	}
 
 	if len(cert.IPAddresses) > 0 {
@@ -100,7 +100,7 @@ func LogCert(logger *zap.SugaredLogger, name string, cert *x509.Certificate) {
 			ip1[i] = ip.String()
 		}
 
-		logger.Infof("%s ip_addresses: %s", name, strings.Join(ip1, ","))
+		logger.Info(fmt.Sprintf("%s ip_addresses: %s", name, strings.Join(ip1, ",")))
 	}
 }
 
@@ -136,7 +136,7 @@ func DecodeAllByType(typ string, bytes []byte) ([]*x509.Certificate, error) {
 	return certs, nil
 }
 
-func LogCerts(logger *zap.SugaredLogger, certs ...*x509.Certificate) {
+func LogCerts(logger *slog.Logger, certs ...*x509.Certificate) {
 	for i, c := range certs {
 		LogCert(logger, fmt.Sprintf("cert #%d", i), c)
 	}

@@ -9,6 +9,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"log/slog"
 	"math/rand"
 	"strings"
 	"sync"
@@ -34,7 +35,7 @@ type App struct {
 	host        string
 	tcpPort     string
 	webPort     int
-	Logger      *zap.SugaredLogger
+	Logger      *slog.Logger
 	tls         bool
 	tlsCert     *tls.Certificate
 	cas         *x509.CertPool
@@ -58,11 +59,13 @@ type App struct {
 	cancel context.CancelFunc
 }
 
-func NewApp(uid string, callsign string, connectStr string, webPort int, logger *zap.SugaredLogger) *App {
+func NewApp(uid string, callsign string, connectStr string, webPort int) *App {
+	logger := slog.Default()
+
 	parts := strings.Split(connectStr, ":")
 
 	if len(parts) != 3 {
-		logger.Errorf("invalid connect string: %s", connectStr)
+		logger.Error("invalid connect string: " + connectStr)
 
 		return nil
 	}
@@ -75,7 +78,7 @@ func NewApp(uid string, callsign string, connectStr string, webPort int, logger 
 	case "ssl":
 		tlsConn = true
 	default:
-		logger.Errorf("invalid connect string: %s", connectStr)
+		logger.Error("invalid connect string: " + connectStr)
 
 		return nil
 	}
@@ -110,7 +113,7 @@ func (app *App) Run(ctx context.Context) {
 		panic(err)
 	}
 
-	app.remoteAPI = NewRemoteAPI(app.host, app.Logger)
+	app.remoteAPI = NewRemoteAPI(app.host)
 
 	if app.tls {
 		app.remoteAPI.SetTLS(app.getTLSConfig())
@@ -127,7 +130,7 @@ func (app *App) Run(ctx context.Context) {
 	}
 
 	if err := app.g.MainLoop(); err != nil && !errors.Is(err, gocui.ErrQuit) {
-		app.Logger.Errorf(err.Error())
+		app.Logger.Error("error", "error", err.Error())
 	}
 }
 
@@ -160,7 +163,7 @@ func makeUID(callsign string) string {
 }
 
 func (app *App) GetVersion() string {
-	return fmt.Sprintf("%s %s", app.platform, app.version)
+	return fmt.Sprintf("%s"+app.platform, app.version)
 }
 
 func RandString(strlen int) string {
@@ -237,7 +240,6 @@ func main() {
 		viper.GetString("me.callsign"),
 		viper.GetString("server_address"),
 		viper.GetInt("web_port"),
-		logger.Sugar(),
 	)
 
 	app.saveFile = *saveFile
@@ -252,11 +254,11 @@ func main() {
 	app.platform = viper.GetString("me.platform")
 	app.os = viper.GetString("me.os")
 
-	app.Logger.Infof("callsign: %s", app.callsign)
-	app.Logger.Infof("uid: %s", app.uid)
-	app.Logger.Infof("team: %s", app.team)
-	app.Logger.Infof("role: %s", app.role)
-	app.Logger.Infof("server: %s", viper.GetString("server_address"))
+	app.Logger.Info("callsign: " + app.callsign)
+	app.Logger.Info("uid: " + app.uid)
+	app.Logger.Info("team:" + app.team)
+	app.Logger.Info("role:" + app.role)
+	app.Logger.Info("server:" + viper.GetString("server_address"))
 
 	ctx, cancel := context.WithCancel(context.Background())
 
@@ -269,11 +271,11 @@ func main() {
 				return
 			}
 
-			enr := client.NewEnroller(app.Logger.Named("enroller"), app.host, user, passw, viper.GetBool("ssl.save_cert"))
+			enr := client.NewEnroller(app.host, user, passw, viper.GetBool("ssl.save_cert"))
 
 			cert, cas, err := enr.GetOrEnrollCert(ctx, app.uid, app.GetVersion())
 			if err != nil {
-				app.Logger.Errorf("error while enroll cert: %s", err.Error())
+				app.Logger.Error("error while enroll cert: " + err.Error())
 
 				return
 			}
@@ -281,11 +283,11 @@ func main() {
 			app.tlsCert = cert
 			app.cas = tlsutil.MakeCertPool(cas...)
 		} else {
-			app.Logger.Infof("loading cert from file %s", viper.GetString("ssl.cert"))
+			app.Logger.Info("loading cert from file " + viper.GetString("ssl.cert"))
 
 			cert, cas, err := client.LoadP12(viper.GetString("ssl.cert"), viper.GetString("ssl.password"))
 			if err != nil {
-				app.Logger.Errorf("error while loading cert: %s", err.Error())
+				app.Logger.Error("error while loading cert: " + err.Error())
 
 				return
 			}

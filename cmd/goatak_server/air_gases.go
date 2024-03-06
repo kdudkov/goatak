@@ -2,6 +2,8 @@ package main
 
 import (
 	"errors"
+	"fmt"
+	"log/slog"
 	"net/http"
 	"strconv"
 	"time"
@@ -10,7 +12,6 @@ import (
 	"github.com/aofei/air"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
-	"go.uber.org/zap"
 )
 
 const (
@@ -57,7 +58,7 @@ func SSLCheckHandlerGas(app *App) air.Gas {
 						return next(req, res)
 					}
 
-					app.Logger.Warnf("invalid user %s serial %s", user, serial)
+					app.Logger.Warn(fmt.Sprintf("invalid user %s serial %s", user, serial))
 				}
 			}
 
@@ -70,8 +71,8 @@ func SSLCheckHandlerGas(app *App) air.Gas {
 	}
 }
 
-func LoggerGas(log *zap.SugaredLogger, apiName string) air.Gas {
-	logger := log.Named(apiName)
+func LoggerGas(apiName string) air.Gas {
+	logger := slog.Default().With("logger", apiName)
 
 	return func(next air.Handler) air.Handler {
 		return func(req *air.Request, res *air.Response) error {
@@ -90,9 +91,9 @@ func LoggerGas(log *zap.SugaredLogger, apiName string) air.Gas {
 					"code":   strconv.Itoa(res.Status),
 				}).Inc()
 
-				logger.With(zap.String("user", username), zap.Int("status", res.Status)).Infof(
-					"%s %s, client: %s, time :%s",
-					req.Method, req.Path, req.ClientAddress(), endTime.Sub(startTime))
+				logger.With(slog.String("user", username), slog.Int("status", res.Status)).Info(
+					fmt.Sprintf("%s %s, client: %s, time :%s",
+						req.Method, req.Path, req.ClientAddress(), endTime.Sub(startTime)))
 			})
 
 			return next(req, res)
