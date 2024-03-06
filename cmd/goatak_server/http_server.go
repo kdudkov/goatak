@@ -58,10 +58,10 @@ func NewHttp(app *App) *HttpServer {
 func (h *HttpServer) Start() {
 	for name, listener := range h.listeners {
 		go func(name string, listener *air.Air) {
-			h.app.Logger.Info(fmt.Sprintf("listening %s at %s", name, listener.Address))
+			h.app.logger.Info(fmt.Sprintf("listening %s at %s", name, listener.Address))
 
 			if err := listener.Serve(); err != nil {
-				h.app.Logger.Error("error", "error", err.Error())
+				h.app.logger.Error("error", "error", err.Error())
 				panic(err)
 			}
 		}(name, listener)

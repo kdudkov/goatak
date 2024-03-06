@@ -89,14 +89,14 @@ func getMissionPutHandler(app *App) air.Handler {
 		username := getUsernameFromReq(req)
 		user := app.users.GetUser(username)
 
-		printParams(req, app.Logger)
+		printParams(req, app.logger)
 
 		if req.Body != nil {
 			defer req.Body.Close()
 			body, _ := io.ReadAll(req.Body)
 
 			if len(body) > 0 {
-				app.Logger.Info("body: " + string(body))
+				app.logger.Info("body: " + string(body))
 			}
 		}
 
@@ -180,14 +180,14 @@ func getMissionRolePutHandler(app *App) air.Handler {
 			return nil
 		}
 
-		printParams(req, app.Logger)
+		printParams(req, app.logger)
 
 		if req.Body != nil {
 			defer req.Body.Close()
 			body, _ := io.ReadAll(req.Body)
 
 			if len(body) > 0 {
-				app.Logger.Info("body: " + string(body))
+				app.logger.Info("body: " + string(body))
 			}
 		}
 
@@ -289,7 +289,7 @@ func getMissionSubscriptionPutHandler(app *App) air.Handler {
 			return nil
 		}
 
-		printParams(req, app.Logger)
+		printParams(req, app.logger)
 
 		if m.InviteOnly {
 			res.Status = http.StatusForbidden
@@ -393,7 +393,7 @@ func getMissionCotHandler(app *App) air.Handler {
 
 		for _, item := range mission.Items {
 			if err := enc.Encode(cot.CotToEvent(item.GetEvent())); err != nil {
-				app.Logger.Error("xml encode error", "error", err)
+				app.logger.Error("xml encode error", "error", err)
 			}
 		}
 
@@ -506,19 +506,19 @@ func getInvitePutHandler(app *App) air.Handler {
 		typ := getStringParam(req, "type")
 
 		if typ != "clientUid" {
-			app.Logger.Warn(fmt.Sprintf("we do not support invitation with type %s now", typ))
+			app.logger.Warn(fmt.Sprintf("we do not support invitation with type %s now", typ))
 			res.Status = http.StatusBadRequest
 			return nil
 		}
 
-		printParams(req, app.Logger)
+		printParams(req, app.logger)
 
 		if req.Body != nil {
 			defer req.Body.Close()
 			body, _ := io.ReadAll(req.Body)
 
 			if len(body) > 0 {
-				app.Logger.Info("body: " + string(body))
+				app.logger.Info("body: " + string(body))
 			}
 		}
 

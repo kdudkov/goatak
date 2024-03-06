@@ -11,11 +11,11 @@ import (
 )
 
 func (app *App) ListenTCP(ctx context.Context, addr string) (err error) {
-	app.Logger.Info("listening TCP at " + addr)
+	app.logger.Info("listening TCP at " + addr)
 
 	listener, err := net.Listen("tcp", addr)
 	if err != nil {
-		app.Logger.Error("Failed to listen", "error", err)
+		app.logger.Error("Failed to listen", "error", err)
 
 		return err
 	}
@@ -25,12 +25,12 @@ func (app *App) ListenTCP(ctx context.Context, addr string) (err error) {
 	for ctx.Err() == nil {
 		conn, err := listener.Accept()
 		if err != nil {
-			app.Logger.Error("Unable to accept connections", "error", err)
+			app.logger.Error("Unable to accept connections", "error", err)
 
 			return err
 		}
 
-		app.Logger.Info("TCP connection from" + conn.RemoteAddr().String())
+		app.logger.Info("TCP connection from" + conn.RemoteAddr().String())
 		name := "tcp:" + conn.RemoteAddr().String()
 		h := client.NewConnClientHandler(name, conn, &client.HandlerConfig{
 			MessageCb:    app.NewCotMessage,
@@ -45,7 +45,7 @@ func (app *App) ListenTCP(ctx context.Context, addr string) (err error) {
 }
 
 func (app *App) listenTLS(ctx context.Context, addr string) error {
-	app.Logger.Info("listening TCP SSL at " + addr)
+	app.logger.Info("listening TCP SSL at " + addr)
 
 	tlsCfg := &tls.Config{
 		Certificates:     []tls.Certificate{*app.config.tlsCert},
@@ -64,16 +64,16 @@ func (app *App) listenTLS(ctx context.Context, addr string) error {
 	for ctx.Err() == nil {
 		conn, err := listener.Accept()
 		if err != nil {
-			app.Logger.Error("Unable to accept connections", "error", err)
+			app.logger.Error("Unable to accept connections", "error", err)
 
 			continue
 		}
 
-		app.Logger.Debug("SSL connection from " + conn.RemoteAddr().String())
+		app.logger.Debug("SSL connection from " + conn.RemoteAddr().String())
 
 		c1 := conn.(*tls.Conn)
 		if err := c1.Handshake(); err != nil {
-			app.Logger.Debug("Handshake error", "error", err)
+			app.logger.Debug("Handshake error", "error", err)
 			c1.Close()
 
 			continue
@@ -100,10 +100,10 @@ func (app *App) listenTLS(ctx context.Context, addr string) error {
 
 func (app *App) verifyConnection(st tls.ConnectionState) error {
 	user, sn := getCertUser(&st)
-	tlsutil.LogCerts(app.Logger, st.PeerCertificates...)
+	tlsutil.LogCerts(app.logger, st.PeerCertificates...)
 
 	if !app.users.UserIsValid(user, sn) {
-		app.Logger.Warn("bad user " + user)
+		app.logger.Warn("bad user " + user)
 
 		return fmt.Errorf("bad user")
 	}

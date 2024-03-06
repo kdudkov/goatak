@@ -13,7 +13,7 @@ import (
 type JSONWsHandler struct {
 	name   string
 	ws     *air.WebSocket
-	ch     chan *model.Item
+	ch     chan *model.WebUnit
 	active int32
 }
 
@@ -21,7 +21,7 @@ func NewHandler(name string, ws *air.WebSocket) *JSONWsHandler {
 	return &JSONWsHandler{
 		name:   name,
 		ws:     ws,
-		ch:     make(chan *model.Item, 10),
+		ch:     make(chan *model.WebUnit, 10),
 		active: 1,
 	}
 }
@@ -49,7 +49,7 @@ func (w *JSONWsHandler) writer() {
 			continue
 		}
 
-		if b, err := json.Marshal(item.ToWeb()); err == nil {
+		if b, err := json.Marshal(item); err == nil {
 			if w.ws.WriteText(string(b)) != nil {
 				return
 			}
@@ -65,7 +65,20 @@ func (w *JSONWsHandler) SendItem(i *model.Item) bool {
 	}
 
 	select {
-	case w.ch <- i:
+	case w.ch <- i.ToWeb():
+	default:
+	}
+
+	return true
+}
+
+func (w *JSONWsHandler) deleteItem(uid string) bool {
+	if w == nil || !w.IsActive() {
+		return false
+	}
+
+	select {
+	case w.ch <- &model.WebUnit{UID: uid, Category: "delete"}:
 	default:
 	}
 
@@ -95,9 +108,11 @@ func getWsHandler(app *App) air.Handler {
 		h := NewHandler(name, ws)
 		app.logger.Info("ws listener connected")
 		app.changeCb.AddCallback(name, h.SendItem)
+		app.deleteCb.AddCallback(name, h.deleteItem)
 		h.Listen()
 		app.logger.Info("ws listener disconnected")
 		app.changeCb.RemoveCallback(name)
+		app.deleteCb.RemoveCallback(name)
 
 		return nil
 	}

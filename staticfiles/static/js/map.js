@@ -273,6 +273,10 @@ let app = new Vue({
         processUnit: function (u) {
             let unit = this.units.get(u.uid);
             let updateIcon = false;
+            if (u.category === "delete") {
+                this.removeUnit(u.uid);
+                return null;
+            }
             if (!unit) {
                 this.units.set(u.uid, u);
                 unit = u;

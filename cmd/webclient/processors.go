@@ -67,6 +67,7 @@ func (app *App) removeItemProcessor(msg *cot.CotMessage) {
 			case model.UNIT, model.POINT:
 				app.logger.Debug(fmt.Sprintf("remove unit/point %s type %s by message", uid, typ))
 				app.items.Remove(uid)
+				app.deleteCb.AddMessage(uid)
 
 				return
 			}

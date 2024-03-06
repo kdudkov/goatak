@@ -50,6 +50,7 @@ type App struct {
 	cas             *x509.CertPool
 	cl              *client.ConnClientHandler
 	changeCb        *callbacks.Callback[*model.Item]
+	deleteCb        *callbacks.Callback[string]
 	eventProcessors []*EventProcessor
 	remoteAPI       *RemoteAPI
 	saveFile        string
@@ -102,6 +103,7 @@ func NewApp(uid string, callsign string, connectStr string, webPort int) *App {
 		items:           repository.NewItemsMemoryRepo(),
 		dialTimeout:     time.Second * 5,
 		changeCb:        callbacks.New[*model.Item](),
+		deleteCb:        callbacks.New[string](),
 		messages:        model.NewMessages(uid),
 		eventProcessors: make([]*EventProcessor, 0),
 		pos:             atomic.Pointer[model.Pos]{},
@@ -303,6 +305,7 @@ func (app *App) cleanOldUnits() {
 
 	for _, uid := range toDelete {
 		app.items.Remove(uid)
+		app.deleteCb.AddMessage(uid)
 	}
 }
 

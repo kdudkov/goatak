@@ -38,7 +38,7 @@ func (app *App) GetProfileFiles(username, uid string) []mp.FileContent {
 	if app.users != nil && username != "" {
 		if userInfo := app.users.GetUser(username); userInfo != nil {
 			if userInfo.Callsign != "" || userInfo.Team != "" || userInfo.Role != "" || userInfo.Typ != "" {
-				app.Logger.Debug("add user prefs")
+				app.logger.Debug("add user prefs")
 
 				f := NewUserPrefsFile(prefix, userInfo.Callsign, userInfo.Team, userInfo.Role, userInfo.Typ)
 				res = append(res, f)
@@ -47,7 +47,7 @@ func (app *App) GetProfileFiles(username, uid string) []mp.FileContent {
 	}
 
 	if f, err := mp.NewFsFile(prefix+"/defaults.pref", filepath.Join(app.config.dataDir, "defaults.pref")); err == nil {
-		app.Logger.Debug("add default.prefs")
+		app.logger.Debug("add default.prefs")
 
 		res = append(res, f)
 	}
@@ -56,7 +56,7 @@ func (app *App) GetProfileFiles(username, uid string) []mp.FileContent {
 		for _, p := range paths {
 			if !p.IsDir() && strings.HasSuffix(p.Name(), ".xml") {
 				if f, err := mp.NewFsFile("maps/"+p.Name(), filepath.Join(app.config.dataDir, "maps", p.Name())); err == nil {
-					app.Logger.Debug("add " + p.Name())
+					app.logger.Debug("add " + p.Name())
 
 					res = append(res, f)
 				}

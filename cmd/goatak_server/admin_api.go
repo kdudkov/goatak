@@ -23,7 +23,6 @@ func getAdminAPI(app *App, addr string, renderer *staticfiles.Renderer, webtakRo
 	adminAPI := air.New()
 	adminAPI.Address = addr
 	adminAPI.NotFoundHandler = getNotFoundHandler()
-	// adminAPI.Gases = []air.Gas{LoggerGas(app.Logger, "admin_api")}
 
 	staticfiles.EmbedFiles(adminAPI, "/static")
 	adminAPI.GET("/", getIndexHandler(app, renderer))
@@ -70,7 +69,7 @@ func getIndexHandler(app *App, r *staticfiles.Renderer) air.Handler {
 
 		s, err := r.Render(data, "index.html", "menu.html", "header.html")
 		if err != nil {
-			app.Logger.Error("error", "error", err)
+			app.logger.Error("error", "error", err)
 			_ = res.WriteString(err.Error())
 
 			return err
@@ -89,7 +88,7 @@ func getMapHandler(app *App, r *staticfiles.Renderer) air.Handler {
 
 		s, err := r.Render(data, "map.html", "header.html")
 		if err != nil {
-			app.Logger.Error("error", "error", err)
+			app.logger.Error("error", "error", err)
 			_ = res.WriteString(err.Error())
 
 			return err
@@ -109,7 +108,7 @@ func getMissionsPageHandler(app *App, r *staticfiles.Renderer) air.Handler {
 
 		s, err := r.Render(data, "missions.html", "menu.html", "header.html")
 		if err != nil {
-			app.Logger.Error("error", "error", err)
+			app.logger.Error("error", "error", err)
 			_ = res.WriteString(err.Error())
 
 			return err
@@ -228,7 +227,7 @@ func getCotPostHandler(app *App) air.Handler {
 		dec := json.NewDecoder(req.Body)
 
 		if err := dec.Decode(c); err != nil {
-			app.Logger.Error("cot decode error", "error", err)
+			app.logger.Error("cot decode error", "error", err)
 
 			return err
 		}
@@ -251,14 +250,14 @@ func getCotXMLPostHandler(app *App) air.Handler {
 		dec := xml.NewDecoder(req.Body)
 
 		if err := dec.Decode(ev); err != nil {
-			app.Logger.Error("cot decode error", "error", err)
+			app.logger.Error("cot decode error", "error", err)
 
 			return err
 		}
 
 		c, err := cot.EventToProto(ev)
 		if err != nil {
-			app.Logger.Error("cot convert error", "error", err)
+			app.logger.Error("cot convert error", "error", err)
 
 			return err
 		}
@@ -294,14 +293,14 @@ func getTakWsHandler(app *App) air.Handler {
 
 		defer ws.Close()
 
-		app.Logger.Info("WS connection from " + req.ClientAddress())
+		app.logger.Info("WS connection from " + req.ClientAddress())
 		name := "ws:" + req.ClientAddress()
 		w := tak_ws.New(name, nil, ws, app.NewCotMessage)
 
 		app.AddClientHandler(w)
 		w.Listen()
 		app.RemoveHandlerCb(w)
-		app.Logger.Info("ws disconnected")
+		app.logger.Info("ws disconnected")
 
 		return nil
 	}

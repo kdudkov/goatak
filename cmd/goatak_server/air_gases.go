@@ -58,7 +58,7 @@ func SSLCheckHandlerGas(app *App) air.Gas {
 						return next(req, res)
 					}
 
-					app.Logger.Warn(fmt.Sprintf("invalid user %s serial %s", user, serial))
+					app.logger.Warn(fmt.Sprintf("invalid user %s serial %s", user, serial))
 				}
 			}
 

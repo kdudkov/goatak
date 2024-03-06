@@ -14,11 +14,11 @@ import (
 const magicByte = 0xbf
 
 func (app *App) ListenUDP(ctx context.Context, addr string) error {
-	app.Logger.Info("listening UDP at " + addr)
+	app.logger.Info("listening UDP at " + addr)
 
 	p, err := net.ListenPacket("udp", addr)
 	if err != nil {
-		app.Logger.Error("error", "error", err)
+		app.logger.Error("error", "error", err)
 
 		return err
 	}
@@ -28,7 +28,7 @@ func (app *App) ListenUDP(ctx context.Context, addr string) error {
 	for ctx.Err() == nil {
 		n, _, err := p.ReadFrom(buf)
 		if err != nil {
-			app.Logger.Error("read error", "error", err)
+			app.logger.Error("read error", "error", err)
 
 			return err
 		}
@@ -43,7 +43,7 @@ func (app *App) ListenUDP(ctx context.Context, addr string) error {
 
 				err = proto.Unmarshal(buf[3:n], msg)
 				if err != nil {
-					app.Logger.Error("protobuf decode error", "error", err.Error())
+					app.logger.Error("protobuf decode error", "error", err.Error())
 
 					continue
 				}
@@ -55,7 +55,7 @@ func (app *App) ListenUDP(ctx context.Context, addr string) error {
 
 				c, err := cot.CotFromProto(msg, "", scope)
 				if err != nil {
-					app.Logger.Error("protobuf detail extract error", "error", err.Error())
+					app.logger.Error("protobuf detail extract error", "error", err.Error())
 
 					continue
 				}
@@ -66,7 +66,7 @@ func (app *App) ListenUDP(ctx context.Context, addr string) error {
 
 				err = xml.Unmarshal(buf[3:n], ev)
 				if err != nil {
-					app.Logger.Error("xml decode error", "error", err.Error())
+					app.logger.Error("xml decode error", "error", err.Error())
 
 					continue
 				}
@@ -78,7 +78,7 @@ func (app *App) ListenUDP(ctx context.Context, addr string) error {
 
 				c, err := cot.EventToProtoExt(ev, "", scope)
 				if err != nil {
-					app.Logger.Error("error", "error", err.Error())
+					app.logger.Error("error", "error", err.Error())
 				}
 
 				app.NewCotMessage(c)
@@ -86,14 +86,14 @@ func (app *App) ListenUDP(ctx context.Context, addr string) error {
 		} else {
 			ev := &cot.Event{}
 			if err := xml.Unmarshal(buf[:n], ev); err != nil {
-				app.Logger.Error("decode error", "error", err)
+				app.logger.Error("decode error", "error", err)
 
 				continue
 			}
 
 			c, err := cot.EventToProtoExt(ev, "", "broadcast")
 			if err != nil {
-				app.Logger.Error("error", "error", err.Error())
+				app.logger.Error("error", "error", err.Error())
 			}
 
 			app.NewCotMessage(c)

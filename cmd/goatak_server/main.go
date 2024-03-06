@@ -76,7 +76,7 @@ type AppConfig struct {
 }
 
 type App struct {
-	Logger         *slog.Logger
+	logger         *slog.Logger
 	packageManager *pm.PackageManager
 	config         *AppConfig
 	lat            float64
@@ -86,6 +86,7 @@ type App struct {
 	handlers sync.Map
 
 	changeCb *callbacks.Callback[*model.Item]
+	deleteCb *callbacks.Callback[string]
 
 	items    repository.ItemsRepository
 	messages []*model.ChatMessage
@@ -101,13 +102,14 @@ type App struct {
 
 func NewApp(config *AppConfig) *App {
 	app := &App{
-		Logger:          slog.Default(),
+		logger:          slog.Default(),
 		config:          config,
 		packageManager:  pm.NewPackageManager(filepath.Join(config.dataDir, "mp")),
 		users:           repository.NewFileUserRepo(config.usersFile),
 		ch:              make(chan *cot.CotMessage, 20),
 		handlers:        sync.Map{},
 		changeCb:        callbacks.New[*model.Item](),
+		deleteCb:        callbacks.New[string](),
 		items:           repository.NewItemsMemoryRepo(),
 		feeds:           repository.NewFeedsFileRepo(filepath.Join(config.dataDir, "feeds")),
 		uid:             uuid.NewString(),
@@ -181,14 +183,14 @@ func (app *App) Run() {
 	go app.cleaner()
 
 	for _, c := range app.config.connections {
-		app.Logger.Info("start external connection to " + c)
+		app.logger.Info("start external connection to " + c)
 		go app.ConnectTo(ctx, c)
 	}
 
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, syscall.SIGINT, syscall.SIGTERM)
 	<-c
-	app.Logger.Info("exiting...")
+	app.logger.Info("exiting...")
 	cancel()
 }
 
@@ -206,7 +208,7 @@ func (app *App) AddClientHandler(ch client.ClientHandler) {
 
 func (app *App) RemoveClientHandler(name string) {
 	if _, ok := app.handlers.Load(name); ok {
-		app.Logger.Info("remove handler: " + name)
+		app.logger.Info("remove handler: " + name)
 
 		if _, ok := app.handlers.LoadAndDelete(name); ok {
 			connectionsMetric.Dec()
@@ -240,7 +242,7 @@ func (app *App) RemoveHandlerCb(cl client.ClientHandler) {
 }
 
 func (app *App) NewContactCb(uid, callsign string) {
-	app.Logger.Info(fmt.Sprintf("new contact: %s %s", uid, callsign))
+	app.logger.Info(fmt.Sprintf("new contact: %s %s", uid, callsign))
 }
 
 func (app *App) ConnectTo(ctx context.Context, addr string) {
@@ -249,13 +251,13 @@ func (app *App) ConnectTo(ctx context.Context, addr string) {
 	for ctx.Err() == nil {
 		conn, err := app.connect(addr)
 		if err != nil {
-			app.Logger.Error("connect error", "error", err.Error())
+			app.logger.Error("connect error", "error", err.Error())
 			time.Sleep(time.Second * 5)
 
 			continue
 		}
 
-		app.Logger.Info("connected")
+		app.logger.Info("connected")
 
 		wg := &sync.WaitGroup{}
 		wg.Add(1)
@@ -265,7 +267,7 @@ func (app *App) ConnectTo(ctx context.Context, addr string) {
 			RemoveCb: func(ch client.ClientHandler) {
 				wg.Done()
 				app.handlers.Delete(name)
-				app.Logger.Info("disconnected")
+				app.logger.Info("disconnected")
 			},
 			IsClient: true,
 			UID:      app.uid,
@@ -299,14 +301,14 @@ func (app *App) connect(connectStr string) (net.Conn, error) {
 	addr := fmt.Sprintf("%s:%s", parts[0], parts[1])
 
 	if tlsConn {
-		app.Logger.Info(fmt.Sprintf("connecting with SSL to %s...", connectStr))
+		app.logger.Info(fmt.Sprintf("connecting with SSL to %s...", connectStr))
 
 		conn, err := tls.Dial("tcp", addr, app.getTLSConfig())
 		if err != nil {
 			return nil, err
 		}
 
-		app.Logger.Debug("handshake...")
+		app.logger.Debug("handshake...")
 
 		if err := conn.Handshake(); err != nil {
 			return conn, err
@@ -314,19 +316,19 @@ func (app *App) connect(connectStr string) (net.Conn, error) {
 
 		cs := conn.ConnectionState()
 
-		app.Logger.Info(fmt.Sprintf("Handshake complete: %t", cs.HandshakeComplete))
-		app.Logger.Info(fmt.Sprintf("version: %d", cs.Version))
+		app.logger.Info(fmt.Sprintf("Handshake complete: %t", cs.HandshakeComplete))
+		app.logger.Info(fmt.Sprintf("version: %d", cs.Version))
 
 		for i, cert := range cs.PeerCertificates {
-			app.Logger.Info(fmt.Sprintf("cert #%d subject: %s", i, cert.Subject.String()))
-			app.Logger.Info(fmt.Sprintf("cert #%d issuer: %s", i, cert.Issuer.String()))
-			app.Logger.Info(fmt.Sprintf("cert #%d dns_names: %s", i, strings.Join(cert.DNSNames, ",")))
+			app.logger.Info(fmt.Sprintf("cert #%d subject: %s", i, cert.Subject.String()))
+			app.logger.Info(fmt.Sprintf("cert #%d issuer: %s", i, cert.Issuer.String()))
+			app.logger.Info(fmt.Sprintf("cert #%d dns_names: %s", i, strings.Join(cert.DNSNames, ",")))
 		}
 
 		return conn, nil
 	}
 
-	app.Logger.Info(fmt.Sprintf("connecting to %s...", connectStr))
+	app.logger.Info(fmt.Sprintf("connecting to %s...", connectStr))
 
 	return net.DialTimeout("tcp", addr, time.Second*3)
 }
@@ -334,13 +336,13 @@ func (app *App) connect(connectStr string) (net.Conn, error) {
 func (app *App) getTLSConfig() *tls.Config {
 	p12Data, err := os.ReadFile(viper.GetString("ssl.cert"))
 	if err != nil {
-		app.Logger.Error(err.Error())
+		app.logger.Error(err.Error())
 		panic(err)
 	}
 
 	key, cert, _, err := pkcs12.DecodeChain(p12Data, viper.GetString("ssl.password"))
 	if err != nil {
-		app.Logger.Error(err.Error())
+		app.logger.Error(err.Error())
 		panic(err)
 	}
 
@@ -357,7 +359,7 @@ func (app *App) MessageProcessor() {
 	for msg := range app.ch {
 		for _, prc := range app.eventProcessors {
 			if cot.MatchAnyPattern(msg.GetType(), prc.include...) {
-				app.Logger.Debug("msg is processed by " + prc.name)
+				app.logger.Debug("msg is processed by " + prc.name)
 				prc.cb(msg)
 			}
 		}
@@ -368,7 +370,7 @@ func (app *App) MessageProcessor() {
 
 func (app *App) route(msg *cot.CotMessage) {
 	if missions := msg.GetDetail().GetDestMission(); len(missions) > 0 {
-		app.Logger.Debug(fmt.Sprintf("point %s %s: missions: %s", msg.GetUID(), msg.GetCallsign(), strings.Join(missions, ",")))
+		app.logger.Debug(fmt.Sprintf("point %s %s: missions: %s", msg.GetUID(), msg.GetCallsign(), strings.Join(missions, ",")))
 		for _, missionName := range missions {
 			app.processMissionPoint(missionName, msg)
 		}
@@ -434,12 +436,12 @@ func (app *App) cleanOldUnits() {
 		case model.UNIT, model.POINT:
 			if item.IsOld() {
 				toDelete = append(toDelete, item.GetUID())
-				app.Logger.Debug(fmt.Sprintf("removing %s %s", item.GetClass(), item.GetUID()))
+				app.logger.Debug(fmt.Sprintf("removing %s %s", item.GetClass(), item.GetUID()))
 			}
 		case model.CONTACT:
 			if item.IsOld() {
 				toDelete = append(toDelete, item.GetUID())
-				app.Logger.Debug("removing contact " + item.GetUID())
+				app.logger.Debug("removing contact " + item.GetUID())
 			} else if item.IsOnline() && item.GetLastSeen().Add(lastSeenOfflineTimeout).Before(time.Now()) {
 				item.SetOffline()
 			}
@@ -450,7 +452,7 @@ func (app *App) cleanOldUnits() {
 
 	for _, uid := range toDelete {
 		app.items.Remove(uid)
-		//app.missions.DeletePoint(uid)
+		app.deleteCb.AddMessage(uid)
 	}
 }
 
@@ -458,7 +460,7 @@ func (app *App) SendBroadcast(msg *cot.CotMessage) {
 	app.ForAllClients(func(ch client.ClientHandler) bool {
 		if ch.GetName() != msg.From {
 			if err := ch.SendMsg(msg); err != nil {
-				app.Logger.Error(fmt.Sprintf("error sending to %s: %v", ch.GetName(), err))
+				app.logger.Error(fmt.Sprintf("error sending to %s: %v", ch.GetName(), err))
 			}
 		}
 
@@ -471,7 +473,7 @@ func (app *App) SendToCallsign(callsign string, msg *cot.CotMessage) {
 		for _, c := range ch.GetUids() {
 			if c == callsign {
 				if err := ch.SendMsg(msg); err != nil {
-					app.Logger.Error("error", "error", err)
+					app.logger.Error("error", "error", err)
 				}
 			}
 		}
@@ -484,7 +486,7 @@ func (app *App) SendToUID(uid string, msg *cotproto.TakMessage) {
 	app.ForAllClients(func(ch client.ClientHandler) bool {
 		if ch.HasUID(uid) {
 			if err := ch.SendCot(msg); err != nil {
-				app.Logger.Error("error", "error", err)
+				app.logger.Error("error", "error", err)
 			}
 		}
 
