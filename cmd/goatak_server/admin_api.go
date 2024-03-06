@@ -34,6 +34,7 @@ func getAdminAPI(app *App, addr string, renderer *staticfiles.Renderer, webtakRo
 	adminAPI.GET("/unit", getUnitsHandler(app))
 	adminAPI.GET("/unit/:uid/track", getUnitTrackHandler(app))
 	adminAPI.DELETE("/unit/:uid", deleteItemHandler(app))
+	adminAPI.GET("/message", getMessagesHandler(app))
 
 	adminAPI.GET("/ws", getWsHandler(app))
 	adminAPI.GET("/takproto/1", getTakWsHandler(app))
@@ -142,11 +143,13 @@ func getConfigHandler(app *App) air.Handler {
 
 func getUnitsHandler(app *App) air.Handler {
 	return func(req *air.Request, res *air.Response) error {
-		r := make(map[string]any, 0)
-		r["units"] = getUnits(app)
-		r["messages"] = app.messages
+		return res.WriteJSON(getUnits(app))
+	}
+}
 
-		return res.WriteJSON(r)
+func getMessagesHandler(app *App) air.Handler {
+	return func(req *air.Request, res *air.Response) error {
+		return res.WriteJSON(app.messages)
 	}
 }
 

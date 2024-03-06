@@ -37,6 +37,7 @@ func NewHttp(app *App, address string) *air.Air {
 
 	srv.GET("/unit", getUnitsHandler(app))
 	srv.POST("/unit", addItemHandler(app))
+	srv.GET("/message", getMessagesHandler(app))
 	srv.POST("/message", addMessageHandler(app))
 	srv.DELETE("/unit/:uid", deleteItemHandler(app))
 
@@ -65,11 +66,13 @@ func getIndexHandler(app *App, r *staticfiles.Renderer) air.Handler {
 
 func getUnitsHandler(app *App) air.Handler {
 	return func(req *air.Request, res *air.Response) error {
-		r := make(map[string]any, 0)
-		r["units"] = getUnits(app)
-		r["messages"] = app.messages.Chats
+		return res.WriteJSON(getUnits(app))
+	}
+}
 
-		return res.WriteJSON(r)
+func getMessagesHandler(app *App) air.Handler {
+	return func(req *air.Request, res *air.Response) error {
+		return res.WriteJSON(app.messages.Chats)
 	}
 }
 

@@ -237,9 +237,16 @@ let app = new Vue({
         },
 
         renew: function () {
+            let vm = this;
+
             if (!this.conn) {
                 this.getAllUnits();
             }
+
+            fetch('/message')
+                .then(function (response) {
+                    vm.messages = response.json();
+                });
 
             if (this.getTool("dp1")) {
                 let p = this.getTool("dp1").getLatLng();
@@ -256,7 +263,7 @@ let app = new Vue({
         processUnits: function (data) {
             let keys = new Set();
 
-            for (let u of data.units) {
+            for (let u of data) {
                 keys.add(this.processUnit(u).uid);
             }
 
@@ -266,7 +273,6 @@ let app = new Vue({
                 }
             }
 
-            this.messages = data.messages;
             this.ts += 1;
         },
 
