@@ -133,7 +133,7 @@
                 <div class="card" v-if="current_unit">
                     <div class="card-header">
                         <div class="row">
-                            <h5 v-on:click="mapToUnit(current_unit)" class="col-9">
+                            <h5 class="col-9" v-on:click="mapToUnit(current_unit)">
                                 <img v-bind:src="milImg(current_unit)"/> {{ getUnitName(current_unit) }} <span
                                     v-if="current_unit.status"> ({{ current_unit.status }})</span>
                                 <img height="24" src="/static/icons/coord_unlock.png"
@@ -146,13 +146,14 @@
                                    v-on:click="openChat(current_unit.uid, current_unit.callsign);">chat</a>
                             </h5>
                             <div class="col-3" v-if="current_unit.category !== 'contact'">
-                                <button type="button" class="btn btn-sm btn-primary"
-                                        data-bs-toggle="modal" data-bs-target="#edit">edit
+                                <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal"
+                                        data-bs-target="#edit">
+                                    <i class="bi bi-pencil-square"></i>
                                 </button>
-                                <button type="button" class="btn btn-sm btn-danger" v-on:click="deleteCurrentUnit">del
+                                <button type="button" class="btn btn-sm btn-danger" v-on:click="deleteCurrentUnit">
+                                    <i class="bi bi-trash3-fill"></i>
                                 </button>
                             </div>
-
                         </div>
                     </div>
                     <div class="card-body">

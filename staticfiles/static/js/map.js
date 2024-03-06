@@ -540,7 +540,7 @@ let app = new Vue({
         getRootSidc: function (s) {
             let curr = this.types;
 
-            if (curr.next === undefined) {
+            if (!curr?.next) {
                 return null;
             }
 
