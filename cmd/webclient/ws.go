@@ -45,6 +45,10 @@ func (w *JSONWsHandler) writer() {
 			return
 		}
 
+		if item == nil {
+			continue
+		}
+
 		if b, err := json.Marshal(item.ToWeb()); err == nil {
 			if w.ws.WriteText(string(b)) != nil {
 				return

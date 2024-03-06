@@ -105,7 +105,7 @@ func (app *App) saveItemProcessor(msg *cot.CotMessage) {
 		app.Logger.Infof("new %s %s (%s) %s", cl, msg.GetUID(), msg.GetCallsign(), msg.GetType())
 		item := model.FromMsg(msg)
 		app.items.Store(item)
-		app.changeCb.AddMessage(c)
+		app.changeCb.AddMessage(item)
 	}
 }
 
