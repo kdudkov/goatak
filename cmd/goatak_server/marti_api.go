@@ -13,6 +13,7 @@ import (
 	"github.com/aofei/air"
 	"github.com/google/uuid"
 
+	"github.com/kdudkov/goatak/cmd/goatak_server/mp"
 	"github.com/kdudkov/goatak/internal/pm"
 
 	"github.com/kdudkov/goatak/pkg/cotproto"
@@ -318,7 +319,7 @@ func getContentGetHandler(app *App) air.Handler {
 	return func(req *air.Request, res *air.Response) error {
 		username := getUsernameFromReq(req)
 		user := app.users.GetUser(username)
-		
+
 		if hash := getStringParam(req, "hash"); hash != "" {
 			if pi := app.packageManager.GetByHash(hash); pi != nil && user.CanSeeScope(pi.Scope) {
 				res.Header.Set("Content-type", pi.MIMEType)
@@ -386,7 +387,7 @@ func getMetadataPutHandler(app *App) air.Handler {
 
 		s, _ := io.ReadAll(req.Body)
 
-		if pi := app.packageManager.GetByHash(hash); pi != nil && user.CanSeeScope(pi.Scope)  {
+		if pi := app.packageManager.GetByHash(hash); pi != nil && user.CanSeeScope(pi.Scope) {
 			pi.Tool = string(s)
 			app.packageManager.Store(pi.UID, pi)
 		}
@@ -409,7 +410,7 @@ func getSearchHandler(app *App) air.Handler {
 			if user.CanSeeScope(pi.Scope) {
 				packages = append(packages, pi)
 			}
-		}		
+		}
 
 		result["results"] = packages
 		result["resultCount"] = len(packages)
@@ -461,7 +462,7 @@ func getProfileConnectionHandler(app *App) air.Handler {
 			return nil
 		}
 
-		mp := NewMissionPackage("ProfileMissionPackage-"+uuid.New().String(), "Connection")
+		mp := mp.NewMissionPackage("ProfileMissionPackage-"+uuid.New().String(), "Connection")
 		mp.Param("onReceiveImport", "true")
 		mp.Param("onReceiveDelete", "true")
 
@@ -489,7 +490,7 @@ func getVideoListHandler(app *App) air.Handler {
 		app.feeds.ForEach(func(f *model.Feed2) bool {
 			if user.CanSeeScope(f.Scope) {
 				r.Feeds = append(r.Feeds, f.ToFeed())
-			}			
+			}
 
 			return true
 		})
@@ -628,4 +629,3 @@ func getStringParamIgnoreCaps(req *air.Request, name string) string {
 
 	return ""
 }
-
