@@ -570,7 +570,7 @@ let app = new Vue({
                 return curr;
             }
 
-            if (curr.next === undefined) {
+            if (!curr?.next) {
                 return null;
             }
 
