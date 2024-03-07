@@ -84,6 +84,7 @@ function getMilIcon(item, withText) {
 function needIconUpdate(oldUnit, newUnit) {
     if (oldUnit.sidc !== newUnit.sidc || oldUnit.status !== newUnit.status) return true;
     if (oldUnit.speed !== newUnit.speed || oldUnit.direction !== newUnit.direction) return true;
+    if (oldUnit.team !== newUnit.team || oldUnit.role !== newUnit.role) return true;
 
     if (newUnit.sidc.charAt(2) === 'A' && oldUnit.hae !== newUnit.hae) return true;
     return false;
