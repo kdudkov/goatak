@@ -444,6 +444,7 @@ func (app *App) cleanOldUnits() {
 				app.logger.Debug("removing contact " + item.GetUID())
 			} else if item.IsOnline() && item.GetLastSeen().Add(lastSeenOfflineTimeout).Before(time.Now()) {
 				item.SetOffline()
+				app.changeCb.AddMessage(item)
 			}
 		}
 

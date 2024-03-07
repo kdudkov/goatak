@@ -58,6 +58,7 @@ func (app *App) removeItemProcessor(msg *cot.CotMessage) {
 			case model.CONTACT:
 				app.logger.Debug(fmt.Sprintf("remove %s by message", uid))
 				v.SetOffline()
+				app.changeCb.AddMessage(v)
 
 				return
 			case model.UNIT, model.POINT:
