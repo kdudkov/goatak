@@ -268,7 +268,7 @@ let app = new Vue({
             let keys = new Set();
 
             for (let u of data) {
-                keys.add(this.processUnit(u).uid);
+                keys.add(this.processUnit(u)?.uid);
             }
 
             for (const k of this.units.keys()) {
@@ -281,6 +281,7 @@ let app = new Vue({
         },
 
         processUnit: function (u) {
+            if (!u) return;
             let unit = this.units.get(u.uid);
             let updateIcon = false;
             if (u.category === "delete") {
