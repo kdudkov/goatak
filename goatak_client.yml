@@ -1,11 +1,29 @@
 ---
+# server address to connect to
 server_address: 137.184.101.250:8087:tcp
+# local port for web server
 web_port: 8080
 me:
+  # your callsign
   callsign: TestUser
+  # your uid. If 'auto' uid is generated
   uid: auto
+  # your unit type
   type: a-f-G-U-C
+  # your team
   team: Yellow
+  # your role
   role: Team Member
   lat: 0
   lon: 0
+
+ssl:
+  cert: ""
+  # password for certificate file
+  password: atakatak
+  # login for cert enrollment. If not empty, client do cert enrollment
+  enroll_user: ""
+  # password for cert enrollment
+  enroll_password: ""
+  # if true, enrolled certificate is saved locally
+  save_cert: true
