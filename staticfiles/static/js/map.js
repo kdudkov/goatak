@@ -130,7 +130,7 @@ let app = new Vue({
         }
 
         this.renew();
-        setInterval(this.renew, 3000);
+        setInterval(this.renew, 30000);
 
         this.map.on('click', this.mapClick);
         this.map.on('mousemove', this.mouseMove);
@@ -246,7 +246,10 @@ let app = new Vue({
 
             fetch('/message')
                 .then(function (response) {
-                    vm.messages = response.json();
+                    return response.json();
+                })
+                .then(function (data) {
+                    vm.messages = data;
                 });
 
             if (this.getTool("dp1")) {

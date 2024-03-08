@@ -203,7 +203,7 @@
                 <div class="modal-body">
                     <div v-for="m in getMessages()" class="alert alert-secondary">
                         <span class="badge"
-                              :class="{'bg-primary': m.from_uid != config.uid, 'bg-success': m.from_uid == config.uid}">{{ m.from }}</span>:
+                              :class="{'bg-primary': m.from_uid != config.uid, 'bg-success': m.from_uid == config.uid}">{{ m.from || m.from_uid }}</span>:
                         {{ m.text }}
                     </div>
                 </div>
