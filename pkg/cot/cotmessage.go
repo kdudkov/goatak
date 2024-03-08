@@ -147,7 +147,7 @@ func (m *CotMessage) IsContact() bool {
 		return false
 	}
 
-	return strings.HasPrefix(m.GetType(), "a-f-") && m.GetEndpoint() != ""
+	return strings.HasPrefix(m.GetType(), "a-f-") && m.GetTeam() != ""
 }
 
 func (m *CotMessage) IsChat() bool {

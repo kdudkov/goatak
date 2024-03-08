@@ -184,12 +184,17 @@ func addMessageHandler(app *App) air.Handler {
 			return nil
 		}
 
+		defer req.Body.Close()
 		if err := json.NewDecoder(req.Body).Decode(msg); err != nil {
 			return err
 		}
 
 		if msg.ID == "" {
 			msg.ID = uuid.NewString()
+		}
+
+		if msg.Chatroom != msg.ToUID {
+			msg.Direct = true
 		}
 
 		app.SendMsg(model.MakeChatMessage(msg))
