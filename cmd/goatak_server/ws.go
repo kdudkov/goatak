@@ -106,11 +106,11 @@ func getWsHandler(app *App) air.Handler {
 		name := uuid.New().String()
 
 		h := NewHandler(name, ws)
-		app.logger.Info("ws listener connected")
+		app.logger.Debug("ws listener connected")
 		app.changeCb.AddCallback(name, h.SendItem)
 		app.deleteCb.AddCallback(name, h.deleteItem)
 		h.Listen()
-		app.logger.Info("ws listener disconnected")
+		app.logger.Debug("ws listener disconnected")
 		app.changeCb.RemoveCallback(name)
 		app.deleteCb.RemoveCallback(name)
 

@@ -174,6 +174,14 @@ func (m *CotMessage) IsChatReceipt() bool {
 	return m.GetType() == "b-t-f-r" || m.GetType() == "b-t-f-d"
 }
 
+func (m *CotMessage) IsPing() bool {
+	return m.GetType() == "t-x-c-t" || m.GetType() == "t-x-c-t-r"
+}
+
+func (m *CotMessage) IsMapItem() bool {
+	return (m.GetLat() != 0 && m.GetLon() != 0) && MatchAnyPattern(m.GetType(), "a-", "b-", "u-")
+}
+
 func (m *CotMessage) PrintChat() string {
 	chat := m.GetDetail().GetFirst("__chat")
 	if chat == nil {

@@ -27,7 +27,7 @@ func (app *App) AddEventProcessor(name string, cb func(msg *cot.CotMessage), mas
 func (app *App) InitMessageProcessors() {
 	app.AddEventProcessor("remove", app.removeItemProcessor, "t-x-d-d")
 	app.AddEventProcessor("chat", app.chatProcessor, "b-t-f")
-	app.AddEventProcessor("items", app.saveItemProcessor, ".-")
+	app.AddEventProcessor("items", app.saveItemProcessor, "a-")
 	app.AddEventProcessor("logger", app.loggerProcessor, ".-")
 
 	if app.config.logging {
@@ -92,7 +92,7 @@ func (app *App) chatProcessor(msg *cot.CotMessage) {
 }
 
 func (app *App) saveItemProcessor(msg *cot.CotMessage) {
-	if msg.GetLat() == 0 && msg.GetLon() == 0 && !strings.HasPrefix(msg.GetType(), "a-") {
+	if msg.GetLat() == 0 && msg.GetLon() == 0 {
 		return
 	}
 
@@ -111,11 +111,7 @@ func (app *App) saveItemProcessor(msg *cot.CotMessage) {
 }
 
 func (app *App) fileLoggerProcessor(msg *cot.CotMessage) {
-	if cot.MatchAnyPattern(msg.GetType(), "t-x-c-t", "t-x-c-t-r") {
-		return
-	}
-
-	if cot.MatchAnyPattern(msg.GetType(), viper.GetStringSlice("log_exclude")...) {
+	if msg.IsPing() || cot.MatchAnyPattern(msg.GetType(), viper.GetStringSlice("log_exclude")...) {
 		return
 	}
 
