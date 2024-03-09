@@ -72,7 +72,7 @@ let app = new Vue({
                 })
                 .then(function (data) {
                     units.clear();
-                    data.units.forEach(function (i) {
+                    data.forEach(function (i) {
                         units.set(i.uid, i);
                     });
                     vm.ts += 1;
