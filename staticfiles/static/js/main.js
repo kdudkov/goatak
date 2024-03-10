@@ -70,7 +70,7 @@ let app = new Vue({
             }
         },
         getImg: function (item) {
-            return getIconUri(item, false);
+            return getIconUri(item, false).uri;
         },
         milImg: function (item) {
             return getMilIcon(item, false).uri;
