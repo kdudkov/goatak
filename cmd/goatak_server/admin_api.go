@@ -65,7 +65,7 @@ func getIndexHandler(app *App, r *staticfiles.Renderer) air.Handler {
 		data := map[string]any{
 			"theme": "auto",
 			"page":  " dash",
-			"js":    []string{"main.js"},
+			"js":    []string{"util.js", "main.js"},
 		}
 
 		s, err := r.Render(data, "index.html", "menu.html", "header.html")
@@ -84,7 +84,7 @@ func getMapHandler(app *App, r *staticfiles.Renderer) air.Handler {
 	return func(req *air.Request, res *air.Response) error {
 		data := map[string]any{
 			"theme": "auto",
-			"js":    []string{"map.js"},
+			"js":    []string{"util.js", "map.js"},
 		}
 
 		s, err := r.Render(data, "map.html", "header.html")

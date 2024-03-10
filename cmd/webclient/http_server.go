@@ -52,7 +52,7 @@ func NewHttp(app *App, address string) *air.Air {
 func getIndexHandler(app *App, r *staticfiles.Renderer) air.Handler {
 	return func(req *air.Request, res *air.Response) error {
 		data := map[string]any{
-			"js": []string{"map.js"},
+			"js": []string{"util.js", "map.js"},
 		}
 
 		s, err := r.Render(data, "map.html", "header.html")

@@ -1,85 +1,3 @@
-const colors = new Map([
-    ['White', 'white'],
-    ['Yellow', 'yellow'],
-    ['Orange', 'orange'],
-    ['Magenta', 'magenta'],
-    ['Red', 'red'],
-    ['Maroon', 'maroon'],
-    ['Purple', 'purple'],
-    ['Dark Blue', 'darkblue'],
-    ['Blue', 'blue'],
-    ['Cyan', 'cyan'],
-    ['Teal', 'teal'],
-    ['Green', 'green'],
-    ['Dark Green', 'darkgreen'],
-    ['Brown', 'brown'],
-]);
-
-function getIconUri(item, withText) {
-    if (item.category === "contact" || (item.team && item.role)) {
-        let col = "#555";
-        if (item.status !== "Offline") {
-            col = colors.get(item.team);
-        }
-        return {uri: toUri(roleCircle(24, col, '#000', item.role)), x: 12, y: 12};
-    }
-    if (item.icon && item.icon.startsWith("COT_MAPPING_SPOTMAP/")) {
-        return {uri: toUri(circle(16, item.color ?? 'green', '#000', null)), x: 8, y: 8}
-    }
-    if (item.type === "b") {
-        return {uri: "/static/icons/b.png", x: 16, y: 16}
-    }
-    if (item.type === "b-m-p-w-GOTO") {
-        return {uri: "/static/icons/green_flag.png", x: 6, y: 30}
-    }
-    if (item.type === "b-m-p-s-p-op") {
-        return {uri: "/static/icons/binos.png", x: 16, y: 16}
-    }
-    if (item.type === "b-m-p-s-p-loc") {
-        return {uri: "/static/icons/sensor_location.png", x: 16, y: 16}
-    }
-    if (item.type === "b-m-p-s-p-i") {
-        return {uri: "/static/icons/b-m-p-s-p-i.png", x: 16, y: 16}
-    }
-    if (item.type === "b-m-p-a") {
-        return {uri: "/static/icons/aimpoint.png", x: 16, y: 16}
-    }
-    if (item.category === "point") {
-        return {uri: toUri(circle(16, item.color ?? 'green', '#000', null)), x: 8, y: 8}
-    }
-    return getMilIcon(item, withText);
-}
-
-function getIcon(item, withText) {
-    let img = getIconUri(item, withText);
-
-    return L.icon({
-        iconUrl: img.uri,
-        iconAnchor: [img.x, img.y],
-    })
-}
-
-function getMilIcon(item, withText) {
-    let opts = {size: 24};
-
-    if (!item.sidc) {
-        return "";
-    }
-
-    if (withText) {
-        // opts['uniqueDesignation'] = item.callsign;
-        if (item.speed > 0) {
-            opts['speed'] = (item.speed * 3.6).toFixed(1) + " km/h";
-            opts['direction'] = item.course;
-        }
-        if (item.sidc.charAt(2) === 'A') {
-            opts['altitudeDepth'] = item.hae.toFixed(0) + " m";
-        }
-    }
-
-    let symb = new ms.Symbol(item.sidc, opts);
-    return {uri: symb.toDataURL(), x: symb.getAnchor().x, y: symb.getAnchor().y}
-}
 
 function needIconUpdate(oldUnit, newUnit) {
     if (oldUnit.sidc !== newUnit.sidc || oldUnit.status !== newUnit.status) return true;
@@ -723,7 +641,7 @@ let app = new Vue({
         },
 
         getUnitName: function (u) {
-            let res = u.callsign;
+            let res = u.callsign || "no name";
             if (u.parent_uid === this.config.uid) {
                 if (u.send === true) {
                     res = "+ " + res;
@@ -820,49 +738,4 @@ function popup(item) {
     }
     v += item.text.replaceAll('\n', '<br/>').replaceAll('; ', '<br/>');
     return v;
-}
-
-function circle(size, color, bg, text) {
-    let x = Math.round(size / 2);
-    let r = x - 1;
-
-    let s = '<svg width="' + size + '" height="' + size + '" xmlns="http://www.w3.org/2000/svg"><metadata id="metadata1">image/svg+xml</metadata>';
-    s += '<circle style="fill: ' + color + '; stroke: ' + bg + ';" cx="' + x + '" cy="' + x + '" r="' + r + '"/>';
-
-    if (text) {
-        s += '<text x="50%" y="50%" text-anchor="middle" font-size="12px" font-family="Arial" dy=".3em">' + text + '</text>';
-    }
-    s += '</svg>';
-    return s;
-}
-
-function roleCircle(size, color, bg, role) {
-    let t = '';
-    if (role === 'HQ') {
-        t = 'HQ';
-    } else if (role === 'Team Lead') {
-        t = 'TL';
-    } else if (role === 'K9') {
-        t = 'K9';
-    } else if (role === 'Forward Observer') {
-        t = 'FO';
-    } else if (role === 'Sniper') {
-        t = 'S';
-    } else if (role === 'Medic') {
-        t = 'M';
-    } else if (role === 'RTO') {
-        t = 'R';
-    }
-
-    return circle(size, color, bg, t);
-}
-
-function toUri(s) {
-    return encodeURI("data:image/svg+xml," + s).replaceAll("#", "%23");
-}
-
-function uuidv4() {
-    return ([1e7] + -1e3 + -4e3 + -8e3 + -1e11).replace(/[018]/g, c =>
-        (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
-    );
 }
