@@ -81,7 +81,7 @@ func getIndexHandler(app *App, r *staticfiles.Renderer) air.Handler {
 }
 
 func getMapHandler(app *App, r *staticfiles.Renderer) air.Handler {
-	return func(req *air.Request, res *air.Response) error {
+	return func(_ *air.Request, res *air.Response) error {
 		data := map[string]any{
 			"theme": "auto",
 			"js":    []string{"util.js", "map.js"},
@@ -100,7 +100,7 @@ func getMapHandler(app *App, r *staticfiles.Renderer) air.Handler {
 }
 
 func getMissionsPageHandler(app *App, r *staticfiles.Renderer) air.Handler {
-	return func(req *air.Request, res *air.Response) error {
+	return func(_ *air.Request, res *air.Response) error {
 		data := map[string]any{
 			"theme": "auto",
 			"page":  " missions",
@@ -120,7 +120,7 @@ func getMissionsPageHandler(app *App, r *staticfiles.Renderer) air.Handler {
 }
 
 func getNotFoundHandler() air.Handler {
-	return func(req *air.Request, res *air.Response) error {
+	return func(_ *air.Request, res *air.Response) error {
 		res.Status = http.StatusNotFound
 
 		return errors.New(http.StatusText(res.Status))
@@ -136,25 +136,25 @@ func getConfigHandler(app *App) air.Handler {
 
 	m["layers"] = getLayers()
 
-	return func(req *air.Request, res *air.Response) error {
+	return func(_ *air.Request, res *air.Response) error {
 		return res.WriteJSON(m)
 	}
 }
 
 func getUnitsHandler(app *App) air.Handler {
-	return func(req *air.Request, res *air.Response) error {
+	return func(_ *air.Request, res *air.Response) error {
 		return res.WriteJSON(getUnits(app))
 	}
 }
 
 func getMessagesHandler(app *App) air.Handler {
-	return func(req *air.Request, res *air.Response) error {
+	return func(_ *air.Request, res *air.Response) error {
 		return res.WriteJSON(app.messages)
 	}
 }
 
 func getStackHandler() air.Handler {
-	return func(req *air.Request, res *air.Response) error {
+	return func(_ *air.Request, res *air.Response) error {
 		return pprof.Lookup("goroutine").WriteTo(res.Body, 1)
 	}
 }

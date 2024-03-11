@@ -68,6 +68,7 @@ func (h *Handler) computeAttrs(
 		h.b.Reset()
 		h.m.Unlock()
 	}()
+
 	if err := h.h.Handle(ctx, r); err != nil {
 		return nil, fmt.Errorf("error when calling inner handler's Handle: %w", err)
 	}
@@ -77,21 +78,23 @@ func (h *Handler) computeAttrs(
 	if err != nil {
 		return nil, fmt.Errorf("error when unmarshaling inner handler's Handle result: %w", err)
 	}
+
 	return attrs, nil
 }
 
 func (h *Handler) Handle(ctx context.Context, r slog.Record) error {
-
 	var level string
+
 	levelAttr := slog.Attr{
 		Key:   slog.LevelKey,
 		Value: slog.AnyValue(r.Level),
 	}
+
 	if h.r != nil {
 		levelAttr = h.r([]string{}, levelAttr)
 	}
 
-	if !levelAttr.Equal(slog.Attr{}) {
+	if !levelAttr.Equal(slog.Attr{}) { //nolint:exhaustruct
 		level = levelAttr.Value.String() + ":"
 
 		if r.Level <= slog.LevelDebug {
@@ -110,26 +113,32 @@ func (h *Handler) Handle(ctx context.Context, r slog.Record) error {
 	}
 
 	var timestamp string
+
 	timeAttr := slog.Attr{
 		Key:   slog.TimeKey,
 		Value: slog.StringValue(r.Time.Format(timeFormat)),
 	}
+
 	if h.r != nil {
 		timeAttr = h.r([]string{}, timeAttr)
 	}
-	if !timeAttr.Equal(slog.Attr{}) {
+
+	if !timeAttr.Equal(slog.Attr{}) { //nolint:exhaustruct
 		timestamp = colorize(lightGray, timeAttr.Value.String())
 	}
 
 	var msg string
+
 	msgAttr := slog.Attr{
 		Key:   slog.MessageKey,
 		Value: slog.StringValue(r.Message),
 	}
+
 	if h.r != nil {
 		msgAttr = h.r([]string{}, msgAttr)
 	}
-	if !msgAttr.Equal(slog.Attr{}) {
+
+	if !msgAttr.Equal(slog.Attr{}) { //nolint:exhaustruct
 		msg = colorize(white, msgAttr.Value.String())
 	}
 
@@ -137,7 +146,9 @@ func (h *Handler) Handle(ctx context.Context, r slog.Record) error {
 	if err != nil {
 		return err
 	}
+
 	bytes, err := json.Marshal(attrs)
+
 	if err != nil {
 		return fmt.Errorf("error when marshaling attrs: %w", err)
 	}
@@ -147,17 +158,21 @@ func (h *Handler) Handle(ctx context.Context, r slog.Record) error {
 		out.WriteString(timestamp)
 		out.WriteString(" ")
 	}
+
 	if len(level) > 0 {
 		out.WriteString(level)
 		out.WriteString(" ")
 	}
+
 	if len(msg) > 0 {
 		out.WriteString(msg)
 		out.WriteString(" ")
 	}
+
 	if len(attrs) > 0 {
 		out.WriteString(colorize(darkGray, string(bytes)))
 	}
+
 	fmt.Println(out.String())
 
 	return nil
@@ -170,20 +185,25 @@ func suppressDefaults(
 		if a.Key == slog.TimeKey ||
 			a.Key == slog.LevelKey ||
 			a.Key == slog.MessageKey {
-			return slog.Attr{}
+			return slog.Attr{} //nolint:exhaustruct
 		}
+
 		if next == nil {
 			return a
 		}
+
 		return next(groups, a)
 	}
 }
 
 func NewHandler(opts *slog.HandlerOptions) *Handler {
 	if opts == nil {
+		//nolint:exhaustruct
 		opts = &slog.HandlerOptions{}
 	}
+
 	b := &bytes.Buffer{}
+
 	return &Handler{
 		b: b,
 		h: slog.NewJSONHandler(b, &slog.HandlerOptions{

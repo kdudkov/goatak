@@ -111,7 +111,7 @@ func (f *Feed2) WithUser(user string) *Feed2 {
 }
 
 func (f *Feed2) WithScope(scope string) *Feed2 {
-	f.Scope = scope	
+	f.Scope = scope
 
 	return f
 }

@@ -47,7 +47,12 @@ lint:
 
 .PHONY: lint-new
 lint-new:
-	golangci-lint run ./... --new-from-rev HEAD^^^^^^^^^^
+	golangci-lint run ./... --new-from-rev $(shell git describe --tags --abbrev=0)
+
+.PHONY: fmt
+fmt:
+	goimports -w .
+	gofmt -w .
 
 .PHONY: gox
 gox: clean dep
