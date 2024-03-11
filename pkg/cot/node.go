@@ -1,3 +1,4 @@
+//nolint:exhaustruct
 package cot
 
 import (
@@ -7,7 +8,6 @@ import (
 	"strings"
 )
 
-//nolint:musttag
 type Node struct {
 	XMLName xml.Name
 	Attrs   []xml.Attr `xml:",any,attr"`

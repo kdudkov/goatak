@@ -8,6 +8,10 @@ GIT_BRANCH=$(shell git rev-parse --symbolic-full-name --abbrev-ref HEAD)
 
 LDFLAGS=-ldflags "-s -X main.gitRevision=$(GIT_REVISION) -X main.gitBranch=$(GIT_BRANCH)"
 
+.PHONY: install_linter
+install_linter:
+	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.56.2
+
 .PHONY: clean
 clean:
 	[ -d dist ] || mkdir dist
@@ -39,7 +43,11 @@ build: clean dep
 
 .PHONY: lint
 lint:
-	golangci-lint run ./... || grep -c "<error " report.xml
+	golangci-lint run ./...
+
+.PHONY: lint-new
+lint-new:
+	golangci-lint run ./... --new-from-rev HEAD^^^^^^^^^^
 
 .PHONY: gox
 gox: clean dep
