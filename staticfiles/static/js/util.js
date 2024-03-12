@@ -1,4 +1,5 @@
 const colors = new Map([
+    ['Clear', 'white'],
     ['White', 'white'],
     ['Yellow', 'yellow'],
     ['Orange', 'orange'],

@@ -67,7 +67,8 @@ func (m *Messages) Add(msg *ChatMessage) {
 	}
 
 	if c, ok := m.Chats[uid]; ok {
-		c.Messages = append([]*ChatMessage{msg}, c.Messages...)
+		c.add(msg)
+
 		if c.From == "" {
 			c.From = callsign
 		}
@@ -143,4 +144,28 @@ func MakeChatMessage(c *ChatMessage) *cotproto.TakMessage {
 	msg.CotEvent.Detail = &cotproto.Detail{XmlDetail: xd.AsXMLString()}
 
 	return msg
+}
+
+func (c *Chat) getMsg(id string) *ChatMessage {
+	for _, m := range c.Messages {
+		if m.ID == id {
+			return m
+		}
+	}
+
+	return nil
+}
+
+func (c *Chat) add(msg *ChatMessage) bool {
+	if c == nil || msg == nil {
+		return false
+	}
+
+	if c.getMsg(msg.ID) == nil {
+		c.Messages = append([]*ChatMessage{msg}, c.Messages...)
+
+		return true
+	}
+
+	return false
 }
