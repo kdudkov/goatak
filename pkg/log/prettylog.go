@@ -59,10 +59,7 @@ func (h *Handler) WithGroup(name string) slog.Handler {
 	return &Handler{h: h.h.WithGroup(name), b: h.b, r: h.r, m: h.m}
 }
 
-func (h *Handler) computeAttrs(
-	ctx context.Context,
-	r slog.Record,
-) (map[string]any, error) {
+func (h *Handler) computeAttrs(ctx context.Context, r slog.Record) (map[string]any, error) {
 	h.m.Lock()
 	defer func() {
 		h.b.Reset()
@@ -75,6 +72,7 @@ func (h *Handler) computeAttrs(
 
 	var attrs map[string]any
 	err := json.Unmarshal(h.b.Bytes(), &attrs)
+
 	if err != nil {
 		return nil, fmt.Errorf("error when unmarshaling inner handler's Handle result: %w", err)
 	}
@@ -95,7 +93,7 @@ func (h *Handler) Handle(ctx context.Context, r slog.Record) error {
 	}
 
 	if !levelAttr.Equal(slog.Attr{}) { //nolint:exhaustruct
-		level = levelAttr.Value.String() + ":"
+		level = levelAttr.Value.String()
 
 		if r.Level <= slog.LevelDebug {
 			level = colorize(lightGray, level)

@@ -140,9 +140,14 @@ let app = new Vue({
 
             this.conn.onclose = function (e) {
                 console.log("closed");
-                vm.conn = null;
                 setTimeout(vm.connect, 3000);
             };
+        },
+
+        connected: function () {
+            if (!this.conn) return false;
+
+            return this.conn.readyState === 1;
         },
 
         getAllUnits: function () {

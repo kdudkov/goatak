@@ -3,7 +3,7 @@
         <div class="container-fluid">
             <a class="navbar-brand" href="#">GoATAK client <span v-if="config">{{ config.version }}</span></a>
             <span class="badge rounded-pill bg-primary"
-                  v-bind:class="{ 'bg-success': conn, 'bg-secondary': !conn }">.</span>
+                  v-bind:class="{ 'bg-success': connected(), 'bg-secondary': !connected() }">.</span>
             <div class="collapse navbar-collapse" id="navbarCollapse">
                 <ul class="navbar-nav me-auto mb-2 mb-md-0">
                     <li class="nav-item dropdown">
@@ -202,8 +202,9 @@
                 </div>
                 <div class="modal-body">
                     <div v-for="m in getMessages()" class="alert alert-secondary">
+                        <span class="badge bg-secondary">{{ dt(m.time) }}</span>
                         <span class="badge"
-                              :class="{'bg-primary': m.from_uid != config.uid, 'bg-success': m.from_uid == config.uid}">{{ m.from || m.from_uid }}</span>:
+                              :class="{'bg-info': m.from_uid != config.uid, 'bg-success': m.from_uid == config.uid}">{{ m.from || m.from_uid }}</span>
                         {{ m.text }}
                     </div>
                 </div>
