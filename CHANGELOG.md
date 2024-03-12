@@ -1,3 +1,11 @@
+# 0.16.2
+
+FIXES:
+
+- fixed chat in client
+- fixed ws status in client
+- fixed server dashboard
+
 # 0.16.0
 
 FEATURES:
