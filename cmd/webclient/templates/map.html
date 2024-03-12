@@ -202,9 +202,9 @@
                 </div>
                 <div class="modal-body">
                     <div v-for="m in getMessages()" class="alert alert-secondary">
-                        <span class="badge bg-secondary">{{ dt(m.time) }}</span>
+                        <span class="badge text-bg-secondary">{{ dt(m.time) }}</span>
                         <span class="badge"
-                              :class="{'bg-info': m.from_uid != config.uid, 'bg-success': m.from_uid == config.uid}">{{ m.from || m.from_uid }}</span>
+                              :class="{'text-bg-info': m.from_uid != config.uid, 'text-bg-success': m.from_uid == config.uid}">{{ m.from || m.from_uid }}</span>
                         {{ m.text }}
                     </div>
                 </div>
