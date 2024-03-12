@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"runtime/pprof"
+	"time"
 
 	"github.com/aofei/air"
 	"github.com/google/uuid"
@@ -185,6 +186,7 @@ func addMessageHandler(app *App) air.Handler {
 		}
 
 		defer req.Body.Close()
+
 		if err := json.NewDecoder(req.Body).Decode(msg); err != nil {
 			return err
 		}
@@ -193,14 +195,21 @@ func addMessageHandler(app *App) air.Handler {
 			msg.ID = uuid.NewString()
 		}
 
+		if msg.Time.IsZero() {
+			msg.Time = time.Now()
+		}
+
 		if msg.Chatroom != msg.ToUID {
 			msg.Direct = true
 		}
 
-		app.SendMsg(model.MakeChatMessage(msg))
+		m := model.MakeChatMessage(msg)
+
+		app.logger.Debug(m.String())
+		app.SendMsg(m)
 		app.messages.Add(msg)
 
-		return res.WriteJSON(map[string]string{"ok": "ok"})
+		return res.WriteJSON(app.messages.Chats)
 	}
 }
 

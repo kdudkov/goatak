@@ -726,10 +726,15 @@ let app = new Vue({
                 headers: {"Content-Type": "application/json"},
                 body: JSON.stringify(msg)
             };
+            let vm = this;
             fetch("/message", requestOptions)
                 .then(function (response) {
                     return response.json()
                 })
+                .then(function (data) {
+                    vm.messages = data;
+                });
+
         }
     },
 });
