@@ -25,7 +25,7 @@ func (app *App) InitMessageProcessors() {
 	app.AddEventProcessor("remove", app.removeItemProcessor, "t-x-d-d")
 	app.AddEventProcessor("chat", app.chatProcessor, "b-t-f")
 	app.AddEventProcessor("chat_r", app.chatReceiptProcessor, "b-t-f-")
-	app.AddEventProcessor("items", app.saveItemProcessor, "a-")
+	app.AddEventProcessor("items", app.saveItemProcessor, "a-", "b-", "u-")
 	app.AddEventProcessor("logger", app.loggerProcessor, ".-")
 
 	if app.saveFile != "" {
@@ -96,7 +96,7 @@ func (app *App) chatReceiptProcessor(msg *cot.CotMessage) {
 }
 
 func (app *App) saveItemProcessor(msg *cot.CotMessage) {
-	if msg.GetLat() == 0 && msg.GetLon() == 0 {
+	if !msg.IsMapItem() {
 		return
 	}
 

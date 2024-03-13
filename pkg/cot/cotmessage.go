@@ -179,7 +179,15 @@ func (m *CotMessage) IsPing() bool {
 }
 
 func (m *CotMessage) IsMapItem() bool {
-	return (m.GetLat() != 0 && m.GetLon() != 0) && MatchAnyPattern(m.GetType(), "a-", "b-", "u-")
+	if strings.HasPrefix(m.GetType(), "a-") {
+		return true
+	}
+
+	if m.IsChat() || m.IsChatReceipt() {
+		return false
+	}
+
+	return (m.GetLat() != 0 && m.GetLon() != 0) && MatchAnyPattern(m.GetType(), "b-", "u-")
 }
 
 func (m *CotMessage) PrintChat() string {
