@@ -1,7 +1,6 @@
 package cot
 
 import (
-	"fmt"
 	"strings"
 	"time"
 
@@ -188,19 +187,6 @@ func (m *CotMessage) IsMapItem() bool {
 	}
 
 	return (m.GetLat() != 0 && m.GetLon() != 0) && MatchAnyPattern(m.GetType(), "b-", "u-")
-}
-
-func (m *CotMessage) PrintChat() string {
-	chat := m.GetDetail().GetFirst("__chat")
-	if chat == nil {
-		return ""
-	}
-
-	from := chat.GetAttr("senderCallsign")
-	to := chat.GetAttr("chatroom")
-	text := m.GetDetail().GetFirst("remarks").GetText()
-
-	return fmt.Sprintf("%s -> %s: \"%s\"", from, to, text)
 }
 
 func (m *CotMessage) GetLatLon() (float64, float64) {
