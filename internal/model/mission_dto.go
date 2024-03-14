@@ -25,6 +25,7 @@ func (x *CotTime) UnmarshalText(text []byte) error {
 
 type MissionDTO struct {
 	Name              string            `json:"name"`
+	Scope             string            `json:"scope,omitempty"`
 	CreatorUID        string            `json:"creatorUid"`
 	CreateTime        CotTime           `json:"createTime"`
 	LastEdit          CotTime           `json:"lastEdited"`
@@ -135,6 +136,14 @@ type MissionInvitationDTO struct {
 }
 
 func ToMissionDTO(m *Mission, pm *pm.PackageManager, withToken bool) *MissionDTO {
+	return ToMissionDTOFull(m, pm, withToken, false)
+}
+
+func ToMissionDTOAdm(m *Mission, pm *pm.PackageManager) *MissionDTO {
+	return ToMissionDTOFull(m, pm, false, true)
+}
+
+func ToMissionDTOFull(m *Mission, pm *pm.PackageManager, withToken bool, withScope bool) *MissionDTO {
 	if m == nil {
 		return nil
 	}
@@ -173,6 +182,10 @@ func ToMissionDTO(m *Mission, pm *pm.PackageManager, withToken bool) *MissionDTO
 
 	if withToken {
 		mDTO.Token = m.Token
+	}
+
+	if withScope {
+		mDTO.Scope = m.Scope
 	}
 
 	if pm != nil {

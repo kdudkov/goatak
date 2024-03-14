@@ -4,6 +4,7 @@
             <tr v-for="c in all_missions" v-on:click="current = c">
                 <td>{{ c.name }}</td>
                 <td>{{ c.scope }}</td>
+                <td>{{ c.creatorUid }}</td>
             </tr>
         </table>
     </div>
