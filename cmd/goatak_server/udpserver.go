@@ -71,12 +71,7 @@ func (app *App) ListenUDP(ctx context.Context, addr string) error {
 					continue
 				}
 
-				scope := ev.Access
-				if scope == "" {
-					scope = "broadcast"
-				}
-
-				c, err := cot.EventToProtoExt(ev, "", scope)
+				c, err := cot.EventToProtoExt(ev, "", "BROADCAST")
 				if err != nil {
 					app.logger.Error("error", "error", err.Error())
 				}

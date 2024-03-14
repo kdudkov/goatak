@@ -200,7 +200,7 @@ func (h *ConnClientHandler) handleRead(ctx context.Context) {
 		}
 
 		msg.From = h.addr
-		msg.Scope = h.getScope()
+		msg.Scope = h.GetUser().GetScope()
 
 		// add new contact uid
 		if msg.IsContact() {
@@ -481,12 +481,4 @@ func (h *ConnClientHandler) tryAddPacket(msg []byte) bool {
 	}
 
 	return true
-}
-
-func (h *ConnClientHandler) getScope() string {
-	if h.user == nil {
-		return ""
-	}
-
-	return h.user.Scope
 }

@@ -3,3 +3,5 @@
 # role: HQ, Team Lead, Team Member, K9, Forward Observer, Sniper, Medic, RTO
 - user: user
   password: $2a$14$r9/RteHNKtwH.sdc9WmBHe49.MZe8fU8DrCuT4yAGTxIM/fB0mAP2
+  scope: test
+  read_scope: [ ]

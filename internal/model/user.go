@@ -7,7 +7,7 @@ type User struct {
 	Role      string   `yaml:"role,omitempty"`
 	Typ       string   `yaml:"type,omitempty"`
 	Password  string   `yaml:"password"`
-	Scope     string   `yaml:"scope,omitempty"`
+	Scope     string   `yaml:"scope"`
 	ReadScope []string `yaml:"read_scope,omitempty"`
 }
 
@@ -29,10 +29,10 @@ func (u *User) GetScope() string {
 
 func (u *User) CanSeeScope(scope string) bool {
 	if u == nil {
-		return true
+		return scope == ""
 	}
 
-	if u.Scope == "" || u.Scope == scope {
+	if u.GetScope() == scope {
 		return true
 	}
 
