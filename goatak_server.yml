@@ -22,6 +22,8 @@ users_file: users.yml
 webtak_root: ""
 # enable Datasync/missions api
 datasync: false
+# route chat messages server-wide, regardless scope
+interscope_chat: false
 
 me:
   lat: 35.462939

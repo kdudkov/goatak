@@ -5,6 +5,7 @@ import (
 	"encoding/xml"
 	"errors"
 	"fmt"
+	"github.com/spf13/viper"
 	"io"
 	"log/slog"
 	"net"
@@ -439,7 +440,7 @@ func (h *ConnClientHandler) SendMsg(msg *cot.CotMessage) error {
 		return h.SendCot(msg.GetTakMessage())
 	}
 
-	if msg.IsChat() || msg.IsChatReceipt() {
+	if viper.GetBool("interscope_chat") && (msg.IsChat() || msg.IsChatReceipt()) {
 		return h.SendCot(cot.CloneMessageNoCoords(msg.GetTakMessage()))
 	}
 
