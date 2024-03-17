@@ -50,6 +50,13 @@ func (i *Item) GetType() string {
 	return i.msg.GetType()
 }
 
+func (i *Item) GetScope() string {
+	i.mx.RLock()
+	defer i.mx.RUnlock()
+
+	return i.msg.Scope
+}
+
 func (i *Item) GetMsg() *cot.CotMessage {
 	i.mx.RLock()
 	defer i.mx.RUnlock()

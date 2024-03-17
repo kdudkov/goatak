@@ -12,6 +12,7 @@ import (
 
 	"github.com/aofei/air"
 	"github.com/google/uuid"
+	"github.com/spf13/viper"
 
 	"github.com/kdudkov/goatak/cmd/goatak_server/mp"
 	"github.com/kdudkov/goatak/internal/pm"
@@ -101,10 +102,16 @@ func getVersionConfigHandler(app *App) air.Handler {
 
 func getEndpointsHandler(app *App) air.Handler {
 	return func(req *air.Request, res *air.Response) error {
+		username := getUsernameFromReq(req)
+		user := app.users.GetUser(username)
 		// secAgo := getIntParam(req, "secAgo", 0)
 		data := make([]map[string]any, 0)
 
 		app.items.ForEach(func(item *model.Item) bool {
+			if !viper.GetBool("interscope_chat") && !user.CanSeeScope(item.GetScope()) {
+				return true
+			}
+
 			if item.GetClass() == model.CONTACT {
 				info := make(map[string]any)
 				info["uid"] = item.GetUID()
@@ -129,9 +136,15 @@ func getEndpointsHandler(app *App) air.Handler {
 
 func getContactsHandler(app *App) air.Handler {
 	return func(req *air.Request, res *air.Response) error {
+		username := getUsernameFromReq(req)
+		user := app.users.GetUser(username)
 		result := make([]*model.Contact, 0)
 
 		app.items.ForEach(func(item *model.Item) bool {
+			if !viper.GetBool("interscope_chat") && !user.CanSeeScope(item.GetScope()) {
+				return true
+			}
+
 			if item.GetClass() == model.CONTACT {
 				c := &model.Contact{
 					UID:      item.GetUID(),
