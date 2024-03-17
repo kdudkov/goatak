@@ -35,7 +35,7 @@ func (app *App) InitMessageProcessors() {
 	// u-r-b-c-c R&b - Circle
 	// u-d-c-c Drawing Shapes – Circle
 	// u-d-r Drawing Shapes – Rectangle
-	// u-d-f Drawing Shapes - Free Form
+	// u-d-f Drawing Shapes - Line & Polygon
 	// u-d-c-e Drawing Shapes – Ellipse
 }
 

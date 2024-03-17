@@ -33,7 +33,6 @@ import (
 	"github.com/kdudkov/goatak/internal/pm"
 	"github.com/kdudkov/goatak/internal/repository"
 	"github.com/kdudkov/goatak/pkg/cot"
-	"github.com/kdudkov/goatak/pkg/cotproto"
 	"github.com/kdudkov/goatak/pkg/model"
 	"github.com/kdudkov/goatak/pkg/tlsutil"
 )
@@ -346,13 +345,13 @@ func (app *App) getTLSConfig() *tls.Config {
 		panic(err)
 	}
 
-	tlsCert := tls.Certificate{ //nolint:exhaustruct
+	tlsCert := tls.Certificate{ //nolint:exhaustruct,typeassert
 		Certificate: [][]byte{cert.Raw},
 		PrivateKey:  key.(crypto.PrivateKey),
 		Leaf:        cert,
 	}
 
-	return &tls.Config{Certificates: []tls.Certificate{tlsCert}, InsecureSkipVerify: true}
+	return &tls.Config{Certificates: []tls.Certificate{tlsCert}, InsecureSkipVerify: true} //nolint:exhaustruct
 }
 
 func (app *App) MessageProcessor() {
@@ -371,6 +370,7 @@ func (app *App) MessageProcessor() {
 func (app *App) route(msg *cot.CotMessage) {
 	if missions := msg.GetDetail().GetDestMission(); len(missions) > 0 {
 		app.logger.Debug(fmt.Sprintf("point %s %s: missions: %s", msg.GetUID(), msg.GetCallsign(), strings.Join(missions, ",")))
+
 		for _, missionName := range missions {
 			app.processMissionPoint(missionName, msg)
 		}
@@ -380,13 +380,13 @@ func (app *App) route(msg *cot.CotMessage) {
 
 	if dest := msg.GetDetail().GetDestCallsign(); len(dest) > 0 {
 		for _, s := range dest {
-			app.SendToCallsign(s, msg)
+			app.sendToCallsign(s, msg)
 		}
 
 		return
 	}
 
-	app.SendBroadcast(msg)
+	app.sendBroadcast(msg)
 }
 
 func (app *App) processMissionPoint(missionName string, msg *cot.CotMessage) {
@@ -407,18 +407,18 @@ func (app *App) processMissionPoint(missionName string, msg *cot.CotMessage) {
 	}
 
 	if change != nil {
-		app.NotifyMissionSubscribers(m, change)
+		app.notifyMissionSubscribers(m, change)
 	}
 }
 
-func (app *App) NotifyMissionSubscribers(mission *im.Mission, c *im.Change) {
+func (app *App) notifyMissionSubscribers(mission *im.Mission, c *im.Change) {
 	if mission == nil || c == nil {
 		return
 	}
 
-	msg := im.MissionChangePountMsg(mission.Name, c)
+	msg := im.MissionChangeNotificationMsg(mission.Name, mission.Scope, c)
 	for _, uid := range app.missions.GetSubscribers(mission.ID) {
-		app.SendToUID(uid, msg)
+		app.sendToUID(uid, msg)
 	}
 }
 
@@ -457,7 +457,7 @@ func (app *App) cleanOldUnits() {
 	}
 }
 
-func (app *App) SendBroadcast(msg *cot.CotMessage) {
+func (app *App) sendBroadcast(msg *cot.CotMessage) {
 	app.ForAllClients(func(ch client.ClientHandler) bool {
 		if ch.GetName() != msg.From {
 			if err := ch.SendMsg(msg); err != nil {
@@ -469,7 +469,7 @@ func (app *App) SendBroadcast(msg *cot.CotMessage) {
 	})
 }
 
-func (app *App) SendToCallsign(callsign string, msg *cot.CotMessage) {
+func (app *App) sendToCallsign(callsign string, msg *cot.CotMessage) {
 	app.ForAllClients(func(ch client.ClientHandler) bool {
 		for _, c := range ch.GetUids() {
 			if c == callsign {
@@ -483,10 +483,10 @@ func (app *App) SendToCallsign(callsign string, msg *cot.CotMessage) {
 	})
 }
 
-func (app *App) SendToUID(uid string, msg *cotproto.TakMessage) {
+func (app *App) sendToUID(uid string, msg *cot.CotMessage) {
 	app.ForAllClients(func(ch client.ClientHandler) bool {
 		if ch.HasUID(uid) {
-			if err := ch.SendCot(msg); err != nil {
+			if err := ch.SendMsg(msg); err != nil {
 				app.logger.Error("error", "error", err)
 			}
 		}

@@ -5,7 +5,6 @@ import (
 	"encoding/xml"
 	"errors"
 	"fmt"
-	"github.com/spf13/viper"
 	"io"
 	"log/slog"
 	"net"
@@ -13,6 +12,8 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/spf13/viper"
 
 	"github.com/kdudkov/goatak/internal/model"
 	"github.com/kdudkov/goatak/pkg/cot"
@@ -41,8 +42,8 @@ type ClientHandler interface {
 	GetUser() *model.User
 	GetVersion() int32
 	SendMsg(msg *cot.CotMessage) error
-	SendCot(msg *cotproto.TakMessage) error
 	GetLastSeen() *time.Time
+	CanSeeScope(scope string) bool
 }
 
 type ConnClientHandler struct {
@@ -94,6 +95,10 @@ func NewConnClientHandler(name string, conn net.Conn, config *HandlerConfig) *Co
 
 func (h *ConnClientHandler) GetName() string {
 	return h.addr
+}
+
+func (h *ConnClientHandler) CanSeeScope(scope string) bool {
+	return h.user.CanSeeScope(scope)
 }
 
 func (h *ConnClientHandler) GetUser() *model.User {
@@ -436,7 +441,7 @@ func (h *ConnClientHandler) sendEvent(evt *cot.Event) error {
 }
 
 func (h *ConnClientHandler) SendMsg(msg *cot.CotMessage) error {
-	if h.GetUser().CanSeeScope(msg.Scope) {
+	if h.CanSeeScope(msg.Scope) {
 		return h.SendCot(msg.GetTakMessage())
 	}
 

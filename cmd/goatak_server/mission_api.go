@@ -123,10 +123,16 @@ func getMissionPutHandler(app *App) air.Handler {
 
 		if err := app.missions.PutMission(m); err != nil {
 			res.Status = http.StatusConflict
+			app.logger.Warn("mission add error", "error", err.Error())
+
 			return res.WriteString(err.Error())
 		}
 
 		res.Status = http.StatusCreated
+
+		if !m.InviteOnly {
+			app.NewCotMessage(model.MissionCreateNotificationMsg(m))
+		}
 
 		return res.WriteJSON(makeAnswer(missionType, []*model.MissionDTO{model.ToMissionDTO(m, app.packageManager, true)}))
 	}
@@ -478,7 +484,7 @@ func getMissionContentDeleteHandler(app *App) air.Handler {
 		if uid := getStringParam(req, "uid"); uid != "" {
 			change := app.missions.DeleteMissionPoint(mission.ID, uid, author)
 
-			app.NotifyMissionSubscribers(mission, change)
+			app.notifyMissionSubscribers(mission, change)
 		}
 
 		if hash := getStringParam(req, "hash"); hash != "" {
@@ -508,6 +514,7 @@ func getInvitePutHandler(app *App) air.Handler {
 		if typ != "clientUid" {
 			app.logger.Warn(fmt.Sprintf("we do not support invitation with type %s now", typ))
 			res.Status = http.StatusBadRequest
+
 			return nil
 		}
 

@@ -10,8 +10,10 @@ import (
 	"github.com/kdudkov/goatak/pkg/cotproto"
 )
 
-func MissionChangePountMsg(missionName string, c *Change) *cotproto.TakMessage {
-	msg := cot.BasicMsg("t-x-m-c", uuid.NewString(), time.Second*5)
+const missionNotificationStale = time.Second * 5
+
+func MissionChangeNotificationMsg(missionName string, scope string, c *Change) *cot.CotMessage {
+	msg := cot.BasicMsg("t-x-m-c", uuid.NewString(), missionNotificationStale)
 	msg.CotEvent.How = "h-g-i-g-o"
 
 	xd := cot.NewXMLDetails()
@@ -27,5 +29,24 @@ func MissionChangePountMsg(missionName string, c *Change) *cotproto.TakMessage {
 
 	msg.CotEvent.Detail = &cotproto.Detail{XmlDetail: xd.AsXMLString()}
 
-	return msg
+	return &cot.CotMessage{From: "local", TakMessage: msg, Detail: xd, Scope: scope}
+}
+
+func MissionCreateNotificationMsg(m *Mission) *cot.CotMessage {
+	msg := cot.BasicMsg("t-x-m-n", uuid.NewString(), missionNotificationStale)
+	msg.CotEvent.How = "h-g-i-g-o"
+
+	xd := cot.NewXMLDetails()
+
+	params := map[string]string{"type": "CREATE", "name": m.Name, "creatorUid": m.CreatorUID}
+
+	if m.Tool != "" {
+		params["tool"] = m.Tool
+	}
+
+	xd.AddChild("mission", params, "")
+
+	msg.CotEvent.Detail = &cotproto.Detail{XmlDetail: xd.AsXMLString()}
+
+	return &cot.CotMessage{From: "local", TakMessage: msg, Detail: xd, Scope: m.Scope}
 }

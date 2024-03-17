@@ -36,6 +36,10 @@ func (w *WsClientHandler) GetUser() *imodel.User {
 	return w.user
 }
 
+func (w *WsClientHandler) CanSeeScope(scope string) bool {
+	return true
+}
+
 func (w *WsClientHandler) GetVersion() int32 {
 	return 0
 }
