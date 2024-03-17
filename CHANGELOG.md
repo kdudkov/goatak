@@ -1,3 +1,13 @@
+# unreleased
+
+FEATURES:
+
+- new server config option - `interscope_chat` that allows chat messages routing between scopes
+
+FIXES:
+
+- fixed showing two chat messages when the server broadcast your chat message back
+
 # 0.16.2
 
 FIXES:
