@@ -15,6 +15,7 @@ type WebUnit struct {
 	UID            string    `json:"uid"`
 	Callsign       string    `json:"callsign"`
 	Category       string    `json:"category"`
+	Scope          string    `json:"scope"`
 	Team           string    `json:"team"`
 	Role           string    `json:"role"`
 	Time           time.Time `json:"time"`
@@ -68,6 +69,7 @@ func (i *Item) ToWeb() *WebUnit {
 	w := &WebUnit{
 		UID:            i.uid,
 		Category:       i.class,
+		Scope:          i.msg.Scope,
 		Callsign:       i.msg.GetCallsign(),
 		Time:           cot.TimeFromMillis(evt.GetSendTime()),
 		LastSeen:       i.lastSeen,
@@ -168,7 +170,7 @@ func (w *WebUnit) ToMsg() *cot.CotMessage {
 
 	return &cot.CotMessage{
 		From:       "",
-		Scope:      "",
+		Scope:      w.Scope,
 		TakMessage: msg,
 		Detail:     xd,
 	}

@@ -13,7 +13,7 @@
                             <th>UIDS</th>
                             <th>user</th>
                             <th>scope</th>
-                            <th>proto</th>
+                            <th>ver</th>
                             <th>last seen</th>
                         </tr>
                         <tr v-for="c in all_conns">
@@ -38,6 +38,7 @@
                         <tr>
                             <th></th>
                             <th>Callsign</th>
+                            <th>Scope</th>
                             <th>Status</th>
                             <th>coords</th>
                             <th>TAK ver.</th>
@@ -47,6 +48,7 @@
                                 <img v-bind:src="getImg(u)"/>
                             </td>
                             <td>{{ u.callsign }}</td>
+                            <td>{{ u.scope }}</td>
                             <td><span class="badge"
                                       v-bind:class="[u.status=='Online' ? 'bg-success' : 'bg-secondary']">{{ u.status }}</span>
                             </td>
@@ -67,7 +69,7 @@
                         <th></th>
                         <th>Callsign</th>
                         <th>coords</th>
-                        <th>mission</th>
+                        <th>scope</th>
                         <th>stale time</th>
                     </tr>
                     <tr v-for="u in byCategory('unit')">
@@ -76,7 +78,7 @@
                         </td>
                         <td>{{ u.callsign }}</td>
                         <td>{{ printCoords(u.lat, u.lon) }}</td>
-                        <td>{{ u.missions }}</td>
+                        <td>{{ u.scope }}</td>
                         <td>{{ dt(u.stale_time) }}</td>
                     </tr>
                 </table>
@@ -90,7 +92,7 @@
                         <th></th>
                         <th>Callsign</th>
                         <th>coords</th>
-                        <th>mission</th>
+                        <th>scope</th>
                         <th>send time</th>
                         <th>stale time</th>
                     </tr>
@@ -98,7 +100,7 @@
                         <td><img v-bind:src="getImg(u)"/></td>
                         <td>{{ u.callsign }}</td>
                         <td>{{ printCoords(u.lat, u.lon) }}</td>
-                        <td>{{ u.missions }}</td>
+                        <td>{{ u.scope }}</td>
                         <td>{{ dt(u.send_time) }}</td>
                         <td>{{ dt(u.stale_time) }}</td>
                     </tr>
