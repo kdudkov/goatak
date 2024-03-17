@@ -178,7 +178,7 @@ func (app *App) Run() {
 
 	NewHttp(app).Start()
 
-	go app.MessageProcessor()
+	go app.messageProcessLoop()
 	go app.cleaner()
 
 	for _, c := range app.config.connections {
@@ -354,20 +354,13 @@ func (app *App) getTLSConfig() *tls.Config {
 	return &tls.Config{Certificates: []tls.Certificate{tlsCert}, InsecureSkipVerify: true} //nolint:exhaustruct
 }
 
-func (app *App) MessageProcessor() {
+func (app *App) messageProcessLoop() {
 	for msg := range app.ch {
-		for _, prc := range app.eventProcessors {
-			if cot.MatchAnyPattern(msg.GetType(), prc.include...) {
-				app.logger.Debug("msg is processed by " + prc.name)
-				prc.cb(msg)
-			}
-		}
-
-		app.route(msg)
+		app.processMessage(msg)
 	}
 }
 
-func (app *App) route(msg *cot.CotMessage) {
+func (app *App) route(msg *cot.CotMessage) bool {
 	if missions := msg.GetDetail().GetDestMission(); len(missions) > 0 {
 		app.logger.Debug(fmt.Sprintf("point %s %s: missions: %s", msg.GetUID(), msg.GetCallsign(), strings.Join(missions, ",")))
 
@@ -375,7 +368,7 @@ func (app *App) route(msg *cot.CotMessage) {
 			app.processMissionPoint(missionName, msg)
 		}
 
-		return
+		return true
 	}
 
 	if dest := msg.GetDetail().GetDestCallsign(); len(dest) > 0 {
@@ -383,10 +376,12 @@ func (app *App) route(msg *cot.CotMessage) {
 			app.sendToCallsign(s, msg)
 		}
 
-		return
+		return true
 	}
 
 	app.sendBroadcast(msg)
+
+	return true
 }
 
 func (app *App) processMissionPoint(missionName string, msg *cot.CotMessage) {

@@ -22,15 +22,17 @@ func (app *App) AddEventProcessor(name string, cb func(msg *cot.CotMessage), mas
 }
 
 func (app *App) InitMessageProcessors() {
-	app.AddEventProcessor("remove", app.removeItemProcessor, "t-x-d-d")
-	app.AddEventProcessor("chat", app.chatProcessor, "b-t-f")
-	app.AddEventProcessor("chat_r", app.chatReceiptProcessor, "b-t-f-")
-	app.AddEventProcessor("items", app.saveItemProcessor, "a-", "b-", "u-")
 	app.AddEventProcessor("logger", app.loggerProcessor, ".-")
 
 	if app.saveFile != "" {
 		app.AddEventProcessor("file_logger", app.fileLoggerProcessor, ".-")
 	}
+
+	app.AddEventProcessor("remove", app.removeItemProcessor, "t-x-d-d")
+	app.AddEventProcessor("chat", app.chatProcessor, "b-t-f")
+	app.AddEventProcessor("chat_r", app.chatReceiptProcessor, "b-t-f-")
+	app.AddEventProcessor("items", app.saveItemProcessor, "a-", "b-", "u-")
+
 	// u-rb-a Range & Bearing – Line
 	// u-r-b-c-c R&b - Circle
 	// u-d-c-c Drawing Shapes – Circle
@@ -63,14 +65,10 @@ func (app *App) removeItemProcessor(msg *cot.CotMessage) {
 				app.logger.Debug(fmt.Sprintf("remove %s by message", uid))
 				v.SetOffline()
 				app.changeCb.AddMessage(v)
-
-				return
 			case model.UNIT, model.POINT:
 				app.logger.Debug(fmt.Sprintf("remove unit/point %s type %s by message", uid, typ))
 				app.items.Remove(uid)
 				app.deleteCb.AddMessage(uid)
-
-				return
 			}
 		}
 	}

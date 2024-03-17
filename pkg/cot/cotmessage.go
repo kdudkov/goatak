@@ -241,7 +241,7 @@ func (m *CotMessage) GetFirstLink(relation string) *Node {
 	}
 
 	for _, link := range m.GetDetail().GetAll("link") {
-		if link.GetAttr("relation") == relation {
+		if relation == "" || link.GetAttr("relation") == relation {
 			return link
 		}
 	}

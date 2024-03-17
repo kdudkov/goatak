@@ -165,6 +165,7 @@ func addItemHandler(app *App) air.Handler {
 			if u = app.items.Get(msg.GetUID()); u != nil {
 				u.Update(msg)
 				u.SetSend(wu.Send)
+				app.items.Store(u)
 			} else {
 				u = model.FromMsg(msg)
 				u.SetLocal(true)

@@ -17,31 +17,51 @@ import (
 type EventProcessor struct {
 	name    string
 	include []string
-	cb      func(msg *cot.CotMessage)
+	cb      func(msg *cot.CotMessage) bool
 }
 
-func (app *App) AddEventProcessor(name string, cb func(msg *cot.CotMessage), masks ...string) {
+func (app *App) AddEventProcessor(name string, cb func(msg *cot.CotMessage) bool, masks ...string) {
 	app.eventProcessors = append(app.eventProcessors, &EventProcessor{name: name, cb: cb, include: masks})
 }
 
 func (app *App) InitMessageProcessors() {
-	app.AddEventProcessor("remove", app.removeItemProcessor, "t-x-d-d")
-	app.AddEventProcessor("chat", app.chatProcessor, "b-t-f")
-	app.AddEventProcessor("items", app.saveItemProcessor, "a-", "b-", "u-")
 	app.AddEventProcessor("logger", app.loggerProcessor, ".-")
 
 	if app.config.logging {
 		app.AddEventProcessor("file_logger", app.fileLoggerProcessor, ".-")
 	}
+
+	app.AddEventProcessor("metrics", app.metricsProcessor, "t-x-c-m")
+	app.AddEventProcessor("remove", app.removeItemProcessor, "t-x-d-d")
+	app.AddEventProcessor("chat", app.chatProcessor, "b-t-f")
+	app.AddEventProcessor("items", app.saveItemProcessor, "a-", "b-", "u-")
+
+	app.AddEventProcessor("router", app.route, ".-")
 }
 
-func (app *App) loggerProcessor(msg *cot.CotMessage) {
-	if !strings.HasPrefix(msg.GetType(), "a-") {
-		app.logger.Debug(fmt.Sprintf("%s %s", msg.GetType(), cot.GetMsgType(msg.GetType())))
+func (app *App) processMessage(msg *cot.CotMessage) {
+	for _, prc := range app.eventProcessors {
+		if cot.MatchAnyPattern(msg.GetType(), prc.include...) {
+			app.logger.Debug("msg is processed by " + prc.name)
+
+			if !prc.cb(msg) {
+				app.logger.Debug("process is stopped by " + prc.name)
+
+				return
+			}
+		}
 	}
 }
 
-func (app *App) removeItemProcessor(msg *cot.CotMessage) {
+func (app *App) loggerProcessor(msg *cot.CotMessage) bool {
+	if !strings.HasPrefix(msg.GetType(), "a-") {
+		app.logger.Debug(fmt.Sprintf("%s %s", msg.GetType(), cot.GetMsgType(msg.GetType())))
+	}
+
+	return true
+}
+
+func (app *App) removeItemProcessor(msg *cot.CotMessage) bool {
 	// t-x-d-d
 	if link := msg.GetFirstLink("p-p"); link != nil {
 		uid := link.GetAttr("uid")
@@ -50,7 +70,7 @@ func (app *App) removeItemProcessor(msg *cot.CotMessage) {
 		if uid == "" {
 			app.logger.Warn("invalid remove message: " + msg.GetDetail().String())
 
-			return
+			return true
 		}
 
 		if v := app.items.Get(uid); v != nil {
@@ -59,24 +79,23 @@ func (app *App) removeItemProcessor(msg *cot.CotMessage) {
 				app.logger.Debug(fmt.Sprintf("remove %s by message", uid))
 				v.SetOffline()
 				app.changeCb.AddMessage(v)
-
-				return
 			case model.UNIT, model.POINT:
 				app.logger.Debug(fmt.Sprintf("remove unit/point %s type %s by message", uid, typ))
 				app.items.Remove(uid)
 				app.deleteCb.AddMessage(uid)
-				return
 			}
 		}
 	}
+
+	return true
 }
 
-func (app *App) chatProcessor(msg *cot.CotMessage) {
+func (app *App) chatProcessor(msg *cot.CotMessage) bool {
 	c := model.MsgToChat(msg)
 	if c == nil {
 		app.logger.Error("invalid chat message " + msg.GetTakMessage().String())
 
-		return
+		return true
 	}
 
 	if c.From == "" {
@@ -89,11 +108,13 @@ func (app *App) chatProcessor(msg *cot.CotMessage) {
 	if err := logChatMessage(c); err != nil {
 		app.logger.Warn("error logging chat", "error", err.Error())
 	}
+
+	return true
 }
 
-func (app *App) saveItemProcessor(msg *cot.CotMessage) {
+func (app *App) saveItemProcessor(msg *cot.CotMessage) bool {
 	if !msg.IsMapItem() {
-		return
+		return true
 	}
 
 	cl := model.GetClass(msg)
@@ -108,16 +129,47 @@ func (app *App) saveItemProcessor(msg *cot.CotMessage) {
 		app.items.Store(item)
 		app.changeCb.AddMessage(item)
 	}
+
+	return true
 }
 
-func (app *App) fileLoggerProcessor(msg *cot.CotMessage) {
+func (app *App) fileLoggerProcessor(msg *cot.CotMessage) bool {
 	if msg.IsPing() || cot.MatchAnyPattern(msg.GetType(), viper.GetStringSlice("log_exclude")...) {
-		return
+		return true
 	}
 
 	if err := logMessage(msg, filepath.Join(app.config.dataDir, "log")); err != nil {
 		app.logger.Warn("error logging message", "error", err.Error())
 	}
+
+	return true
+}
+
+func (app *App) metricsProcessor(msg *cot.CotMessage) bool {
+	uid := msg.GetFirstLink("p-s").GetAttr("uid")
+
+	if uid == "" {
+		app.logger.Warn("no uid " + msg.GetTakMessage().GetCotEvent().GetDetail().GetXmlDetail())
+
+		return false
+	}
+
+	if c := app.items.Get(uid); c != nil {
+		if c.GetClass() != model.CONTACT {
+			app.logger.Warn("got metrics for " + c.GetClass())
+
+			return false
+		}
+
+		c.SetOnline()
+
+		if st := msg.GetDetail().GetFirst("stats"); st != nil {
+			stats := st.GetAttrs()
+			app.logger.Info(fmt.Sprintf("stats for %s: %s", uid, stats))
+		}
+	}
+
+	return false
 }
 
 func logMessage(msg *cot.CotMessage, dir string) error {
