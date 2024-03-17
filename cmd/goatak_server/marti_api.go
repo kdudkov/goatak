@@ -188,7 +188,7 @@ func getMissionUploadHandler(app *App) air.Handler {
 		hash := getStringParam(req, "hash")
 		fname := getStringParam(req, "filename")
 
-		params := []string{}
+		var params []string
 		for _, r := range req.Params() {
 			params = append(params, r.Name+"="+r.Value().String())
 		}
@@ -215,6 +215,7 @@ func getMissionUploadHandler(app *App) air.Handler {
 		if err != nil {
 			app.logger.Error("error", "error", err)
 			res.Status = http.StatusNotAcceptable
+
 			return nil
 		}
 
@@ -242,6 +243,7 @@ func getUploadHandler(app *App) air.Handler {
 			if err != nil {
 				app.logger.Error("error", "error", err)
 				res.Status = http.StatusNotAcceptable
+
 				return nil
 			}
 
@@ -252,6 +254,7 @@ func getUploadHandler(app *App) air.Handler {
 			if err != nil {
 				app.logger.Error("error", "error", err)
 				res.Status = http.StatusNotAcceptable
+
 				return nil
 			}
 
