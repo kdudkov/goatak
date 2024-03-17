@@ -1,7 +1,9 @@
-# unreleased
+# 0.16.3
 
 FEATURES:
 
+- show units/points scope in admin dashboard
+- create mission notification message
 - new server config option - `interscope_chat` that allows chat messages routing between scopes
 
 FIXES:
