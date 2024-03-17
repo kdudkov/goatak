@@ -11,7 +11,7 @@ var (
 		Namespace: "goatak",
 		Name:      "cots_processed",
 		Help:      "The total number of cots processed",
-	}, []string{"scope"})
+	}, []string{"scope", "msg_type"})
 
 	connectionsMetric = promauto.NewGauge(prometheus.GaugeOpts{
 		Namespace: "goatak",

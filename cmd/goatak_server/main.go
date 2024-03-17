@@ -195,7 +195,7 @@ func (app *App) Run() {
 
 func (app *App) NewCotMessage(msg *cot.CotMessage) {
 	if msg != nil {
-		messagesMetric.With(prometheus.Labels{"scope": msg.Scope}).Inc()
+		messagesMetric.With(prometheus.Labels{"scope": msg.Scope, "msg_type": msg.GetType()}).Inc()
 		app.ch <- msg
 	}
 }
