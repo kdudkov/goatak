@@ -35,6 +35,7 @@ func (app *App) InitMessageProcessors() {
 	app.AddEventProcessor("remove", app.removeItemProcessor, "t-x-d-d")
 	app.AddEventProcessor("chat", app.chatProcessor, "b-t-f")
 	app.AddEventProcessor("items", app.saveItemProcessor, "a-", "b-", "u-")
+	app.AddEventProcessor("filter_control", filterProcessor, "t-")
 
 	app.AddEventProcessor("router", app.route, ".-")
 }
@@ -170,6 +171,10 @@ func (app *App) metricsProcessor(msg *cot.CotMessage) bool {
 	}
 
 	return false
+}
+
+func filterProcessor(msg *cot.CotMessage) bool {
+	return !msg.IsControl()
 }
 
 func logMessage(msg *cot.CotMessage, dir string) error {

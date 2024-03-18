@@ -7,6 +7,8 @@ import (
 	"github.com/kdudkov/goatak/pkg/cotproto"
 )
 
+const LocalScope = "local"
+
 type CotMessage struct {
 	From       string               `json:"from,omitempty"`
 	Scope      string               `json:"scope"`
@@ -175,6 +177,24 @@ func (m *CotMessage) IsChatReceipt() bool {
 
 func (m *CotMessage) IsPing() bool {
 	return m.GetType() == "t-x-c-t" || m.GetType() == "t-x-c-t-r"
+}
+
+func (m *CotMessage) IsControl() bool {
+	return MatchAnyPattern(m.GetType(),
+		"t-b",
+		"t-b-a",
+		"t-b-c",
+		"t-b-q",
+		"t-x-c-t",
+		"t-x-c-t-r",
+		"t-x-takp-q",
+		"t-x-c-m",
+		"t-x-c-i-e",
+		"t-x-c-i-d")
+}
+
+func (m *CotMessage) IsLocal() bool {
+	return m.From == LocalScope
 }
 
 func (m *CotMessage) IsMapItem() bool {
