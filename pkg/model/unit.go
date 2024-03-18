@@ -150,7 +150,7 @@ func GetClass(msg *cot.CotMessage) string {
 		} else {
 			return UNIT
 		}
-	case strings.HasPrefix(t, "b-"):
+	case cot.MatchAnyPattern(t, "b-", "u-"):
 		return POINT
 	}
 
