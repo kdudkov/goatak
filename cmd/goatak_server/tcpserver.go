@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
+	"github.com/spf13/viper"
 	"net"
 
 	"github.com/kdudkov/goatak/internal/client"
@@ -36,6 +37,7 @@ func (app *App) ListenTCP(ctx context.Context, addr string) (err error) {
 			MessageCb:    app.NewCotMessage,
 			RemoveCb:     app.RemoveHandlerCb,
 			NewContactCb: app.NewContactCb,
+			RoutePings:   viper.GetBool("route_pings"),
 		})
 		app.AddClientHandler(h)
 		h.Start()
@@ -89,6 +91,7 @@ func (app *App) listenTLS(ctx context.Context, addr string) error {
 			MessageCb:    app.NewCotMessage,
 			RemoveCb:     app.RemoveHandlerCb,
 			NewContactCb: app.NewContactCb,
+			RoutePings:   viper.GetBool("route_pings"),
 		})
 		app.AddClientHandler(h)
 		h.Start()

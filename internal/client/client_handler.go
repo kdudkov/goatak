@@ -33,6 +33,7 @@ type HandlerConfig struct {
 	MessageCb    func(msg *cot.CotMessage)
 	RemoveCb     func(ch ClientHandler)
 	NewContactCb func(uid, callsign string)
+	RoutePings   bool
 }
 
 type ClientHandler interface {
@@ -53,6 +54,7 @@ type ConnClientHandler struct {
 	localUID     string
 	ver          int32
 	isClient     bool
+	routePings   bool
 	uids         sync.Map
 	lastActivity atomic.Pointer[time.Time]
 	closeTimer   *time.Timer
@@ -83,6 +85,7 @@ func NewConnClientHandler(name string, conn net.Conn, config *HandlerConfig) *Co
 		c.localUID = config.UID
 		c.logger = slog.Default().With("client", name, "user", config.User.GetLogin())
 		c.isClient = config.IsClient
+		c.routePings = config.RoutePings
 		c.messageCb = config.MessageCb
 		c.removeCb = config.RemoveCb
 		c.newContactCb = config.NewContactCb
@@ -234,6 +237,15 @@ func (h *ConnClientHandler) handleRead(ctx context.Context) {
 			if err := h.SendCot(cot.MakePong()); err != nil {
 				h.logger.Error("SendMsg error", "error", err)
 			}
+
+			if !h.routePings {
+				continue
+			}
+		}
+
+		// pong
+		if msg.GetType() == "t-x-c-t-r" {
+			continue
 		}
 
 		h.messageCb(msg)

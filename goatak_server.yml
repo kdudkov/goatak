@@ -24,6 +24,8 @@ webtak_root: ""
 datasync: false
 # route chat messages server-wide, regardless scope
 interscope_chat: false
+# enable routing pings from one client to all others
+route_pings: true
 
 me:
   lat: 35.462939

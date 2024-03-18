@@ -268,8 +268,9 @@ func (app *App) ConnectTo(ctx context.Context, addr string) {
 				app.handlers.Delete(name)
 				app.logger.Info("disconnected")
 			},
-			IsClient: true,
-			UID:      app.uid,
+			IsClient:   true,
+			RoutePings: false,
+			UID:        app.uid,
 		})
 
 		go h.Start()
