@@ -185,8 +185,8 @@ func (m *CotMessage) IsControl() bool {
 		"t-b-a",
 		"t-b-c",
 		"t-b-q",
-		"t-x-c-t",
-		"t-x-c-t-r",
+		//"t-x-c-t",
+		//"t-x-c-t-r",
 		"t-x-takp-q",
 		"t-x-c-m",
 		"t-x-c-i-e",
@@ -198,7 +198,7 @@ func (m *CotMessage) IsLocal() bool {
 }
 
 func (m *CotMessage) IsMapItem() bool {
-	if strings.HasPrefix(m.GetType(), "a-") {
+	if MatchAnyPattern(m.GetType(), "a-", "u-") {
 		return true
 	}
 
@@ -206,7 +206,7 @@ func (m *CotMessage) IsMapItem() bool {
 		return false
 	}
 
-	return (m.GetLat() != 0 && m.GetLon() != 0) && MatchAnyPattern(m.GetType(), "b-", "u-")
+	return (m.GetLat() != 0 && m.GetLon() != 0) && MatchAnyPattern(m.GetType(), "b-")
 }
 
 func (m *CotMessage) GetLatLon() (float64, float64) {
