@@ -1,3 +1,18 @@
+# unreleased
+
+FEATURES:
+
+- new `takreplay` format: `stats`
+- new `takreplay` format: `broadcast`
+- `cots_processed` metric now has labels `type` and `scope`
+- new `route_pings` server config option
+- some new message type names added
+-
+
+FIXES:
+
+- client npe fixed
+
 # 0.16.3
 
 FEATURES:
