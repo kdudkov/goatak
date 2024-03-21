@@ -3,6 +3,8 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"math"
+	"strings"
 	"time"
 
 	"github.com/kdudkov/goatak/pkg/cot"
@@ -37,6 +39,15 @@ func (g *JsonDumper) Stop() {
 }
 
 func (g *JsonDumper) Process(msg *cot.CotMessage) error {
+	// json doesn't support Nan
+	if math.IsNaN(msg.TakMessage.GetCotEvent().GetCe()) {
+		msg.TakMessage.CotEvent.Ce = cot.NotNum
+	}
+
+	if math.IsNaN(msg.TakMessage.GetCotEvent().GetLe()) {
+		msg.TakMessage.CotEvent.Le = cot.NotNum
+	}
+
 	b, err := json.Marshal(msg.GetTakMessage())
 	if err != nil {
 		return err
@@ -104,6 +115,36 @@ func (g *GpxDumper) Process(msg *cot.CotMessage) error {
 
 	g.prevStale = msg.GetStaleTime()
 	g.hasHistory = true
+
+	return nil
+}
+
+type StatsDumper struct {
+	data map[string]int64
+}
+
+func (g *StatsDumper) Start() {
+	g.data = make(map[string]int64)
+}
+
+func (g *StatsDumper) Stop() {
+	for k, v := range g.data {
+		fmt.Printf("%s %s %d\n", k, cot.GetMsgType(k), v)
+	}
+}
+
+func (g *StatsDumper) Process(msg *cot.CotMessage) error {
+	t := msg.GetType()
+
+	if strings.HasPrefix(t, "a-") && len(t) > 5 {
+		t = t[:5]
+	}
+
+	if n, ok := g.data[t]; ok {
+		g.data[t] = n + 1
+	} else {
+		g.data[t] = 1
+	}
 
 	return nil
 }

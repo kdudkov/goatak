@@ -14,7 +14,7 @@ import (
 )
 
 func main() {
-	format := flag.String("format", "", "dump format (text|json|gpx)")
+	format := flag.String("format", "", "dump format (text|json|gpx|stats)")
 	uid := flag.String("uid", "", "uid to show")
 	typ := flag.String("type", "", "type to show")
 
@@ -49,6 +49,8 @@ func main() {
 		}
 
 		dmp = &GpxDumper{name: *uid}
+	case "stats":
+		dmp = new(StatsDumper)
 	default:
 		fmt.Printf("invalid format %s\n", *format)
 		os.Exit(1)
