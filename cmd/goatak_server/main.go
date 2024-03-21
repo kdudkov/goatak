@@ -195,7 +195,13 @@ func (app *App) Run() {
 
 func (app *App) NewCotMessage(msg *cot.CotMessage) {
 	if msg != nil {
-		messagesMetric.With(prometheus.Labels{"scope": msg.Scope, "msg_type": msg.GetType()}).Inc()
+		t := msg.GetType()
+
+		if strings.HasPrefix(t, "a-") && len(t) > 5 {
+			t = t[:5]
+		}
+
+		messagesMetric.With(prometheus.Labels{"scope": msg.Scope, "msg_type": t}).Inc()
 		app.ch <- msg
 	}
 }
