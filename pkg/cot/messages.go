@@ -32,6 +32,7 @@ var messages = map[string]string{
 	"b-d-l-m":       "Detection/Launch/Mortar",
 	"b-d-m":         "Detection/Motion",
 	"b-d-s":         "Detection/Seismic",
+	"b-f-t-a":       "File send receipt",
 	"b-f-t-r":       "File send",
 	"b-i":           "Imagery",
 	"b-i-v":         "Video feed",
