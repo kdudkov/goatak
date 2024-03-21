@@ -52,7 +52,7 @@ var messages = map[string]string{
 	"b-m-p-c-z":     "Black triangle",
 	"b-m-p-i":       "Initial point",
 	"b-m-p-s":       "Sensor point",
-	"b-m-p-s-m":     "Point",
+	"b-m-p-s-m":     "Spot point",
 	"b-m-p-s-p-i":   "Point of interest",
 	"b-m-p-s-p-loc": "Sensor",
 	"b-m-p-s-p-op":  "Observation point",
