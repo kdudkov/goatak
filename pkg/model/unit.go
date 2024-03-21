@@ -145,7 +145,7 @@ func GetClass(msg *cot.CotMessage) string {
 
 	switch {
 	case strings.HasPrefix(t, "a-"):
-		if msg.IsContact() {
+		if msg.GetTeam() != "" {
 			return CONTACT
 		} else {
 			return UNIT
