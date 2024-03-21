@@ -15,17 +15,23 @@ func New[V any]() *Callback[V] {
 }
 
 func (p *Callback[V]) AddMessage(msg V) {
+	var toRemove []any
+
 	p.callbacks.Range(func(key, value any) bool {
 		if fn, ok := value.(func(msg V) bool); ok {
 			go func() {
 				if !fn(msg) {
-					p.callbacks.Delete(key)
+					toRemove = append(toRemove, key)
 				}
 			}()
 		}
 
 		return true
 	})
+
+	for _, key := range toRemove {
+		p.callbacks.Delete(key)
+	}
 }
 
 func (p *Callback[V]) AddCallback(name string, fn func(msg V) bool) {
