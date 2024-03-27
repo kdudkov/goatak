@@ -17,6 +17,8 @@ import (
 	"github.com/kdudkov/goatak/pkg/cotproto"
 )
 
+type MessageCb func(msg *cot.CotMessage)
+
 type WsClientHandler struct {
 	name      string
 	user      *imodel.User
@@ -24,7 +26,7 @@ type WsClientHandler struct {
 	ch        chan []byte
 	uids      sync.Map
 	active    int32
-	messageCb func(msg *cot.CotMessage)
+	messageCb MessageCb
 	logger    *slog.Logger
 }
 
@@ -66,7 +68,7 @@ func (w *WsClientHandler) GetLastSeen() *time.Time {
 	return nil
 }
 
-func New(name string, user *imodel.User, ws *air.WebSocket, mc func(msg *cot.CotMessage)) *WsClientHandler {
+func New(name string, user *imodel.User, ws *air.WebSocket, mc MessageCb) *WsClientHandler {
 	return &WsClientHandler{
 		name:      name,
 		user:      user,

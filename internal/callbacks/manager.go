@@ -34,11 +34,11 @@ func (p *Callback[V]) AddMessage(msg V) {
 	}
 }
 
-func (p *Callback[V]) AddCallback(name string, fn func(msg V) bool) {
+func (p *Callback[V]) Subscribe(name string, fn func(msg V) bool) {
 	p.callbacks.Store(name, fn)
 }
 
-func (p *Callback[V]) RemoveCallback(name string) bool {
+func (p *Callback[V]) Unsubscribe(name string) bool {
 	_, found := p.callbacks.LoadAndDelete(name)
 
 	return found
