@@ -453,7 +453,7 @@ func (h *ConnClientHandler) sendEvent(evt *cot.Event) error {
 }
 
 func (h *ConnClientHandler) SendMsg(msg *cot.CotMessage) error {
-	if h.CanSeeScope(msg.Scope) {
+	if msg.IsLocal() || h.CanSeeScope(msg.Scope) {
 		return h.SendCot(msg.GetTakMessage())
 	}
 

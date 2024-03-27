@@ -28,6 +28,7 @@ func (u *User) GetScope() string {
 }
 
 func (u *User) CanSeeScope(scope string) bool {
+	// nil user can see empty scope (no auth mode)
 	if u == nil {
 		return scope == ""
 	}

@@ -48,12 +48,7 @@ func (app *App) ListenUDP(ctx context.Context, addr string) error {
 					continue
 				}
 
-				scope := msg.GetCotEvent().GetAccess()
-				if scope == "" {
-					scope = "broadcast"
-				}
-
-				c, err := cot.CotFromProto(msg, "", scope)
+				c, err := cot.CotFromProto(msg, "", cot.BroadcastScope)
 				if err != nil {
 					app.logger.Error("protobuf detail extract error", "error", err.Error())
 

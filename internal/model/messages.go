@@ -29,7 +29,7 @@ func MissionChangeNotificationMsg(missionName string, scope string, c *Change) *
 
 	msg.CotEvent.Detail = &cotproto.Detail{XmlDetail: xd.AsXMLString()}
 
-	return &cot.CotMessage{From: cot.LocalScope, TakMessage: msg, Detail: xd, Scope: scope}
+	return &cot.CotMessage{From: cot.LocalFrom, TakMessage: msg, Detail: xd, Scope: scope}
 }
 
 func MissionCreateNotificationMsg(m *Mission) *cot.CotMessage {
@@ -48,5 +48,5 @@ func MissionCreateNotificationMsg(m *Mission) *cot.CotMessage {
 
 	msg.CotEvent.Detail = &cotproto.Detail{XmlDetail: xd.AsXMLString()}
 
-	return &cot.CotMessage{From: cot.LocalScope, TakMessage: msg, Detail: xd, Scope: m.Scope}
+	return &cot.CotMessage{From: cot.LocalFrom, TakMessage: msg, Detail: xd, Scope: m.Scope}
 }

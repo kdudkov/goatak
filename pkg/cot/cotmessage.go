@@ -7,13 +7,23 @@ import (
 	"github.com/kdudkov/goatak/pkg/cotproto"
 )
 
-const LocalScope = "local"
+const (
+	LocalFrom      = "local"
+	LocalScope     = "local"
+	BroadcastScope = "broadcast"
+)
 
 type CotMessage struct {
 	From       string               `json:"from,omitempty"`
 	Scope      string               `json:"scope"`
 	TakMessage *cotproto.TakMessage `json:"tak_message"`
 	Detail     *Node                `json:"-"`
+}
+
+func LocalCotMessage(msg *cotproto.TakMessage) *CotMessage {
+	m, _ := CotFromProto(msg, LocalFrom, LocalScope)
+
+	return m
 }
 
 func CotFromProto(msg *cotproto.TakMessage, from, scope string) (*CotMessage, error) {
@@ -194,7 +204,7 @@ func (m *CotMessage) IsControl() bool {
 }
 
 func (m *CotMessage) IsLocal() bool {
-	return m.From == LocalScope
+	return m.Scope == LocalScope
 }
 
 func (m *CotMessage) IsMapItem() bool {

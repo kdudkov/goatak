@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/spf13/viper"
 	"google.golang.org/protobuf/proto"
 
@@ -129,6 +130,22 @@ func (app *App) saveItemProcessor(msg *cot.CotMessage) bool {
 		item := model.FromMsg(msg)
 		app.items.Store(item)
 		app.changeCb.AddMessage(item)
+
+		if cl == model.CONTACT && viper.GetString("welcome_msg") != "" {
+			chat := &model.ChatMessage{
+				ID:       uuid.NewString(),
+				Time:     time.Now(),
+				Parent:   "RootContactGroup",
+				Chatroom: item.GetCallsign(),
+				From:     "",
+				FromUID:  "ADMIN_UID",
+				ToUID:    item.GetUID(),
+				Direct:   true,
+				Text:     viper.GetString("welcome_msg"),
+			}
+
+			app.NewCotMessage(cot.LocalCotMessage(model.MakeChatMessage(chat)))
+		}
 	}
 
 	return true
