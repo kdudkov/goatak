@@ -7,7 +7,7 @@ FEATURES:
 - `cots_processed` metric now has labels `type` and `scope`
 - new `route_pings` server config option
 - some new message type names added
--
+- new `welcome_msg` server config option
 
 FIXES:
 
