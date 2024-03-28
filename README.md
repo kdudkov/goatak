@@ -10,7 +10,7 @@ from [releases page](https://github.com/kdudkov/goatak/releases)
 
 ## Test server
 
-We offer a public TAK server for the community free of charge.
+We offer a [public TAK server](https://takserver.ru) for the community free of charge.
 
 * address: `takserver.ru`
 * set `Enroll for Client Certificate` marked
