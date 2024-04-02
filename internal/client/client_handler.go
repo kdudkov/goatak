@@ -34,6 +34,7 @@ type HandlerConfig struct {
 	RemoveCb     func(ch ClientHandler)
 	NewContactCb func(uid, callsign string)
 	RoutePings   bool
+	Logger       *slog.Logger
 }
 
 type ClientHandler interface {
@@ -83,12 +84,27 @@ func NewConnClientHandler(name string, conn net.Conn, config *HandlerConfig) *Co
 		c.user = config.User
 		c.serial = config.Serial
 		c.localUID = config.UID
-		c.logger = slog.Default().With("client", name, "user", config.User.GetLogin())
 		c.isClient = config.IsClient
 		c.routePings = config.RoutePings
 		c.messageCb = config.MessageCb
 		c.removeCb = config.RemoveCb
 		c.newContactCb = config.NewContactCb
+
+		params := []any{"client", name}
+
+		if u := config.User; u != nil {
+			params = append(params, "login", u.GetLogin(), "scope", u.GetScope())
+		}
+
+		if config.Serial != "" {
+			params = append(params, "cert_sn", config.Serial)
+		}
+
+		if config.Logger != nil {
+			c.logger = config.Logger.With(params...)
+		} else {
+			c.logger = slog.Default().With(params...)
+		}
 	}
 
 	c.closeTimer = time.AfterFunc(idleTimeout, c.closeIdle)
