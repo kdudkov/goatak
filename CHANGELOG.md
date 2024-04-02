@@ -1,4 +1,4 @@
-# unreleased
+# 0.16.4
 
 FEATURES:
 
@@ -8,6 +8,7 @@ FEATURES:
 - new `route_pings` server config option
 - some new message type names added
 - new `welcome_msg` server config option
+- `connections` metric now has label `scope`
 
 FIXES:
 
