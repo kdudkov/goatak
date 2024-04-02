@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"log/slog"
 	"math/rand"
+	"os"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -18,7 +19,6 @@ import (
 
 	"github.com/jroimartin/gocui"
 	"github.com/spf13/viper"
-	"go.uber.org/zap"
 
 	"github.com/kdudkov/goatak/internal/client"
 	"github.com/kdudkov/goatak/pkg/tlsutil"
@@ -217,18 +217,14 @@ func main() {
 		panic(fmt.Errorf("Fatal error config file: %w \n", err))
 	}
 
-	var cfg zap.Config
+	var h slog.Handler
 	if *debug {
-		cfg = zap.NewDevelopmentConfig()
+		h = slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug})
 	} else {
-		cfg = zap.NewProductionConfig()
-		cfg.Encoding = "console"
+		h = slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo})
 	}
 
-	//cfg.OutputPaths = []string{"webclient.log"}
-
-	logger, _ := cfg.Build()
-	defer logger.Sync()
+	slog.SetDefault(slog.New(h))
 
 	uid := viper.GetString("me.uid")
 	if uid == "auto" || uid == "" {
