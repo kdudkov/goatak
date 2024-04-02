@@ -215,7 +215,7 @@ func (app *App) RemoveClientHandler(name string) {
 	if v, ok := app.handlers.LoadAndDelete(name); ok {
 		app.logger.Info("remove handler: " + name)
 		ch := v.(client.ClientHandler)
-		connectionsMetric.With(prometheus.Labels{"scope": ch.GetUser().GetScope()}).Inc()
+		connectionsMetric.With(prometheus.Labels{"scope": ch.GetUser().GetScope()}).Dec()
 	}
 }
 
