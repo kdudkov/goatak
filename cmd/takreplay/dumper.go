@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/kdudkov/goatak/pkg/cot"
+	"github.com/kdudkov/goatak/pkg/model"
 )
 
 type Dumper interface {
@@ -25,7 +26,11 @@ func (g *TextDumper) Stop() {
 }
 
 func (g *TextDumper) Process(msg *cot.CotMessage) error {
-	fmt.Println(msg.GetSendTime().Format(time.DateTime), msg.GetUID(), msg.GetType(), msg.GetCallsign(), cot.GetMsgType(msg.GetType()))
+	if msg.IsChat() {
+		fmt.Println(msg.GetSendTime().Format(time.DateTime), msg.GetUID(), msg.GetType(), model.MsgToChat(msg).String())
+	} else {
+		fmt.Println(msg.GetSendTime().Format(time.DateTime), msg.GetUID(), msg.GetType(), msg.GetCallsign(), cot.GetMsgType(msg.GetType()))
+	}
 
 	return nil
 }
