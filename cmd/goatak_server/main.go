@@ -208,16 +208,14 @@ func (app *App) NewCotMessage(msg *cot.CotMessage) {
 
 func (app *App) AddClientHandler(ch client.ClientHandler) {
 	app.handlers.Store(ch.GetName(), ch)
-	connectionsMetric.Inc()
+	connectionsMetric.With(prometheus.Labels{"scope": ch.GetUser().GetScope()}).Inc()
 }
 
 func (app *App) RemoveClientHandler(name string) {
-	if _, ok := app.handlers.Load(name); ok {
+	if v, ok := app.handlers.LoadAndDelete(name); ok {
 		app.logger.Info("remove handler: " + name)
-
-		if _, ok := app.handlers.LoadAndDelete(name); ok {
-			connectionsMetric.Dec()
-		}
+		ch := v.(client.ClientHandler)
+		connectionsMetric.With(prometheus.Labels{"scope": ch.GetUser().GetScope()}).Inc()
 	}
 }
 
@@ -230,6 +228,8 @@ func (app *App) ForAllClients(f func(ch client.ClientHandler) bool) {
 }
 
 func (app *App) RemoveHandlerCb(cl client.ClientHandler) {
+	app.RemoveClientHandler(cl.GetName())
+
 	for uid := range cl.GetUids() {
 		if c := app.items.Get(uid); c != nil {
 			c.SetOffline()
@@ -242,8 +242,6 @@ func (app *App) RemoveHandlerCb(cl client.ClientHandler) {
 		}
 		app.NewCotMessage(msg)
 	}
-
-	app.RemoveClientHandler(cl.GetName())
 }
 
 func (app *App) NewContactCb(uid, callsign string) {
