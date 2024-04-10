@@ -1,3 +1,9 @@
+# unreleased
+
+FEATURES:
+
+- gpsd support for webclient
+
 # 0.16.4
 
 FEATURES:

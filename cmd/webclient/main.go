@@ -8,6 +8,7 @@ import (
 	"encoding/hex"
 	"flag"
 	"fmt"
+	"github.com/kdudkov/goatak/pkg/gpsd"
 	"log/slog"
 	"math/rand"
 	"os"
@@ -168,6 +169,12 @@ func (app *App) Run(ctx context.Context) {
 		go app.periodicGetter(ctx1)
 		go app.myPosSender(ctx1, wg)
 
+		if addr := viper.GetString("gpsd"); addr != "" {
+			c := gpsd.New(addr, app.logger.With("logger", "gpsd"))
+			go c.Listen(ctx1, func(lat, lon, alt, speed, track float64) {
+				app.pos.Store(model.NewPosFull(lat, lon, alt, speed, track))
+			})
+		}
 		wg.Wait()
 	}
 }
@@ -229,9 +236,13 @@ func (app *App) ProcessEvent(msg *cot.CotMessage) {
 
 func (app *App) MakeMe() *cotproto.TakMessage {
 	ev := cot.BasicMsg(app.typ, app.uid, time.Minute*2)
-	lat, lon := app.pos.Load().Get()
-	ev.CotEvent.Lat = lat
-	ev.CotEvent.Lon = lon
+	pos := app.pos.Load()
+
+	ev.CotEvent.Lat = pos.GetLat()
+	ev.CotEvent.Lon = pos.GetLon()
+	ev.CotEvent.Hae = pos.GetAlt()
+	ev.CotEvent.Ce = pos.GetCe()
+
 	ev.CotEvent.Detail = &cotproto.Detail{
 		Contact: &cotproto.Contact{
 			Endpoint: "*:-1:stcp",
@@ -248,12 +259,12 @@ func (app *App) MakeMe() *cotproto.TakMessage {
 			Version:  app.version,
 		},
 		Track: &cotproto.Track{
-			Speed:  0,
-			Course: 0,
+			Speed:  pos.GetSpeed(),
+			Course: pos.GetTrack(),
 		},
 		PrecisionLocation: &cotproto.PrecisionLocation{
-			Geopointsrc: "",
-			Altsrc:      "DTED2",
+			Geopointsrc: "GPS",
+			Altsrc:      "GPS",
 		},
 		Status: &cotproto.Status{Battery: 39},
 	}

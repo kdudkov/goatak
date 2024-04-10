@@ -3,6 +3,9 @@
 server_address: 137.184.101.250:8087:tcp
 # local port for web server
 web_port: 8080
+# gpsd address, usually localhost:2947
+gpsd: ""
+
 me:
   # your callsign
   callsign: TestUser
@@ -10,9 +13,9 @@ me:
   uid: auto
   # your unit type
   type: a-f-G-U-C
-  # your team
-  team: Yellow
-  # your role
+  # your team: one of (White, Yellow, Orange, Magenta, Red, Maroon, Purple, Dark Blue, Blue, Cyan, Teal, Green, Dark Green, Brown)
+  team: White
+  # your role: one of (HQ, Team Lead, Team Member, K9, Forward Observer, Sniper, Medic, RTO)
   role: Team Member
   lat: 0
   lon: 0
@@ -21,7 +24,7 @@ ssl:
   cert: ""
   # password for certificate file
   password: atakatak
-  # login for cert enrollment. If not empty, client do cert enrollment
+  # login for cert enrollment. If not empty, client does cert enrollment
   enroll_user: ""
   # password for cert enrollment
   enroll_password: ""

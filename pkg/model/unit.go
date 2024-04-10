@@ -191,15 +191,7 @@ func FromMsg(msg *cot.CotMessage) *Item {
 
 	if i.class == UNIT || i.class == CONTACT {
 		if msg.GetLat() != 0 || msg.GetLon() != 0 {
-			pos := &Pos{
-				time:  msg.GetSendTime(),
-				lat:   msg.GetLat(),
-				lon:   msg.GetLon(),
-				speed: msg.GetTakMessage().GetCotEvent().GetDetail().GetTrack().GetSpeed(),
-				mx:    sync.RWMutex{},
-			}
-
-			i.track = []*Pos{pos}
+			i.track = []*Pos{msg2pos(msg)}
 		}
 	}
 
@@ -228,16 +220,7 @@ func (i *Item) Update(msg *cot.CotMessage) {
 		i.online = true
 
 		if msg.GetLat() != 0 || msg.GetLon() != 0 {
-			pos := &Pos{
-				time:  msg.GetSendTime(),
-				lat:   msg.GetLat(),
-				lon:   msg.GetLon(),
-				speed: msg.GetTakMessage().GetCotEvent().GetDetail().GetTrack().GetSpeed(),
-				ce:    msg.GetTakMessage().GetCotEvent().GetCe(),
-				mx:    sync.RWMutex{},
-			}
-
-			i.track = append(i.track, pos)
+			i.track = append(i.track, msg2pos(msg))
 
 			if len(i.track) > MaxTrackPoints {
 				i.track = i.track[len(i.track)-MaxTrackPoints:]

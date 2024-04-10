@@ -82,7 +82,7 @@ func getConfigHandler(app *App) air.Handler {
 		m := make(map[string]any, 0)
 		m["version"] = getVersion()
 		m["uid"] = app.uid
-		lat, lon := app.pos.Load().Get()
+		lat, lon := app.pos.Load().GetCoord()
 		m["lat"] = lat
 		m["lon"] = lon
 		m["zoom"] = app.zoom

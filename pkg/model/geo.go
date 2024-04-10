@@ -2,8 +2,8 @@
 package model
 
 import (
+	"github.com/kdudkov/goatak/pkg/cot"
 	"math"
-	"sync"
 	"time"
 )
 
@@ -30,22 +30,87 @@ func DistBea(lat1, lon1, lat2, lon2 float64) (float64, float64) {
 }
 
 type Pos struct {
-	time  time.Time
-	lat   float64
-	lon   float64
-	speed float64
-	ce    float64
-	mx    sync.RWMutex
+	Time  time.Time
+	Lat   float64
+	Lon   float64
+	Alt   float64
+	Speed float64
+	Track float64
+	Ce    float64
 }
 
 func NewPos(lat, lon float64) *Pos {
-	return &Pos{lon: lon, lat: lat, speed: 0, ce: 0, time: time.Now(), mx: sync.RWMutex{}}
+	return NewPosFull(lat, lon, 0, 0, 0)
 }
 
-func (p *Pos) Get() (float64, float64) {
+func NewPosFull(lat, lon, alt, speed, track float64) *Pos {
+	return &Pos{Lon: lon, Lat: lat, Alt: alt, Speed: speed, Track: track, Ce: 0, Time: time.Now()}
+}
+
+func msg2pos(msg *cot.CotMessage) *Pos {
+	return &Pos{
+		Time:  msg.GetSendTime(),
+		Lat:   msg.GetLat(),
+		Lon:   msg.GetLon(),
+		Alt:   msg.GetTakMessage().GetCotEvent().GetHae(),
+		Ce:    msg.GetTakMessage().GetCotEvent().GetCe(),
+		Speed: msg.GetTakMessage().GetCotEvent().GetDetail().GetTrack().GetSpeed(),
+		Track: msg.GetTakMessage().GetCotEvent().GetDetail().GetTrack().GetCourse(),
+	}
+}
+
+func (p *Pos) GetCoord() (float64, float64) {
 	if p == nil {
 		return 0, 0
 	}
 
-	return p.lat, p.lon
+	return p.Lat, p.Lon
+}
+
+func (p *Pos) GetLat() float64 {
+	if p == nil {
+		return 0
+	}
+
+	return p.Lat
+}
+
+func (p *Pos) GetLon() float64 {
+	if p == nil {
+		return 0
+	}
+
+	return p.Lon
+}
+
+func (p *Pos) GetAlt() float64 {
+	if p == nil {
+		return 0
+	}
+
+	return p.Alt
+}
+
+func (p *Pos) GetSpeed() float64 {
+	if p == nil {
+		return 0
+	}
+
+	return p.Speed
+}
+
+func (p *Pos) GetTrack() float64 {
+	if p == nil {
+		return 0
+	}
+
+	return p.Track
+}
+
+func (p *Pos) GetCe() float64 {
+	if p == nil {
+		return cot.NotNum
+	}
+
+	return p.Ce
 }
