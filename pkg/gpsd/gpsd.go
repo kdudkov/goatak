@@ -81,6 +81,9 @@ func (c *GpsdClient) connect(ctx context.Context) bool {
 		if err == nil {
 			c.conn = conn
 			c.reader = bufio.NewReader(c.conn)
+
+			_, _ = fmt.Fprintf(c.conn, "?WATCH={\"enable\":true,\"json\":true}")
+
 			return true
 		}
 
