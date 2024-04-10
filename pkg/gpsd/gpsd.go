@@ -15,7 +15,7 @@ const (
 	DialTimeout    = time.Millisecond * 500
 )
 
-type Msg struct {
+type BaseMsg struct {
 	Class string `json:"class"`
 }
 
@@ -119,10 +119,10 @@ func (c *GpsdClient) Listen(ctx context.Context, cb func(lat, lon, alt, speed, t
 
 		data := []byte(line)
 
-		var msg Msg
+		var msg BaseMsg
 
-		if err = json.Unmarshal(data, &msg); err == nil {
-			c.logger.Error("JSON decode error", "error", err)
+		if err1 := json.Unmarshal(data, &msg); err1 != nil {
+			c.logger.Error("JSON decode error", "error", err1)
 			c.logger.Debug("bad json: " + line)
 			_ = c.conn.Close()
 			c.conn = nil
@@ -134,7 +134,6 @@ func (c *GpsdClient) Listen(ctx context.Context, cb func(lat, lon, alt, speed, t
 			var r *TPVMsg
 			if err1 := json.Unmarshal(data, &r); err1 != nil {
 				c.logger.Error("JSON decode error", "error", err1)
-				continue
 			}
 
 			if cb != nil {
@@ -144,7 +143,6 @@ func (c *GpsdClient) Listen(ctx context.Context, cb func(lat, lon, alt, speed, t
 			var r *VERSIONMsg
 			if err1 := json.Unmarshal(data, &r); err1 != nil {
 				c.logger.Error("JSON decode error", "error", err1)
-				continue
 			}
 			c.logger.Info(fmt.Sprintf("got version %s, rev. %s", r.Release, r.Rev))
 		}
