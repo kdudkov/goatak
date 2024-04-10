@@ -73,7 +73,7 @@ func New(addr string, logger *slog.Logger) *GpsdClient {
 }
 
 func (c *GpsdClient) connect(ctx context.Context) bool {
-	timeout := time.Second
+	timeout := time.Second * 5
 
 	for {
 		conn, err := net.DialTimeout("tcp4", c.addr, DialTimeout)
@@ -96,7 +96,7 @@ func (c *GpsdClient) connect(ctx context.Context) bool {
 			return false
 		}
 
-		if timeout < time.Minute*5 {
+		if timeout < time.Minute {
 			timeout = timeout * 2
 		}
 	}
