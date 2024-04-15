@@ -59,24 +59,30 @@ type DigitalPointer struct {
 }
 
 func (i *Item) ToWeb() *WebUnit {
-	evt := i.msg.GetTakMessage().GetCotEvent()
-
 	i.mx.RLock()
 	defer i.mx.RUnlock()
 
-	parentUID, parentCallsign := i.msg.GetParent()
+	msg := i.msg
+
+	if msg == nil {
+		return nil
+	}
+
+	evt := msg.GetTakMessage().GetCotEvent()
+
+	parentUID, parentCallsign := msg.GetParent()
 
 	w := &WebUnit{
 		UID:            i.uid,
 		Category:       i.class,
-		Scope:          i.msg.Scope,
-		Callsign:       i.msg.GetCallsign(),
+		Scope:          msg.Scope,
+		Callsign:       msg.GetCallsign(),
 		Time:           cot.TimeFromMillis(evt.GetSendTime()),
 		LastSeen:       i.lastSeen,
-		StaleTime:      i.msg.GetStaleTime(),
-		StartTime:      i.msg.GetStartTime(),
-		SendTime:       i.msg.GetSendTime(),
-		Type:           i.msg.GetType(),
+		StaleTime:      msg.GetStaleTime(),
+		StartTime:      msg.GetStartTime(),
+		SendTime:       msg.GetSendTime(),
+		Type:           msg.GetType(),
 		Lat:            evt.GetLat(),
 		Lon:            evt.GetLon(),
 		Hae:            evt.GetHae(),
@@ -84,15 +90,15 @@ func (i *Item) ToWeb() *WebUnit {
 		Course:         evt.GetDetail().GetTrack().GetCourse(),
 		Team:           evt.GetDetail().GetGroup().GetName(),
 		Role:           evt.GetDetail().GetGroup().GetRole(),
-		Sidc:           getSIDC(i.msg.GetType()),
+		Sidc:           getSIDC(msg.GetType()),
 		ParentUID:      parentUID,
 		ParentCallsign: parentCallsign,
-		Color:          i.msg.GetColor(),
-		Icon:           i.msg.GetIconsetPath(),
-		Missions:       i.msg.GetDetail().GetDestMission(),
+		Color:          msg.GetColor(),
+		Icon:           msg.GetIconsetPath(),
+		Missions:       msg.GetDetail().GetDestMission(),
 		Local:          i.local,
 		Send:           i.send,
-		Text:           i.msg.GetDetail().GetFirst("remarks").GetText(),
+		Text:           msg.GetDetail().GetFirst("remarks").GetText(),
 		TakVersion:     "",
 		Status:         "",
 	}
@@ -104,8 +110,8 @@ func (i *Item) ToWeb() *WebUnit {
 			w.Status = "Offline"
 		}
 
-		if v := i.msg.GetTakMessage().GetCotEvent().GetDetail().GetTakv(); v != nil {
-			w.TakVersion = strings.Trim(fmt.Sprintf("%s %s on %s", v.GetPlatform(), v.GetVersion(), v.GetDevice()), " ")
+		if v := evt.GetDetail().GetTakv(); v != nil {
+			w.TakVersion = strings.Trim(fmt.Sprintf("%s %s, %s, %s", v.GetPlatform(), v.GetVersion(), v.GetDevice(), v.GetOs()), " ")
 		}
 	}
 
