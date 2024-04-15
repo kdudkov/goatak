@@ -31,6 +31,7 @@ type WebUnit struct {
 	Course         float64   `json:"course"`
 	Sidc           string    `json:"sidc"`
 	TakVersion     string    `json:"tak_version"`
+	Device         string    `json:"device"`
 	Status         string    `json:"status"`
 	Text           string    `json:"text"`
 	Color          string    `json:"color"`
@@ -111,7 +112,8 @@ func (i *Item) ToWeb() *WebUnit {
 		}
 
 		if v := evt.GetDetail().GetTakv(); v != nil {
-			w.TakVersion = strings.Trim(fmt.Sprintf("%s %s, %s, %s", v.GetPlatform(), v.GetVersion(), v.GetDevice(), v.GetOs()), " ")
+			w.TakVersion = strings.Trim(fmt.Sprintf("%s %s", v.GetPlatform(), v.GetVersion()), " ")
+			w.Device = strings.Trim(fmt.Sprintf("%s, %s", v.GetDevice(), v.GetOs()), " ")
 		}
 	}
 
