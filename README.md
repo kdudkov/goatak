@@ -8,12 +8,12 @@ This is fast & simple implementation of TAK server/CoT router and ATAK client wi
 binary builds can be downloaded
 from [releases page](https://github.com/kdudkov/goatak/releases)
 
-## Test server
+## Free public server
 
-We offer a [public TAK server](https://takserver.ru) for the community free of charge.
+We offer a [public TAK server](https://takserver.ru) for the community free of charge. Credentials to join test group:
 
 * address: `takserver.ru`
-* set `Enroll for Client Certificate` marked
+* set `Enroll for Client Certificate`
 * user `test`
 * password `111111`
 
