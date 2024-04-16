@@ -1,7 +1,6 @@
 package model
 
 import (
-	"strconv"
 	"strings"
 	"time"
 
@@ -201,8 +200,6 @@ func ToMissionDTOFull(m *Mission, pm *pm.PackageManager, withToken bool, withSco
 }
 
 func toContentItemDTO(pi *pm.PackageInfo) *ContentItemDTO {
-	size, _ := strconv.Atoi(pi.Size)
-
 	return &ContentItemDTO{
 		CreatorUID: pi.CreatorUID,
 		Timestamp:  CotTime(pi.SubmissionDateTime),
@@ -215,7 +212,7 @@ func toContentItemDTO(pi *pm.PackageInfo) *ContentItemDTO {
 			Submitter:      pi.SubmissionUser,
 			CreatorUID:     pi.CreatorUID,
 			Hash:           pi.Hash,
-			Size:           size,
+			Size:           pi.Size,
 		},
 	}
 }

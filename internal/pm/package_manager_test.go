@@ -20,7 +20,7 @@ func TestGetByHash(t *testing.T) {
 		SubmissionDateTime: time.Time{},
 		Keywords:           nil,
 		MIMEType:           "application/octet-stream",
-		Size:               "",
+		Size:               0,
 		SubmissionUser:     "",
 		PrimaryKey:         0,
 		Hash:               "",

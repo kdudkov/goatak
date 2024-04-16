@@ -7,7 +7,6 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
-	"strconv"
 	"sync"
 
 	"github.com/google/uuid"
@@ -175,7 +174,7 @@ func (pm *PackageManager) SaveFile(pi *PackageInfo, data []byte) error {
 	}
 
 	pi.Hash = hash1
-	pi.Size = strconv.Itoa(len(data))
+	pi.Size = len(data)
 
 	if pi.UID == "" {
 		pi.UID = uuid.NewString()

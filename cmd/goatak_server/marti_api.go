@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"strconv"
 	"time"
 
 	"github.com/aofei/air"
@@ -290,7 +289,7 @@ func (app *App) uploadMultipart(req *air.Request, uid, hash, filename string, pa
 		SubmissionDateTime: time.Now(),
 		Keywords:           nil,
 		MIMEType:           fh.Header.Get("Content-type"),
-		Size:               strconv.Itoa(len(data)),
+		Size:               len(data),
 		SubmissionUser:     user.GetLogin(),
 		PrimaryKey:         0,
 		Hash:               hash,
@@ -335,7 +334,7 @@ func (app *App) uploadFile(req *air.Request, uid, filename string) (*pm.PackageI
 		SubmissionDateTime: time.Now(),
 		Keywords:           nil,
 		MIMEType:           req.Header.Get("Content-type"),
-		Size:               "",
+		Size:               0,
 		SubmissionUser:     user.GetLogin(),
 		PrimaryKey:         0,
 		Hash:               "",
