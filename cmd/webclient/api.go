@@ -4,27 +4,31 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
-	"io"
+	"log/slog"
 	"net/http"
 	"time"
 
 	"github.com/kdudkov/goatak/internal/client"
-	mp "github.com/kdudkov/goatak/internal/model"
 	"github.com/kdudkov/goatak/pkg/model"
 )
 
-const renewContacts = time.Second * 30
+const (
+	renewContacts = time.Second * 30
+	httpTimeout   = time.Second * 5
+)
 
 type RemoteAPI struct {
 	host   string
 	client *http.Client
+	logger *slog.Logger
 	tls    bool
 }
 
-func NewRemoteAPI(host string) *RemoteAPI {
+func NewRemoteAPI(host string, logger *slog.Logger) *RemoteAPI {
 	return &RemoteAPI{
 		host:   host,
-		client: &http.Client{Timeout: time.Second * 5},
+		client: &http.Client{Timeout: httpTimeout},
+		logger: logger,
 	}
 }
 
@@ -41,50 +45,16 @@ func (r *RemoteAPI) getURL(path string) string {
 	return fmt.Sprintf("http://%s:8080%s", r.host, path)
 }
 
+func (r *RemoteAPI) request(url string) *client.Request {
+	return client.NewRequest(r.client, r.logger).URL(r.getURL(url))
+}
+
 func (r *RemoteAPI) getContacts(ctx context.Context) ([]*model.Contact, error) {
 	dat := make([]*model.Contact, 0)
 
-	err := client.NewRequest(r.client, r.getURL("/Marti/api/contacts/all")).GetJSON(ctx, &dat)
+	err := r.request("/Marti/api/contacts/all").GetJSON(ctx, &dat)
 
 	return dat, err
-}
-
-func (r *RemoteAPI) NewMission(ctx context.Context, uid string) error {
-	b, err := client.NewRequest(r.client, r.getURL("/Marti/api/missions/test_mission_55567/subscription")).
-		Put().
-		Args(map[string]string{"uid": uid}).
-		Do(ctx)
-
-	if b != nil {
-		defer b.Close()
-	}
-
-	if err != nil {
-		return err
-	}
-
-	dat, err := io.ReadAll(b)
-
-	fmt.Println(string(dat))
-
-	return err
-}
-
-func (r *RemoteAPI) GetMissions(ctx context.Context) error {
-	res := make(map[string]any)
-
-	err := client.NewRequest(r.client, r.getURL("/Marti/api/missions")).
-		GetJSON(ctx, &res)
-
-	if d, ok := res["data"]; ok {
-		if n, ok1 := d.([]*mp.MissionDTO); ok1 {
-			for _, nn := range n {
-				fmt.Println(nn.Name)
-			}
-		}
-	}
-
-	return err
 }
 
 func (app *App) periodicGetter(ctx context.Context) {

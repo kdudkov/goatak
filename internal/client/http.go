@@ -21,8 +21,14 @@ type Request struct {
 	logger    *slog.Logger
 }
 
-func NewRequest(c *http.Client, url string) *Request {
-	return &Request{client: c, url: url, method: "GET", logger: slog.Default()}
+func NewRequest(c *http.Client, logger *slog.Logger) *Request {
+	return &Request{client: c, method: "GET", logger: logger}
+}
+
+func (r *Request) URL(url string) *Request {
+	r.url = url
+
+	return r
 }
 
 func (r *Request) Put() *Request {

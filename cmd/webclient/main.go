@@ -8,7 +8,6 @@ import (
 	"encoding/hex"
 	"flag"
 	"fmt"
-	"github.com/kdudkov/goatak/pkg/gpsd"
 	"log/slog"
 	"math/rand"
 	"os"
@@ -18,6 +17,8 @@ import (
 	"sync/atomic"
 	"syscall"
 	"time"
+
+	"github.com/kdudkov/goatak/pkg/gpsd"
 
 	"github.com/spf13/viper"
 
@@ -112,7 +113,7 @@ func NewApp(uid string, callsign string, connectStr string, webPort int) *App {
 }
 
 func (app *App) Init() {
-	app.remoteAPI = NewRemoteAPI(app.host)
+	app.remoteAPI = NewRemoteAPI(app.host, app.logger.With("logger", "api"))
 
 	if app.tls {
 		app.remoteAPI.SetTLS(app.getTLSConfig())

@@ -5,7 +5,6 @@ import (
 	"encoding/xml"
 	"fmt"
 	"io"
-	"log/slog"
 	"net/http"
 	"strings"
 	"time"
@@ -89,7 +88,7 @@ func getMissionPutHandler(app *App) air.Handler {
 		username := getUsernameFromReq(req)
 		user := app.users.GetUser(username)
 
-		printParams(req, app.logger)
+		logParams(app.logger, req)
 
 		if req.Body != nil {
 			defer req.Body.Close()
@@ -186,7 +185,7 @@ func getMissionRolePutHandler(app *App) air.Handler {
 			return nil
 		}
 
-		printParams(req, app.logger)
+		logParams(app.logger, req)
 
 		if req.Body != nil {
 			defer req.Body.Close()
@@ -295,7 +294,7 @@ func getMissionSubscriptionPutHandler(app *App) air.Handler {
 			return nil
 		}
 
-		printParams(req, app.logger)
+		logParams(app.logger, req)
 
 		if m.InviteOnly {
 			res.Status = http.StatusForbidden
@@ -518,7 +517,7 @@ func getInvitePutHandler(app *App) air.Handler {
 			return nil
 		}
 
-		printParams(req, app.logger)
+		logParams(app.logger, req)
 
 		if req.Body != nil {
 			defer req.Body.Close()
@@ -559,13 +558,4 @@ func getInviteDeleteHandler(app *App) air.Handler {
 
 		return nil
 	}
-}
-
-func printParams(req *air.Request, logger *slog.Logger) {
-	params := []string{}
-	for _, r := range req.Params() {
-		params = append(params, r.Name+"="+r.Value().String())
-	}
-
-	logger.Info("params: " + strings.Join(params, ","))
 }

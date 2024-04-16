@@ -134,7 +134,7 @@ func getConfigHandler(app *App) air.Handler {
 	m["zoom"] = app.zoom
 	m["version"] = getVersion()
 
-	m["layers"] = getLayers()
+	m["layers"] = getDefaultLayers()
 
 	return func(_ *air.Request, res *air.Response) error {
 		return res.WriteJSON(m)
@@ -309,13 +309,12 @@ func getTakWsHandler(app *App) air.Handler {
 	}
 }
 
-func getLayers() []map[string]any {
+func getDefaultLayers() []map[string]any {
 	return []map[string]any{
 		{
 			"name":    "OSM",
-			"url":     "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+			"url":     "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
 			"maxzoom": 19,
-			"parts":   []string{"a", "b", "c"},
 		},
 		{
 			"name":    "Opentopo.cz",

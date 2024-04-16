@@ -8,7 +8,8 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"strings"
+	"strconv"
+	"time"
 
 	"github.com/aofei/air"
 	"github.com/google/uuid"
@@ -65,12 +66,13 @@ func addMartiRoutes(app *App, api *air.Air) {
 
 	api.GET("/Marti/api/device/profile/connection", getProfileConnectionHandler(app))
 
-	api.GET("/Marti/sync/content", getContentGetHandler(app))
 	api.GET("/Marti/sync/search", getSearchHandler(app))
 	api.GET("/Marti/sync/missionquery", getMissionQueryHandler(app))
 	api.POST("/Marti/sync/missionupload", getMissionUploadHandler(app))
 	api.GET("/Marti/api/sync/metadata/:hash/tool", getMetadataGetHandler(app))
 	api.PUT("/Marti/api/sync/metadata/:hash/tool", getMetadataPutHandler(app))
+
+	api.GET("/Marti/sync/content", getContentGetHandler(app))
 	api.POST("/Marti/sync/upload", getUploadHandler(app))
 
 	api.GET("/Marti/vcm", getVideoListHandler(app))
@@ -174,7 +176,9 @@ func getMissionQueryHandler(app *App) air.Handler {
 			return res.WriteString("no hash")
 		}
 
-		if p := app.packageManager.GetByHash(hash); p != nil && user.CanSeeScope(p.Scope) {
+		if pi := app.packageManager.GetFirst(func(pi *pm.PackageInfo) bool {
+			return pi.Hash == hash && user.CanSeeScope(pi.Scope)
+		}); pi != nil {
 			return res.WriteString(fmt.Sprintf("/Marti/sync/content?hash=%s", hash))
 		}
 		res.Status = http.StatusNotFound
@@ -185,15 +189,10 @@ func getMissionQueryHandler(app *App) air.Handler {
 
 func getMissionUploadHandler(app *App) air.Handler {
 	return func(req *air.Request, res *air.Response) error {
+		username := getUsernameFromReq(req)
+		user := app.users.GetUser(username)
 		hash := getStringParam(req, "hash")
 		fname := getStringParam(req, "filename")
-
-		var params []string
-		for _, r := range req.Params() {
-			params = append(params, r.Name+"="+r.Value().String())
-		}
-
-		app.logger.Info("params: " + strings.Join(params, ","))
 
 		if hash == "" {
 			app.logger.Error("no hash: " + req.RawQuery())
@@ -209,9 +208,14 @@ func getMissionUploadHandler(app *App) air.Handler {
 			return res.WriteString("no filename")
 		}
 
-		uid := uuid.NewString()
+		if pi := app.packageManager.GetFirst(func(pi *pm.PackageInfo) bool {
+			return pi.Hash == hash && user.CanSeeScope(pi.Scope)
+		}); pi != nil {
+			app.logger.Info("hash already exists: " + hash)
+			return res.WriteString(fmt.Sprintf("/Marti/sync/content?hash=%s", hash))
+		}
 
-		_, err := app.uploadMultipart(req, uid, hash, fname, true)
+		pi, err := app.uploadMultipart(req, "", hash, fname, true)
 		if err != nil {
 			app.logger.Error("error", "error", err)
 			res.Status = http.StatusNotAcceptable
@@ -219,7 +223,7 @@ func getMissionUploadHandler(app *App) air.Handler {
 			return nil
 		}
 
-		app.logger.Info(fmt.Sprintf("save packege %s %s %s", fname, uid, hash))
+		app.logger.Info(fmt.Sprintf("save packege %s %s %s", pi.Name, pi.UID, pi.Hash))
 
 		return res.WriteString(fmt.Sprintf("/Marti/sync/content?hash=%s", hash))
 	}
@@ -281,20 +285,29 @@ func (app *App) uploadMultipart(req *air.Request, uid, hash, filename string, pa
 		return nil, err
 	}
 
-	pi, err := app.packageManager.SaveData(uid, hash, filename, fh.Header.Get("Content-type"), data, func(pi1 *pm.PackageInfo) {
-		pi1.SubmissionUser = user.GetLogin()
-		pi1.Scope = user.GetScope()
-		pi1.CreatorUID = getStringParamIgnoreCaps(req, "creatorUid")
+	pi := &pm.PackageInfo{
+		UID:                uid,
+		SubmissionDateTime: time.Now(),
+		Keywords:           nil,
+		MIMEType:           fh.Header.Get("Content-type"),
+		Size:               strconv.Itoa(len(data)),
+		SubmissionUser:     user.GetLogin(),
+		PrimaryKey:         0,
+		Hash:               hash,
+		CreatorUID:         getStringParamIgnoreCaps(req, "creatorUid"),
+		Scope:              user.GetScope(),
+		Name:               filename,
+		Tool:               "",
+	}
 
-		if pack {
-			pi1.Keywords = []string{"missionpackage"}
-			pi1.Tool = "public"
-		}
-	})
+	if pack {
+		pi.Keywords = []string{"missionpackage"}
+		pi.Tool = "public"
+	}
 
-	if err != nil {
-		app.logger.Error("error", "error", err)
-		return nil, err
+	if err1 := app.packageManager.SaveFile(pi, data); err1 != nil {
+		app.logger.Error("save file eerror", "error", err1)
+		return nil, err1
 	}
 
 	return pi, nil
@@ -317,15 +330,24 @@ func (app *App) uploadFile(req *air.Request, uid, filename string) (*pm.PackageI
 		return nil, err
 	}
 
-	pi, err := app.packageManager.SaveData(uid, "", filename, req.Header.Get("Content-type"), data, func(pi1 *pm.PackageInfo) {
-		pi1.SubmissionUser = user.GetLogin()
-		pi1.Scope = user.GetScope()
-		pi1.CreatorUID = getStringParamIgnoreCaps(req, "creatorUid")
-	})
+	pi := &pm.PackageInfo{
+		UID:                uid,
+		SubmissionDateTime: time.Now(),
+		Keywords:           nil,
+		MIMEType:           req.Header.Get("Content-type"),
+		Size:               "",
+		SubmissionUser:     user.GetLogin(),
+		PrimaryKey:         0,
+		Hash:               "",
+		CreatorUID:         getStringParamIgnoreCaps(req, "creatorUid"),
+		Scope:              user.GetScope(),
+		Name:               filename,
+		Tool:               "",
+	}
 
-	if err != nil {
-		app.logger.Error("error", "error", err)
-		return nil, err
+	if err1 := app.packageManager.SaveFile(pi, data); err1 != nil {
+		app.logger.Error("save file eerror", "error", err1)
+		return nil, err1
 	}
 
 	return pi, nil
@@ -337,7 +359,9 @@ func getContentGetHandler(app *App) air.Handler {
 		user := app.users.GetUser(username)
 
 		if hash := getStringParam(req, "hash"); hash != "" {
-			if pi := app.packageManager.GetByHash(hash); pi != nil && user.CanSeeScope(pi.Scope) {
+			if pi := app.packageManager.GetFirst(func(pi *pm.PackageInfo) bool {
+				return pi.Hash == hash && user.CanSeeScope(pi.Scope)
+			}); pi != nil {
 				res.Header.Set("Content-type", pi.MIMEType)
 
 				return res.WriteFile(app.packageManager.GetFilePath(pi))
@@ -380,7 +404,9 @@ func getMetadataGetHandler(app *App) air.Handler {
 			return res.WriteString("no hash")
 		}
 
-		if pi := app.packageManager.GetByHash(hash); pi != nil && user.CanSeeScope(pi.Scope) {
+		if pi := app.packageManager.GetFirst(func(pi *pm.PackageInfo) bool {
+			return pi.Hash == hash && user.CanSeeScope(pi.Scope)
+		}); pi != nil {
 			return res.WriteString(pi.Tool)
 		}
 
@@ -403,9 +429,13 @@ func getMetadataPutHandler(app *App) air.Handler {
 
 		s, _ := io.ReadAll(req.Body)
 
-		if pi := app.packageManager.GetByHash(hash); pi != nil && user.CanSeeScope(pi.Scope) {
+		pis := app.packageManager.GetList(func(pi *pm.PackageInfo) bool {
+			return pi.Hash == hash && user.CanSeeScope(pi.Scope)
+		})
+
+		for _, pi := range pis {
 			pi.Tool = string(s)
-			app.packageManager.Store(pi.UID, pi)
+			app.packageManager.Store(pi)
 		}
 
 		return nil
@@ -420,13 +450,10 @@ func getSearchHandler(app *App) air.Handler {
 		user := app.users.GetUser(getUsernameFromReq(req))
 
 		result := make(map[string]any)
-		packages := make([]*pm.PackageInfo, 0)
 
-		for _, pi := range app.packageManager.GetList(kw, tool) {
-			if user.CanSeeScope(pi.Scope) {
-				packages = append(packages, pi)
-			}
-		}
+		packages := app.packageManager.GetList(func(pi *pm.PackageInfo) bool {
+			return user.CanSeeScope(pi.Scope) && pi.HasKeyword(kw) && (tool == "" || pi.Tool == tool)
+		})
 
 		result["results"] = packages
 		result["resultCount"] = len(packages)
@@ -586,62 +613,4 @@ func makeAnswer(typ string, data any) map[string]any {
 	result["data"] = data
 
 	return result
-}
-
-func getStringParam(req *air.Request, name string) string {
-	p := req.Param(name)
-	if p == nil {
-		return ""
-	}
-
-	return p.Value().String()
-}
-
-func getBoolParam(req *air.Request, name string, def bool) bool {
-	p := req.Param(name)
-	if p == nil {
-		return def
-	}
-
-	v, _ := p.Value().Bool()
-	return v
-}
-
-func getStringParams(req *air.Request, name string) []string {
-	p := req.Param(name)
-	if p == nil {
-		return nil
-	}
-
-	result := make([]string, len(p.Values))
-
-	for i, v := range p.Values {
-		result[i] = v.String()
-	}
-
-	return result
-}
-
-func getIntParam(req *air.Request, name string, def int) int {
-	p := req.Param(name)
-	if p == nil {
-		return def
-	}
-
-	if n, err := p.Value().Int(); err == nil {
-		return n
-	}
-
-	return def
-}
-
-func getStringParamIgnoreCaps(req *air.Request, name string) string {
-	nn := strings.ToLower(name)
-	for _, p := range req.Params() {
-		if strings.ToLower(p.Name) == nn {
-			return p.Value().String()
-		}
-	}
-
-	return ""
 }

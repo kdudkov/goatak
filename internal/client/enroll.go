@@ -65,12 +65,14 @@ func (e *Enroller) getURL(path string) string {
 	return fmt.Sprintf("https://%s:%d%s", e.host, e.port, path)
 }
 
+func (e *Enroller) request(url string) *Request {
+	return NewRequest(e.client, e.logger).URL(e.getURL(url)).Auth(e.user, e.passwd)
+}
+
 func (e *Enroller) getConfig(ctx context.Context) (*CertificateConfig, error) {
 	e.logger.Info("getting tls config")
 
-	body, err := NewRequest(e.client, e.getURL("/Marti/api/tls/config")).
-		Auth(e.user, e.passwd).
-		Do(ctx)
+	body, err := e.request("/Marti/api/tls/config").Do(ctx)
 
 	if err != nil {
 		return nil, err
@@ -122,7 +124,7 @@ func (e *Enroller) GetOrEnrollCert(ctx context.Context, uid, version string) (*t
 
 	var certs map[string]string
 
-	err = NewRequest(e.client, e.getURL("/Marti/api/tls/signClient/v2")).Auth(e.user, e.passwd).
+	err = e.request("/Marti/api/tls/signClient/v2").
 		Post().
 		Args(args).
 		Body(strings.NewReader(csr)).
@@ -175,8 +177,7 @@ func (e *Enroller) GetOrEnrollCert(ctx context.Context, uid, version string) (*t
 }
 
 func (e *Enroller) getProfile(ctx context.Context, uid string) error {
-	body, err := NewRequest(e.client, e.getURL("/Marti/api/tls/profile/enrollment")).
-		Auth(e.user, e.passwd).
+	body, err := e.request("/Marti/api/tls/profile/enrollment").
 		Args(map[string]string{"clientUID": uid}).
 		Do(ctx)
 

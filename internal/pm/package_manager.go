@@ -7,8 +7,8 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"strconv"
 	"sync"
-	"time"
 
 	"github.com/google/uuid"
 )
@@ -30,21 +30,6 @@ func NewPackageManager(basedir string) *PackageManager {
 		baseDir: basedir,
 		data:    sync.Map{},
 	}
-}
-
-type PackageInfo struct {
-	UID                string    `json:"UID"`
-	SubmissionDateTime time.Time `json:"SubmissionDateTime"`
-	Keywords           []string  `json:"Keywords"`
-	MIMEType           string    `json:"MIMEType"`
-	Size               int64     `json:"Size"`
-	SubmissionUser     string    `json:"SubmissionUser"`
-	PrimaryKey         int       `json:"PrimaryKey"`
-	Hash               string    `json:"Hash"`
-	CreatorUID         string    `json:"CreatorUid"`
-	Scope              string    `json:"Scope"`
-	Name               string    `json:"Name"`
-	Tool               string    `json:"Tool"`
 }
 
 func (pm *PackageManager) Start() error {
@@ -77,14 +62,14 @@ func (pm *PackageManager) Stop() {
 	// noop
 }
 
-func (pm *PackageManager) Store(uid string, pi *PackageInfo) {
-	pm.data.Store(uid, pi)
+func (pm *PackageManager) Store(pi *PackageInfo) {
+	pm.data.Store(pi.UID, pi)
 
 	if pm.noSave {
 		return
 	}
 
-	if err := saveInfo(pm.baseDir, uid, pi); err != nil {
+	if err := saveInfo(pm.baseDir, pi); err != nil {
 		pm.logger.Error("store error", "error", err.Error())
 	}
 }
@@ -97,13 +82,35 @@ func (pm *PackageManager) Get(uid string) *PackageInfo {
 	return nil
 }
 
-func (pm *PackageManager) GetByHash(hash string) *PackageInfo {
+func (pm *PackageManager) GetByHash(hash string) []*PackageInfo {
+	return pm.GetList(func(pi *PackageInfo) bool {
+		return pi.Hash == hash
+	})
+}
+
+func (pm *PackageManager) GetList(filter func(pi *PackageInfo) bool) []*PackageInfo {
+	var res []*PackageInfo
+
+	pm.data.Range(func(_, value any) bool {
+		if pi, ok := value.(*PackageInfo); ok {
+			if filter == nil || filter(pi) {
+				res = append(res, pi)
+			}
+		}
+
+		return true
+	})
+
+	return res
+}
+
+func (pm *PackageManager) GetFirst(filter func(pi *PackageInfo) bool) *PackageInfo {
 	var pi *PackageInfo
 
 	pm.data.Range(func(_, value any) bool {
 		p := value.(*PackageInfo)
 
-		if p.Hash == hash {
+		if filter == nil || filter(pi) {
 			pi = p
 
 			return false
@@ -115,42 +122,8 @@ func (pm *PackageManager) GetByHash(hash string) *PackageInfo {
 	return pi
 }
 
-func (pm *PackageManager) ForEach(f func(uid string, pi *PackageInfo) bool) {
-	pm.data.Range(func(key, value any) bool {
-		return f(key.(string), value.(*PackageInfo))
-	})
-}
-
-func (pm *PackageManager) GetList(kw, tool string) []*PackageInfo {
-	res := make([]*PackageInfo, 0)
-
-	pm.ForEach(func(key string, pi *PackageInfo) bool {
-		if tool != "" && tool != pi.Tool {
-			return true
-		}
-
-		if kw == "" {
-			res = append(res, pi)
-
-			return true
-		}
-
-		for _, k := range pi.Keywords {
-			if kw == k {
-				res = append(res, pi)
-
-				return true
-			}
-		}
-
-		return true
-	})
-
-	return res
-}
-
-func saveInfo(baseDir, uid string, finfo *PackageInfo) error {
-	fn, err := os.Create(filepath.Join(baseDir, uid, infoFileName))
+func saveInfo(baseDir string, finfo *PackageInfo) error {
+	fn, err := os.Create(filepath.Join(baseDir, finfo.UID, infoFileName))
 	if err != nil {
 		return err
 	}
@@ -190,55 +163,36 @@ func (pm *PackageManager) GetFilePath(pi *PackageInfo) string {
 	return filepath.Join(pm.baseDir, pi.UID, pi.Name)
 }
 
-func (pm *PackageManager) SaveData(uid, hash, fname, content string, data []byte, updater func(pi *PackageInfo)) (*PackageInfo, error) {
+func (pm *PackageManager) SaveFile(pi *PackageInfo, data []byte) error {
 	hash1 := Hash(data)
 
-	if hash != "" && hash != hash1 {
-		return nil, fmt.Errorf("bad hash")
+	if pi.Hash != "" && pi.Hash != hash1 {
+		return fmt.Errorf("bad hash")
 	}
 
-	if uid == "" {
-		if pi := pm.GetByHash(hash); pi != nil {
-			if pi.Name == fname {
-				pm.logger.Info(fmt.Sprintf("file with hash %s exists", hash))
-				return pi, nil
-			}
-		}
+	if pi.Name == "" {
+		return fmt.Errorf("no name")
+	}
 
-		uid = uuid.NewString()
+	pi.Hash = hash1
+	pi.Size = strconv.Itoa(len(data))
+
+	if pi.UID == "" {
+		pi.UID = uuid.NewString()
 	}
 
 	if !pm.noSave {
-		if err := pm.SaveFile(uid, fname, data); err != nil {
-			return nil, err
+		if err := pm.saveFile(pi.UID, pi.Name, data); err != nil {
+			return err
 		}
 	}
 
-	info := &PackageInfo{
-		PrimaryKey:         1,
-		UID:                uid,
-		SubmissionDateTime: time.Now(),
-		Hash:               hash1,
-		Name:               fname,
-		CreatorUID:         "",
-		SubmissionUser:     "",
-		Tool:               "",
-		Keywords:           nil,
-		Size:               int64(len(data)),
-		MIMEType:           content,
-	}
+	pm.Store(pi)
 
-	if updater != nil {
-		updater(info)
-	}
-
-	pm.Store(uid, info)
-	pm.logger.Info(fmt.Sprintf("save packege %s %s", fname, uid))
-
-	return info, nil
+	return nil
 }
 
-func (pm *PackageManager) SaveFile(uid, fname string, b []byte) error {
+func (pm *PackageManager) saveFile(uid, fname string, b []byte) error {
 	dir := filepath.Join(pm.baseDir, uid)
 	if !fileExists(dir) {
 		if err := os.MkdirAll(dir, 0777); err != nil {
