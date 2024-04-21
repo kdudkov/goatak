@@ -51,10 +51,7 @@ let app = new Vue({
                 return u.category === s
             });
             arr.sort(function (a, b) {
-                let ua = a.callsign.toLowerCase(), ub = b.callsign.toLowerCase();
-                if (ua < ub) return -1;
-                if (ua > ub) return 1;
-                return 0;
+                return a.callsign.toLowerCase().localeCompare(b.callsign.toLowerCase());
             });
             return this.ts && arr;
         },
