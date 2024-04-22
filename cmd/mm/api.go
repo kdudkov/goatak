@@ -12,7 +12,6 @@ import (
 
 	"github.com/kdudkov/goatak/internal/client"
 	mp "github.com/kdudkov/goatak/internal/model"
-	"github.com/kdudkov/goatak/internal/pm"
 	"github.com/kdudkov/goatak/pkg/model"
 )
 
@@ -31,6 +30,21 @@ type RemoteAPI struct {
 type JSONResult[T any] struct {
 	Count int `json:"resultCount"`
 	Data  []T `json:"results"`
+}
+
+type PackageInfo struct {
+	UID                string    `json:"UID"`
+	SubmissionDateTime time.Time `json:"SubmissionDateTime"`
+	Keywords           []string  `json:"Keywords"`
+	MIMEType           string    `json:"MIMEType"`
+	Size               string    `json:"Size"`
+	SubmissionUser     string    `json:"SubmissionUser"`
+	PrimaryKey         int       `json:"PrimaryKey"`
+	Hash               string    `json:"Hash"`
+	CreatorUID         string    `json:"CreatorUid"`
+	Scope              string    `json:"Scope"`
+	Name               string    `json:"Name"`
+	Tool               string    `json:"Tool"`
 }
 
 func NewRemoteAPI(host string) *RemoteAPI {
@@ -162,8 +176,8 @@ func (r *RemoteAPI) Subscribe(ctx context.Context, name string, uid string) erro
 	return nil
 }
 
-func (r *RemoteAPI) Search(ctx context.Context) ([]*pm.PackageInfo, error) {
-	res := new(JSONResult[*pm.PackageInfo])
+func (r *RemoteAPI) Search(ctx context.Context) ([]*PackageInfo, error) {
+	res := new(JSONResult[*PackageInfo])
 	err := r.request("/Marti/sync/search").GetJSON(ctx, &res)
 
 	if err != nil {
