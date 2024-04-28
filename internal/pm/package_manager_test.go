@@ -1,6 +1,9 @@
 package pm
 
 import (
+	"bytes"
+	"crypto/sha256"
+	"fmt"
 	"testing"
 	"time"
 
@@ -13,6 +16,9 @@ func TestGetByHash(t *testing.T) {
 	pm.noSave = true
 
 	data := []byte{1, 2, 3, 4, 5}
+
+	r := bytes.NewReader(data)
+
 	hash := Hash(data)
 
 	pi := &PackageInfo{
@@ -30,7 +36,7 @@ func TestGetByHash(t *testing.T) {
 		Tool:               "",
 	}
 
-	err := pm.SaveFile(pi, data)
+	err := pm.SaveFile(pi, r)
 
 	require.NoError(t, err)
 	assert.Equal(t, hash, pi.Hash)
@@ -40,4 +46,10 @@ func TestGetByHash(t *testing.T) {
 
 	pi2 := pm.GetByHash("aaa")
 	assert.Nil(t, pi2)
+}
+
+func Hash(b []byte) string {
+	h := sha256.New()
+	h.Write(b)
+	return fmt.Sprintf("%x", h.Sum(nil))
 }

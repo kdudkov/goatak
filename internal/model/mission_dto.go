@@ -135,15 +135,15 @@ type MissionInvitationDTO struct {
 	Role        *MissionRoleDTO `json:"role"`
 }
 
-func ToMissionDTO(m *Mission, pm *pm.PackageManager, withToken bool) *MissionDTO {
+func ToMissionDTO(m *Mission, pm pm.PackageManager, withToken bool) *MissionDTO {
 	return ToMissionDTOFull(m, pm, withToken, false)
 }
 
-func ToMissionDTOAdm(m *Mission, pm *pm.PackageManager) *MissionDTO {
+func ToMissionDTOAdm(m *Mission, pm pm.PackageManager) *MissionDTO {
 	return ToMissionDTOFull(m, pm, false, true)
 }
 
-func ToMissionDTOFull(m *Mission, pm *pm.PackageManager, withToken bool, withScope bool) *MissionDTO {
+func ToMissionDTOFull(m *Mission, pm pm.PackageManager, withToken bool, withScope bool) *MissionDTO {
 	if m == nil {
 		return nil
 	}

@@ -3,18 +3,18 @@ package pm
 import "time"
 
 type PackageInfo struct {
-	UID                string    `json:"UID"`
-	SubmissionDateTime time.Time `json:"SubmissionDateTime"`
-	Keywords           []string  `json:"Keywords"`
-	MIMEType           string    `json:"MIMEType"`
-	Size               int       `json:"Size"`
-	SubmissionUser     string    `json:"SubmissionUser"`
-	PrimaryKey         int       `json:"PrimaryKey"`
-	Hash               string    `json:"Hash"`
-	CreatorUID         string    `json:"CreatorUid"`
-	Scope              string    `json:"Scope"`
-	Name               string    `json:"Name"`
-	Tool               string    `json:"Tool"`
+	UID                string    `json:"UID" yaml:"UID"`
+	SubmissionDateTime time.Time `json:"SubmissionDateTime" yaml:"time"`
+	Keywords           []string  `json:"Keywords" yaml:"keywords"`
+	MIMEType           string    `json:"MIMEType" yaml:"MIMEType"`
+	Size               int       `json:"Size" yaml:"size"`
+	SubmissionUser     string    `json:"SubmissionUser" yaml:"user"`
+	PrimaryKey         int       `json:"PrimaryKey" yaml:"-"`
+	Hash               string    `json:"Hash" yaml:"hash"`
+	CreatorUID         string    `json:"CreatorUid" yaml:"creator_uid"`
+	Scope              string    `json:"Scope" yaml:"scope"`
+	Name               string    `json:"Name" yaml:"name"`
+	Tool               string    `json:"Tool" yaml:"tool"`
 }
 
 func (pi *PackageInfo) HasKeyword(kw string) bool {

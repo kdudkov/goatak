@@ -277,19 +277,12 @@ func (app *App) uploadMultipart(req *air.Request, uid, hash, filename string, pa
 		return nil, err
 	}
 
-	data, err := io.ReadAll(f)
-
-	if err != nil {
-		app.logger.Error("error", "error", err)
-		return nil, err
-	}
-
 	pi := &pm.PackageInfo{
 		UID:                uid,
 		SubmissionDateTime: time.Now(),
 		Keywords:           nil,
 		MIMEType:           fh.Header.Get("Content-type"),
-		Size:               len(data),
+		Size:               0,
 		SubmissionUser:     user.GetLogin(),
 		PrimaryKey:         0,
 		Hash:               hash,
@@ -304,8 +297,8 @@ func (app *App) uploadMultipart(req *air.Request, uid, hash, filename string, pa
 		pi.Tool = "public"
 	}
 
-	if err1 := app.packageManager.SaveFile(pi, data); err1 != nil {
-		app.logger.Error("save file eerror", "error", err1)
+	if err1 := app.packageManager.SaveFile(pi, f); err1 != nil {
+		app.logger.Error("save file error", "error", err1)
 		return nil, err1
 	}
 
@@ -322,13 +315,6 @@ func (app *App) uploadFile(req *air.Request, uid, filename string) (*pm.PackageI
 
 	defer req.Body.Close()
 
-	data, err := io.ReadAll(req.Body)
-
-	if err != nil {
-		app.logger.Error("error", "error", err)
-		return nil, err
-	}
-
 	pi := &pm.PackageInfo{
 		UID:                uid,
 		SubmissionDateTime: time.Now(),
@@ -344,7 +330,7 @@ func (app *App) uploadFile(req *air.Request, uid, filename string) (*pm.PackageI
 		Tool:               "",
 	}
 
-	if err1 := app.packageManager.SaveFile(pi, data); err1 != nil {
+	if err1 := app.packageManager.SaveFile(pi, req.Body); err1 != nil {
 		app.logger.Error("save file eerror", "error", err1)
 		return nil, err1
 	}
@@ -363,7 +349,16 @@ func getContentGetHandler(app *App) air.Handler {
 			}); pi != nil {
 				res.Header.Set("Content-type", pi.MIMEType)
 
-				return res.WriteFile(app.packageManager.GetFilePath(pi))
+				f, err := app.packageManager.GetFile(pi)
+
+				if err != nil {
+					app.logger.Error("get file error", "error", err)
+					return err
+				}
+
+				defer f.Close()
+
+				return writeFile(res, f, pi.SubmissionDateTime)
 			}
 			app.logger.Info("not found - hash " + hash)
 
@@ -376,8 +371,18 @@ func getContentGetHandler(app *App) air.Handler {
 			if pi := app.packageManager.Get(uid); pi != nil && user.CanSeeScope(pi.Scope) {
 				res.Header.Set("Content-type", pi.MIMEType)
 
-				return res.WriteFile(app.packageManager.GetFilePath(pi))
+				f, err := app.packageManager.GetFile(pi)
+
+				if err != nil {
+					app.logger.Error("get file error", "error", err)
+					return err
+				}
+
+				defer f.Close()
+
+				return writeFile(res, f, pi.SubmissionDateTime)
 			}
+
 			app.logger.Info("not found - uid " + uid)
 
 			res.Status = http.StatusNotFound
@@ -602,6 +607,14 @@ func getXmlHandler(app *App) air.Handler {
 
 		return res.WriteXML(evt)
 	}
+}
+
+func writeFile(r *air.Response, c io.ReadSeeker, mt time.Time) error {
+	if r.Header.Get("Last-Modified") == "" {
+		r.Header.Set("Last-Modified", mt.UTC().Format(http.TimeFormat))
+	}
+
+	return r.Write(c)
 }
 
 func makeAnswer(typ string, data any) map[string]any {

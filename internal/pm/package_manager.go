@@ -1,37 +1,36 @@
 package pm
 
 import (
-	"crypto/sha256"
-	"encoding/json"
 	"fmt"
+	"gopkg.in/yaml.v3"
+	"io"
 	"log/slog"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 
 	"github.com/google/uuid"
 )
 
-const (
-	infoFileName = "info.json"
-)
-
-type PackageManager struct {
+type PackageManagerFS struct {
 	logger  *slog.Logger
 	baseDir string
 	data    sync.Map
 	noSave  bool
+	files   *BlobManager
 }
 
-func NewPackageManager(basedir string) *PackageManager {
-	return &PackageManager{
+func NewPackageManager(basedir string) *PackageManagerFS {
+	return &PackageManagerFS{
 		logger:  slog.Default().With("logger", "package_manager"),
 		baseDir: basedir,
 		data:    sync.Map{},
+		files:   NewBlobManages(slog.Default().With("logger", "file_manager"), filepath.Join(basedir, "blob")),
 	}
 }
 
-func (pm *PackageManager) Start() error {
+func (pm *PackageManagerFS) Start() error {
 	if err := os.MkdirAll(pm.baseDir, 0777); err != nil {
 		return err
 	}
@@ -42,12 +41,17 @@ func (pm *PackageManager) Start() error {
 	}
 
 	for _, f := range files {
-		if !f.IsDir() {
+		if f.IsDir() {
 			continue
 		}
 
-		uid := f.Name()
-		if pi, err := loadInfo(pm.baseDir, uid); err == nil {
+		if !strings.HasSuffix(f.Name(), ".yml") {
+			continue
+		}
+
+		uid := f.Name()[:len(f.Name())-4]
+
+		if pi, err := loadInfo(pm.baseDir, f.Name()); err == nil {
 			pm.data.Store(uid, pi)
 		} else {
 			pm.logger.Error("error loading info for "+uid, "error", err.Error())
@@ -57,11 +61,11 @@ func (pm *PackageManager) Start() error {
 	return nil
 }
 
-func (pm *PackageManager) Stop() {
+func (pm *PackageManagerFS) Stop() {
 	// noop
 }
 
-func (pm *PackageManager) Store(pi *PackageInfo) {
+func (pm *PackageManagerFS) Store(pi *PackageInfo) {
 	pm.data.Store(pi.UID, pi)
 
 	if pm.noSave {
@@ -73,7 +77,7 @@ func (pm *PackageManager) Store(pi *PackageInfo) {
 	}
 }
 
-func (pm *PackageManager) Get(uid string) *PackageInfo {
+func (pm *PackageManagerFS) Get(uid string) *PackageInfo {
 	if i, ok := pm.data.Load(uid); ok {
 		return i.(*PackageInfo)
 	}
@@ -81,13 +85,13 @@ func (pm *PackageManager) Get(uid string) *PackageInfo {
 	return nil
 }
 
-func (pm *PackageManager) GetByHash(hash string) []*PackageInfo {
+func (pm *PackageManagerFS) GetByHash(hash string) []*PackageInfo {
 	return pm.GetList(func(pi *PackageInfo) bool {
 		return pi.Hash == hash
 	})
 }
 
-func (pm *PackageManager) GetList(filter func(pi *PackageInfo) bool) []*PackageInfo {
+func (pm *PackageManagerFS) GetList(filter func(pi *PackageInfo) bool) []*PackageInfo {
 	var res []*PackageInfo
 
 	pm.data.Range(func(_, value any) bool {
@@ -103,7 +107,7 @@ func (pm *PackageManager) GetList(filter func(pi *PackageInfo) bool) []*PackageI
 	return res
 }
 
-func (pm *PackageManager) GetFirst(filter func(pi *PackageInfo) bool) *PackageInfo {
+func (pm *PackageManagerFS) GetFirst(filter func(pi *PackageInfo) bool) *PackageInfo {
 	var pi *PackageInfo
 
 	pm.data.Range(func(_, value any) bool {
@@ -122,19 +126,19 @@ func (pm *PackageManager) GetFirst(filter func(pi *PackageInfo) bool) *PackageIn
 }
 
 func saveInfo(baseDir string, finfo *PackageInfo) error {
-	fn, err := os.Create(filepath.Join(baseDir, finfo.UID, infoFileName))
+	fn, err := os.Create(filepath.Join(baseDir, finfo.UID+".yml"))
 	if err != nil {
 		return err
 	}
 	defer fn.Close()
 
-	enc := json.NewEncoder(fn)
+	enc := yaml.NewEncoder(fn)
 
 	return enc.Encode(finfo)
 }
 
-func loadInfo(baseDir, uid string) (*PackageInfo, error) {
-	fname := filepath.Join(baseDir, uid, infoFileName)
+func loadInfo(baseDir, fn string) (*PackageInfo, error) {
+	fname := filepath.Join(baseDir, fn)
 
 	if !fileExists(fname) {
 		return nil, fmt.Errorf("info file %s does not exists", fname)
@@ -148,7 +152,7 @@ func loadInfo(baseDir, uid string) (*PackageInfo, error) {
 	}
 	defer f.Close()
 
-	dec := json.NewDecoder(f)
+	dec := yaml.NewDecoder(f)
 	err = dec.Decode(pi)
 
 	if err != nil {
@@ -158,32 +162,24 @@ func loadInfo(baseDir, uid string) (*PackageInfo, error) {
 	return pi, nil
 }
 
-func (pm *PackageManager) GetFilePath(pi *PackageInfo) string {
-	return filepath.Join(pm.baseDir, pi.UID, pi.Name)
+func (pm *PackageManagerFS) GetFile(pi *PackageInfo) (io.ReadSeekCloser, error) {
+	return pm.files.GetFile(pi.Hash)
 }
 
-func (pm *PackageManager) SaveFile(pi *PackageInfo, data []byte) error {
-	hash1 := Hash(data)
+func (pm *PackageManagerFS) SaveFile(pi *PackageInfo, r io.Reader) error {
+	hash1, size, err := pm.files.PutFile(pi.Hash, r)
 
-	if pi.Hash != "" && pi.Hash != hash1 {
-		return fmt.Errorf("bad hash")
-	}
-
-	if pi.Name == "" {
-		return fmt.Errorf("no name")
+	if err != nil {
+		return err
 	}
 
 	pi.Hash = hash1
-	pi.Size = len(data)
+	if size != 0 {
+		pi.Size = int(size)
+	}
 
 	if pi.UID == "" {
 		pi.UID = uuid.NewString()
-	}
-
-	if !pm.noSave {
-		if err := pm.saveFile(pi.UID, pi.Name, data); err != nil {
-			return err
-		}
 	}
 
 	pm.Store(pi)
@@ -191,7 +187,7 @@ func (pm *PackageManager) SaveFile(pi *PackageInfo, data []byte) error {
 	return nil
 }
 
-func (pm *PackageManager) saveFile(uid, fname string, b []byte) error {
+func (pm *PackageManagerFS) saveFile(uid, fname string, b []byte) error {
 	dir := filepath.Join(pm.baseDir, uid)
 	if !fileExists(dir) {
 		if err := os.MkdirAll(dir, 0777); err != nil {
@@ -208,12 +204,6 @@ func (pm *PackageManager) saveFile(uid, fname string, b []byte) error {
 	_, err = fn.Write(b)
 
 	return err
-}
-
-func Hash(b []byte) string {
-	h := sha256.New()
-	h.Write(b)
-	return fmt.Sprintf("%x", h.Sum(nil))
 }
 
 func fileExists(path string) bool {

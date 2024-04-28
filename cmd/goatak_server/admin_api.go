@@ -28,6 +28,7 @@ func getAdminAPI(app *App, addr string, renderer *staticfiles.Renderer, webtakRo
 	adminAPI.GET("/", getIndexHandler(app, renderer))
 	adminAPI.GET("/map", getMapHandler(app, renderer))
 	adminAPI.GET("/missions", getMissionsPageHandler(app, renderer))
+	adminAPI.GET("/packages", getMPPageHandler(app, renderer))
 	adminAPI.GET("/config", getConfigHandler(app))
 	adminAPI.GET("/connections", getConnHandler(app))
 
@@ -40,6 +41,8 @@ func getAdminAPI(app *App, addr string, renderer *staticfiles.Renderer, webtakRo
 	adminAPI.GET("/takproto/1", getTakWsHandler(app))
 	adminAPI.POST("/cot", getCotPostHandler(app))
 	adminAPI.POST("/cot_xml", getCotXMLPostHandler(app))
+
+	adminAPI.GET("/mp", getAllMissionPackagesHandler(app))
 
 	if app.missions != nil {
 		adminAPI.GET("/mission", getAllMissionHandler(app))
@@ -108,6 +111,26 @@ func getMissionsPageHandler(app *App, r *staticfiles.Renderer) air.Handler {
 		}
 
 		s, err := r.Render(data, "missions.html", "menu.html", "header.html")
+		if err != nil {
+			app.logger.Error("error", "error", err)
+			_ = res.WriteString(err.Error())
+
+			return err
+		}
+
+		return res.WriteHTML(s)
+	}
+}
+
+func getMPPageHandler(app *App, r *staticfiles.Renderer) air.Handler {
+	return func(_ *air.Request, res *air.Response) error {
+		data := map[string]any{
+			"theme": "auto",
+			"page":  " mp",
+			"js":    []string{"mp.js"},
+		}
+
+		s, err := r.Render(data, "mp.html", "menu.html", "header.html")
 		if err != nil {
 			app.logger.Error("error", "error", err)
 			_ = res.WriteString(err.Error())
@@ -283,6 +306,14 @@ func getAllMissionHandler(app *App) air.Handler {
 		}
 
 		return res.WriteJSON(result)
+	}
+}
+
+func getAllMissionPackagesHandler(app *App) air.Handler {
+	return func(req *air.Request, res *air.Response) error {
+		data := app.packageManager.GetList(nil)
+
+		return res.WriteJSON(data)
 	}
 }
 
