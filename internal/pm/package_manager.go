@@ -2,13 +2,14 @@ package pm
 
 import (
 	"fmt"
-	"gopkg.in/yaml.v3"
 	"io"
 	"log/slog"
 	"os"
 	"path/filepath"
 	"strings"
 	"sync"
+
+	"gopkg.in/yaml.v3"
 
 	"github.com/google/uuid"
 )
@@ -113,7 +114,7 @@ func (pm *PackageManagerFS) GetFirst(filter func(pi *PackageInfo) bool) *Package
 	pm.data.Range(func(_, value any) bool {
 		p := value.(*PackageInfo)
 
-		if filter == nil || filter(pi) {
+		if filter == nil || filter(p) {
 			pi = p
 
 			return false
