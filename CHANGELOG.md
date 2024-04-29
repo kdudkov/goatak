@@ -1,8 +1,14 @@
-# unreleased
+# 0.17.0
 
 FEATURES:
 
 - gpsd support for webclient
+- mission packages storage refactoring
+- new `mm` (Mission Manager) cli utility
+
+FIXES:
+
+- fixed some missions and mission packages issues
 
 # 0.16.4
 
