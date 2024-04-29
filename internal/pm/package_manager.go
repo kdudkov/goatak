@@ -163,8 +163,8 @@ func loadInfo(baseDir, fn string) (*PackageInfo, error) {
 	return pi, nil
 }
 
-func (pm *PackageManagerFS) GetFile(pi *PackageInfo) (io.ReadSeekCloser, error) {
-	return pm.files.GetFile(pi.Hash)
+func (pm *PackageManagerFS) GetFile(hash string) (io.ReadSeekCloser, error) {
+	return pm.files.GetFile(hash)
 }
 
 func (pm *PackageManagerFS) SaveFile(pi *PackageInfo, r io.Reader) error {

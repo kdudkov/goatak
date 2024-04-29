@@ -135,15 +135,15 @@ type MissionInvitationDTO struct {
 	Role        *MissionRoleDTO `json:"role"`
 }
 
-func ToMissionDTO(m *Mission, pm pm.PackageManager, withToken bool) *MissionDTO {
-	return ToMissionDTOFull(m, pm, withToken, false)
+func ToMissionDTO(m *Mission, packages pm.PackageManager, withToken bool) *MissionDTO {
+	return ToMissionDTOFull(m, packages, withToken, false)
 }
 
-func ToMissionDTOAdm(m *Mission, pm pm.PackageManager) *MissionDTO {
-	return ToMissionDTOFull(m, pm, false, true)
+func ToMissionDTOAdm(m *Mission, packages pm.PackageManager) *MissionDTO {
+	return ToMissionDTOFull(m, packages, false, true)
 }
 
-func ToMissionDTOFull(m *Mission, pm pm.PackageManager, withToken bool, withScope bool) *MissionDTO {
+func ToMissionDTOFull(m *Mission, packages pm.PackageManager, withToken bool, withScope bool) *MissionDTO {
 	if m == nil {
 		return nil
 	}
@@ -188,10 +188,14 @@ func ToMissionDTOFull(m *Mission, pm pm.PackageManager, withToken bool, withScop
 		mDTO.Scope = m.Scope
 	}
 
-	if pm != nil {
+	if packages != nil {
 		for _, h := range m.GetHashes() {
-			if pi := pm.GetByHash(h); len(pi) > 0 {
-				mDTO.Contents = append(mDTO.Contents, toContentItemDTO(pi[0]))
+			pi := packages.GetFirst(func(x *pm.PackageInfo) bool {
+				return x.Hash == h && x.Scope == m.Scope
+			})
+
+			if pi != nil {
+				mDTO.Contents = append(mDTO.Contents, toContentItemDTO(pi))
 			}
 		}
 	}

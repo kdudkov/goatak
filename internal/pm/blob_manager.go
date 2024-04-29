@@ -11,6 +11,8 @@ import (
 	"sync"
 )
 
+var NotFound = fmt.Errorf("blob is not found")
+
 type BlobManager struct {
 	logger  *slog.Logger
 	mx      sync.RWMutex
@@ -35,8 +37,8 @@ func (m *BlobManager) GetFile(hash string) (io.ReadSeekCloser, error) {
 	m.mx.RLock()
 	defer m.mx.RUnlock()
 
-	if !fileExists(m.name(hash)) {
-		return nil, fmt.Errorf("blob is not found")
+	if hash == "" || !fileExists(m.name(hash)) {
+		return nil, NotFound
 	}
 
 	return os.Open(m.name(hash))

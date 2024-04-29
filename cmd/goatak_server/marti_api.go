@@ -344,34 +344,30 @@ func getContentGetHandler(app *App) air.Handler {
 		user := app.users.GetUser(username)
 
 		if hash := getStringParam(req, "hash"); hash != "" {
-			if pi := app.packageManager.GetFirst(func(pi *pm.PackageInfo) bool {
-				return pi.Hash == hash && user.CanSeeScope(pi.Scope)
-			}); pi != nil {
-				res.Header.Set("Content-type", pi.MIMEType)
+			f, err := app.packageManager.GetFile(hash)
 
-				f, err := app.packageManager.GetFile(pi)
+			if err != nil {
+				if errors.Is(err, pm.NotFound) {
+					app.logger.Info("not found - hash " + hash)
+					res.Status = http.StatusNotFound
 
-				if err != nil {
-					app.logger.Error("get file error", "error", err)
-					return err
+					return res.WriteString("not found")
 				}
+				app.logger.Error("get file error", "error", err)
 
-				defer f.Close()
-
-				return writeFile(res, f, pi.SubmissionDateTime)
+				return err
 			}
-			app.logger.Info("not found - hash " + hash)
 
-			res.Status = http.StatusNotFound
+			defer f.Close()
 
-			return res.WriteString("not found")
+			return res.Write(f)
 		}
 
 		if uid := getStringParam(req, "uid"); uid != "" {
 			if pi := app.packageManager.Get(uid); pi != nil && user.CanSeeScope(pi.Scope) {
 				res.Header.Set("Content-type", pi.MIMEType)
 
-				f, err := app.packageManager.GetFile(pi)
+				f, err := app.packageManager.GetFile(pi.Hash)
 
 				if err != nil {
 					app.logger.Error("get file error", "error", err)
@@ -380,7 +376,11 @@ func getContentGetHandler(app *App) air.Handler {
 
 				defer f.Close()
 
-				return writeFile(res, f, pi.SubmissionDateTime)
+				if res.Header.Get("Last-Modified") == "" {
+					res.Header.Set("Last-Modified", pi.SubmissionDateTime.UTC().Format(http.TimeFormat))
+				}
+
+				return res.Write(f)
 			}
 
 			app.logger.Info("not found - uid " + uid)
@@ -607,14 +607,6 @@ func getXmlHandler(app *App) air.Handler {
 
 		return res.WriteXML(evt)
 	}
-}
-
-func writeFile(r *air.Response, c io.ReadSeeker, mt time.Time) error {
-	if r.Header.Get("Last-Modified") == "" {
-		r.Header.Set("Last-Modified", mt.UTC().Format(http.TimeFormat))
-	}
-
-	return r.Write(c)
 }
 
 func makeAnswer(typ string, data any) map[string]any {
