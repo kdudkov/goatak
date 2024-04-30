@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/aofei/air"
@@ -178,7 +179,7 @@ func getMissionQueryHandler(app *App) air.Handler {
 		if pi := app.packageManager.GetFirst(func(pi *pm.PackageInfo) bool {
 			return pi.Hash == hash && user.CanSeeScope(pi.Scope)
 		}); pi != nil {
-			return res.WriteString(fmt.Sprintf("/Marti/sync/content?hash=%s", hash))
+			return res.WriteString(packageUrl(pi))
 		}
 		res.Status = http.StatusNotFound
 
@@ -211,7 +212,7 @@ func getMissionUploadHandler(app *App) air.Handler {
 			return pi.Hash == hash && user.CanSeeScope(pi.Scope)
 		}); pi != nil {
 			app.logger.Info("hash already exists: " + hash)
-			return res.WriteString(fmt.Sprintf("/Marti/sync/content?hash=%s", hash))
+			return res.WriteString(packageUrl(pi))
 		}
 
 		pi, err := app.uploadMultipart(req, "", hash, fname, true)
@@ -224,7 +225,7 @@ func getMissionUploadHandler(app *App) air.Handler {
 
 		app.logger.Info(fmt.Sprintf("save packege %s %s %s", pi.Name, pi.UID, pi.Hash))
 
-		return res.WriteString(fmt.Sprintf("/Marti/sync/content?hash=%s", hash))
+		return res.WriteString(packageUrl(pi))
 	}
 }
 
@@ -360,6 +361,10 @@ func getContentGetHandler(app *App) air.Handler {
 
 			defer f.Close()
 
+			if size, err := app.packageManager.GetFileSize(hash); err == nil {
+				res.Header.Set("Content-Length", strconv.Itoa(int(size)))
+			}
+
 			return res.Write(f)
 		}
 
@@ -379,6 +384,8 @@ func getContentGetHandler(app *App) air.Handler {
 				if res.Header.Get("Last-Modified") == "" {
 					res.Header.Set("Last-Modified", pi.SubmissionDateTime.UTC().Format(http.TimeFormat))
 				}
+
+				res.Header.Set("Content-Length", strconv.Itoa(pi.Size))
 
 				return res.Write(f)
 			}
@@ -607,6 +614,10 @@ func getXmlHandler(app *App) air.Handler {
 
 		return res.WriteXML(evt)
 	}
+}
+
+func packageUrl(pi *pm.PackageInfo) string {
+	return fmt.Sprintf("/Marti/sync/content?hash=%s", pi.Hash)
 }
 
 func makeAnswer(typ string, data any) map[string]any {

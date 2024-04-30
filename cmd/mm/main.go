@@ -7,12 +7,14 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"github.com/google/uuid"
+	"io"
 	"log/slog"
 	"os"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/google/uuid"
 
 	"github.com/jroimartin/gocui"
 	"github.com/spf13/viper"
@@ -69,7 +71,7 @@ func NewApp(connectStr string) *App {
 	}
 }
 
-func (app *App) Run(cmd string) {
+func (app *App) Run(cmd string, args []string) {
 	app.remoteAPI = NewRemoteAPI(app.host)
 
 	if app.tls {
@@ -77,8 +79,13 @@ func (app *App) Run(cmd string) {
 	}
 
 	switch cmd {
-	case "files":
+	case "files", "mp":
 		app.listFiles()
+	case "get":
+		if len(args) != 2 {
+			fmt.Println("need hash and name")
+		}
+		app.getFile(args[0], args[1])
 	default:
 		app.UI()
 	}
@@ -93,7 +100,25 @@ func (app *App) listFiles() {
 	}
 
 	for _, p := range res {
-		fmt.Printf("%s % -30s % -12s % -20s %s\n", p.UID, p.Name, p.Size, p.SubmissionUser, p.MIMEType)
+		fmt.Printf("%s %s % -30s % -12s % -20s %s\n", p.UID, p.Hash, p.Name, p.Size, p.SubmissionUser, p.MIMEType)
+	}
+}
+
+func (app *App) getFile(hash string, name string) {
+	err := app.remoteAPI.GetFile(context.Background(), hash, func(r io.Reader) error {
+		f, err := os.Create(name)
+
+		if err != nil {
+			return err
+		}
+
+		_, err = io.Copy(f, r)
+
+		return err
+	})
+
+	if err != nil {
+		fmt.Println(err)
 	}
 }
 
@@ -155,7 +180,6 @@ func main() {
 	conf := flag.String("config", "goatak_client.yml", "name of config file")
 	debug := flag.Bool("debug", false, "debug")
 	cmd := flag.String("cmd", "", "command")
-
 	flag.Parse()
 
 	viper.SetConfigFile(*conf)
@@ -219,5 +243,5 @@ func main() {
 		}
 	}
 
-	app.Run(*cmd)
+	app.Run(*cmd, flag.Args())
 }

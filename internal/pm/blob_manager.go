@@ -44,6 +44,17 @@ func (m *BlobManager) GetFile(hash string) (io.ReadSeekCloser, error) {
 	return os.Open(m.name(hash))
 }
 
+func (m *BlobManager) GetFileStat(hash string) (os.FileInfo, error) {
+	m.mx.RLock()
+	defer m.mx.RUnlock()
+
+	if hash == "" {
+		return nil, fmt.Errorf("no hash")
+	}
+
+	return os.Stat(m.name(hash))
+}
+
 func (m *BlobManager) PutFile(hash string, r io.Reader) (string, int64, error) {
 	m.mx.Lock()
 	defer m.mx.Unlock()

@@ -10,15 +10,14 @@ import (
 )
 
 type Request struct {
-	client    *http.Client
-	url       string
-	method    string
-	login     string
-	passw     string
-	body      io.Reader
-	urlGetter func(path string) string
-	args      map[string]string
-	logger    *slog.Logger
+	client *http.Client
+	url    string
+	method string
+	login  string
+	passw  string
+	body   io.Reader
+	args   map[string]string
+	logger *slog.Logger
 }
 
 func NewRequest(c *http.Client, logger *slog.Logger) *Request {
@@ -62,7 +61,7 @@ func (r *Request) Body(body io.Reader) *Request {
 	return r
 }
 
-func (r *Request) Do(ctx context.Context) (io.ReadCloser, error) {
+func (r *Request) DoRes(ctx context.Context) (*http.Response, error) {
 	req, err := http.NewRequestWithContext(ctx, r.method, r.url, r.body)
 	if err != nil {
 		return nil, err
@@ -90,7 +89,7 @@ func (r *Request) Do(ctx context.Context) (io.ReadCloser, error) {
 			r.logger.Info(fmt.Sprintf("%s %s - error %s", r.method, req.URL, err.Error()))
 		}
 
-		return nil, err
+		return res, err
 	}
 
 	if r.logger != nil {
@@ -98,7 +97,17 @@ func (r *Request) Do(ctx context.Context) (io.ReadCloser, error) {
 	}
 
 	if res.StatusCode < 200 || res.StatusCode > 299 {
-		return nil, fmt.Errorf("status is %s", res.Status)
+		return res, fmt.Errorf("status is %s", res.Status)
+	}
+
+	return res, nil
+}
+
+func (r *Request) Do(ctx context.Context) (io.ReadCloser, error) {
+	res, err := r.DoRes(ctx)
+
+	if err != nil {
+		return nil, err
 	}
 
 	if res.Body == nil {

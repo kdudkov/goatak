@@ -37,7 +37,7 @@ type PackageInfo struct {
 	SubmissionDateTime time.Time `json:"SubmissionDateTime"`
 	Keywords           []string  `json:"Keywords"`
 	MIMEType           string    `json:"MIMEType"`
-	Size               string    `json:"Size"`
+	Size               any       `json:"Size"`
 	SubmissionUser     string    `json:"SubmissionUser"`
 	PrimaryKey         int       `json:"PrimaryKey"`
 	Hash               string    `json:"Hash"`
@@ -51,7 +51,7 @@ func NewRemoteAPI(host string) *RemoteAPI {
 	return &RemoteAPI{
 		host:   host,
 		logger: slog.Default().With("logger", "remote_api"),
-		client: &http.Client{Timeout: httpTimeout},
+		client: &http.Client{Transport: &http.Transport{ResponseHeaderTimeout: httpTimeout}},
 	}
 }
 
@@ -181,9 +181,30 @@ func (r *RemoteAPI) Search(ctx context.Context) ([]*PackageInfo, error) {
 	err := r.request("/Marti/sync/search").GetJSON(ctx, &res)
 
 	if err != nil {
-		fmt.Println(err)
 		return nil, err
 	}
 
 	return res.Data, nil
+}
+
+func (r *RemoteAPI) GetFile(ctx context.Context, hash string, f func(r io.Reader) error) error {
+	res, err := r.request("/Marti/sync/content").Args(map[string]string{"hash": hash}).DoRes(ctx)
+
+	if err != nil {
+		return err
+	}
+
+	for k, v := range res.Header {
+		r.logger.Debug(fmt.Sprintf("%s: %s\n", k, v))
+	}
+
+	if res.Body != nil {
+		defer res.Body.Close()
+
+		if f != nil {
+			return f(res.Body)
+		}
+	}
+
+	return nil
 }

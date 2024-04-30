@@ -167,6 +167,16 @@ func (pm *PackageManagerFS) GetFile(hash string) (io.ReadSeekCloser, error) {
 	return pm.files.GetFile(hash)
 }
 
+func (pm *PackageManagerFS) GetFileSize(hash string) (int64, error) {
+	st, err := pm.files.GetFileStat(hash)
+
+	if err != nil {
+		return 0, err
+	}
+
+	return st.Size(), nil
+}
+
 func (pm *PackageManagerFS) SaveFile(pi *PackageInfo, r io.Reader) error {
 	hash1, size, err := pm.files.PutFile(pi.Hash, r)
 
