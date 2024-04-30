@@ -241,7 +241,7 @@ func getUploadHandler(app *App) air.Handler {
 			return res.WriteString("no name")
 		}
 
-		switch req.Header.Get("Content-type") {
+		switch req.Header.Get("Content-Type") {
 		case "multipart/form-data":
 			pi, err := app.uploadMultipart(req, uid, "", fname, false)
 			if err != nil {
@@ -282,7 +282,7 @@ func (app *App) uploadMultipart(req *air.Request, uid, hash, filename string, pa
 		UID:                uid,
 		SubmissionDateTime: time.Now(),
 		Keywords:           nil,
-		MIMEType:           fh.Header.Get("Content-type"),
+		MIMEType:           fh.Header.Get("Content-Type"),
 		Size:               0,
 		SubmissionUser:     user.GetLogin(),
 		PrimaryKey:         0,
@@ -320,7 +320,7 @@ func (app *App) uploadFile(req *air.Request, uid, filename string) (*pm.PackageI
 		UID:                uid,
 		SubmissionDateTime: time.Now(),
 		Keywords:           nil,
-		MIMEType:           req.Header.Get("Content-type"),
+		MIMEType:           req.Header.Get("Content-Type"),
 		Size:               0,
 		SubmissionUser:     user.GetLogin(),
 		PrimaryKey:         0,
@@ -332,7 +332,7 @@ func (app *App) uploadFile(req *air.Request, uid, filename string) (*pm.PackageI
 	}
 
 	if err1 := app.packageManager.SaveFile(pi, req.Body); err1 != nil {
-		app.logger.Error("save file eerror", "error", err1)
+		app.logger.Error("save file error", "error", err1)
 		return nil, err1
 	}
 
@@ -370,7 +370,7 @@ func getContentGetHandler(app *App) air.Handler {
 
 		if uid := getStringParam(req, "uid"); uid != "" {
 			if pi := app.packageManager.Get(uid); pi != nil && user.CanSeeScope(pi.Scope) {
-				res.Header.Set("Content-type", pi.MIMEType)
+				res.Header.Set("Content-Type", pi.MIMEType)
 
 				f, err := app.packageManager.GetFile(pi.Hash)
 
@@ -381,10 +381,7 @@ func getContentGetHandler(app *App) air.Handler {
 
 				defer f.Close()
 
-				if res.Header.Get("Last-Modified") == "" {
-					res.Header.Set("Last-Modified", pi.SubmissionDateTime.UTC().Format(http.TimeFormat))
-				}
-
+				res.Header.Set("Last-Modified", pi.SubmissionDateTime.UTC().Format(http.TimeFormat))
 				res.Header.Set("Content-Length", strconv.Itoa(pi.Size))
 
 				return res.Write(f)
