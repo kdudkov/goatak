@@ -105,6 +105,7 @@ var messages = map[string]string{
 	"u-d-f":         "Drawing Shapes - Multiline",
 	"u-d-f-m":       "Drawing Shapes – Freehand",
 	"u-d-r":         "Drawing Shapes – Rectangle",
+	"u-d-v-m":       "Drawing: model",
 	"u-r-b-c-c":     "Range & Bearing - Circle",
 	"u-rb-a":        "Range & Bearing – Line",
 	"y":             "Task Reply",

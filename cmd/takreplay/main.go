@@ -21,17 +21,12 @@ func main() {
 
 	flag.Parse()
 
-	file := flag.Arg(0)
+	files := flag.Args()
 
-	if file == "" {
+	if len(files) == 0 {
 		fmt.Println("usage: takreplay <filename>")
 		flag.PrintDefaults()
 		os.Exit(1)
-	}
-
-	f, err := os.Open(file)
-	if err != nil {
-		panic(err)
 	}
 
 	var dmp Dumper
@@ -59,14 +54,22 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err := readFile(f, *uid, *typ, dmp); !errors.Is(err, io.EOF) {
-		fmt.Println(err)
+	for _, file := range files {
+		f, err := os.Open(file)
+		if err != nil {
+			panic(err)
+		}
+
+		if err := readFile(f, *uid, *typ, dmp); !errors.Is(err, io.EOF) {
+			fmt.Println(err)
+		}
 	}
+
+	dmp.Stop()
 }
 
 func readFile(f *os.File, uid, typ string, dmp Dumper) error {
 	dmp.Start()
-	defer dmp.Stop()
 
 	lenBuf := make([]byte, 2)
 

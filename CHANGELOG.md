@@ -1,3 +1,9 @@
+# unreleased
+
+FEATURES:
+
+- multiple file processing with `takreplay`. Like `./takreplay -format stats data/log/*.tak`
+
 # 0.17.0
 
 FEATURES:
