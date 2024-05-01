@@ -96,7 +96,6 @@
                         <th>callsign</th>
                         <th>coords</th>
                         <th>scope</th>
-                        <th>send time</th>
                         <th>stale time</th>
                     </tr>
                     <tr v-for="u in byCategory('point')">
@@ -105,7 +104,6 @@
                         <td>{{ u.callsign }}</td>
                         <td>{{ printCoords(u.lat, u.lon) }}</td>
                         <td>{{ u.scope }}</td>
-                        <td>{{ dt(u.send_time) }}</td>
                         <td>{{ dt(u.stale_time) }}</td>
                     </tr>
                 </table>
