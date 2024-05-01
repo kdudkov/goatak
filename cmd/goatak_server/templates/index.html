@@ -37,9 +37,9 @@
                     <table class="table table-hover table-sm units">
                         <tr>
                             <th></th>
-                            <th>Callsign</th>
-                            <th>Scope</th>
-                            <th>Status</th>
+                            <th>callsign</th>
+                            <th>scope</th>
+                            <th>status</th>
                             <th>coords</th>
                             <th>TAK ver.</th>
                         </tr>
@@ -67,7 +67,8 @@
                 <table class="table table-hover table-sm units">
                     <tr>
                         <th></th>
-                        <th>Callsign</th>
+                        <th>type</th>
+                        <th>callsign</th>
                         <th>coords</th>
                         <th>scope</th>
                         <th>stale time</th>
@@ -76,6 +77,7 @@
                         <td>
                             <img v-bind:src="getImg(u)"/>
                         </td>
+                        <td>{{ u.type }}</td>
                         <td>{{ u.callsign }}</td>
                         <td>{{ printCoords(u.lat, u.lon) }}</td>
                         <td>{{ u.scope }}</td>
@@ -90,7 +92,8 @@
                 <table class="table table-hover table-sm units">
                     <tr>
                         <th></th>
-                        <th>Callsign</th>
+                        <th>type</th>
+                        <th>callsign</th>
                         <th>coords</th>
                         <th>scope</th>
                         <th>send time</th>
@@ -98,6 +101,7 @@
                     </tr>
                     <tr v-for="u in byCategory('point')">
                         <td><img v-bind:src="getImg(u)"/></td>
+                        <td>{{ u.type }}</td>
                         <td>{{ u.callsign }}</td>
                         <td>{{ printCoords(u.lat, u.lon) }}</td>
                         <td>{{ u.scope }}</td>
