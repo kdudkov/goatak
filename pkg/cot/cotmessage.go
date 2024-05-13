@@ -280,9 +280,9 @@ func (m *CotMessage) GetFirstLink(relation string) *Node {
 }
 
 func TimeFromMillis(ms uint64) time.Time {
-	return time.Unix(0, 1000000*int64(ms))
+	return time.UnixMilli(int64(ms))
 }
 
 func TimeToMillis(t time.Time) uint64 {
-	return uint64(t.UnixNano() / 1000000)
+	return uint64(t.UnixMilli())
 }
