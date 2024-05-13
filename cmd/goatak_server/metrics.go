@@ -13,6 +13,12 @@ var (
 		Help:      "The total number of cots processed",
 	}, []string{"scope", "msg_type"})
 
+	dropMetric = promauto.NewCounterVec(prometheus.CounterOpts{
+		Namespace: "goatak",
+		Name:      "cots_dropped",
+		Help:      "The total size of cots processed",
+	}, []string{"scope", "reason"})
+
 	connectionsMetric = promauto.NewGaugeVec(prometheus.GaugeOpts{
 		Namespace: "goatak",
 		Name:      "connections",

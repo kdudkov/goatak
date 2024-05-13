@@ -3,6 +3,11 @@
 FEATURES:
 
 - multiple file processing with `takreplay`. Like `./takreplay -format stats data/log/*.tak`
+- cot drops metric added
+
+FIXES:
+
+- xml cot handler fixed
 
 # 0.17.0
 

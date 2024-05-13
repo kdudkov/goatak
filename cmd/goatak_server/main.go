@@ -105,7 +105,7 @@ func NewApp(config *AppConfig) *App {
 		config:          config,
 		packageManager:  pm.NewPackageManager(filepath.Join(config.dataDir, "mp")),
 		users:           repository.NewFileUserRepo(config.usersFile),
-		ch:              make(chan *cot.CotMessage, 20),
+		ch:              make(chan *cot.CotMessage, 100),
 		handlers:        sync.Map{},
 		changeCb:        callbacks.New[*model.Item](),
 		deleteCb:        callbacks.New[string](),
@@ -202,7 +202,12 @@ func (app *App) NewCotMessage(msg *cot.CotMessage) {
 		}
 
 		messagesMetric.With(prometheus.Labels{"scope": msg.Scope, "msg_type": t}).Inc()
-		app.ch <- msg
+
+		select {
+		case app.ch <- msg:
+		default:
+			dropMetric.With(prometheus.Labels{"scope": msg.Scope, "reason": "main_ch"}).Inc()
+		}
 	}
 }
 

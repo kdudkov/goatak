@@ -81,9 +81,10 @@ func (app *App) Run(cmd string, args []string) {
 	switch cmd {
 	case "files", "mp":
 		app.listFiles()
-	case "get":
+	case "file", "get":
 		if len(args) != 2 {
 			fmt.Println("need hash and name")
+			return
 		}
 		app.getFile(args[0], args[1])
 	default:
