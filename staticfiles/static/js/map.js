@@ -127,7 +127,7 @@ let app = new Vue({
             this.conn = new WebSocket(url);
 
             this.conn.onmessage = function (e) {
-                vm.processUnit(JSON.parse(e.data));
+                vm.processWS(JSON.parse(e.data));
             };
 
             this.conn.onopen = function (e) {
@@ -207,10 +207,7 @@ let app = new Vue({
             if (!u) return;
             let unit = this.units.get(u.uid);
             let updateIcon = false;
-            if (u.category === "delete") {
-                this.removeUnit(u.uid);
-                return null;
-            }
+
             if (!unit) {
                 this.units.set(u.uid, u);
                 unit = u;
@@ -228,6 +225,16 @@ let app = new Vue({
             }
 
             return unit;
+        },
+
+        processWS: function (u) {
+            if (u.type === "unit") {
+                this.processUnit(u.unit);
+            }
+
+            if (u.type === "delete") {
+                this.removeUnit(u.uid);
+            }
         },
 
         updateMarker: function (unit, draggable, updateIcon) {

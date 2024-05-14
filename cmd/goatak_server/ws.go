@@ -10,10 +10,16 @@ import (
 	"github.com/kdudkov/goatak/pkg/model"
 )
 
+type WebMessage struct {
+	Typ  string         `json:"type"`
+	Unit *model.WebUnit `json:"unit,omitempty"`
+	UID  string         `json:"uid,omitempty"`
+}
+
 type JSONWsHandler struct {
 	name   string
 	ws     *air.WebSocket
-	ch     chan *model.WebUnit
+	ch     chan *WebMessage
 	active int32
 }
 
@@ -21,7 +27,7 @@ func NewHandler(name string, ws *air.WebSocket) *JSONWsHandler {
 	return &JSONWsHandler{
 		name:   name,
 		ws:     ws,
-		ch:     make(chan *model.WebUnit, 10),
+		ch:     make(chan *WebMessage, 10),
 		active: 1,
 	}
 }
@@ -65,7 +71,7 @@ func (w *JSONWsHandler) SendItem(i *model.Item) bool {
 	}
 
 	select {
-	case w.ch <- i.ToWeb():
+	case w.ch <- &WebMessage{Typ: "unit", Unit: i.ToWeb()}:
 	default:
 	}
 
@@ -78,7 +84,7 @@ func (w *JSONWsHandler) deleteItem(uid string) bool {
 	}
 
 	select {
-	case w.ch <- &model.WebUnit{UID: uid, Category: "delete"}:
+	case w.ch <- &WebMessage{Typ: "delete", UID: uid}:
 	default:
 	}
 
