@@ -9,8 +9,8 @@ let app = new Vue({
     },
 
     mounted() {
-        this.renew();
-        this.timer = setInterval(this.renew, 3000);
+        this.getData();
+        setInterval(this.getData, 3000);
     },
     computed: {
         all_conns: function () {
@@ -18,30 +18,29 @@ let app = new Vue({
         },
     },
     methods: {
-        renew: function () {
+        getData: function () {
             let vm = this;
-            let units = vm.units;
-            let conns = vm.connections;
 
             fetch('/unit')
                 .then(function (response) {
                     return response.json()
                 })
                 .then(function (data) {
-                    units.clear();
+                    vm.units.clear();
                     data.forEach(function (i) {
-                        units.set(i.uid, i);
+                        vm.units.set(i.uid, i);
                     });
                     vm.ts += 1;
                 });
+
             fetch('/connections')
                 .then(function (response) {
                     return response.json()
                 })
                 .then(function (data) {
-                    conns.clear();
+                    vm.connections.clear();
                     data.forEach(function (i) {
-                        conns.set(i.addr, i);
+                        vm.connections.set(i.addr, i);
                     });
                     vm.ts += 1;
                 });

@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"encoding/xml"
 	"errors"
+	"github.com/google/uuid"
+	"github.com/kdudkov/goatak/internal/wshandler"
 	"net/http"
 	"path/filepath"
 	"runtime/pprof"
@@ -314,6 +316,29 @@ func getAllMissionPackagesHandler(app *App) air.Handler {
 		data := app.packageManager.GetList(nil)
 
 		return res.WriteJSON(data)
+	}
+}
+
+func getWsHandler(app *App) air.Handler {
+	return func(req *air.Request, res *air.Response) error {
+		ws, err := res.WebSocket()
+		if err != nil {
+			return err
+		}
+
+		name := uuid.NewString()
+
+		h := wshandler.NewHandler(name, ws)
+
+		app.logger.Debug("ws listener connected")
+		app.changeCb.Subscribe(name, h.SendItem)
+		app.deleteCb.Subscribe(name, h.DeleteItem)
+		h.Listen()
+		app.logger.Debug("ws listener disconnected")
+		app.changeCb.Unsubscribe(name)
+		app.deleteCb.Unsubscribe(name)
+
+		return nil
 	}
 }
 

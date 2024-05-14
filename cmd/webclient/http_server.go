@@ -4,6 +4,7 @@ import (
 	"embed"
 	"encoding/json"
 	"fmt"
+	"github.com/kdudkov/goatak/internal/wshandler"
 	"runtime/pprof"
 	"time"
 
@@ -230,6 +231,29 @@ func deleteItemHandler(app *App) air.Handler {
 func getStackHandler() air.Handler {
 	return func(req *air.Request, res *air.Response) error {
 		return pprof.Lookup("goroutine").WriteTo(res.Body, 1)
+	}
+}
+
+func getWsHandler(app *App) air.Handler {
+	return func(req *air.Request, res *air.Response) error {
+		ws, err := res.WebSocket()
+		if err != nil {
+			return err
+		}
+
+		name := uuid.NewString()
+
+		h := wshandler.NewHandler(name, ws)
+
+		app.logger.Debug("ws listener connected")
+		app.changeCb.Subscribe(name, h.SendItem)
+		app.deleteCb.Subscribe(name, h.DeleteItem)
+		h.Listen()
+		app.logger.Debug("ws listener disconnected")
+		app.changeCb.Unsubscribe(name)
+		app.deleteCb.Unsubscribe(name)
+
+		return nil
 	}
 }
 
