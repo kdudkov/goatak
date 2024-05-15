@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"fmt"
+	"os"
 	"testing"
 	"time"
 
@@ -12,7 +13,7 @@ import (
 )
 
 func TestGetByHash(t *testing.T) {
-	pm := NewPackageManager("aaa")
+	pm := NewPackageManager(os.TempDir())
 	pm.noSave = true
 
 	data := []byte{1, 2, 3, 4, 5}
