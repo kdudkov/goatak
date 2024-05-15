@@ -28,6 +28,7 @@ func getAdminAPI(app *App, addr string, renderer *staticfiles.Renderer, webtakRo
 
 	staticfiles.EmbedFiles(adminAPI, "/static")
 	adminAPI.GET("/", getIndexHandler(app, renderer))
+	adminAPI.GET("/points", getPointsHandler(app, renderer))
 	adminAPI.GET("/map", getMapHandler(app, renderer))
 	adminAPI.GET("/missions", getMissionsPageHandler(app, renderer))
 	adminAPI.GET("/packages", getMPPageHandler(app, renderer))
@@ -74,6 +75,26 @@ func getIndexHandler(app *App, r *staticfiles.Renderer) air.Handler {
 		}
 
 		s, err := r.Render(data, "index.html", "menu.html", "header.html")
+		if err != nil {
+			app.logger.Error("error", "error", err)
+			_ = res.WriteString(err.Error())
+
+			return err
+		}
+
+		return res.WriteHTML(s)
+	}
+}
+
+func getPointsHandler(app *App, r *staticfiles.Renderer) air.Handler {
+	return func(req *air.Request, res *air.Response) error {
+		data := map[string]any{
+			"theme": "auto",
+			"page":  " points",
+			"js":    []string{"util.js", "points.js"},
+		}
+
+		s, err := r.Render(data, "points.html", "menu.html", "header.html")
 		if err != nil {
 			app.logger.Error("error", "error", err)
 			_ = res.WriteString(err.Error())

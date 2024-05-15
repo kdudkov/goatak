@@ -31,83 +31,8 @@
                     </table>
                 </div>
             </div>
-            <div class="card mb-2">
-                <div class="card-header">Contacts</div>
-                <div class="card-body">
-                    <table class="table table-hover table-sm units">
-                        <tr>
-                            <th></th>
-                            <th>callsign</th>
-                            <th>scope</th>
-                            <th>status</th>
-                            <th>coords</th>
-                            <th>TAK ver.</th>
-                        </tr>
-                        <tr v-for="u in byCategory('contact')">
-                            <td>
-                                <img v-bind:src="getImg(u)"/>
-                            </td>
-                            <td>{{ u.callsign }}</td>
-                            <td>{{ u.scope }}</td>
-                            <td><span class="badge"
-                                      v-bind:class="[u.status=='Online' ? 'bg-success' : 'bg-secondary']">{{ u.status }}</span>
-                            </td>
-                            <td>{{ printCoords(u.lat, u.lon) }}</td>
-                            <td>{{ u.tak_version }}</td>
-                        </tr>
-                    </table>
-                </div>
-            </div>
         </div>
     </div>
     <div class="col-6">
-        <div class="card mb-2">
-            <div class="card-header">Units</div>
-            <div class="card-body">
-                <table class="table table-hover table-sm units">
-                    <tr>
-                        <th></th>
-                        <th>type</th>
-                        <th>callsign</th>
-                        <th>coords</th>
-                        <th>scope</th>
-                        <th>stale time</th>
-                    </tr>
-                    <tr v-for="u in byCategory('unit')">
-                        <td>
-                            <img v-bind:src="getImg(u)"/>
-                        </td>
-                        <td>{{ u.type }}</td>
-                        <td>{{ u.callsign }}</td>
-                        <td>{{ printCoords(u.lat, u.lon) }}</td>
-                        <td>{{ u.scope }}</td>
-                        <td>{{ dt(u.stale_time) }}</td>
-                    </tr>
-                </table>
-            </div>
-        </div>
-        <div class="card mb-2">
-            <div class="card-header">Points</div>
-            <div class="card-body">
-                <table class="table table-hover table-sm units">
-                    <tr>
-                        <th></th>
-                        <th>type</th>
-                        <th>callsign</th>
-                        <th>coords</th>
-                        <th>scope</th>
-                        <th>stale time</th>
-                    </tr>
-                    <tr v-for="u in byCategory('point')">
-                        <td><img v-bind:src="getImg(u)"/></td>
-                        <td>{{ u.type }}</td>
-                        <td>{{ u.callsign }}</td>
-                        <td>{{ printCoords(u.lat, u.lon) }}</td>
-                        <td>{{ u.scope }}</td>
-                        <td>{{ dt(u.stale_time) }}</td>
-                    </tr>
-                </table>
-            </div>
-        </div>
     </div>
 </div>
