@@ -69,6 +69,18 @@ let app = new Vue({
         },
         sp: function (v) {
             return (v * 3.6).toFixed(1);
-        }
+        },
+        contactsNum: function () {
+            let online = 0;
+            let total = 0;
+            this.units.forEach(function (u) {
+                if (u.category === "contact") {
+                    if (u.status === "Online") online += 1;
+                    if (u.status !== "") total += 1;
+                }
+            })
+
+            return online + "/" + total;
+        },
     },
 });

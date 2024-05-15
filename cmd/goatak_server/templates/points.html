@@ -5,7 +5,8 @@
                 {{ alert }}
             </div>
             <div class="card mb-2">
-                <div class="card-header">Connections</div>
+                <div class="card-header">Connections <span
+                        class="badge rounded-pill bg-success">{{ connections.size }}</span></div>
                 <div class="card-body">
                     <table class="table table-hover table-sm units">
                         <tr>
@@ -32,7 +33,8 @@
                 </div>
             </div>
             <div class="card mb-2">
-                <div class="card-header">Contacts</div>
+                <div class="card-header">Contacts <span class="badge rounded-pill bg-success">{{ contactsNum() }}</span>
+                </div>
                 <div class="card-body">
                     <table class="table table-hover table-sm units">
                         <tr>
