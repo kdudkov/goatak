@@ -212,7 +212,7 @@
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <form>
+                    <form @submit.prevent="sendMessage">
                         <input type="text" class="form-control" id="message-text" v-model="chat_msg"/>
                     </form>
                     <button type="button" class="btn btn-primary" v-on:click="sendMessage">Send message</button>
