@@ -13,7 +13,11 @@ let app = new Vue({
     },
     computed: {
         all_conns: function () {
-            return this.ts && this.connections.values();
+            let arr = Array.from(this.connections.values());
+            arr.sort(function (a, b) {
+                return a.scope.localeCompare(b.scope) || a.user.localeCompare(b.user);
+            });
+            return this.ts && arr;
         },
     },
     methods: {
