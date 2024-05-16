@@ -664,8 +664,11 @@ let app = new Vue({
             if (!this.chat_uid) {
                 return [];
             }
-            for (m of this.messages[this.chat_uid].messages) {
-                this.seenMessages.add(m.message_id);
+
+            if (!document.getElementById('messages').hidden) {
+                for (m of this.messages[this.chat_uid].messages) {
+                    this.seenMessages.add(m.message_id);
+                }
             }
 
             return this.messages[this.chat_uid] ? this.messages[this.chat_uid].messages : [];
