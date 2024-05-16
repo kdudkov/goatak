@@ -660,6 +660,10 @@ let app = new Vue({
             new bootstrap.Modal(document.getElementById('messages')).show();
         },
 
+        getStatus: function (uid) {
+            return this.units.get(uid)?.status;
+        },
+
         getMessages: function () {
             if (!this.chat_uid) {
                 return [];
