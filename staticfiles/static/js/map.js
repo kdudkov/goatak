@@ -16,6 +16,7 @@ let app = new Vue({
         conn: null,
         units: new Map(),
         messages: [],
+        seenMessages: new Set(),
         ts: 0,
         locked_unit_uid: '',
         current_unit_uid: null,
@@ -44,11 +45,11 @@ let app = new Vue({
 
         if (supportsWebSockets) {
             this.connect();
-            setInterval(this.getAllUnits, 60000);
+            setInterval(this.fetchAllUnits, 60000);
         }
 
         this.renew();
-        setInterval(this.renew, 30000);
+        setInterval(this.renew, 5000);
 
         this.map.on('click', this.mapClick);
         this.map.on('mousemove', this.mouseMove);
@@ -122,7 +123,8 @@ let app = new Vue({
             let url = (window.location.protocol === 'https:' ? 'wss://' : 'ws://') + window.location.host + '/ws';
             let vm = this;
 
-            this.getAllUnits();
+            this.fetchAllUnits();
+            this.fetchMessages();
 
             this.conn = new WebSocket(url);
 
@@ -150,7 +152,7 @@ let app = new Vue({
             return this.conn.readyState === 1;
         },
 
-        getAllUnits: function () {
+        fetchAllUnits: function () {
             let vm = this;
 
             fetch('/unit')
@@ -160,12 +162,8 @@ let app = new Vue({
                 .then(vm.processUnits);
         },
 
-        renew: function () {
+        fetchMessages: function () {
             let vm = this;
-
-            if (!this.conn) {
-                this.getAllUnits();
-            }
 
             fetch('/message')
                 .then(function (response) {
@@ -174,6 +172,15 @@ let app = new Vue({
                 .then(function (data) {
                     vm.messages = data;
                 });
+        },
+
+        renew: function () {
+            let vm = this;
+
+            if (!this.conn) {
+                this.fetchAllUnits();
+                this.fetchMessages();
+            }
 
             if (this.getTool("dp1")) {
                 let p = this.getTool("dp1").getLatLng();
@@ -234,6 +241,11 @@ let app = new Vue({
 
             if (u.type === "delete") {
                 this.removeUnit(u.uid);
+            }
+
+            if (u.type === "chat") {
+                console.log(u.chat_msg);
+                this.fetchMessages();
             }
         },
 
@@ -620,15 +632,21 @@ let app = new Vue({
             let n = 0;
             for (const [key, value] of Object.entries(this.messages)) {
                 if (value.messages) {
-                    n += value.messages.length;
+                    for (m of value.messages) {
+                        if (!this.seenMessages.has(m.message_id)) n++;
+                    }
                 }
             }
             return n;
         },
 
-        msgNum1: function (k) {
-            if (!this.messages || !this.messages[k].messages) return 0;
-            return this.messages[k].messages.length;
+        msgNum1: function (uid) {
+            if (!this.messages || !this.messages[uid].messages) return 0;
+            let n = 0;
+            for (m of this.messages[uid].messages) {
+                if (!this.seenMessages.has(m.message_id)) n++;
+            }
+            return n;
         },
 
         setChat: function (uid, chatroom) {
@@ -646,6 +664,10 @@ let app = new Vue({
             if (!this.chat_uid) {
                 return [];
             }
+            for (m of this.messages[this.chat_uid].messages) {
+                this.seenMessages.add(m.message_id);
+            }
+
             return this.messages[this.chat_uid] ? this.messages[this.chat_uid].messages : [];
         },
 

@@ -53,6 +53,7 @@ type App struct {
 	cl              *client.ConnClientHandler
 	changeCb        *callbacks.Callback[*model.Item]
 	deleteCb        *callbacks.Callback[string]
+	chatCb          *callbacks.Callback[*model.ChatMessage]
 	eventProcessors []*EventProcessor
 	remoteAPI       *RemoteAPI
 	saveFile        string
@@ -106,6 +107,7 @@ func NewApp(uid string, callsign string, connectStr string, webPort int) *App {
 		dialTimeout:     time.Second * 5,
 		changeCb:        callbacks.New[*model.Item](),
 		deleteCb:        callbacks.New[string](),
+		chatCb:          callbacks.New[*model.ChatMessage](),
 		messages:        model.NewMessages(uid),
 		eventProcessors: make([]*EventProcessor, 0),
 		pos:             atomic.Pointer[model.Pos]{},

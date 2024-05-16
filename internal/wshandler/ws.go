@@ -8,9 +8,10 @@ import (
 )
 
 type WebMessage struct {
-	Typ  string         `json:"type"`
-	Unit *model.WebUnit `json:"unit,omitempty"`
-	UID  string         `json:"uid,omitempty"`
+	Typ         string             `json:"type"`
+	Unit        *model.WebUnit     `json:"unit,omitempty"`
+	UID         string             `json:"uid,omitempty"`
+	ChatMessage *model.ChatMessage `json:"chat_msg,omitempty"`
 }
 
 type JSONWsHandler struct {
@@ -82,6 +83,19 @@ func (w *JSONWsHandler) DeleteItem(uid string) bool {
 
 	select {
 	case w.ch <- &WebMessage{Typ: "delete", UID: uid}:
+	default:
+	}
+
+	return true
+}
+
+func (w *JSONWsHandler) NewChatMessage(msg *model.ChatMessage) bool {
+	if w == nil || !w.IsActive() {
+		return false
+	}
+
+	select {
+	case w.ch <- &WebMessage{Typ: "chat", ChatMessage: msg}:
 	default:
 	}
 
