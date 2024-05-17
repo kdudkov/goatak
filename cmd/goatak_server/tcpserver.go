@@ -13,6 +13,11 @@ import (
 
 func (app *App) ListenTCP(ctx context.Context, addr string) (err error) {
 	app.logger.Info("listening TCP at " + addr)
+	defer func() {
+		if r := recover(); r != nil {
+			app.logger.Error("panic in ListenTCP", "error", r)
+		}
+	}()
 
 	listener, err := net.Listen("tcp", addr)
 	if err != nil {
@@ -49,6 +54,12 @@ func (app *App) ListenTCP(ctx context.Context, addr string) (err error) {
 func (app *App) listenTLS(ctx context.Context, addr string) error {
 	app.logger.Info("listening TCP SSL at " + addr)
 
+	defer func() {
+		if r := recover(); r != nil {
+			app.logger.Error("panic in ListenTLS", "error", r)
+		}
+	}()
+
 	tlsCfg := &tls.Config{
 		Certificates:     []tls.Certificate{*app.config.tlsCert},
 		ClientCAs:        app.config.certPool,
@@ -56,7 +67,7 @@ func (app *App) listenTLS(ctx context.Context, addr string) error {
 		VerifyConnection: app.verifyConnection,
 	}
 
-	listener, err := tls.Listen("tcp4", addr, tlsCfg)
+	listener, err := tls.Listen("tcp", addr, tlsCfg)
 	if err != nil {
 		return err
 	}
