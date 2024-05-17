@@ -91,7 +91,7 @@ func (app *App) listenTLS(ctx context.Context, addr string) error {
 	return nil
 }
 
-func (app *App) processTLSConn(ctx context.Context, conn *tls.Conn) error {
+func (app *App) processTLSConn(ctx context.Context, conn *tls.Conn) {
 	ctx1, cancel := context.WithTimeout(ctx, time.Second)
 	defer cancel()
 
@@ -99,7 +99,7 @@ func (app *App) processTLSConn(ctx context.Context, conn *tls.Conn) error {
 		app.logger.Debug("Handshake error", "error", err)
 		_ = conn.Close()
 
-		return err
+		return
 	}
 
 	st := conn.ConnectionState()
@@ -118,7 +118,7 @@ func (app *App) processTLSConn(ctx context.Context, conn *tls.Conn) error {
 	h.Start()
 	app.onTLSClientConnect(username, serial)
 
-	return nil
+	return
 }
 
 func (app *App) verifyConnection(st tls.ConnectionState) error {
