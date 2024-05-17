@@ -42,10 +42,12 @@ type ClientHandler interface {
 	HasUID(uid string) bool
 	GetUids() map[string]string
 	GetUser() *model.User
+	GetSerial() string
 	GetVersion() int32
 	SendMsg(msg *cot.CotMessage) error
 	GetLastSeen() *time.Time
 	CanSeeScope(scope string) bool
+	Stop()
 }
 
 type ConnClientHandler struct {
@@ -124,6 +126,10 @@ func (h *ConnClientHandler) GetUser() *model.User {
 	return h.user
 }
 
+func (h *ConnClientHandler) GetSerial() string {
+	return h.serial
+}
+
 func (h *ConnClientHandler) GetUids() map[string]string {
 	res := make(map[string]string)
 
@@ -191,7 +197,7 @@ func (h *ConnClientHandler) pinger(ctx context.Context) {
 }
 
 func (h *ConnClientHandler) handleRead(ctx context.Context) {
-	defer h.stopHandle()
+	defer h.Stop()
 
 	er := cot.NewTagReader(h.conn)
 	pr := cot.NewProtoReader(h.conn)
@@ -395,14 +401,14 @@ func (h *ConnClientHandler) handleWrite() {
 	for msg := range h.sendChan {
 		if _, err := h.conn.Write(msg); err != nil {
 			h.logger.Debug(fmt.Sprintf("client %s write error %v", h.addr, err))
-			h.stopHandle()
+			h.Stop()
 
 			break
 		}
 	}
 }
 
-func (h *ConnClientHandler) stopHandle() {
+func (h *ConnClientHandler) Stop() {
 	if atomic.CompareAndSwapInt32(&h.active, 1, 0) {
 		h.logger.Info("stopping")
 		h.cancel()

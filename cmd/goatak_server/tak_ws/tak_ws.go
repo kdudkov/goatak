@@ -38,6 +38,10 @@ func (w *WsClientHandler) GetUser() *imodel.User {
 	return w.user
 }
 
+func (w *WsClientHandler) GetSerial() string {
+	return ""
+}
+
 func (w *WsClientHandler) CanSeeScope(scope string) bool {
 	return true
 }
@@ -118,14 +122,14 @@ func (w *WsClientHandler) writer() {
 	for b := range w.ch {
 		if err := w.ws.WriteBinary(b); err != nil {
 			w.logger.Error("send error", "error", err.Error())
-			w.stop()
+			w.Stop()
 
 			break
 		}
 	}
 }
 
-func (w *WsClientHandler) stop() {
+func (w *WsClientHandler) Stop() {
 	if atomic.CompareAndSwapInt32(&w.active, 1, 0) {
 		close(w.ch)
 		_ = w.ws.Close()
@@ -137,7 +141,7 @@ func (w *WsClientHandler) Listen() {
 	go w.writer()
 	w.ws.Listen()
 	w.logger.Info("stop listening")
-	w.stop()
+	w.Stop()
 }
 
 func (w *WsClientHandler) binaryReader(b []byte) error {
