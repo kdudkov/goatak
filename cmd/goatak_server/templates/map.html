@@ -16,7 +16,7 @@
                                 <a class="dropdown-item" href="#" v-on:click="setCurrentUnitUid(u.uid, true)">
                                     <img :src="getImg(u)"/>
                                     <span v-if="u.lat ===0 && u.lon ===0">* </span>{{ u.callsign }}<span
-                                        v-if="u.status and u.status !=='Online'"> ({{ u.status }})</span>
+                                        v-if="u.status && u.status !=='Online'"> ({{ u.status }})</span>
                                 </a>
                             </li>
                         </ul>
