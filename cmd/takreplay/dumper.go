@@ -125,16 +125,34 @@ func (g *GpxDumper) Process(msg *cot.CotMessage) error {
 }
 
 type StatsDumper struct {
-	data map[string]int64
+	data     map[string]int64
+	devices  map[string]int64
+	versions map[string]int64
 }
 
 func (g *StatsDumper) Start() {
 	g.data = make(map[string]int64)
+	g.devices = make(map[string]int64)
+	g.versions = make(map[string]int64)
 }
 
 func (g *StatsDumper) Stop() {
+	fmt.Println("\n== Messages:")
+
 	for k, v := range g.data {
 		fmt.Printf("%s %s %d\n", k, cot.GetMsgType(k), v)
+	}
+
+	fmt.Println("\n== Devices:")
+
+	for k := range g.devices {
+		fmt.Printf("%s\n", k)
+	}
+
+	fmt.Println("\n== Versions:")
+
+	for k := range g.versions {
+		fmt.Printf("%s\n", k)
 	}
 }
 
@@ -149,6 +167,25 @@ func (g *StatsDumper) Process(msg *cot.CotMessage) error {
 		g.data[t] = n + 1
 	} else {
 		g.data[t] = 1
+	}
+
+	if v := msg.GetTakMessage().GetCotEvent().GetDetail().GetTakv(); v != nil {
+		ver := strings.Trim(fmt.Sprintf("%s %s", v.GetPlatform(), v.GetVersion()), " ")
+		dev := strings.Trim(fmt.Sprintf("%s, %s", v.GetDevice(), v.GetOs()), " ")
+
+		if !strings.Contains(ver, "\n") {
+			if n, ok := g.versions[ver]; ok {
+				g.versions[ver] = n + 1
+			} else {
+				g.versions[ver] = 1
+			}
+		}
+
+		if n, ok := g.devices[dev]; ok {
+			g.devices[dev] = n + 1
+		} else {
+			g.devices[dev] = 1
+		}
 	}
 
 	return nil

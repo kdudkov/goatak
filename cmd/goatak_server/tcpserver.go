@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/spf13/viper"
 	"net"
+	"time"
 
 	"github.com/kdudkov/goatak/internal/client"
 	"github.com/kdudkov/goatak/pkg/tlsutil"
@@ -84,30 +85,38 @@ func (app *App) listenTLS(ctx context.Context, addr string) error {
 
 		app.logger.Debug("SSL connection from " + conn.RemoteAddr().String())
 
-		c1 := conn.(*tls.Conn)
-		if err := c1.Handshake(); err != nil {
-			app.logger.Debug("Handshake error", "error", err)
-			c1.Close()
-
-			continue
-		}
-
-		st := c1.ConnectionState()
-		username, serial := getCertUser(&st)
-
-		name := "ssl:" + conn.RemoteAddr().String()
-		h := client.NewConnClientHandler(name, conn, &client.HandlerConfig{
-			User:         app.users.GetUser(username),
-			Serial:       serial,
-			MessageCb:    app.NewCotMessage,
-			RemoveCb:     app.RemoveHandlerCb,
-			NewContactCb: app.NewContactCb,
-			RoutePings:   viper.GetBool("route_pings"),
-		})
-		app.AddClientHandler(h)
-		h.Start()
-		app.onTLSClientConnect(username, serial)
+		go app.processTLSConn(ctx, conn.(*tls.Conn))
 	}
+
+	return nil
+}
+
+func (app *App) processTLSConn(ctx context.Context, conn *tls.Conn) error {
+	ctx1, cancel := context.WithTimeout(ctx, time.Second)
+	defer cancel()
+
+	if err := conn.HandshakeContext(ctx1); err != nil {
+		app.logger.Debug("Handshake error", "error", err)
+		_ = conn.Close()
+
+		return err
+	}
+
+	st := conn.ConnectionState()
+	username, serial := getCertUser(&st)
+
+	name := "ssl:" + conn.RemoteAddr().String()
+	h := client.NewConnClientHandler(name, conn, &client.HandlerConfig{
+		User:         app.users.GetUser(username),
+		Serial:       serial,
+		MessageCb:    app.NewCotMessage,
+		RemoveCb:     app.RemoveHandlerCb,
+		NewContactCb: app.NewContactCb,
+		RoutePings:   viper.GetBool("route_pings"),
+	})
+	app.AddClientHandler(h)
+	h.Start()
+	app.onTLSClientConnect(username, serial)
 
 	return nil
 }
