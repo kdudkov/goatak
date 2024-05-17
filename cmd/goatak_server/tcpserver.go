@@ -92,7 +92,7 @@ func (app *App) listenTLS(ctx context.Context, addr string) error {
 }
 
 func (app *App) processTLSConn(ctx context.Context, conn *tls.Conn) {
-	ctx1, cancel := context.WithTimeout(ctx, time.Second)
+	ctx1, cancel := context.WithTimeout(ctx, time.Second*3)
 	defer cancel()
 
 	if err := conn.HandshakeContext(ctx1); err != nil {
