@@ -14,7 +14,7 @@
                         <ul class="dropdown-menu dropdown-menu-dark" aria-labelledby="navbarDarkDropdownMenuLink">
                             <li v-for="u in byCategory('contact')">
                                 <a class="dropdown-item" href="#" v-on:click="setCurrentUnitUid(u.uid, true)">
-                                    <img v-bind:src="getImg(u)"/>
+                                    <img :src="getImg(u)"/>
                                     <span v-if="u.lat === 0 && u.lon === 0">* </span>{{ u.callsign }}<span
                                         v-if="u.status"> ({{ u.status }})</span>
                                 </a>
@@ -133,7 +133,7 @@
                 <div class="card" v-if="current_unit">
                     <div class="card-header">
                             <span class="pull-left fw-bold" v-on:click="mapToUnit(current_unit)">
-                                <img v-bind:src="milImg(current_unit)"/> {{ getUnitName(current_unit) }} <span
+                                <img :src="milImg(current_unit)"/> {{ getUnitName(current_unit) }} <span
                                     v-if="current_unit.status"> ({{ current_unit.status }})</span>
                                 <img height="24" src="/static/icons/coord_unlock.png"
                                      v-if="current_unit.category !== 'point' && locked_unit_uid != current_unit.uid"

@@ -47,12 +47,12 @@
                         </tr>
                         <tr v-for="u in byCategory('contact')">
                             <td>
-                                <img v-bind:src="getImg(u)"/>
+                                <img :src="getImg(u)"/>
                             </td>
                             <td>{{ u.callsign }}</td>
                             <td>{{ u.scope }}</td>
                             <td><span class="badge"
-                                      v-bind:class="[u.status=='Online' ? 'bg-success' : 'bg-secondary']">{{ u.status }}</span>
+                                      :class="u.status=='Online' ? 'bg-success' : 'bg-secondary'">{{ u.status }}</span>
                             </td>
                             <td>{{ printCoords(u.lat, u.lon) }}</td>
                             <td>{{ u.tak_version }}</td>
@@ -77,7 +77,7 @@
                     </tr>
                     <tr v-for="u in byCategory('unit')">
                         <td>
-                            <img v-bind:src="getImg(u)"/>
+                            <img :src="getImg(u)"/>
                         </td>
                         <td>{{ u.type }}</td>
                         <td>{{ u.callsign }}</td>
@@ -101,7 +101,7 @@
                         <th>stale time</th>
                     </tr>
                     <tr v-for="u in byCategory('point')">
-                        <td><img v-bind:src="getImg(u)"/></td>
+                        <td><img :src="getImg(u)"/></td>
                         <td>{{ u.type }}</td>
                         <td>{{ u.callsign }}</td>
                         <td>{{ printCoords(u.lat, u.lon) }}</td>
