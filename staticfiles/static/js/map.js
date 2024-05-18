@@ -649,19 +649,20 @@ let app = new Vue({
             return n;
         },
 
-        setChat: function (uid, chatroom) {
-            this.chat_uid = uid;
-            this.chatroom = chatroom;
-        },
-
         openChat: function (uid, chatroom) {
             this.chat_uid = uid;
             this.chatroom = chatroom;
             new bootstrap.Modal(document.getElementById('messages')).show();
+
+            if (this.messages[this.chat_uid]) {
+                for (m of this.messages[this.chat_uid].messages) {
+                    this.seenMessages.add(m.message_id);
+                }
+            }
         },
 
         getStatus: function (uid) {
-            return this.units.get(uid)?.status;
+            return this.ts && this.units.get(uid)?.status;
         },
 
         getMessages: function () {
@@ -669,13 +670,15 @@ let app = new Vue({
                 return [];
             }
 
+            let msgs = this.messages[this.chat_uid] ? this.messages[this.chat_uid].messages : [];
+
             if (document.getElementById('messages').style.display !== 'none') {
-                for (m of this.messages[this.chat_uid].messages) {
+                for (m of msgs) {
                     this.seenMessages.add(m.message_id);
                 }
             }
 
-            return this.messages[this.chat_uid] ? this.messages[this.chat_uid].messages : [];
+            return msgs;
         },
 
         getUnitName: function (u) {

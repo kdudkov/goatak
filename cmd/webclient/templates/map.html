@@ -54,8 +54,7 @@
                         </a>
                         <ul class="dropdown-menu dropdown-menu-dark" aria-labelledby="navbarDarkDropdownMenuLink4">
                             <li v-for="m in Object.values(messages)">
-                                <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#messages"
-                                   v-on:click="setChat(m.uid, m.from)">
+                                <a class="dropdown-item" href="#" v-on:click="openChat(m.uid, m.from)">
                                     {{ m.from }} <span class="badge rounded-pill bg-success">{{ msgNum1(m.uid) }}</span>
                                 </a>
                             </li>
