@@ -79,7 +79,7 @@ func NewConnClientHandler(name string, conn net.Conn, config *HandlerConfig) *Co
 		addr:         name,
 		conn:         conn,
 		ver:          0,
-		sendChan:     make(chan []byte, 10),
+		sendChan:     make(chan []byte, 50),
 		active:       1,
 		uids:         sync.Map{},
 		lastActivity: atomic.Pointer[time.Time]{},
