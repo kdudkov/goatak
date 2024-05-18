@@ -523,7 +523,7 @@ func (h *ConnClientHandler) tryAddPacket(msg []byte) bool {
 	case h.sendChan <- msg:
 	default:
 		if h.dropMetric != nil {
-			h.dropMetric.WithLabelValues("reason", "handler").Inc()
+			h.dropMetric.WithLabelValues("reason", "handler_"+h.GetUser().GetLogin()).Inc()
 		}
 	}
 
