@@ -4,9 +4,10 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
-	"github.com/spf13/viper"
 	"net"
 	"time"
+
+	"github.com/spf13/viper"
 
 	"github.com/kdudkov/goatak/internal/client"
 	"github.com/kdudkov/goatak/pkg/tlsutil"
@@ -44,6 +45,7 @@ func (app *App) ListenTCP(ctx context.Context, addr string) (err error) {
 			RemoveCb:     app.RemoveHandlerCb,
 			NewContactCb: app.NewContactCb,
 			RoutePings:   viper.GetBool("route_pings"),
+			DropMetric:   dropMetric,
 		})
 		app.AddClientHandler(h)
 		h.Start()
@@ -113,6 +115,7 @@ func (app *App) processTLSConn(ctx context.Context, conn *tls.Conn) {
 		RemoveCb:     app.RemoveHandlerCb,
 		NewContactCb: app.NewContactCb,
 		RoutePings:   viper.GetBool("route_pings"),
+		DropMetric:   dropMetric,
 	})
 	app.AddClientHandler(h)
 	h.Start()

@@ -13,6 +13,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/spf13/viper"
 
 	"github.com/kdudkov/goatak/internal/model"
@@ -35,6 +36,7 @@ type HandlerConfig struct {
 	NewContactCb func(uid, callsign string)
 	RoutePings   bool
 	Logger       *slog.Logger
+	DropMetric   *prometheus.CounterVec
 }
 
 type ClientHandler interface {
@@ -69,6 +71,7 @@ type ConnClientHandler struct {
 	removeCb     func(ch ClientHandler)
 	newContactCb func(uid, callsign string)
 	logger       *slog.Logger
+	dropMetric   *prometheus.CounterVec
 }
 
 func NewConnClientHandler(name string, conn net.Conn, config *HandlerConfig) *ConnClientHandler {
@@ -91,6 +94,7 @@ func NewConnClientHandler(name string, conn net.Conn, config *HandlerConfig) *Co
 		c.messageCb = config.MessageCb
 		c.removeCb = config.RemoveCb
 		c.newContactCb = config.NewContactCb
+		c.dropMetric = config.DropMetric
 
 		params := []any{"client", name}
 
@@ -518,6 +522,9 @@ func (h *ConnClientHandler) tryAddPacket(msg []byte) bool {
 	select {
 	case h.sendChan <- msg:
 	default:
+		if h.dropMetric != nil {
+			h.dropMetric.WithLabelValues("reason", "handler").Inc()
+		}
 	}
 
 	return true
