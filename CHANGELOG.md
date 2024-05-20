@@ -1,3 +1,17 @@
+# unreleased
+
+FEATURES:
+
+- messages counters in client now show number of unread messages
+- fixed chat in webclient: message delivery, send message with enter key, etc
+- `takreplay` format `stats` now shows clients and devices information
+- new `cots_dropped` metric
+- server config options `interscope_chat` and `route_pings` are removed
+
+FIXES:
+
+- fixed server bottleneck with ssl handshake
+
 # 0.17.1
 
 FEATURES:

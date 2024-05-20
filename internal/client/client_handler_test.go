@@ -3,7 +3,6 @@ package client
 import (
 	"bytes"
 	"encoding/binary"
-	"github.com/spf13/viper"
 	"io"
 	"testing"
 	"time"
@@ -70,17 +69,9 @@ func TestRouteChat(t *testing.T) {
 	assert.InDelta(t, 20., c.GetCotEvent().GetLon(), 0.0001)
 
 	msg = &cot.CotMessage{TakMessage: tak, Scope: "bbb"}
-	viper.Set("interscope_chat", false)
 	c, err = passMsg(h, msg)
 	require.NoError(t, err)
 	assert.Nil(t, c)
-
-	viper.Set("interscope_chat", true)
-	c, err = passMsg(h, msg)
-	require.NoError(t, err)
-	assert.Equal(t, "b-t-f", c.GetCotEvent().GetType())
-	assert.InDelta(t, 0., c.GetCotEvent().GetLat(), 0.0001)
-	assert.InDelta(t, 0., c.GetCotEvent().GetLon(), 0.0001)
 }
 
 func passMsg(h *ConnClientHandler, msg *cot.CotMessage) (*cotproto.TakMessage, error) {

@@ -13,12 +13,10 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/prometheus/client_golang/prometheus"
-	"github.com/spf13/viper"
-
 	"github.com/kdudkov/goatak/internal/model"
 	"github.com/kdudkov/goatak/pkg/cot"
 	"github.com/kdudkov/goatak/pkg/cotproto"
+	"github.com/prometheus/client_golang/prometheus"
 )
 
 const (
@@ -34,7 +32,6 @@ type HandlerConfig struct {
 	MessageCb    func(msg *cot.CotMessage)
 	RemoveCb     func(ch ClientHandler)
 	NewContactCb func(uid, callsign string)
-	RoutePings   bool
 	Logger       *slog.Logger
 	DropMetric   *prometheus.CounterVec
 }
@@ -59,7 +56,6 @@ type ConnClientHandler struct {
 	localUID     string
 	ver          int32
 	isClient     bool
-	routePings   bool
 	uids         sync.Map
 	lastActivity atomic.Pointer[time.Time]
 	closeTimer   *time.Timer
@@ -90,7 +86,6 @@ func NewConnClientHandler(name string, conn net.Conn, config *HandlerConfig) *Co
 		c.serial = config.Serial
 		c.localUID = config.UID
 		c.isClient = config.IsClient
-		c.routePings = config.RoutePings
 		c.messageCb = config.MessageCb
 		c.removeCb = config.RemoveCb
 		c.newContactCb = config.NewContactCb
@@ -264,9 +259,7 @@ func (h *ConnClientHandler) handleRead(ctx context.Context) {
 				h.logger.Error("SendMsg error", "error", err)
 			}
 
-			if !h.routePings {
-				continue
-			}
+			continue
 		}
 
 		// pong
@@ -481,10 +474,6 @@ func (h *ConnClientHandler) sendEvent(evt *cot.Event) error {
 func (h *ConnClientHandler) SendMsg(msg *cot.CotMessage) error {
 	if msg.IsLocal() || h.CanSeeScope(msg.Scope) {
 		return h.SendCot(msg.GetTakMessage())
-	}
-
-	if viper.GetBool("interscope_chat") && (msg.IsChat() || msg.IsChatReceipt()) {
-		return h.SendCot(cot.CloneMessageNoCoords(msg.GetTakMessage()))
 	}
 
 	return nil

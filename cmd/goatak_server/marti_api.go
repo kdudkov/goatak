@@ -13,8 +13,6 @@ import (
 
 	"github.com/aofei/air"
 	"github.com/google/uuid"
-	"github.com/spf13/viper"
-
 	"github.com/kdudkov/goatak/cmd/goatak_server/mp"
 	"github.com/kdudkov/goatak/internal/pm"
 	"github.com/kdudkov/goatak/pkg/cot"
@@ -111,7 +109,7 @@ func getEndpointsHandler(app *App) air.Handler {
 		data := make([]map[string]any, 0)
 
 		app.items.ForEach(func(item *model.Item) bool {
-			if !viper.GetBool("interscope_chat") && !user.CanSeeScope(item.GetScope()) {
+			if !user.CanSeeScope(item.GetScope()) {
 				return true
 			}
 
@@ -144,7 +142,7 @@ func getContactsHandler(app *App) air.Handler {
 		result := make([]*model.Contact, 0)
 
 		app.items.ForEach(func(item *model.Item) bool {
-			if !viper.GetBool("interscope_chat") && !user.CanSeeScope(item.GetScope()) {
+			if !user.CanSeeScope(item.GetScope()) {
 				return true
 			}
 

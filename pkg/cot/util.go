@@ -4,8 +4,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"google.golang.org/protobuf/proto"
-
 	"github.com/kdudkov/goatak/pkg/cotproto"
 )
 
@@ -67,22 +65,4 @@ func MakeDpMsg(uid string, typ string, name string, lat float64, lon float64) *c
 	}
 
 	return msg
-}
-
-func CloneMessageNoCoords(msg *cotproto.TakMessage) *cotproto.TakMessage {
-	if msg == nil {
-		return nil
-	}
-
-	msg1 := proto.Clone(msg).(*cotproto.TakMessage)
-
-	if evt := msg1.GetCotEvent(); evt != nil {
-		evt.Lat = 0
-		evt.Lon = 0
-		evt.Hae = NotNum
-		evt.Ce = NotNum
-		evt.Le = NotNum
-	}
-
-	return msg1
 }
