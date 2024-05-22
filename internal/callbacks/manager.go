@@ -2,6 +2,8 @@ package callbacks
 
 import (
 	"sync"
+
+	"github.com/google/uuid"
 )
 
 type Callback[V any] struct {
@@ -26,6 +28,10 @@ func (p *Callback[V]) AddMessage(msg V) {
 
 		return true
 	})
+}
+
+func (p *Callback[V]) Add(fn func(msg V) bool) {
+	p.callbacks.Store(uuid.NewString(), fn)
 }
 
 func (p *Callback[V]) Subscribe(name string, fn func(msg V) bool) {

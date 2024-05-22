@@ -8,12 +8,13 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/kdudkov/goatak/internal/client"
+	"github.com/kdudkov/goatak/pkg/request"
+
 	"github.com/kdudkov/goatak/pkg/model"
 )
 
 const (
-	renewContacts = time.Second * 30
+	renewContacts = time.Second * 120
 	httpTimeout   = time.Second * 5
 )
 
@@ -45,8 +46,8 @@ func (r *RemoteAPI) getURL(path string) string {
 	return fmt.Sprintf("http://%s:8080%s", r.host, path)
 }
 
-func (r *RemoteAPI) request(url string) *client.Request {
-	return client.NewRequest(r.client, r.logger).URL(r.getURL(url))
+func (r *RemoteAPI) request(url string) *request.Request {
+	return request.New(r.client, r.logger).URL(r.getURL(url))
 }
 
 func (r *RemoteAPI) getContacts(ctx context.Context) ([]*model.Contact, error) {
@@ -64,7 +65,7 @@ func (app *App) periodicGetter(ctx context.Context) {
 	d, _ := app.remoteAPI.getContacts(ctx)
 	for _, c := range d {
 		app.logger.Debug(fmt.Sprintf("contact %s %s", c.UID, c.Callsign))
-		app.messages.Contacts.Store(c.UID, c)
+		app.chatMessages.Contacts.Store(c.UID, c)
 	}
 
 	for ctx.Err() == nil {
@@ -81,7 +82,7 @@ func (app *App) periodicGetter(ctx context.Context) {
 
 			for _, c := range dat {
 				app.logger.Debug(fmt.Sprintf("contact %s %s", c.UID, c.Callsign))
-				app.messages.Contacts.Store(c.UID, c)
+				app.chatMessages.Contacts.Store(c.UID, c)
 			}
 		}
 	}

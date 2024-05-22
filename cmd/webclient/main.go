@@ -46,7 +46,7 @@ type App struct {
 	logger          *slog.Logger
 	ch              chan []byte
 	items           repository.ItemsRepository
-	messages        *model.Messages
+	chatMessages    *model.ChatMessages
 	tls             bool
 	tlsCert         *tls.Certificate
 	cas             *x509.CertPool
@@ -108,7 +108,7 @@ func NewApp(uid string, callsign string, connectStr string, webPort int) *App {
 		changeCb:        callbacks.New[*model.Item](),
 		deleteCb:        callbacks.New[string](),
 		chatCb:          callbacks.New[*model.ChatMessage](),
-		messages:        model.NewMessages(uid),
+		chatMessages:    model.NewChatMessages(uid),
 		eventProcessors: make([]*EventProcessor, 0),
 		pos:             atomic.Pointer[model.Pos]{},
 	}

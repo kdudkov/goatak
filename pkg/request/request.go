@@ -1,4 +1,4 @@
-package client
+package request
 
 import (
 	"context"
@@ -10,17 +10,19 @@ import (
 )
 
 type Request struct {
-	client *http.Client
-	url    string
-	method string
-	login  string
-	passw  string
-	body   io.Reader
-	args   map[string]string
-	logger *slog.Logger
+	client  *http.Client
+	url     string
+	method  string
+	token   string
+	login   string
+	passw   string
+	body    io.Reader
+	headers map[string]string
+	args    map[string]string
+	logger  *slog.Logger
 }
 
-func NewRequest(c *http.Client, logger *slog.Logger) *Request {
+func New(c *http.Client, logger *slog.Logger) *Request {
 	return &Request{client: c, method: "GET", logger: logger}
 }
 
@@ -42,9 +44,21 @@ func (r *Request) Post() *Request {
 	return r
 }
 
+func (r *Request) Token(token string) *Request {
+	r.token = token
+
+	return r
+}
+
 func (r *Request) Auth(login, passw string) *Request {
 	r.login = login
 	r.passw = passw
+
+	return r
+}
+
+func (r *Request) Headers(headers map[string]string) *Request {
+	r.headers = headers
 
 	return r
 }
@@ -67,11 +81,21 @@ func (r *Request) DoRes(ctx context.Context) (*http.Response, error) {
 		return nil, err
 	}
 
-	if r.login != "" {
-		req.SetBasicAuth(r.login, r.passw)
+	req.Header.Del("User-Agent")
+
+	if len(r.headers) > 0 {
+		for k, v := range r.headers {
+			req.Header.Set(k, v)
+		}
 	}
 
-	req.Header.Del("User-Agent")
+	if r.token != "" {
+		req.Header.Set("Authorization", "Bearer "+r.token)
+	} else {
+		if r.login != "" {
+			req.SetBasicAuth(r.login, r.passw)
+		}
+	}
 
 	if len(r.args) > 0 {
 		q := req.URL.Query()
@@ -92,12 +116,16 @@ func (r *Request) DoRes(ctx context.Context) (*http.Response, error) {
 		return res, err
 	}
 
-	if r.logger != nil {
-		r.logger.Info(fmt.Sprintf("%s %s - %d", r.method, req.URL, res.StatusCode))
+	if res.StatusCode < 200 || res.StatusCode > 299 {
+		if r.logger != nil {
+			r.logger.Warn(fmt.Sprintf("%s %s - %d", r.method, req.URL, res.StatusCode))
+		}
+
+		return res, fmt.Errorf("status is %s", res.Status)
 	}
 
-	if res.StatusCode < 200 || res.StatusCode > 299 {
-		return res, fmt.Errorf("status is %s", res.Status)
+	if r.logger != nil {
+		r.logger.Debug(fmt.Sprintf("%s %s - %d", r.method, req.URL, res.StatusCode))
 	}
 
 	return res, nil

@@ -4,12 +4,13 @@ import (
 	"encoding/json"
 	"encoding/xml"
 	"errors"
-	"github.com/google/uuid"
-	"github.com/kdudkov/goatak/internal/wshandler"
 	"net/http"
 	"path/filepath"
 	"runtime/pprof"
 	"sort"
+
+	"github.com/google/uuid"
+	"github.com/kdudkov/goatak/internal/wshandler"
 
 	"github.com/aofei/air"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -356,8 +357,6 @@ func getWsHandler(app *App) air.Handler {
 		app.deleteCb.Subscribe(name, h.DeleteItem)
 		h.Listen()
 		app.logger.Debug("ws listener disconnected")
-		app.changeCb.Unsubscribe(name)
-		app.deleteCb.Unsubscribe(name)
 
 		return nil
 	}
@@ -379,7 +378,6 @@ func getTakWsHandler(app *App) air.Handler {
 
 		app.AddClientHandler(w)
 		w.Listen()
-		app.RemoveHandlerCb(w)
 		app.logger.Info("ws disconnected")
 
 		return nil

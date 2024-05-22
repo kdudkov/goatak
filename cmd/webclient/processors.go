@@ -87,7 +87,7 @@ func (app *App) chatProcessor(msg *cot.CotMessage) {
 	}
 
 	app.logger.Info(c.String())
-	app.messages.Add(c)
+	app.chatMessages.Add(c)
 	app.chatCb.AddMessage(c)
 }
 

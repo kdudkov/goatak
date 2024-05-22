@@ -10,7 +10,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/kdudkov/goatak/internal/client"
+	"github.com/kdudkov/goatak/pkg/request"
+
 	mp "github.com/kdudkov/goatak/internal/model"
 	"github.com/kdudkov/goatak/pkg/model"
 )
@@ -68,8 +69,8 @@ func (r *RemoteAPI) getURL(path string) string {
 	return fmt.Sprintf("http://%s:8080%s", r.host, path)
 }
 
-func (r *RemoteAPI) request(url string) *client.Request {
-	return client.NewRequest(r.client, r.logger).URL(r.getURL(url))
+func (r *RemoteAPI) request(url string) *request.Request {
+	return request.New(r.client, r.logger).URL(r.getURL(url))
 }
 
 func (r *RemoteAPI) getContacts(ctx context.Context) ([]*model.Contact, error) {

@@ -11,7 +11,7 @@ import (
 	"github.com/kdudkov/goatak/pkg/cotproto"
 )
 
-type Messages struct {
+type ChatMessages struct {
 	mx       sync.RWMutex
 	uid      string
 	Chats    map[string]*Chat
@@ -36,8 +36,8 @@ type ChatMessage struct {
 	Text     string    `json:"text"`
 }
 
-func NewMessages(myUID string) *Messages {
-	msg := new(Messages)
+func NewChatMessages(myUID string) *ChatMessages {
+	msg := new(ChatMessages)
 	msg.uid = myUID
 	msg.Chats = map[string]*Chat{
 		"All Chat Rooms": {
@@ -50,7 +50,7 @@ func NewMessages(myUID string) *Messages {
 	return msg
 }
 
-func (m *Messages) Add(msg *ChatMessage) {
+func (m *ChatMessages) Add(msg *ChatMessage) {
 	m.mx.Lock()
 	defer m.mx.Unlock()
 

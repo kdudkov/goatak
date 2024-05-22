@@ -4,9 +4,10 @@ import (
 	"embed"
 	"encoding/json"
 	"fmt"
-	"github.com/kdudkov/goatak/internal/wshandler"
 	"runtime/pprof"
 	"time"
+
+	"github.com/kdudkov/goatak/internal/wshandler"
 
 	"github.com/aofei/air"
 	"github.com/google/uuid"
@@ -74,7 +75,7 @@ func getUnitsHandler(app *App) air.Handler {
 
 func getMessagesHandler(app *App) air.Handler {
 	return func(req *air.Request, res *air.Response) error {
-		return res.WriteJSON(app.messages.Chats)
+		return res.WriteJSON(app.chatMessages.Chats)
 	}
 }
 
@@ -209,9 +210,9 @@ func addMessageHandler(app *App) air.Handler {
 
 		app.logger.Debug(m.String())
 		app.SendMsg(m)
-		app.messages.Add(msg)
+		app.chatMessages.Add(msg)
 
-		return res.WriteJSON(app.messages.Chats)
+		return res.WriteJSON(app.chatMessages.Chats)
 	}
 }
 
@@ -222,7 +223,7 @@ func deleteItemHandler(app *App) air.Handler {
 
 		r := make(map[string]any, 0)
 		r["units"] = getUnits(app)
-		r["messages"] = app.messages
+		r["messages"] = app.chatMessages
 
 		return res.WriteJSON(r)
 	}
@@ -251,9 +252,6 @@ func getWsHandler(app *App) air.Handler {
 		app.chatCb.Subscribe(name, h.NewChatMessage)
 		h.Listen()
 		app.logger.Debug("ws listener disconnected")
-		app.changeCb.Unsubscribe(name)
-		app.deleteCb.Unsubscribe(name)
-		app.chatCb.Unsubscribe(name)
 
 		return nil
 	}

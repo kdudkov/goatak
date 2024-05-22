@@ -2,9 +2,10 @@ package wshandler
 
 import (
 	"encoding/json"
+	"sync/atomic"
+
 	"github.com/aofei/air"
 	"github.com/kdudkov/goatak/pkg/model"
-	"sync/atomic"
 )
 
 type WebMessage struct {

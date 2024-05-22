@@ -37,7 +37,7 @@ func TestChatFromMe(t *testing.T) {
 	assert.Equal(t, "uid2", cm.ToUID)
 	assert.True(t, cm.Direct)
 
-	messages := NewMessages("uid1")
+	messages := NewChatMessages("uid1")
 	messages.Add(cm)
 	ch, ok := messages.Chats["uid2"]
 	assert.True(t, ok)
@@ -56,7 +56,7 @@ func TestChatTomMe(t *testing.T) {
 	assert.Equal(t, "uid2", cm.ToUID)
 	assert.True(t, cm.Direct)
 
-	messages := NewMessages("uid2")
+	messages := NewChatMessages("uid2")
 	messages.Add(cm)
 	ch, ok := messages.Chats["uid1"]
 	assert.True(t, ok)
@@ -119,14 +119,14 @@ func TestMsgRed(t *testing.T) {
 	assert.False(t, cm.Direct)
 	assert.Equal(t, "Roger", cm.Text)
 
-	messages := NewMessages("uid2")
+	messages := NewChatMessages("uid2")
 	messages.Add(cm)
 	ch, ok := messages.Chats["Red"]
 	assert.True(t, ok)
 	assert.Equal(t, "Red", ch.UID)
 	assert.Equal(t, "Red", ch.From)
 
-	messages2 := NewMessages("uid1")
+	messages2 := NewChatMessages("uid1")
 	messages2.Add(cm)
 	ch, ok = messages2.Chats["Red"]
 	assert.True(t, ok)

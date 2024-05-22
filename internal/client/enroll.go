@@ -20,6 +20,7 @@ import (
 	"github.com/spf13/viper"
 	"software.sslmate.com/src/go-pkcs12"
 
+	"github.com/kdudkov/goatak/pkg/request"
 	"github.com/kdudkov/goatak/pkg/tlsutil"
 )
 
@@ -65,8 +66,8 @@ func (e *Enroller) getURL(path string) string {
 	return fmt.Sprintf("https://%s:%d%s", e.host, e.port, path)
 }
 
-func (e *Enroller) request(url string) *Request {
-	return NewRequest(e.client, e.logger).URL(e.getURL(url)).Auth(e.user, e.passwd)
+func (e *Enroller) request(url string) *request.Request {
+	return request.New(e.client, e.logger).URL(e.getURL(url)).Auth(e.user, e.passwd)
 }
 
 func (e *Enroller) getConfig(ctx context.Context) (*CertificateConfig, error) {

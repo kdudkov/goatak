@@ -14,7 +14,7 @@ func TestRemove(t *testing.T) {
 	cb := New[string]()
 
 	for i := 0; i < 30; i++ {
-		cb.Subscribe(fmt.Sprintf("cb_%d", i), func(msg string) bool {
+		cb.Add(func(msg string) bool {
 			if rand.Intn(1000) == 1 {
 				fmt.Printf("remove\n")
 				return false
