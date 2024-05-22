@@ -24,8 +24,10 @@ import (
 	"github.com/kdudkov/goatak/pkg/tlsutil"
 )
 
-const minCertAge = time.Hour * 24
-const keySize = 4096
+const (
+	minCertAge = time.Hour * 24
+	keySize    = 4096
+)
 
 type Enroller struct {
 	logger *slog.Logger
