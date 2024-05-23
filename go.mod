@@ -1,6 +1,6 @@
 module github.com/kdudkov/goatak
 
-go 1.21
+go 1.22.2
 
 require (
 	github.com/air-gases/authenticator v0.11.0
@@ -9,11 +9,11 @@ require (
 	github.com/glebarez/sqlite v1.11.0
 	github.com/google/uuid v1.6.0
 	github.com/jroimartin/gocui v0.5.0
+	github.com/kdudkov/goutils v0.0.0-20240523090608-c589e6c759b7
 	github.com/prometheus/client_golang v1.19.0
 	github.com/spf13/viper v1.18.2
 	github.com/stretchr/testify v1.9.0
 	golang.org/x/crypto v0.22.0
-	golang.org/x/exp v0.0.0-20240416160154-fe59bbe5cc7f
 	golang.org/x/net v0.24.0
 	google.golang.org/protobuf v1.33.0
 	gopkg.in/yaml.v3 v3.0.1
@@ -60,6 +60,7 @@ require (
 	github.com/vmihailenco/msgpack/v5 v5.4.1 // indirect
 	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
+	golang.org/x/exp v0.0.0-20240506185415-9bf2ced13842 // indirect
 	golang.org/x/sys v0.19.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect

@@ -20,8 +20,8 @@ import (
 	"github.com/spf13/viper"
 	"software.sslmate.com/src/go-pkcs12"
 
-	"github.com/kdudkov/goatak/pkg/request"
 	"github.com/kdudkov/goatak/pkg/tlsutil"
+	"github.com/kdudkov/goutils/request"
 )
 
 const (

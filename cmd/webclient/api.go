@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/kdudkov/goatak/pkg/request"
+	"github.com/kdudkov/goutils/request"
 
 	"github.com/kdudkov/goatak/pkg/model"
 )

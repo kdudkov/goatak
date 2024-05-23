@@ -247,9 +247,9 @@ func getWsHandler(app *App) air.Handler {
 		h := wshandler.NewHandler(name, ws)
 
 		app.logger.Debug("ws listener connected")
-		app.changeCb.Subscribe(name, h.SendItem)
-		app.deleteCb.Subscribe(name, h.DeleteItem)
-		app.chatCb.Subscribe(name, h.NewChatMessage)
+		app.changeCb.SubscribeNamed(name, h.SendItem)
+		app.deleteCb.SubscribeNamed(name, h.DeleteItem)
+		app.chatCb.SubscribeNamed(name, h.NewChatMessage)
 		h.Listen()
 		app.logger.Debug("ws listener disconnected")
 

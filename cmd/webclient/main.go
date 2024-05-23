@@ -22,7 +22,6 @@ import (
 
 	"github.com/spf13/viper"
 
-	"github.com/kdudkov/goatak/internal/callbacks"
 	"github.com/kdudkov/goatak/internal/client"
 	"github.com/kdudkov/goatak/internal/repository"
 	"github.com/kdudkov/goatak/pkg/cot"
@@ -30,6 +29,7 @@ import (
 	"github.com/kdudkov/goatak/pkg/log"
 	"github.com/kdudkov/goatak/pkg/model"
 	"github.com/kdudkov/goatak/pkg/tlsutil"
+	"github.com/kdudkov/goutils/callback"
 )
 
 const (
@@ -51,9 +51,9 @@ type App struct {
 	tlsCert         *tls.Certificate
 	cas             *x509.CertPool
 	cl              *client.ConnClientHandler
-	changeCb        *callbacks.Callback[*model.Item]
-	deleteCb        *callbacks.Callback[string]
-	chatCb          *callbacks.Callback[*model.ChatMessage]
+	changeCb        *callback.Callback[*model.Item]
+	deleteCb        *callback.Callback[string]
+	chatCb          *callback.Callback[*model.ChatMessage]
 	eventProcessors []*EventProcessor
 	remoteAPI       *RemoteAPI
 	saveFile        string
@@ -105,9 +105,9 @@ func NewApp(uid string, callsign string, connectStr string, webPort int) *App {
 		webPort:         webPort,
 		items:           repository.NewItemsMemoryRepo(),
 		dialTimeout:     time.Second * 5,
-		changeCb:        callbacks.New[*model.Item](),
-		deleteCb:        callbacks.New[string](),
-		chatCb:          callbacks.New[*model.ChatMessage](),
+		changeCb:        callback.New[*model.Item](),
+		deleteCb:        callback.New[string](),
+		chatCb:          callback.New[*model.ChatMessage](),
 		chatMessages:    model.NewChatMessages(uid),
 		eventProcessors: make([]*EventProcessor, 0),
 		pos:             atomic.Pointer[model.Pos]{},

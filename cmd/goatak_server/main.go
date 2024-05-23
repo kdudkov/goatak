@@ -20,6 +20,7 @@ import (
 
 	"github.com/glebarez/sqlite"
 	"github.com/google/uuid"
+	"github.com/kdudkov/goutils/callback"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/spf13/viper"
 	"gorm.io/gorm"
@@ -27,7 +28,6 @@ import (
 	"software.sslmate.com/src/go-pkcs12"
 
 	"github.com/kdudkov/goatak/cmd/goatak_server/missions"
-	"github.com/kdudkov/goatak/internal/callbacks"
 	"github.com/kdudkov/goatak/internal/client"
 	im "github.com/kdudkov/goatak/internal/model"
 	"github.com/kdudkov/goatak/internal/pm"
@@ -84,8 +84,8 @@ type App struct {
 
 	handlers sync.Map
 
-	changeCb *callbacks.Callback[*model.Item]
-	deleteCb *callbacks.Callback[string]
+	changeCb *callback.Callback[*model.Item]
+	deleteCb *callback.Callback[string]
 
 	items    repository.ItemsRepository
 	messages []*model.ChatMessage
@@ -107,8 +107,8 @@ func NewApp(config *AppConfig) *App {
 		users:           repository.NewFileUserRepo(config.usersFile),
 		ch:              make(chan *cot.CotMessage, 100),
 		handlers:        sync.Map{},
-		changeCb:        callbacks.New[*model.Item](),
-		deleteCb:        callbacks.New[string](),
+		changeCb:        callback.New[*model.Item](),
+		deleteCb:        callback.New[string](),
 		items:           repository.NewItemsMemoryRepo(),
 		feeds:           repository.NewFeedsFileRepo(filepath.Join(config.dataDir, "feeds")),
 		uid:             uuid.NewString(),
