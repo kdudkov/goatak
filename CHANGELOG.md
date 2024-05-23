@@ -1,4 +1,4 @@
-# unreleased
+# 0.18.0
 
 FEATURES:
 

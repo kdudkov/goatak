@@ -3,7 +3,7 @@
 This is fast & simple implementation of TAK server/CoT router and ATAK client with web interface.
 
 - [Wiki](https://github.com/kdudkov/goatak/wiki)
-- Support chat in Telegram: https://t.me/ru_atak
+- Support chat in Telegram: [@ru_atak](https://t.me/ru_atak)
 
 binary builds can be downloaded
 from [releases page](https://github.com/kdudkov/goatak/releases)
