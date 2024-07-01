@@ -7,8 +7,6 @@ builds:
   - id: server
     main: ./cmd/goatak_server
     binary: goatak_server
-    env:
-      - CGO_ENABLED=0
     mod_timestamp: '{{ .CommitTimestamp }}'
     flags:
       - '-trimpath'
@@ -22,8 +20,6 @@ builds:
   - id: ctl
     main: ./cmd/userctl
     binary: userctl
-    env:
-      - CGO_ENABLED=0
     mod_timestamp: '{{ .CommitTimestamp }}'
     flags:
       - -trimpath
@@ -37,8 +33,6 @@ builds:
   - id: takreplay
     main: ./cmd/takreplay
     binary: takreplay
-    env:
-      - CGO_ENABLED=0
     mod_timestamp: '{{ .CommitTimestamp }}'
     flags:
       - -trimpath
@@ -52,8 +46,6 @@ builds:
   - id: client
     main: ./cmd/webclient
     binary: goatak_client
-    env:
-      - CGO_ENABLED=0
     mod_timestamp: '{{ .CommitTimestamp }}'
     flags:
       - -trimpath
