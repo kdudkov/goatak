@@ -1,8 +1,7 @@
-# Visit https://goreleaser.com for documentation on how to customize this
-# behavior.
+---
+version: 2
 before:
   hooks:
-    # this is just an example and not a requirement for provider building/publishing
     - go mod tidy
 builds:
   - id: server
@@ -12,17 +11,14 @@ builds:
       - CGO_ENABLED=0
     mod_timestamp: '{{ .CommitTimestamp }}'
     flags:
-      - -trimpath
+      - '-trimpath'
     ldflags:
       - '-s -w -X main.gitRevision={{.Version}} -X main.gitCommit={{.Commit}}'
     goos: [ windows, linux, darwin ]
-    goarch: [ amd64, arm64, arm ]
-    goarm: [ 6, 7 ]
+    goarch: [ amd64, arm64 ]
     ignore:
-      - goos: darwin
-        goarch: arm
       - goos: windows
-        goarch: arm
+        goarch: arm64
   - id: ctl
     main: ./cmd/userctl
     binary: userctl
@@ -34,13 +30,10 @@ builds:
     ldflags:
       - '-s -w -X main.gitRevision={{.Version}} -X main.gitCommit={{.Commit}}'
     goos: [ windows, linux, darwin ]
-    goarch: [ amd64, arm64, arm ]
-    goarm: [ 6, 7 ]
+    goarch: [ amd64, arm64 ]
     ignore:
-      - goos: darwin
-        goarch: arm
       - goos: windows
-        goarch: arm
+        goarch: arm64
   - id: takreplay
     main: ./cmd/takreplay
     binary: takreplay
@@ -52,13 +45,10 @@ builds:
     ldflags:
       - '-s -w -X main.gitRevision={{.Version}} -X main.gitCommit={{.Commit}}'
     goos: [ windows, linux, darwin ]
-    goarch: [ amd64, arm64, arm ]
-    goarm: [ 6, 7 ]
+    goarch: [ amd64, arm64 ]
     ignore:
-      - goos: darwin
-        goarch: arm
       - goos: windows
-        goarch: arm
+        goarch: arm64
   - id: client
     main: ./cmd/webclient
     binary: goatak_client
@@ -70,13 +60,10 @@ builds:
     ldflags:
       - '-s -w -X main.gitRevision={{.Version}} -X main.gitCommit={{.Commit}}'
     goos: [ windows, linux, darwin ]
-    goarch: [ amd64, arm64, arm ]
-    goarm: [ 6, 7 ]
+    goarch: [ amd64, arm64 ]
     ignore:
-      - goos: darwin
-        goarch: arm
       - goos: windows
-        goarch: arm
+        goarch: arm64
 archives:
   - id: server
     builds: [ server, ctl, takreplay ]
@@ -93,8 +80,23 @@ archives:
     name_template: 'client_{{ .Version }}_{{ .Os }}_{{ .Arch }}{{ .Arm }}'
     files:
       - goatak_client*.yml
-release:
-# If you want to manually examine the release before its live, uncomment this line:
-# draft: true
+
 changelog:
-  skip: true
+  use: github
+  abbrev: -1
+
+  groups:
+    - title: Features
+      regexp: '^.*?feat(\([[:word:]]+\))??!?:.+$'
+      order: 0
+    - title: "Bug fixes"
+      regexp: '^.*?bug(\([[:word:]]+\))??!?:.+$'
+      order: 1
+    - title: Others
+      order: 999
+
+  filters:
+    exclude:
+      - typo
+      - \.
+# yaml-language-server: $schema=https://goreleaser.com/static/schema.json
