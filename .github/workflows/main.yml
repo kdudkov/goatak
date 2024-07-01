@@ -37,10 +37,10 @@ jobs:
         with:
           name: server mac intel
           path: dist/server_*_darwin_amd64.zip
-      - name: server mac m1/m2
+      - name: server mac arm
         uses: actions/upload-artifact@v4
         with:
-          name: server mac m1/m2
+          name: server mac arm
           path: dist/server_*_darwin_arm64.zip
       - name: client linux
         uses: actions/upload-artifact@v4
@@ -57,8 +57,8 @@ jobs:
         with:
           name: client mac intel
           path: dist/client_*_darwin_amd64.zip
-      - name: client mac m1/m2
+      - name: client mac arm
         uses: actions/upload-artifact@v4
         with:
-          name: client mac m1/m2
+          name: client mac arm
           path: dist/client_*_darwin_arm64.zip
