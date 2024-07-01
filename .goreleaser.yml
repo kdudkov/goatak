@@ -17,6 +17,7 @@ builds:
     ignore:
       - goos: windows
         goarch: arm64
+
   - id: ctl
     main: ./cmd/userctl
     binary: userctl
