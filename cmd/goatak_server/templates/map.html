@@ -111,8 +111,7 @@
                 </div>
                 <div class="card" v-if="current_unit">
                     <div class="card-header">
-                        <div class="row">
-                            <h5 v-on:click="mapToUnit(current_unit)" class="col-9">
+                            <span class="pull-left fw-bold" v-on:click="mapToUnit(current_unit)">
                                 <img :src="milImg(current_unit.unit)"/> {{ getUnitName(current_unit) }} <span
                                     v-if="current_unit.unit.status"> ({{ current_unit.unit.status }})</span>
                                 <img height="24" src="/static/icons/coord_unlock.png"
@@ -121,8 +120,7 @@
                                 <img height="24" src="/static/icons/coord_lock.png"
                                      v-if="locked_unit_uid == current_unit.uid"
                                      v-on:click="locked_unit_uid=''"/>
-                            </h5>
-                        </div>
+                            </span>
                     </div>
                     <div class="card-body">
                         <b>UID:</b> {{ current_unit.uid }}<br/>
