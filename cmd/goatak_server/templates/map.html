@@ -113,7 +113,7 @@
                     <div class="card-header">
                         <div class="row">
                             <h5 v-on:click="mapToUnit(current_unit)" class="col-9">
-                                <img :src="milImg(current_unit)"/> {{ getUnitName(current_unit) }} <span
+                                <img :src="milImg(current_unit.unit)"/> {{ getUnitName(current_unit) }} <span
                                     v-if="current_unit.unit.status"> ({{ current_unit.unit.status }})</span>
                                 <img height="24" src="/static/icons/coord_unlock.png"
                                      v-if="current_unit.unit.category !== 'point' && locked_unit_uid != current_unit.uid"
