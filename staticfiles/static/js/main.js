@@ -1,7 +1,7 @@
 let app = new Vue({
     el: '#app',
     data: {
-        connections: new Map(),
+        connections: [],
         alert: null,
         ts: 0,
     },
@@ -12,7 +12,7 @@ let app = new Vue({
     },
     computed: {
         all_conns: function () {
-            let arr = Array.from(this.connections.values());
+            let arr = Array.from(this.connections);
             arr.sort(function (a, b) {
                 return a.scope.localeCompare(b.scope) || a.user.localeCompare(b.user);
             });
@@ -24,14 +24,9 @@ let app = new Vue({
             let vm = this;
 
             fetch('/connections')
-                .then(function (response) {
-                    return response.json()
-                })
+                .then(resp => resp.json())
                 .then(function (data) {
-                    vm.connections.clear();
-                    data.forEach(function (i) {
-                        vm.connections.set(i.addr, i);
-                    });
+                    vm.connections = data;
                     vm.ts += 1;
                 });
         },

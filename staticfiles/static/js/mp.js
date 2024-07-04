@@ -9,7 +9,7 @@ let app = new Vue({
 
     mounted() {
         this.renew();
-        this.timer = setInterval(this.renew, 60000);
+        setInterval(this.renew, 60000);
     },
     computed: {
         all: function () {
@@ -21,9 +21,7 @@ let app = new Vue({
             let vm = this;
 
             fetch('/mp')
-                .then(function (response) {
-                    return response.json()
-                })
+                .then(resp => resp.json())
                 .then(function (data) {
                     vm.mp = data;
                     vm.ts += 1;

@@ -1,8 +1,8 @@
 let app = new Vue({
     el: '#app',
     data: {
-        units: new Map(),
-        connections: new Map(),
+        units: [],
+        connections: [],
         alert: null,
         ts: 0,
     },
@@ -13,7 +13,7 @@ let app = new Vue({
     },
     computed: {
         all_conns: function () {
-            let arr = Array.from(this.connections.values());
+            let arr = Array.from(this.connections);
             arr.sort(function (a, b) {
                 return a.scope.localeCompare(b.scope) || a.user.localeCompare(b.user);
             });
@@ -25,31 +25,21 @@ let app = new Vue({
             let vm = this;
 
             fetch('/unit')
-                .then(function (response) {
-                    return response.json()
-                })
+                .then(resp => resp.json())
                 .then(function (data) {
-                    vm.units.clear();
-                    data.forEach(function (i) {
-                        vm.units.set(i.uid, i);
-                    });
+                    vm.units = data;
                     vm.ts += 1;
                 });
 
             fetch('/connections')
-                .then(function (response) {
-                    return response.json()
-                })
+                .then(resp => resp.json())
                 .then(function (data) {
-                    vm.connections.clear();
-                    data.forEach(function (i) {
-                        vm.connections.set(i.addr, i);
-                    });
+                    vm.connections = data;
                     vm.ts += 1;
                 });
         },
         byCategory: function (s) {
-            let arr = Array.from(this.units.values()).filter(function (u) {
+            let arr = this.units.filter(function (u) {
                 return u.category === s
             });
             arr.sort(function (a, b) {
@@ -75,14 +65,8 @@ let app = new Vue({
             return (v * 3.6).toFixed(1);
         },
         contactsNum: function () {
-            let online = 0;
-            let total = 0;
-            this.units.forEach(function (u) {
-                if (u.category === "contact") {
-                    if (u.status === "Online") online += 1;
-                    if (u.status !== "") total += 1;
-                }
-            })
+            let total = this.units.length;
+            let online = this.units.filter(u => u.category === "contact" && u.status === "Online").length;
 
             return online + "/" + total;
         },
