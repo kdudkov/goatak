@@ -122,14 +122,6 @@
                                      v-if="locked_unit_uid == current_unit.uid"
                                      v-on:click="locked_unit_uid=''"/>
                             </h5>
-                            <div class="col-3" v-if="current_unit.unit.category !== 'contact'">
-                                <button type="button" class="btn btn-sm btn-primary"
-                                        data-bs-toggle="modal" data-bs-target="#edit">edit
-                                </button>
-                                <button type="button" class="btn btn-sm btn-danger" v-on:click="deleteCurrentUnit">del
-                                </button>
-                            </div>
-
                         </div>
                     </div>
                     <div class="card-body">
