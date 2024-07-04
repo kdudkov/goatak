@@ -1,10 +1,124 @@
-function needIconUpdate(oldUnit, newUnit) {
-    if (oldUnit.sidc !== newUnit.sidc || oldUnit.status !== newUnit.status) return true;
-    if (oldUnit.speed !== newUnit.speed || oldUnit.direction !== newUnit.direction) return true;
-    if (oldUnit.team !== newUnit.team || oldUnit.role !== newUnit.role) return true;
+class Unit {
+    constructor(map, u) {
+        this.unit = u;
+        this.uid = u.uid;
 
-    if (newUnit.sidc.charAt(2) === 'A' && oldUnit.hae !== newUnit.hae) return true;
-    return false;
+        if (map) this.updateMarker(map);
+    }
+
+    update(map, u) {
+        if (this.unit.uid !== u.uid) {
+            throw "wrong uid";
+        }
+
+        this.redraw = this.needsRedraw(u);
+
+        for (const k of Object.keys(u)) {
+            this.unit[k] = u[k];
+        }
+
+        this.updateMarker(map);
+
+        return this;
+    }
+
+    needsRedraw(u) {
+        if (this.unit.type !== u.type || this.unit.sidc !== u.sidc || this.unit.status !== u.status) return true;
+        if (this.unit.speed !== u.speed || this.unit.direction !== u.direction) return true;
+        if (this.unit.team !== u.team || this.unit.role !== u.role) return true;
+
+        if (this.unit.sidc.charAt(2) === 'A' && this.unit.hae !== u.hae) return true;
+        return false;
+    }
+
+    isContact() {
+        return this.unit.category === "contact"
+    }
+
+    isOnline() {
+        return this.unit.status === "Online";
+    }
+
+    removeMarker(map) {
+        if (this.marker) {
+            map.removeLayer(this.marker);
+            this.marker.remove();
+            this.marker = null;
+        }
+    }
+
+    updateMarker(map) {
+        if (!this.hasCoords()) {
+            this.removeMarker(map);
+            return;
+        }
+
+        if (this.marker) {
+            if (this.redraw) {
+                this.marker.setIcon(getIcon(this.unit, true));
+                this.redraw = false;
+            }
+        } else {
+            this.marker = L.marker(this.coords(), {draggable: this.local});
+            this.marker.setIcon(getIcon(this.unit, true));
+
+            let vm = this;
+            this.marker.on('click', function (e) {
+                app.setCurrentUnitUid(vm.uid, false);
+            });
+
+            if (this.local) {
+                this.marker.on('dragend', function (e) {
+                    vm.unit.lat = marker.getLatLng().lat;
+                    vm.unit.lon = marker.getLatLng().lng;
+                });
+            }
+
+            this.marker.addTo(map);
+        }
+
+        this.marker.setLatLng(this.coords());
+        this.marker.bindTooltip(this.popup());
+        this.redraw = false;
+    }
+
+    hasCoords() {
+        return this.unit.lat && this.unit.lon;
+    }
+
+    coords() {
+        return [this.unit.lat, this.unit.lon];
+    }
+
+    latlng() {
+        return L.latLng(this.unit.lat, this.unit.lon)
+    }
+
+    compare(u2) {
+        return this.unit.callsign.toLowerCase().localeCompare(u2.unit.callsign.toLowerCase());
+    }
+
+    popup() {
+        let v = '<b>' + this.unit.callsign + '</b><br/>';
+        if (this.unit.team) v += this.unit.team + ' ' + this.unit.role + '<br/>';
+        if (this.unit.speed) v += 'Speed: ' + this.unit.speed.toFixed(0) + ' m/s<br/>';
+        if (this.unit.sidc.charAt(2) === 'A') {
+            v += "hae: " + this.unit.hae.toFixed(0) + " m<br/>";
+        }
+        v += this.unit.text.replaceAll('\n', '<br/>').replaceAll('; ', '<br/>');
+        return v;
+    }
+
+    send() {
+        const requestOptions = {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify(this.unit)
+        };
+        fetch("/unit", requestOptions)
+            .then(resp => resp.json())
+            .then(d => app.processUnit(d));
+    }
 }
 
 let app = new Vue({
@@ -44,11 +158,12 @@ let app = new Vue({
 
         if (supportsWebSockets) {
             this.connect();
-            setInterval(this.fetchAllUnits, 60000);
+            // setInterval(this.fetchAllUnits, 60000);
         }
 
         this.renew();
         setInterval(this.renew, 5000);
+        setInterval(this.sender, 1000);
 
         this.map.on('click', this.mapClick);
         this.map.on('mousemove', this.mouseMove);
@@ -67,10 +182,8 @@ let app = new Vue({
             let vm = this;
 
             fetch('/config')
-                .then(function (response) {
-                    return response.json()
-                })
-                .then(function (data) {
+                .then(resp => resp.json())
+                .then(data => {
                     vm.config = data;
 
                     vm.map.setView([data.lat, data.lon], data.zoom);
@@ -84,12 +197,8 @@ let app = new Vue({
                         vm.me.addTo(vm.map);
 
                         fetch('/types')
-                            .then(function (response) {
-                                return response.json()
-                            })
-                            .then(function (data) {
-                                vm.types = data;
-                            });
+                            .then(resp => resp.json())
+                            .then(d => vm.types = d);
                     }
 
                     layers = L.control.layers({}, null, {hideSingleBase: true});
@@ -133,14 +242,17 @@ let app = new Vue({
 
             this.conn.onopen = function (e) {
                 console.log("connected");
+                vm.ts += 1;
             };
 
             this.conn.onerror = function (e) {
                 console.log("error");
+                vm.ts += 1;
             };
 
             this.conn.onclose = function (e) {
                 console.log("closed");
+                vm.ts += 1;
                 setTimeout(vm.connect, 3000);
             };
         },
@@ -148,16 +260,14 @@ let app = new Vue({
         connected: function () {
             if (!this.conn) return false;
 
-            return this.conn.readyState === 1;
+            return this.ts && this.conn.readyState === 1;
         },
 
         fetchAllUnits: function () {
             let vm = this;
 
             fetch('/unit')
-                .then(function (response) {
-                    return response.json()
-                })
+                .then(resp => resp.json())
                 .then(vm.processUnits);
         },
 
@@ -165,22 +275,18 @@ let app = new Vue({
             let vm = this;
 
             fetch('/message')
-                .then(function (response) {
-                    return response.json();
-                })
-                .then(function (data) {
-                    vm.messages = data;
-                });
+                .then(resp => resp.json())
+                .then(d => vm.messages = d);
         },
 
         renew: function () {
-            let vm = this;
-
             if (!this.conn) {
                 this.fetchAllUnits();
                 this.fetchMessages();
             }
+        },
 
+        sender: function () {
             if (this.getTool("dp1")) {
                 let p = this.getTool("dp1").getLatLng();
 
@@ -212,22 +318,16 @@ let app = new Vue({
         processUnit: function (u) {
             if (!u) return;
             let unit = this.units.get(u.uid);
-            let updateIcon = false;
 
             if (!unit) {
-                this.units.set(u.uid, u);
-                unit = u;
-                updateIcon = true;
+                unit = new Unit(this.map, u);
+                this.units.set(u.uid, unit);
             } else {
-                updateIcon = needIconUpdate(unit, u);
-                for (const k of Object.keys(u)) {
-                    unit[k] = u[k];
-                }
+                unit.update(this.map, u)
             }
-            this.updateMarker(unit, false, updateIcon);
 
             if (this.locked_unit_uid === unit.uid) {
-                this.map.setView([unit.lat, unit.lon]);
+                this.map.setView(unit.coords());
             }
 
             return unit;
@@ -243,52 +343,17 @@ let app = new Vue({
             }
 
             if (u.type === "chat") {
-                console.log(u.chat_msg);
                 this.fetchMessages();
             }
-        },
-
-        updateMarker: function (unit, draggable, updateIcon) {
-            if (unit.lon === 0 && unit.lat === 0) {
-                if (unit.marker) {
-                    this.map.removeLayer(unit.marker);
-                    unit.marker = null;
-                }
-                return
-            }
-
-            if (unit.marker) {
-                if (updateIcon) {
-                    unit.marker.setIcon(getIcon(unit, true));
-                }
-            } else {
-                unit.marker = L.marker([unit.lat, unit.lon], {draggable: draggable});
-                unit.marker.on('click', function (e) {
-                    app.setCurrentUnitUid(unit.uid, false);
-                });
-                if (draggable) {
-                    unit.marker.on('dragend', function (e) {
-                        unit.lat = marker.getLatLng().lat;
-                        unit.lon = marker.getLatLng().lng;
-                    });
-                }
-                unit.marker.setIcon(getIcon(unit, true));
-                unit.marker.addTo(this.map);
-            }
-
-            unit.marker.setLatLng([unit.lat, unit.lon]);
-            unit.marker.bindTooltip(popup(unit));
         },
 
         removeUnit: function (uid) {
             if (!this.units.has(uid)) return;
 
             let item = this.units.get(uid);
-            if (item.marker) {
-                this.map.removeLayer(item.marker);
-                item.marker.remove();
-            }
+            item.removeMarker(this.map)
             this.units.delete(uid);
+
             if (this.current_unit_uid === uid) {
                 this.setCurrentUnitUid(null, false);
             }
@@ -313,20 +378,17 @@ let app = new Vue({
 
         byCategory: function (s) {
             let arr = Array.from(this.units.values()).filter(function (u) {
-                return u.category === s
+                return u.unit.category === s
             });
             arr.sort(function (a, b) {
-                return a.callsign.toLowerCase().localeCompare(b.callsign.toLowerCase());
+                return a.compare(b);
             });
             return this.ts && arr;
         },
 
         mapToUnit: function (u) {
-            if (!u) {
-                return;
-            }
-            if (u.lat !== 0 || u.lon !== 0) {
-                this.map.setView([u.lat, u.lon]);
+            if (u && u.hasCoords()) {
+                this.map.setView(u.coords());
             }
         },
 
@@ -335,7 +397,7 @@ let app = new Vue({
         },
 
         milImg: function (item) {
-            return getMilIcon(item, false).uri;
+            return getMilIconUri(item, false).uri;
         },
 
         dt: function (str) {
@@ -388,6 +450,7 @@ let app = new Vue({
                     text: "",
                     parent_uid: "",
                     parent_callsign: "",
+                    color: "#ff0000",
                     local: true,
                     send: false,
                 }
@@ -396,7 +459,9 @@ let app = new Vue({
                     u.parent_callsign = this.config.callsign;
                 }
 
-                this.sendUnit(u);
+                let unit = new Unit(null, u);
+                unit.send();
+
                 this.setCurrentUnitUid(u.uid, true);
             }
             if (this.modeIs("me")) {
@@ -410,22 +475,6 @@ let app = new Vue({
                 };
                 fetch("/pos", requestOptions);
             }
-        },
-
-        sendUnit: function (u) {
-            const requestOptions = {
-                method: "POST",
-                headers: {"Content-Type": "application/json"},
-                body: JSON.stringify(this.cleanUnit(u))
-            };
-            let vm = this;
-            fetch("/unit", requestOptions)
-                .then(function (response) {
-                    return response.json()
-                })
-                .then(function (data) {
-                    vm.processUnit(data);
-                });
         },
 
         formFromUnit: function (u) {
@@ -442,21 +491,21 @@ let app = new Vue({
                 };
             } else {
                 this.form_unit = {
-                    callsign: u.callsign,
-                    category: u.category,
-                    type: u.type,
+                    callsign: u.unit.callsign,
+                    category: u.unit.category,
+                    type: u.unit.type,
                     subtype: "G",
                     aff: "h",
-                    text: u.text,
-                    send: u.send,
+                    text: u.unit.text,
+                    send: u.unit.send,
                     root_sidc: this.types,
                 };
 
-                if (u.type.startsWith('a-')) {
+                if (u.unit.type.startsWith('a-')) {
                     this.form_unit.type = 'b-m-p-s-m';
-                    this.form_unit.aff = u.type.substring(2, 3);
-                    this.form_unit.subtype = u.type.substring(4);
-                    this.form_unit.root_sidc = this.getRootSidc(u.type.substring(4))
+                    this.form_unit.aff = u.unit.type.substring(2, 3);
+                    this.form_unit.subtype = u.unit.type.substring(4);
+                    this.form_unit.root_sidc = this.getRootSidc(u.unit.type.substring(4))
                 }
             }
         },
@@ -465,19 +514,22 @@ let app = new Vue({
             let u = this.getCurrentUnit();
             if (!u) return;
 
-            u.callsign = this.form_unit.callsign;
-            u.category = this.form_unit.category;
-            u.send = this.form_unit.send;
-            u.text = this.form_unit.text;
+            u.unit.callsign = this.form_unit.callsign;
+            u.unit.category = this.form_unit.category;
+            u.unit.send = this.form_unit.send;
+            u.unit.text = this.form_unit.text;
 
             if (this.form_unit.category === "unit") {
-                u.type = ["a", this.form_unit.aff, this.form_unit.subtype].join('-');
-                u.sidc = this.sidcFromType(u.type);
+                u.unit.type = ["a", this.form_unit.aff, this.form_unit.subtype].join('-');
+                u.unit.sidc = this.sidcFromType(u.unit.type);
             } else {
-                u.type = this.form_unit.type;
-                u.sidc = "";
+                u.unit.type = this.form_unit.type;
+                u.unit.sidc = "";
             }
-            this.sendUnit(u);
+
+            u.redraw = true;
+            u.updateMarker(this.map);
+            u.send();
         },
 
         getRootSidc: function (s) {
@@ -608,9 +660,9 @@ let app = new Vue({
             let online = 0;
             let total = 0;
             this.units.forEach(function (u) {
-                if (u.category === "contact") {
-                    if (u.status === "Online") online += 1;
-                    if (u.status !== "") total += 1;
+                if (u.isContact()) {
+                    if (u.isOnline()) online += 1;
+                    total += 1;
                 }
             })
 
@@ -620,7 +672,7 @@ let app = new Vue({
         countByCategory: function (s) {
             let total = 0;
             this.units.forEach(function (u) {
-                if (u.category === s) total += 1;
+                if (u.unit.category === s) total += 1;
             })
 
             return total;
@@ -661,7 +713,7 @@ let app = new Vue({
         },
 
         getStatus: function (uid) {
-            return this.ts && this.units.get(uid)?.status;
+            return this.ts && this.units.get(uid)?.unit?.status;
         },
 
         getMessages: function () {
@@ -681,9 +733,9 @@ let app = new Vue({
         },
 
         getUnitName: function (u) {
-            let res = u.callsign || "no name";
-            if (u.parent_uid === this.config.uid) {
-                if (u.send === true) {
+            let res = u?.unit?.callsign || "no name";
+            if (this.config && u.unit.parent_uid === this.config.uid) {
+                if (u.unit.send === true) {
                     res = "+ " + res;
                 } else {
                     res = "* " + res;
@@ -697,7 +749,7 @@ let app = new Vue({
         },
 
         sidcFromType: function (s) {
-            if (!s.startsWith('a-')) return "";
+            if (!s || !s.startsWith('a-')) return "";
 
             let n = s.split('-');
 
@@ -725,25 +777,9 @@ let app = new Vue({
             return sidc.toUpperCase();
         },
 
-        cleanUnit: function (u) {
-            let res = {};
-
-            for (const k in u) {
-                if (k !== 'marker') {
-                    res[k] = u[k];
-                }
-            }
-            return res;
-        },
-
         deleteCurrentUnit: function () {
             if (!this.current_unit_uid) return;
-            fetch("unit/" + this.current_unit_uid, {method: "DELETE"})
-                .then(function (response) {
-                    return response.json()
-                })
-                .then(this.processUnits);
-            // this.removeUnit(this.current_unit_uid);
+            fetch("unit/" + this.current_unit_uid, {method: "DELETE"});
         },
 
         sendMessage: function () {
@@ -763,24 +799,11 @@ let app = new Vue({
             };
             let vm = this;
             fetch("/message", requestOptions)
-                .then(function (response) {
-                    return response.json()
-                })
-                .then(function (data) {
-                    vm.messages = data;
-                });
+                .then(resp => resp.json())
+                .then(d => vm.messages = d);
 
         }
     },
 });
 
-function popup(item) {
-    let v = '<b>' + item.callsign + '</b><br/>';
-    if (item.team) v += item.team + ' ' + item.role + '<br/>';
-    if (item.speed && item.speed > 0) v += 'Speed: ' + item.speed.toFixed(0) + ' m/s<br/>';
-    if (item.sidc.charAt(2) === 'A') {
-        v += "hae: " + item.hae.toFixed(0) + " m<br/>";
-    }
-    v += item.text.replaceAll('\n', '<br/>').replaceAll('; ', '<br/>');
-    return v;
-}
+

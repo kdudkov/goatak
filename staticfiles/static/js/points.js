@@ -61,7 +61,7 @@ let app = new Vue({
             return getIconUri(item, false).uri;
         },
         milImg: function (item) {
-            return getMilIcon(item, false).uri;
+            return getMilIconUri(item, false).uri;
         },
         printCoords: function (lat, lng) {
             return lat.toFixed(6) + "," + lng.toFixed(6);

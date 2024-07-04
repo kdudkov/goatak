@@ -14,9 +14,9 @@
                         <ul class="dropdown-menu dropdown-menu-dark" aria-labelledby="navbarDarkDropdownMenuLink">
                             <li v-for="u in byCategory('contact')">
                                 <a class="dropdown-item" href="#" v-on:click="setCurrentUnitUid(u.uid, true)">
-                                    <img :src="getImg(u)"/>
-                                    <span v-if="u.lat === 0 && u.lon === 0">* </span>{{ u.callsign }}<span
-                                        v-if="u.status"> ({{ u.status }})</span>
+                                    <img :src="getImg(u.unit)"/>
+                                    <span v-if="u.unit.lat === 0 && u.unit.lon === 0">* </span>{{ u.unit.callsign }}<span
+                                        v-if="u.unit.status && u.unit.status !=='Online'"> ({{ u.unit.status }})</span>
                                 </a>
                             </li>
                         </ul>
@@ -29,6 +29,7 @@
                         <ul class="dropdown-menu dropdown-menu-dark" aria-labelledby="navbarDarkDropdownMenuLink2">
                             <li v-for="u in byCategory('unit')">
                                 <a class="dropdown-item" href="#" v-on:click="setCurrentUnitUid(u.uid, true)">
+                                    <img :src="getImg(u.unit)"/>
                                     {{ getUnitName(u) }}
                                 </a>
                             </li>
@@ -82,7 +83,7 @@
                             <span class="badge rounded-pill bg-success" style="cursor:default;"
                                   v-on:click="map.setView([config.lat, config.lon])"><i
                                     class="bi bi-geo"></i></span>
-                            <span v-if="coords">({{ distBea(latlng(config.lat, config.lon), coords) }} to cursor)</span>
+                            <span v-if="coords && (config.lat !== 0 || config.lon !== 0)">({{ distBea(latlng(config.lat, config.lon), coords) }} to cursor)</span>
                         </div>
                     </div>
                 </div>
@@ -132,22 +133,22 @@
                 <div class="card" v-if="current_unit">
                     <div class="card-header">
                             <span class="pull-left fw-bold" v-on:click="mapToUnit(current_unit)">
-                                <img :src="milImg(current_unit)"/> {{ getUnitName(current_unit) }} <span
-                                    v-if="current_unit.status"> ({{ current_unit.status }})</span>
+                                <img :src="milImg(current_unit.unit)"/> {{ getUnitName(current_unit) }} <span
+                                    v-if="current_unit.unit.status"> ({{ current_unit.unit.status }})</span>
                                 <img height="24" src="/static/icons/coord_unlock.png"
-                                     v-if="current_unit.category !== 'point' && locked_unit_uid != current_unit.uid"
+                                     v-if="current_unit.unit.category !== 'point' && locked_unit_uid != current_unit.uid"
                                      v-on:click="locked_unit_uid=current_unit.uid"/>
                                 <img height="24" src="/static/icons/coord_lock.png"
                                      v-if="locked_unit_uid == current_unit.uid"
                                      v-on:click="locked_unit_uid=''"/>
                             </span>
-                        <span class="pull-right" v-if="current_unit.category === 'contact'">
+                        <span class="pull-right" v-if="current_unit.unit.category === 'contact'">
                                 <button type="button" class="btn btn-sm btn-primary"
-                                        v-if="current_unit.category === 'contact'"
-                                        v-on:click="openChat(current_unit.uid, current_unit.callsign);"><i
+                                        v-if="current_unit.unit.category === 'contact'"
+                                        v-on:click="openChat(current_unit.uid, current_unit.unit.callsign);"><i
                                         class="bi bi-chat-text-fill"></i></button>
                             </span>
-                        <span class="pull-right" v-if="current_unit.category !== 'contact'">
+                        <span class="pull-right" v-if="current_unit.unit.category !== 'contact'">
                                 <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal"
                                         data-bs-target="#edit">
                                     <i class="bi bi-pencil-square"></i>
@@ -159,34 +160,35 @@
                     </div>
                     <div class="card-body">
                         <b>UID:</b> {{ current_unit.uid }}<br/>
-                        <div v-if="current_unit.team">
-                            <b>Team:</b> {{ current_unit.team }},
-                            <b>Role:</b> {{ current_unit.role }}
+                        <div v-if="current_unit.unit.team">
+                            <b>Team:</b> {{ current_unit.unit.team }},
+                            <b>Role:</b> {{ current_unit.unit.role }}
                         </div>
                         <div>
-                            <b>Type:</b> {{ current_unit.type }} <b>SIDC:</b> {{ current_unit.sidc }}
+                            <b>Type:</b> {{ current_unit.unit.type }} <b>SIDC:</b> {{ current_unit.unit.sidc }}
                         </div>
                         <div>
-                            <b>coords:</b> {{ printCoords(current_unit.lat, current_unit.lon) }}
+                            <b>coords:</b> {{ printCoords(current_unit.unit.lat, current_unit.unit.lon) }}
                             <span class="badge rounded-pill bg-success" style="cursor:default;"
-                                  v-on:click="map.setView([current_unit.lat, current_unit.lon])"><i
+                                  v-on:click="map.setView(current_unit.coords())"><i
                                     class="bi bi-geo"></i></span>
-                            <span v-if="coords">({{ distBea(latlng(current_unit.lat, current_unit.lon), coords) }} to cursor)</span>
+                            <span v-if="coords">({{ distBea(current_unit.latlng(), coords) }} to cursor)</span>
                         </div>
-                        <b>speed:</b> {{ sp(current_unit.speed) }} km/h,
-                        <b>hae:</b> {{ current_unit.hae.toFixed(1) }}<br/>
-                        <div v-if="current_unit.tak_version">
-                            <b>ver:</b> {{ current_unit.tak_version }}<br/>{{ current_unit.device }}</div>
-                        <div v-if="current_unit.parent_uid"><b>parent:</b> {{ current_unit.parent_uid }}
-                            <span v-if="current_unit.parent_callsign">({{ current_unit.parent_callsign }})</span>
+                        <b>speed:</b> {{ sp(current_unit.unit.speed) }} km/h,
+                        <b>hae:</b> {{ current_unit.unit.hae.toFixed(1) }}<br/>
+                        <div v-if="current_unit.unit.tak_version">
+                            <b>ver:</b> {{ current_unit.unit.tak_version }}<br/>{{ current_unit.unit.device }}</div>
+                        <div v-if="current_unit.unit.parent_uid"><b>parent:</b> {{ current_unit.unit.parent_uid }}
+                            <span v-if="current_unit.unit.parent_callsign">({{ current_unit.unit.parent_callsign }})</span>
                         </div>
                         <div>
-                            <b>time:</b> {{ dt(current_unit.start_time) }} <b>send:</b> {{ dt(current_unit.send_time) }}
+                            <b>time:</b> {{ dt(current_unit.unit.start_time) }}
+                            <b>send:</b> {{ dt(current_unit.unit.send_time) }}
                             <b>stale:</b>
-                            {{ dt(current_unit.stale_time) }}<br/>
-                            <b>last seen</b>: {{ dt(current_unit.last_seen) }}
+                            {{ dt(current_unit.unit.stale_time) }}<br/>
+                            <b>last seen</b>: {{ dt(current_unit.unit.last_seen) }}
                         </div>
-                        {{ current_unit.text }}
+                        {{ current_unit.unit.text }}
                     </div>
                 </div>
             </div>

@@ -35,7 +35,7 @@ function getIconUri(item, withText) {
         return {uri: toUri(circle(24, col, '#000', roles.get(item.role) ?? '')), x: 12, y: 12};
     }
     if (item.icon && item.icon.startsWith("COT_MAPPING_SPOTMAP/")) {
-        return {uri: toUri(circle(16, item.color ?? 'green', '#000', null)), x: 8, y: 8}
+        return {uri: toUri(circle(16, item.color || '#777', '#000', null)), x: 8, y: 8}
     }
     if (item.type === "b") {
         return {uri: "/static/icons/b.png", x: 16, y: 16}
@@ -56,12 +56,12 @@ function getIconUri(item, withText) {
         return {uri: "/static/icons/aimpoint.png", x: 16, y: 16}
     }
     if (item.category === "point") {
-        return {uri: toUri(circle(16, item.color ?? 'green', '#000', null)), x: 8, y: 8}
+        return {uri: toUri(circle(16, item.color || '#f00', '#000', null)), x: 8, y: 8}
     }
-    return getMilIcon(item, withText);
+    return getMilIconUri(item, withText);
 }
 
-function getMilIcon(item, withText) {
+function getMilIconUri(item, withText) {
     let opts = {size: 24};
 
     if (!item.sidc) {
