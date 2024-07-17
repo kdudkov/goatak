@@ -353,6 +353,7 @@ func getPackageHandler(app *App) air.Handler {
 		}
 
 		res.Header.Set("Content-Type", pi.MIMEType)
+		res.Header.Set("Content-Disposition", "attachment; filename="+pi.Name)
 
 		f, err := app.packageManager.GetFile(pi.Hash)
 
