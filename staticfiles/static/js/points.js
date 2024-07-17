@@ -65,7 +65,7 @@ let app = new Vue({
             return (v * 3.6).toFixed(1);
         },
         contactsNum: function () {
-            let total = this.units.length;
+            let total = this.units.filter(u => u.category === "contact").length;
             let online = this.units.filter(u => u.category === "contact" && u.status === "Online").length;
 
             return online + "/" + total;

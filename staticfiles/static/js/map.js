@@ -56,7 +56,6 @@ class Unit {
         if (this.marker) {
             if (this.redraw) {
                 this.marker.setIcon(getIcon(this.unit, true));
-                this.redraw = false;
             }
         } else {
             this.marker = L.marker(this.coords(), {draggable: this.local});
