@@ -8,16 +8,16 @@ import (
 	"path/filepath"
 	"runtime/pprof"
 	"sort"
-
-	"github.com/google/uuid"
-	"github.com/kdudkov/goatak/internal/wshandler"
+	"strconv"
 
 	"github.com/aofei/air"
+	"github.com/google/uuid"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	"github.com/kdudkov/goatak/cmd/goatak_server/tak_ws"
 	"github.com/kdudkov/goatak/internal/client"
 	"github.com/kdudkov/goatak/internal/model"
+	"github.com/kdudkov/goatak/internal/wshandler"
 	"github.com/kdudkov/goatak/pkg/cot"
 	"github.com/kdudkov/goatak/staticfiles"
 )
@@ -47,6 +47,7 @@ func getAdminAPI(app *App, addr string, renderer *staticfiles.Renderer, webtakRo
 	adminAPI.POST("/cot_xml", getCotXMLPostHandler(app))
 
 	adminAPI.GET("/mp", getAllMissionPackagesHandler(app))
+	adminAPI.GET("/mp/:uid", getPackageHandler(app))
 
 	if app.missions != nil {
 		adminAPI.GET("/mission", getAllMissionHandler(app))
@@ -338,6 +339,34 @@ func getAllMissionPackagesHandler(app *App) air.Handler {
 		data := app.packageManager.GetList(nil)
 
 		return res.WriteJSON(data)
+	}
+}
+
+func getPackageHandler(app *App) air.Handler {
+	return func(req *air.Request, res *air.Response) error {
+		pi := app.packageManager.Get(getStringParam(req, "uid"))
+
+		if pi == nil {
+			res.Status = http.StatusNotFound
+
+			return nil
+		}
+
+		res.Header.Set("Content-Type", pi.MIMEType)
+
+		f, err := app.packageManager.GetFile(pi.Hash)
+
+		if err != nil {
+			app.logger.Error("get file error", "error", err)
+			return err
+		}
+
+		defer f.Close()
+
+		res.Header.Set("Last-Modified", pi.SubmissionDateTime.UTC().Format(http.TimeFormat))
+		res.Header.Set("Content-Length", strconv.Itoa(pi.Size))
+
+		return res.Write(f)
 	}
 }
 

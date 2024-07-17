@@ -9,7 +9,7 @@
             <th>MIME type</th>
         </tr>
         <tr v-for="p in all">
-            <td>{{ p.UID }}</td>
+            <td><a :href="'/mp/' + p.UID">{{ p.UID }}</a></td>
             <td>{{ p.Name }}</td>
             <td>{{ p.Scope }}</td>
             <td>{{ p.CreatorUid }}</td>
