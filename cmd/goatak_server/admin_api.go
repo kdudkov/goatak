@@ -9,6 +9,7 @@ import (
 	"runtime/pprof"
 	"sort"
 	"strconv"
+	"strings"
 
 	"github.com/aofei/air"
 	"github.com/google/uuid"
@@ -352,9 +353,6 @@ func getPackageHandler(app *App) air.Handler {
 			return nil
 		}
 
-		res.Header.Set("Content-Type", pi.MIMEType)
-		res.Header.Set("Content-Disposition", "attachment; filename="+pi.Name)
-
 		f, err := app.packageManager.GetFile(pi.Hash)
 
 		if err != nil {
@@ -363,6 +361,16 @@ func getPackageHandler(app *App) air.Handler {
 		}
 
 		defer f.Close()
+
+		res.Header.Set("Content-Type", pi.MIMEType)
+
+		if !strings.HasPrefix(pi.MIMEType, "image/") {
+			fn := pi.Name
+			if pi.MIMEType == "application/x-zip-compressed" && !strings.HasSuffix(fn, ".zip") {
+				fn += ".zip"
+			}
+			res.Header.Set("Content-Disposition", "attachment; filename="+fn)
+		}
 
 		res.Header.Set("Last-Modified", pi.SubmissionDateTime.UTC().Format(http.TimeFormat))
 		res.Header.Set("Content-Length", strconv.Itoa(pi.Size))

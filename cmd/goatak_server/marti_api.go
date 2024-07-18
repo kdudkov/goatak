@@ -369,8 +369,6 @@ func getContentGetHandler(app *App) air.Handler {
 
 		if uid := getStringParam(req, "uid"); uid != "" {
 			if pi := app.packageManager.Get(uid); pi != nil && user.CanSeeScope(pi.Scope) {
-				res.Header.Set("Content-Type", pi.MIMEType)
-
 				f, err := app.packageManager.GetFile(pi.Hash)
 
 				if err != nil {
@@ -380,6 +378,7 @@ func getContentGetHandler(app *App) air.Handler {
 
 				defer f.Close()
 
+				res.Header.Set("Content-Type", pi.MIMEType)
 				res.Header.Set("Last-Modified", pi.SubmissionDateTime.UTC().Format(http.TimeFormat))
 				res.Header.Set("Content-Length", strconv.Itoa(pi.Size))
 

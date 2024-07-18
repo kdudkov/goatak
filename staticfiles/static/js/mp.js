@@ -23,7 +23,7 @@ let app = new Vue({
             fetch('/mp')
                 .then(resp => resp.json())
                 .then(function (data) {
-                    vm.mp = data;
+                    vm.mp = data.sort((a, b) => a.Scope.localeCompare(b.Scope) || a.Name.toLowerCase().localeCompare(b.Name.toLowerCase()));
                     vm.ts += 1;
                 });
         },
