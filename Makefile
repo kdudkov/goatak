@@ -34,7 +34,7 @@ checkdep:
 	go list -u -f '{{if (and (not (or .Main .Indirect)) .Update)}}{{.Path}}: {{.Version}} -> {{.Update.Version}}{{end}}' -m all 2> /dev/null
 
 .PHONY: test
-test:
+test: dep
 	go test -v ./...
 
 .PHONY: build
