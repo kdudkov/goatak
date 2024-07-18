@@ -15,6 +15,8 @@ import (
 	"github.com/kdudkov/goatak/pkg/model"
 )
 
+const WELCOME_MESSAGE_FROM_UID = "ADMIN_UID"
+
 type EventProcessor struct {
 	name    string
 	include []string
@@ -138,7 +140,7 @@ func (app *App) saveItemProcessor(msg *cot.CotMessage) bool {
 				Parent:   "RootContactGroup",
 				Chatroom: item.GetCallsign(),
 				From:     "",
-				FromUID:  "ADMIN_UID",
+				FromUID:  WELCOME_MESSAGE_FROM_UID,
 				ToUID:    item.GetUID(),
 				Direct:   true,
 				Text:     viper.GetString("welcome_msg"),
@@ -220,6 +222,10 @@ func logMessage(msg *cot.CotMessage, dir string) error {
 }
 
 func logChatMessage(c *model.ChatMessage) error {
+	if c.FromUID == WELCOME_MESSAGE_FROM_UID {
+		return nil
+	}
+
 	fd, err := os.OpenFile("msg.log", os.O_RDWR|os.O_APPEND|os.O_CREATE, 0666)
 	if err != nil {
 		return nil
