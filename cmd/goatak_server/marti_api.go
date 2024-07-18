@@ -360,6 +360,8 @@ func getContentGetHandler(app *App) air.Handler {
 
 			defer f.Close()
 
+			res.Header.Set("ETag", hash)
+
 			if size, err := app.packageManager.GetFileSize(hash); err == nil {
 				res.Header.Set("Content-Length", strconv.Itoa(int(size)))
 			}
@@ -381,6 +383,7 @@ func getContentGetHandler(app *App) air.Handler {
 				res.Header.Set("Content-Type", pi.MIMEType)
 				res.Header.Set("Last-Modified", pi.SubmissionDateTime.UTC().Format(http.TimeFormat))
 				res.Header.Set("Content-Length", strconv.Itoa(pi.Size))
+				res.Header.Set("ETag", pi.Hash)
 
 				return res.Write(f)
 			}
