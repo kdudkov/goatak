@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math"
+	"sort"
 	"strings"
 	"time"
 
@@ -145,15 +146,26 @@ func (g *StatsDumper) Stop() {
 
 	fmt.Println("\n== Devices:")
 
-	for k := range g.devices {
+	for _, k := range sortedKeys(g.devices) {
 		fmt.Printf("%s\n", k)
 	}
 
 	fmt.Println("\n== Versions:")
 
-	for k := range g.versions {
+	for _, k := range sortedKeys(g.versions) {
 		fmt.Printf("%s\n", k)
 	}
+}
+
+func sortedKeys(m map[string]int64) []string {
+	keys := make([]string, 0, len(m))
+
+	for k := range m {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
+	return keys
 }
 
 func (g *StatsDumper) Process(msg *cot.CotMessage) error {
@@ -171,7 +183,7 @@ func (g *StatsDumper) Process(msg *cot.CotMessage) error {
 
 	if v := msg.GetTakMessage().GetCotEvent().GetDetail().GetTakv(); v != nil {
 		ver := strings.Trim(fmt.Sprintf("%s %s", v.GetPlatform(), v.GetVersion()), " ")
-		dev := strings.Trim(fmt.Sprintf("%s, %s", v.GetDevice(), v.GetOs()), " ")
+		dev := strings.Trim(fmt.Sprintf("%s (%s)", v.GetDevice(), v.GetOs()), " ")
 
 		if !strings.Contains(ver, "\n") {
 			if n, ok := g.versions[ver]; ok {

@@ -54,6 +54,8 @@ func main() {
 		os.Exit(1)
 	}
 
+	dmp.Start()
+
 	for _, file := range files {
 		f, err := os.Open(file)
 		if err != nil {
@@ -69,8 +71,6 @@ func main() {
 }
 
 func readFile(f *os.File, uid, typ string, dmp Dumper) error {
-	dmp.Start()
-
 	lenBuf := make([]byte, 2)
 
 	for {

@@ -112,6 +112,10 @@ func (n *Node) getDestFor(name string) []string {
 	return r
 }
 
+func (n *Node) getSensor() map[string]string {
+	return n.GetFirst("sensor").GetAttrs()
+}
+
 func (n *Node) RemoveTags(tags ...string) {
 	if n == nil {
 		return
