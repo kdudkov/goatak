@@ -1,3 +1,15 @@
+# 0.18.1
+
+FEATURES:
+
+- mission packages download link in admin interface
+- etag header added
+
+FIXES:
+
+- many UI fixes
+- stats format in `takreplay` app fixed
+
 # 0.18.0
 
 FEATURES:
