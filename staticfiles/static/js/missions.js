@@ -22,7 +22,7 @@ let app = new Vue({
 
             fetch('/mission')
                 .then(resp => resp.json())
-                .then(function (data) {
+                .then(data => {
                     vm.missions = data;
                     vm.ts += 1;
                 });
