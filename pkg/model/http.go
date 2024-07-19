@@ -111,7 +111,7 @@ func (i *Item) ToWeb() *WebUnit {
 			w.Status = "Offline"
 		}
 
-		if v := evt.GetDetail().GetTakv(); v != nil {
+		if v := msg.GetTakv(); v != nil {
 			w.TakVersion = strings.Trim(fmt.Sprintf("%s %s", v.GetPlatform(), v.GetVersion()), " ")
 			w.Device = strings.Trim(fmt.Sprintf("%s, %s", v.GetDevice(), v.GetOs()), " ")
 		}

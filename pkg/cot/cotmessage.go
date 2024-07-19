@@ -129,6 +129,27 @@ func (m *CotMessage) GetEndpoint() string {
 	return m.GetDetail().GetFirst("contact").GetAttr("endpoint")
 }
 
+func (m *CotMessage) GetTakv() *cotproto.Takv {
+	if m == nil {
+		return nil
+	}
+
+	if s := m.GetTakMessage().GetCotEvent().GetDetail().GetTakv(); s != nil {
+		return s
+	}
+
+	if c := m.Detail.GetFirst("takv"); c != nil {
+		return &cotproto.Takv{
+			Device:   c.GetAttr("device"),
+			Platform: c.GetAttr("platform"),
+			Os:       c.GetAttr("os"),
+			Version:  c.GetAttr("version"),
+		}
+	}
+
+	return nil
+}
+
 func (m *CotMessage) GetTeam() string {
 	if m == nil {
 		return ""

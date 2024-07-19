@@ -181,7 +181,7 @@ func (g *StatsDumper) Process(msg *cot.CotMessage) error {
 		g.data[t] = 1
 	}
 
-	if v := msg.GetTakMessage().GetCotEvent().GetDetail().GetTakv(); v != nil {
+	if v := msg.GetTakv(); v != nil {
 		ver := strings.Trim(fmt.Sprintf("%s %s", v.GetPlatform(), v.GetVersion()), " ")
 		dev := strings.Trim(fmt.Sprintf("%s (%s)", v.GetDevice(), v.GetOs()), " ")
 
