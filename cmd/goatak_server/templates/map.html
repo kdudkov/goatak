@@ -140,8 +140,9 @@
                         </div>
                         <b>speed:</b> {{ sp(current_unit.unit.speed) }} km/h,
                         <b>hae:</b> {{ current_unit.unit.hae.toFixed(1) }}<br/>
-                        <div v-if="current_unit.tak_version">
+                        <div v-if="current_unit.unit.tak_version">
                             <b>ver:</b> {{ current_unit.unit.tak_version }}<br/>{{ current_unit.unit.device }}</div>
+                        <div v-if="current_unit.unit.battery"><b>battery:</b> {{ current_unit.unit.battery }}</div>
                         <div v-if="current_unit.unit.parent_uid"><b>parent:</b> {{ current_unit.unit.parent_uid }}
                             <span v-if="current_unit.unit.parent_callsign">({{ current_unit.unit.parent_callsign }})</span>
                         </div>
