@@ -32,7 +32,11 @@ function getIconUri(item, size, withText) {
         if (item.status !== "Offline") {
             col = colors.get(item.team);
         }
-        return {uri: toUri(circle(size, col, '#000', roles.get(item.role) ?? '')), x: size / 2, y: size / 2};
+        return {
+            uri: toUri(circle(size, col, '#000', roles.get(item.role) ?? '')),
+            x: Math.round(size / 2),
+            y: Math.round(size / 2)
+        };
     }
     if (item.icon && item.icon.startsWith("COT_MAPPING_SPOTMAP/")) {
         return {uri: toUri(circle(16, item.color || '#777', '#000', null)), x: 8, y: 8}
@@ -99,8 +103,10 @@ function circle(size, color, bg, text) {
     let s = '<svg width="' + size + '" height="' + size + '" xmlns="http://www.w3.org/2000/svg"><metadata id="metadata1">image/svg+xml</metadata>';
     s += '<circle style="fill: ' + color + '; stroke: ' + bg + ';" cx="' + x + '" cy="' + x + '" r="' + r + '"/>';
 
+    let fs = Math.round(size / 2);
+
     if (text != null && text !== '') {
-        s += '<text x="50%" y="50%" text-anchor="middle" font-size="12px" font-family="Arial" dy=".3em">' + text + '</text>';
+        s += '<text x="50%" y="50%" text-anchor="middle" font-size=fs+"px" font-family="Arial" dy=".3em">' + text + '</text>';
     }
     s += '</svg>';
     return s;
