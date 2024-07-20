@@ -49,6 +49,8 @@ func main() {
 		dmp = new(StatsDumper)
 	case "broadcast":
 		dmp = NewBroadcastDumper(*n)
+	case "contacts":
+		dmp = new(ContactsDumper)
 	default:
 		fmt.Printf("invalid format %s\n", *format)
 		os.Exit(1)
