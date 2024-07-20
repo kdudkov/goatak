@@ -391,12 +391,12 @@ let app = new Vue({
             }
         },
 
-        getImg: function (item) {
-            return getIconUri(item, false).uri;
+        getImg: function (item, size) {
+            return getIconUri(item, size, false).uri;
         },
 
         milImg: function (item) {
-            return getMilIconUri(item, false).uri;
+            return getMilIconUri(item, 24, false).uri;
         },
 
         dt: function (str) {

@@ -14,7 +14,7 @@
                         <ul class="dropdown-menu dropdown-menu-dark" aria-labelledby="navbarDarkDropdownMenuLink">
                             <li v-for="u in byCategory('contact')">
                                 <a class="dropdown-item" href="#" v-on:click="setCurrentUnitUid(u.uid, true)">
-                                    <img :src="getImg(u.unit)"/>
+                                    <img :src="getImg(u.unit, 14)"/>
                                     <span v-if="u.unit.lat === 0 && u.unit.lon === 0">* </span>{{ u.unit.callsign }}<span
                                         v-if="u.unit.status && u.unit.status !=='Online'"> ({{ u.unit.status }})</span>
                                 </a>
@@ -29,7 +29,7 @@
                         <ul class="dropdown-menu dropdown-menu-dark" aria-labelledby="navbarDarkDropdownMenuLink2">
                             <li v-for="u in byCategory('unit')">
                                 <a class="dropdown-item" href="#" v-on:click="setCurrentUnitUid(u.uid, true)">
-                                    <img :src="getImg(u.unit)"/>
+                                    <img :src="getImg(u.unit, 14)"/>
                                     {{ getUnitName(u) }}
                                 </a>
                             </li>

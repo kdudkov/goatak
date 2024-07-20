@@ -47,11 +47,11 @@ let app = new Vue({
             });
             return this.ts && arr;
         },
-        getImg: function (item) {
-            return getIconUri(item, false).uri;
+        getImg: function (item, size) {
+            return getIconUri(item, size, false).uri;
         },
         milImg: function (item) {
-            return getMilIconUri(item, false).uri;
+            return getMilIconUri(item, 24, false).uri;
         },
         printCoords: function (lat, lng) {
             return lat.toFixed(6) + "," + lng.toFixed(6);
