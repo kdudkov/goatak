@@ -103,10 +103,9 @@ function circle(size, color, bg, text) {
     let s = '<svg width="' + size + '" height="' + size + '" xmlns="http://www.w3.org/2000/svg"><metadata id="metadata1">image/svg+xml</metadata>';
     s += '<circle style="fill: ' + color + '; stroke: ' + bg + ';" cx="' + x + '" cy="' + x + '" r="' + r + '"/>';
 
-    let fs = Math.round(size / 2);
-
-    if (text != null && text !== '') {
-        s += '<text x="50%" y="50%" text-anchor="middle" font-size=fs+"px" font-family="Arial" dy=".3em">' + text + '</text>';
+    if (text) {
+        let fs = Math.floor(size / 2);
+        s += '<text x="50%" y="50%" text-anchor="middle" font-size="' + fs + 'px" font-family="Arial" dy=".3em">' + text + '</text>';
     }
     s += '</svg>';
     return s;
