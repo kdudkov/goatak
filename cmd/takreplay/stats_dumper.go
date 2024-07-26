@@ -63,12 +63,10 @@ func (g *StatsDumper) Process(msg *cot.CotMessage) error {
 		ver := strings.Trim(fmt.Sprintf("%s %s", v.GetPlatform(), vv), " ")
 		dev := strings.Trim(fmt.Sprintf("%s (%s)", v.GetDevice(), v.GetOs()), " ")
 
-		if !strings.Contains(ver, "\n") {
-			if n, ok := g.versions[ver]; ok {
-				g.versions[ver] = n + 1
-			} else {
-				g.versions[ver] = 1
-			}
+		if n, ok := g.versions[ver]; ok {
+			g.versions[ver] = n + 1
+		} else {
+			g.versions[ver] = 1
 		}
 
 		if n, ok := g.devices[dev]; ok {
