@@ -114,7 +114,14 @@ func (i *Item) ToWeb() *WebUnit {
 		}
 
 		if v := msg.GetTakv(); v != nil {
-			w.TakVersion = strings.Trim(fmt.Sprintf("%s %s", v.GetPlatform(), v.GetVersion()), " ")
+			var ver string
+			if strings.IndexByte(v.GetVersion(), '\n') >= 0 {
+				ver, _, _ = strings.Cut(v.GetVersion(), "\n")
+			} else {
+				ver = v.GetVersion()
+			}
+
+			w.TakVersion = strings.Trim(fmt.Sprintf("%s %s", v.GetPlatform(), ver), " ")
 			w.Device = strings.Trim(fmt.Sprintf("%s, %s", v.GetDevice(), v.GetOs()), " ")
 		}
 	}
