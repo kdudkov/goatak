@@ -53,7 +53,14 @@ func (g *StatsDumper) Process(msg *cot.CotMessage) error {
 	}
 
 	if v := msg.GetTakv(); v != nil {
-		ver := strings.Trim(fmt.Sprintf("%s %s", v.GetPlatform(), v.GetVersion()), " ")
+		var vv string
+		if strings.IndexByte(v.GetVersion(), '\n') >= 0 {
+			vv, _, _ = strings.Cut(v.GetVersion(), "\n")
+		} else {
+			vv = v.GetVersion()
+		}
+
+		ver := strings.Trim(fmt.Sprintf("%s %s", v.GetPlatform(), vv), " ")
 		dev := strings.Trim(fmt.Sprintf("%s (%s)", v.GetDevice(), v.GetOs()), " ")
 
 		if !strings.Contains(ver, "\n") {
