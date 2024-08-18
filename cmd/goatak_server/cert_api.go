@@ -59,7 +59,7 @@ func getTLSConfigHandler(app *App) air.Handler {
 	}
 }
 
-func signClientCert(clientCSR *x509.CertificateRequest, serverCert *x509.Certificate, privateKey crypto.PrivateKey, days int) (*x509.Certificate, error) {
+func signClientCert(uid string, clientCSR *x509.CertificateRequest, serverCert *x509.Certificate, privateKey crypto.PrivateKey, days int) (*x509.Certificate, error) {
 	serialNumber, _ := rand.Int(rand.Reader, new(big.Int).Lsh(big.NewInt(1), 128))
 
 	template := x509.Certificate{
@@ -69,13 +69,14 @@ func signClientCert(clientCSR *x509.CertificateRequest, serverCert *x509.Certifi
 		PublicKeyAlgorithm: clientCSR.PublicKeyAlgorithm,
 		PublicKey:          clientCSR.PublicKey,
 
-		SerialNumber: serialNumber,
-		Issuer:       serverCert.Subject,
-		Subject:      clientCSR.Subject,
-		NotBefore:    time.Now(),
-		NotAfter:     time.Now().Add(time.Duration(days*24) * time.Hour),
-		KeyUsage:     x509.KeyUsageDigitalSignature,
-		ExtKeyUsage:  []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth},
+		SerialNumber:   serialNumber,
+		Issuer:         serverCert.Subject,
+		Subject:        clientCSR.Subject,
+		NotBefore:      time.Now(),
+		NotAfter:       time.Now().Add(time.Duration(days*24) * time.Hour),
+		KeyUsage:       x509.KeyUsageDigitalSignature,
+		ExtKeyUsage:    []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth},
+		EmailAddresses: []string{uid},
 	}
 
 	certBytes, err := x509.CreateCertificate(rand.Reader, &template, serverCert, clientCSR.PublicKey, privateKey)
@@ -93,6 +94,10 @@ func (app *App) processSignRequest(req *air.Request) (*x509.Certificate, error) 
 
 	app.logger.Info(fmt.Sprintf("cert sign req from %s %s ver %s", username, uid, ver))
 
+	if !app.users.UserIsValid(username, "") {
+		return nil, fmt.Errorf("bad user")
+	}
+
 	b, err := io.ReadAll(req.Body)
 	if err != nil {
 		return nil, err
@@ -107,11 +112,7 @@ func (app *App) processSignRequest(req *air.Request) (*x509.Certificate, error) 
 		return nil, fmt.Errorf("bad user in csr")
 	}
 
-	if !app.users.UserIsValid(username, "") {
-		return nil, fmt.Errorf("bad user")
-	}
-
-	signedCert, err := signClientCert(clientCSR,
+	signedCert, err := signClientCert(uid, clientCSR,
 		app.config.serverCert, app.config.tlsCert.PrivateKey, app.config.certTTLDays)
 	if err != nil {
 		return nil, err
