@@ -26,7 +26,7 @@ const (
 func addMissionApi(app *App, f *fiber.App) {
 	g := f.Group("/Marti/api/missions")
 
-	g.Get("", getMissionsHandler(app))
+	g.Get("/", getMissionsHandler(app))
 
 	g.Get("/all/invitations", getMissionsInvitationsHandler(app))
 

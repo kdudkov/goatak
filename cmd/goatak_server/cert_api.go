@@ -34,7 +34,7 @@ func NewCertAPI(app *App, addr string) *CertAPI {
 
 	api.f.Use(log.NewFiberLogger("cert_api", Username))
 
-	api.f.Use(getUserAuth(app.users))
+	api.f.Use(UserAuthHandler(app.users))
 
 	api.f.Get("/Marti/api/tls/config", getTLSConfigHandler(app))
 	api.f.Post("/Marti/api/tls/signClient", getSignHandler(app))

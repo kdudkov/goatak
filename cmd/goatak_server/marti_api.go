@@ -42,12 +42,11 @@ func NewMartiApi(app *App, addr string) *MartiAPI {
 
 	api.f.Use(log.NewFiberLogger("marti_api", Username))
 
-	addMartiRoutes(app, api.f)
-
 	if app.config.useSsl {
 		api.tls = true
 		api.cert = *app.config.tlsCert
 		api.certPool = app.config.certPool
+		api.f.Use(SSLCheckHandler(app))
 
 		//api.TLSConfig = &tls.Config{
 		//	Certificates: []tls.Certificate{*app.config.tlsCert},
@@ -57,6 +56,8 @@ func NewMartiApi(app *App, addr string) *MartiAPI {
 		//	MinVersion:   tls.VersionTLS10,
 		//}
 	}
+
+	addMartiRoutes(app, api.f)
 
 	return api
 }
