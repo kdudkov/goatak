@@ -40,7 +40,7 @@ func NewMartiApi(app *App, addr string) *MartiAPI {
 		addr: addr,
 	}
 
-	api.f.Use(log.NewFiberLogger("marti_api", Username))
+	api.f.Use(log.NewFiberLogger(&log.LoggerConfig{Name: "marti_api", UserGetter: Username, DoMetrics: true}))
 
 	if app.config.useSsl {
 		api.tls = true

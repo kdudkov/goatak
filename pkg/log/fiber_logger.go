@@ -28,15 +28,28 @@ var (
 	}, []string{"api", "path", "method", "code"})
 )
 
-func NewFiberLogger(api string, username func(c *fiber.Ctx) string) fiber.Handler {
-	logger := slog.Default().With(slog.String("logger", api))
+type LoggerConfig struct {
+	Name          string
+	UserGetter    func(c *fiber.Ctx) string
+	DoMetrics     bool
+	LogErrorsOnly bool
+}
+
+func NewFiberLogger(conf *LoggerConfig) fiber.Handler {
+	if conf == nil {
+		conf = &LoggerConfig{Name: "http"}
+	}
+
+	logger := slog.Default().With(slog.String("logger", conf.Name))
 
 	return func(c *fiber.Ctx) error {
 		start := time.Now()
 		chainErr := c.Next()
 		wt := time.Since(start)
 
-		metrics(api, c, wt)
+		if conf.DoMetrics {
+			metrics(conf.Name, c, wt)
+		}
 
 		msg := fmt.Sprintf("%d %s %s %s", c.Response().StatusCode(), c.Method(), c.Path(), c.Request().URI().QueryArgs().String())
 		l := logger
@@ -48,11 +61,11 @@ func NewFiberLogger(api string, username func(c *fiber.Ctx) string) fiber.Handle
 		status := c.Response().StatusCode()
 
 		var attrs []any
-		if username != nil {
+		if conf.UserGetter != nil {
 			attrs = []any{
 				slog.String("client", c.IP()+":"+c.Port()),
 				slog.Int("status", status),
-				slog.String("user", username(c)),
+				slog.String("user", conf.UserGetter(c)),
 				slog.Int64("ms", wt.Milliseconds()),
 			}
 		} else {
@@ -63,13 +76,17 @@ func NewFiberLogger(api string, username func(c *fiber.Ctx) string) fiber.Handle
 			}
 		}
 
-		switch {
-		case status < 300:
-			l.Debug(msg, attrs...)
-		case status < 400:
+		if conf.LogErrorsOnly {
+			switch {
+			case status < 300:
+				l.Debug(msg, attrs...)
+			case status < 400:
+				l.Info(msg, attrs...)
+			default:
+				l.Warn(msg, attrs...)
+			}
+		} else {
 			l.Info(msg, attrs...)
-		default:
-			l.Warn(msg, attrs...)
 		}
 
 		return nil

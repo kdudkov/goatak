@@ -32,7 +32,7 @@ func NewCertAPI(app *App, addr string) *CertAPI {
 		addr: addr,
 	}
 
-	api.f.Use(log.NewFiberLogger("cert_api", Username))
+	api.f.Use(log.NewFiberLogger(&log.LoggerConfig{Name: "cert_api", UserGetter: Username, DoMetrics: true}))
 
 	api.f.Use(UserAuthHandler(app.users))
 

@@ -30,7 +30,7 @@ func NewHttp(app *App) *fiber.App {
 
 	srv := fiber.New(fiber.Config{EnablePrintRoutes: false, DisableStartupMessage: true, Views: engine})
 
-	srv.Use(log.NewFiberLogger("http", nil))
+	srv.Use(log.NewFiberLogger(nil))
 	staticfiles.Embed(srv)
 
 	srv.Get("/", getIndexHandler(app))
