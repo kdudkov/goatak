@@ -69,7 +69,7 @@ func getMissionsHandler(app *App) fiber.Handler {
 func getMissionHandler(app *App) fiber.Handler {
 	return func(ctx *fiber.Ctx) error {
 		user := app.users.GetUser(Username(ctx))
-		m := app.missions.GetMission(user.GetScope(), ctx.Query("missionname"))
+		m := app.missions.GetMission(user.GetScope(), ctx.Params("missionname"))
 
 		if m == nil {
 			return ctx.SendStatus(fiber.StatusNotFound)
@@ -91,7 +91,7 @@ func getMissionPutHandler(app *App) fiber.Handler {
 		}
 
 		m := &model.Mission{
-			Name:           ctx.Query("missionname"),
+			Name:           ctx.Params("missionname"),
 			Scope:          user.GetScope(),
 			Username:       username,
 			CreatorUID:     ctx.Query("creatorUid"),
@@ -128,7 +128,7 @@ func getMissionPutHandler(app *App) fiber.Handler {
 func getMissionDeleteHandler(app *App) fiber.Handler {
 	return func(ctx *fiber.Ctx) error {
 		user := app.users.GetUser(Username(ctx))
-		m := app.missions.GetMission(user.GetScope(), ctx.Query("missionname"))
+		m := app.missions.GetMission(user.GetScope(), ctx.Params("missionname"))
 
 		if m == nil {
 			return ctx.SendStatus(fiber.StatusNotFound)
@@ -151,7 +151,7 @@ func getMissionsInvitationsHandler(app *App) fiber.Handler {
 func getMissionRoleHandler(app *App) fiber.Handler {
 	return func(ctx *fiber.Ctx) error {
 		user := app.users.GetUser(Username(ctx))
-		m := app.missions.GetMission(user.GetScope(), ctx.Query("missionname"))
+		m := app.missions.GetMission(user.GetScope(), ctx.Params("missionname"))
 
 		if m == nil {
 			return ctx.SendStatus(fiber.StatusNotFound)
@@ -164,7 +164,7 @@ func getMissionRoleHandler(app *App) fiber.Handler {
 func getMissionRolePutHandler(app *App) fiber.Handler {
 	return func(ctx *fiber.Ctx) error {
 		user := app.users.GetUser(Username(ctx))
-		m := app.missions.GetMission(user.GetScope(), ctx.Query("missionname"))
+		m := app.missions.GetMission(user.GetScope(), ctx.Params("missionname"))
 
 		if m == nil {
 			return ctx.SendStatus(fiber.StatusNotFound)
@@ -179,7 +179,7 @@ func getMissionLogHandler(app *App) fiber.Handler {
 
 	return func(ctx *fiber.Ctx) error {
 		user := app.users.GetUser(Username(ctx))
-		m := app.missions.GetMission(user.GetScope(), ctx.Query("missionname"))
+		m := app.missions.GetMission(user.GetScope(), ctx.Params("missionname"))
 
 		if m == nil {
 			return ctx.SendStatus(fiber.StatusNotFound)
@@ -192,7 +192,7 @@ func getMissionLogHandler(app *App) fiber.Handler {
 func getMissionKeywordsPutHandler(app *App) fiber.Handler {
 	return func(ctx *fiber.Ctx) error {
 		user := app.users.GetUser(Username(ctx))
-		m := app.missions.GetMission(user.GetScope(), ctx.Query("missionname"))
+		m := app.missions.GetMission(user.GetScope(), ctx.Params("missionname"))
 
 		if m == nil {
 			return ctx.SendStatus(fiber.StatusNotFound)
@@ -204,7 +204,7 @@ func getMissionKeywordsPutHandler(app *App) fiber.Handler {
 			return err
 		}
 
-		app.missions.AddKw(ctx.Query("missionname"), kw)
+		app.missions.AddKw(ctx.Params("missionname"), kw)
 
 		return nil
 	}
@@ -213,7 +213,7 @@ func getMissionKeywordsPutHandler(app *App) fiber.Handler {
 func getMissionSubscriptionsHandler(app *App) fiber.Handler {
 	return func(ctx *fiber.Ctx) error {
 		user := app.users.GetUser(Username(ctx))
-		m := app.missions.GetMission(user.GetScope(), ctx.Query("missionname"))
+		m := app.missions.GetMission(user.GetScope(), ctx.Params("missionname"))
 
 		if m == nil {
 			return ctx.SendStatus(fiber.StatusNotFound)
@@ -226,7 +226,7 @@ func getMissionSubscriptionsHandler(app *App) fiber.Handler {
 func getMissionSubscriptionHandler(app *App) fiber.Handler {
 	return func(ctx *fiber.Ctx) error {
 		user := app.users.GetUser(Username(ctx))
-		m := app.missions.GetMission(user.GetScope(), ctx.Query("missionname"))
+		m := app.missions.GetMission(user.GetScope(), ctx.Params("missionname"))
 
 		if m == nil {
 			return ctx.SendStatus(fiber.StatusNotFound)
@@ -244,7 +244,7 @@ func getMissionSubscriptionHandler(app *App) fiber.Handler {
 func getMissionSubscriptionPutHandler(app *App) fiber.Handler {
 	return func(ctx *fiber.Ctx) error {
 		user := app.users.GetUser(Username(ctx))
-		m := app.missions.GetMission(user.GetScope(), ctx.Query("missionname"))
+		m := app.missions.GetMission(user.GetScope(), ctx.Params("missionname"))
 
 		if m == nil {
 			return ctx.SendStatus(fiber.StatusNotFound)
@@ -275,13 +275,13 @@ func getMissionSubscriptionPutHandler(app *App) fiber.Handler {
 func getMissionSubscriptionDeleteHandler(app *App) fiber.Handler {
 	return func(ctx *fiber.Ctx) error {
 		user := app.users.GetUser(Username(ctx))
-		m := app.missions.GetMission(user.GetScope(), ctx.Query("missionname"))
+		m := app.missions.GetMission(user.GetScope(), ctx.Params("missionname"))
 
 		if m == nil {
 			return ctx.SendStatus(fiber.StatusNotFound)
 		}
 
-		app.missions.DeleteSubscription(ctx.Query("missionname"), ctx.Query("uid"))
+		app.missions.DeleteSubscription(ctx.Params("missionname"), ctx.Query("uid"))
 
 		return nil
 	}
@@ -290,7 +290,7 @@ func getMissionSubscriptionDeleteHandler(app *App) fiber.Handler {
 func getMissionSubscriptionRolesHandler(app *App) fiber.Handler {
 	return func(ctx *fiber.Ctx) error {
 		user := app.users.GetUser(Username(ctx))
-		m := app.missions.GetMission(user.GetScope(), ctx.Query("missionname"))
+		m := app.missions.GetMission(user.GetScope(), ctx.Params("missionname"))
 
 		if m == nil {
 			return ctx.SendStatus(fiber.StatusNotFound)
@@ -305,7 +305,7 @@ func getMissionSubscriptionRolesHandler(app *App) fiber.Handler {
 func getMissionChangesHandler(app *App) fiber.Handler {
 	return func(ctx *fiber.Ctx) error {
 		user := app.users.GetUser(Username(ctx))
-		mission := app.missions.GetMission(user.GetScope(), ctx.Query("missionname"))
+		mission := app.missions.GetMission(user.GetScope(), ctx.Params("missionname"))
 		d1 := time.Now().Add(-time.Second * time.Duration(ctx.QueryInt("secago", 31536000)))
 
 		if mission == nil {
@@ -327,7 +327,7 @@ func getMissionChangesHandler(app *App) fiber.Handler {
 func getMissionCotHandler(app *App) fiber.Handler {
 	return func(ctx *fiber.Ctx) error {
 		user := app.users.GetUser(Username(ctx))
-		mission := app.missions.GetMission(user.GetScope(), ctx.Query("missionname"))
+		mission := app.missions.GetMission(user.GetScope(), ctx.Params("missionname"))
 
 		if mission == nil {
 			return ctx.SendStatus(fiber.StatusNotFound)
@@ -355,7 +355,7 @@ func getMissionCotHandler(app *App) fiber.Handler {
 func getMissionContactsHandler(app *App) fiber.Handler {
 	return func(ctx *fiber.Ctx) error {
 		user := app.users.GetUser(Username(ctx))
-		m := app.missions.GetMission(user.GetScope(), ctx.Query("missionname"))
+		m := app.missions.GetMission(user.GetScope(), ctx.Params("missionname"))
 
 		if m == nil {
 			return ctx.SendStatus(fiber.StatusNotFound)
@@ -368,7 +368,7 @@ func getMissionContactsHandler(app *App) fiber.Handler {
 func getMissionContentPutHandler(app *App) fiber.Handler {
 	return func(ctx *fiber.Ctx) error {
 		user := app.users.GetUser(Username(ctx))
-		mission := app.missions.GetMission(user.GetScope(), ctx.Query("missionname"))
+		mission := app.missions.GetMission(user.GetScope(), ctx.Params("missionname"))
 
 		if mission == nil {
 			return ctx.SendStatus(fiber.StatusNotFound)
@@ -400,7 +400,7 @@ func getMissionContentPutHandler(app *App) fiber.Handler {
 func getMissionContentDeleteHandler(app *App) fiber.Handler {
 	return func(ctx *fiber.Ctx) error {
 		user := app.users.GetUser(Username(ctx))
-		mission := app.missions.GetMission(user.GetScope(), ctx.Query("missionname"))
+		mission := app.missions.GetMission(user.GetScope(), ctx.Params("missionname"))
 
 		if mission == nil {
 			return ctx.SendStatus(fiber.StatusNotFound)
@@ -427,14 +427,14 @@ func getMissionContentDeleteHandler(app *App) fiber.Handler {
 func getInvitePutHandler(app *App) fiber.Handler {
 	return func(ctx *fiber.Ctx) error {
 		user := app.users.GetUser(Username(ctx))
-		mission := app.missions.GetMission(user.GetScope(), ctx.Query("missionname"))
+		mission := app.missions.GetMission(user.GetScope(), ctx.Params("missionname"))
 
 		if mission == nil {
 			return ctx.SendStatus(fiber.StatusNotFound)
 		}
 
 		// type can be: clientUid, callsign, userName, group, team
-		typ := ctx.Query("type")
+		typ := ctx.Params("type")
 
 		if typ != "clientUid" {
 			app.logger.Warn(fmt.Sprintf("we do not support invitation with type %s now", typ))
@@ -444,7 +444,7 @@ func getInvitePutHandler(app *App) fiber.Handler {
 		inv := &model.Invitation{
 			MissionID:  mission.ID,
 			Typ:        typ,
-			Invitee:    ctx.Query("uid"),
+			Invitee:    ctx.Params("uid"),
 			CreatorUID: ctx.Query("creatorUid"),
 			CreateTime: time.Now(),
 			Role:       ctx.Query("role"),
@@ -459,13 +459,13 @@ func getInvitePutHandler(app *App) fiber.Handler {
 func getInviteDeleteHandler(app *App) fiber.Handler {
 	return func(ctx *fiber.Ctx) error {
 		user := app.users.GetUser(Username(ctx))
-		mission := app.missions.GetMission(user.GetScope(), ctx.Query("missionname"))
+		mission := app.missions.GetMission(user.GetScope(), ctx.Params("missionname"))
 
 		if mission == nil {
 			return ctx.SendStatus(fiber.StatusNotFound)
 		}
 
-		app.missions.DeleteInvitation(mission.ID, ctx.Query("uid"), ctx.Query("type"))
+		app.missions.DeleteInvitation(mission.ID, ctx.Params("uid"), ctx.Params("type"))
 
 		return nil
 	}

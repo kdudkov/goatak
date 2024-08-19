@@ -411,7 +411,7 @@ func getContentGetHandler(app *App) fiber.Handler {
 
 func getMetadataGetHandler(app *App) fiber.Handler {
 	return func(ctx *fiber.Ctx) error {
-		hash := ctx.Query("hash")
+		hash := ctx.Params("hash")
 		username := Username(ctx)
 		user := app.users.GetUser(username)
 
@@ -432,7 +432,7 @@ func getMetadataGetHandler(app *App) fiber.Handler {
 func getMetadataPutHandler(app *App) fiber.Handler {
 	return func(ctx *fiber.Ctx) error {
 		user := app.users.GetUser(Username(ctx))
-		hash := ctx.Query("hash")
+		hash := ctx.Params("hash")
 
 		if hash == "" {
 			return ctx.Status(fiber.StatusNotAcceptable).SendString("no hash")
@@ -589,7 +589,7 @@ func getVideoPostHandler(app *App) fiber.Handler {
 
 func getXmlHandler(app *App) fiber.Handler {
 	return func(ctx *fiber.Ctx) error {
-		uid := ctx.Query("uid")
+		uid := ctx.Params("uid")
 
 		if uid == "" {
 			return ctx.SendStatus(fiber.StatusBadRequest)
