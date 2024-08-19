@@ -11,7 +11,7 @@ import (
 
 const (
 	UsernameKey = "username"
-	SerialKey   = "username"
+	SerialKey   = "sn"
 )
 
 func UserAuthHandler(r repository.UserRepository) fiber.Handler {
