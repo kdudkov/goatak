@@ -8,24 +8,25 @@ import (
 	"strings"
 
 	"github.com/kdudkov/goatak/cmd/goatak_server/mp"
+	"github.com/kdudkov/goatak/internal/model"
 )
 
-func NewUserPrefsFile(prefix, callsign, team, role, typ string) *mp.PrefFile {
+func NewUserPrefsFile(prefix string, user *model.User) *mp.PrefFile {
 	conf := mp.NewUserProfilePrefFile(prefix)
-	if callsign != "" {
-		conf.AddParam("locationCallsign", callsign)
+	if user.Callsign != "" {
+		conf.AddParam("locationCallsign", user.Callsign)
 	}
 
-	if team != "" {
-		conf.AddParam("locationTeam", team)
+	if user.Team != "" {
+		conf.AddParam("locationTeam", user.Team)
 	}
 
-	if role != "" {
-		conf.AddParam("atakRoleType", role)
+	if user.Role != "" {
+		conf.AddParam("atakRoleType", user.Role)
 	}
 
-	if typ != "" {
-		conf.AddParam("locationUnitType", typ)
+	if user.Typ != "" {
+		conf.AddParam("locationUnitType", user.Typ)
 	}
 
 	return conf
@@ -37,10 +38,10 @@ func (app *App) GetProfileFiles(username, uid string) []mp.FileContent {
 
 	if app.users != nil && username != "" {
 		if userInfo := app.users.GetUser(username); userInfo != nil {
-			if userInfo.Callsign != "" || userInfo.Team != "" || userInfo.Role != "" || userInfo.Typ != "" {
+			if userInfo.HasProfile() {
 				app.logger.Debug("add user prefs")
 
-				f := NewUserPrefsFile(prefix, userInfo.Callsign, userInfo.Team, userInfo.Role, userInfo.Typ)
+				f := NewUserPrefsFile(prefix, userInfo)
 				res = append(res, f)
 			}
 		}

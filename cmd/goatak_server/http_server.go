@@ -3,12 +3,10 @@ package main
 import (
 	"embed"
 	"fmt"
+	"log/slog"
 	"time"
 
-	"github.com/aofei/air"
-
 	"github.com/kdudkov/goatak/pkg/model"
-	"github.com/kdudkov/goatak/staticfiles"
 )
 
 //go:embed templates
@@ -24,44 +22,42 @@ type Connection struct {
 	LastSeen *time.Time        `json:"last_seen"`
 }
 
+type Listener interface {
+	Listen() error
+	Address() string
+}
+
 type HttpServer struct {
-	app       *App
-	listeners map[string]*air.Air
-	renderer  *staticfiles.Renderer
+	log       *slog.Logger
+	listeners map[string]Listener
 }
 
 func NewHttp(app *App) *HttpServer {
-	renderer := new(staticfiles.Renderer)
-	renderer.LeftDelimeter = "[["
-	renderer.RightDelimeter = "]]"
-	_ = renderer.Load(templates)
-
 	srv := &HttpServer{
-		app:       app,
-		listeners: make(map[string]*air.Air),
-		renderer:  renderer,
+		log:       app.logger.With("logger", "http"),
+		listeners: make(map[string]Listener),
 	}
 
 	if app.config.adminAddr != "" {
-		srv.listeners["admin api calls"] = getAdminAPI(app, app.config.adminAddr, renderer, app.config.webtakRoot)
+		srv.listeners["admin api calls"] = NewAdminAPI(app, app.config.adminAddr, app.config.webtakRoot)
 	}
 
 	if app.config.certAddr != "" {
-		srv.listeners["cert api calls"] = getCertAPI(app, app.config.certAddr)
+		srv.listeners["cert api calls"] = NewCertAPI(app, app.config.certAddr)
 	}
 
-	srv.listeners["marti api calls"] = getMartiApi(app, app.config.apiAddr)
+	srv.listeners["marti api calls"] = NewMartiApi(app, app.config.apiAddr)
 
 	return srv
 }
 
 func (h *HttpServer) Start() {
 	for name, listener := range h.listeners {
-		go func(name string, listener *air.Air) {
-			h.app.logger.Info(fmt.Sprintf("listening %s at %s", name, listener.Address))
+		go func(name string, listener Listener) {
+			h.log.Info(fmt.Sprintf("listening %s at %s", name, listener.Address()))
 
-			if err := listener.Serve(); err != nil {
-				h.app.logger.Error("error", "error", err.Error())
+			if err := listener.Listen(); err != nil {
+				h.log.Error("error", "error", err.Error())
 				panic(err)
 			}
 		}(name, listener)

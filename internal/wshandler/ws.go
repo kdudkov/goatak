@@ -1,10 +1,11 @@
 package wshandler
 
 import (
-	"encoding/json"
+	"fmt"
+	"log/slog"
 	"sync/atomic"
 
-	"github.com/aofei/air"
+	"github.com/gofiber/contrib/websocket"
 	"github.com/kdudkov/goatak/pkg/model"
 )
 
@@ -16,14 +17,16 @@ type WebMessage struct {
 }
 
 type JSONWsHandler struct {
+	log    *slog.Logger
 	name   string
-	ws     *air.WebSocket
+	ws     *websocket.Conn
 	ch     chan *WebMessage
 	active int32
 }
 
-func NewHandler(name string, ws *air.WebSocket) *JSONWsHandler {
+func NewHandler(log *slog.Logger, name string, ws *websocket.Conn) *JSONWsHandler {
 	return &JSONWsHandler{
+		log:    log.With("client", name),
 		name:   name,
 		ws:     ws,
 		ch:     make(chan *WebMessage, 10),
@@ -43,10 +46,8 @@ func (w *JSONWsHandler) stop() {
 }
 
 func (w *JSONWsHandler) writer() {
-	defer w.stop()
-
 	for item := range w.ch {
-		if w.ws.Closed {
+		if !w.IsActive() {
 			return
 		}
 
@@ -54,11 +55,19 @@ func (w *JSONWsHandler) writer() {
 			continue
 		}
 
-		if b, err := json.Marshal(item); err == nil {
-			if w.ws.WriteText(string(b)) != nil {
-				return
-			}
-		} else {
+		_ = w.ws.WriteJSON(item)
+	}
+}
+
+func (w *JSONWsHandler) reader() {
+	defer w.stop()
+
+	for {
+		_, _, err := w.ws.ReadMessage()
+
+		if err != nil {
+			w.log.Error("error on read", slog.Any("error", err))
+
 			return
 		}
 	}
@@ -103,13 +112,18 @@ func (w *JSONWsHandler) NewChatMessage(msg *model.ChatMessage) bool {
 	return true
 }
 
-func (w *JSONWsHandler) Listen() {
-	if w.ws.Closed {
-		return
-	}
+func (w *JSONWsHandler) closehandler(code int, text string) error {
+	w.log.Info(fmt.Sprintf("closed with code %d, msg %s", code, text))
+	w.stop()
 
-	defer w.stop()
+	return nil
+}
+
+func (w *JSONWsHandler) Listen() {
+	w.log.Debug("ws start")
+	w.ws.SetCloseHandler(w.closehandler)
 
 	go w.writer()
-	w.ws.Listen()
+	w.reader()
+	w.log.Debug("ws stop")
 }

@@ -3,16 +3,19 @@ package main
 import (
 	"encoding/json"
 	"encoding/xml"
-	"errors"
+	"io"
 	"net/http"
-	"path/filepath"
 	"runtime/pprof"
 	"sort"
 	"strconv"
 	"strings"
 
-	"github.com/aofei/air"
+	"github.com/gofiber/contrib/websocket"
+	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/adaptor"
+	"github.com/gofiber/template/html/v2"
 	"github.com/google/uuid"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	"github.com/kdudkov/goatak/cmd/goatak_server/tak_ws"
@@ -23,160 +26,127 @@ import (
 	"github.com/kdudkov/goatak/staticfiles"
 )
 
-func getAdminAPI(app *App, addr string, renderer *staticfiles.Renderer, webtakRoot string) *air.Air {
-	adminAPI := air.New()
-	adminAPI.Address = addr
-	adminAPI.NotFoundHandler = getNotFoundHandler()
+type AdminAPI struct {
+	f    *fiber.App
+	addr string
+}
 
-	staticfiles.EmbedFiles(adminAPI, "/static")
-	adminAPI.GET("/", getIndexHandler(app, renderer))
-	adminAPI.GET("/points", getPointsHandler(app, renderer))
-	adminAPI.GET("/map", getMapHandler(app, renderer))
-	adminAPI.GET("/missions", getMissionsPageHandler(app, renderer))
-	adminAPI.GET("/packages", getMPPageHandler(app, renderer))
-	adminAPI.GET("/config", getConfigHandler(app))
-	adminAPI.GET("/connections", getConnHandler(app))
+func NewAdminAPI(app *App, addr string, webtakRoot string) *AdminAPI {
+	api := &AdminAPI{addr: addr}
 
-	adminAPI.GET("/unit", getUnitsHandler(app))
-	adminAPI.GET("/unit/:uid/track", getUnitTrackHandler(app))
-	adminAPI.DELETE("/unit/:uid", deleteItemHandler(app))
-	adminAPI.GET("/message", getMessagesHandler(app))
+	engine := html.NewFileSystem(http.FS(templates), ".html")
 
-	adminAPI.GET("/ws", getWsHandler(app))
-	adminAPI.GET("/takproto/1", getTakWsHandler(app))
-	adminAPI.POST("/cot", getCotPostHandler(app))
-	adminAPI.POST("/cot_xml", getCotXMLPostHandler(app))
+	engine.Delims("[[", "]]")
 
-	adminAPI.GET("/mp", getAllMissionPackagesHandler(app))
-	adminAPI.GET("/mp/:uid", getPackageHandler(app))
+	api.f = fiber.New(fiber.Config{EnablePrintRoutes: false, DisableStartupMessage: true, Views: engine})
+
+	staticfiles.Embed(api.f)
+
+	api.f.Get("/", getIndexHandler())
+	api.f.Get("/points", getPointsHandler())
+	api.f.Get("/map", getMapHandler())
+	api.f.Get("/missions", getMissionsPageHandler())
+	api.f.Get("/packages", getMPPageHandler())
+	api.f.Get("/config", getConfigHandler(app))
+	api.f.Get("/connections", getConnHandler(app))
+
+	api.f.Get("/unit", getUnitsHandler(app))
+	api.f.Get("/unit/:uid/track", getUnitTrackHandler(app))
+	api.f.Delete("/unit/:uid", deleteItemHandler(app))
+	api.f.Get("/message", getMessagesHandler(app))
+
+	api.f.Get("/ws", getWsHandler(app))
+	api.f.Get("/takproto/1", getTakWsHandler(app))
+	api.f.Post("/cot", getCotPostHandler(app))
+	api.f.Post("/cot_xml", getCotXMLPostHandler(app))
+
+	api.f.Get("/mp", getAllMissionPackagesHandler(app))
+	api.f.Get("/mp/:uid", getPackageHandler(app))
 
 	if app.missions != nil {
-		adminAPI.GET("/mission", getAllMissionHandler(app))
+		api.f.Get("/mission", getAllMissionHandler(app))
 	}
 
 	if webtakRoot != "" {
-		adminAPI.FILE("/webtak/", filepath.Join(webtakRoot, "index.html"))
-		adminAPI.FILES("/webtak", webtakRoot)
-		addMartiRoutes(app, adminAPI)
+		api.f.Static("/webtak", webtakRoot)
+
+		addMartiRoutes(app, api.f)
 	}
 
-	adminAPI.GET("/stack", getStackHandler())
-	adminAPI.GET("/metrics", getMetricsHandler())
+	api.f.Get("/stack", getStackHandler())
+	api.f.Get("/metrics", getMetricsHandler())
 
-	adminAPI.RendererTemplateLeftDelim = "[["
-	adminAPI.RendererTemplateRightDelim = "]]"
-
-	return adminAPI
+	return api
 }
 
-func getIndexHandler(app *App, r *staticfiles.Renderer) air.Handler {
-	return func(req *air.Request, res *air.Response) error {
+func (api *AdminAPI) Address() string {
+	return api.addr
+}
+
+func (api *AdminAPI) Listen() error {
+	return api.f.Listen(api.addr)
+}
+
+func getIndexHandler() fiber.Handler {
+	return func(ctx *fiber.Ctx) error {
 		data := map[string]any{
 			"theme": "auto",
 			"page":  " dash",
 			"js":    []string{"util.js", "main.js"},
 		}
 
-		s, err := r.Render(data, "index.html", "menu.html", "header.html")
-		if err != nil {
-			app.logger.Error("error", "error", err)
-			_ = res.WriteString(err.Error())
-
-			return err
-		}
-
-		return res.WriteHTML(s)
+		return ctx.Render("templates/index", data, "templates/menu", "templates/header")
 	}
 }
 
-func getPointsHandler(app *App, r *staticfiles.Renderer) air.Handler {
-	return func(req *air.Request, res *air.Response) error {
+func getPointsHandler() fiber.Handler {
+	return func(ctx *fiber.Ctx) error {
 		data := map[string]any{
 			"theme": "auto",
 			"page":  " points",
 			"js":    []string{"util.js", "points.js"},
 		}
 
-		s, err := r.Render(data, "points.html", "menu.html", "header.html")
-		if err != nil {
-			app.logger.Error("error", "error", err)
-			_ = res.WriteString(err.Error())
-
-			return err
-		}
-
-		return res.WriteHTML(s)
+		return ctx.Render("templates/points", data, "templates/menu", "templates/header")
 	}
 }
 
-func getMapHandler(app *App, r *staticfiles.Renderer) air.Handler {
-	return func(_ *air.Request, res *air.Response) error {
+func getMapHandler() fiber.Handler {
+	return func(ctx *fiber.Ctx) error {
 		data := map[string]any{
 			"theme": "auto",
 			"js":    []string{"util.js", "map.js"},
 		}
 
-		s, err := r.Render(data, "map.html", "header.html")
-		if err != nil {
-			app.logger.Error("error", "error", err)
-			_ = res.WriteString(err.Error())
-
-			return err
-		}
-
-		return res.WriteHTML(s)
+		return ctx.Render("templates/map", data, "templates/menu", "templates/header")
 	}
 }
 
-func getMissionsPageHandler(app *App, r *staticfiles.Renderer) air.Handler {
-	return func(_ *air.Request, res *air.Response) error {
+func getMissionsPageHandler() fiber.Handler {
+	return func(ctx *fiber.Ctx) error {
 		data := map[string]any{
 			"theme": "auto",
 			"page":  " missions",
 			"js":    []string{"missions.js"},
 		}
 
-		s, err := r.Render(data, "missions.html", "menu.html", "header.html")
-		if err != nil {
-			app.logger.Error("error", "error", err)
-			_ = res.WriteString(err.Error())
-
-			return err
-		}
-
-		return res.WriteHTML(s)
+		return ctx.Render("templates/missions", data, "templates/menu", "templates/header")
 	}
 }
 
-func getMPPageHandler(app *App, r *staticfiles.Renderer) air.Handler {
-	return func(_ *air.Request, res *air.Response) error {
+func getMPPageHandler() fiber.Handler {
+	return func(ctx *fiber.Ctx) error {
 		data := map[string]any{
 			"theme": "auto",
 			"page":  " mp",
 			"js":    []string{"mp.js"},
 		}
 
-		s, err := r.Render(data, "mp.html", "menu.html", "header.html")
-		if err != nil {
-			app.logger.Error("error", "error", err)
-			_ = res.WriteString(err.Error())
-
-			return err
-		}
-
-		return res.WriteHTML(s)
+		return ctx.Render("templates/mp", data, "templates/menu", "templates/header")
 	}
 }
 
-func getNotFoundHandler() air.Handler {
-	return func(_ *air.Request, res *air.Response) error {
-		res.Status = http.StatusNotFound
-
-		return errors.New(http.StatusText(res.Status))
-	}
-}
-
-func getConfigHandler(app *App) air.Handler {
+func getConfigHandler(app *App) fiber.Handler {
 	m := make(map[string]any, 0)
 	m["lat"] = app.lat
 	m["lon"] = app.lon
@@ -185,69 +155,64 @@ func getConfigHandler(app *App) air.Handler {
 
 	m["layers"] = getDefaultLayers()
 
-	return func(_ *air.Request, res *air.Response) error {
-		return res.WriteJSON(m)
+	return func(ctx *fiber.Ctx) error {
+		return ctx.JSON(m)
 	}
 }
 
-func getUnitsHandler(app *App) air.Handler {
-	return func(_ *air.Request, res *air.Response) error {
-		return res.WriteJSON(getUnits(app))
+func getUnitsHandler(app *App) fiber.Handler {
+	return func(ctx *fiber.Ctx) error {
+		return ctx.JSON(getUnits(app))
 	}
 }
 
-func getMessagesHandler(app *App) air.Handler {
-	return func(_ *air.Request, res *air.Response) error {
-		return res.WriteJSON(app.messages)
+func getMessagesHandler(app *App) fiber.Handler {
+	return func(ctx *fiber.Ctx) error {
+		return ctx.JSON(app.messages)
 	}
 }
 
-func getStackHandler() air.Handler {
-	return func(_ *air.Request, res *air.Response) error {
-		return pprof.Lookup("goroutine").WriteTo(res.Body, 1)
+func getStackHandler() fiber.Handler {
+	return func(ctx *fiber.Ctx) error {
+		return pprof.Lookup("goroutine").WriteTo(ctx.Response().BodyWriter(), 1)
 	}
 }
 
-func getMetricsHandler() air.Handler {
-	h := promhttp.Handler()
-
-	return func(req *air.Request, res *air.Response) error {
-		h.ServeHTTP(res.HTTPResponseWriter(), req.HTTPRequest())
-
-		return nil
-	}
+func getMetricsHandler() fiber.Handler {
+	return adaptor.HTTPHandler(promhttp.HandlerFor(
+		prometheus.DefaultGatherer,
+		promhttp.HandlerOpts{DisableCompression: true},
+	))
 }
 
-func getUnitTrackHandler(app *App) air.Handler {
-	return func(req *air.Request, res *air.Response) error {
-		uid := getStringParam(req, "uid")
+func getUnitTrackHandler(app *App) fiber.Handler {
+	return func(ctx *fiber.Ctx) error {
+		uid := ctx.Params("uid")
 
 		item := app.items.Get(uid)
 		if item == nil {
-			res.Status = http.StatusNotFound
-
-			return nil
+			return ctx.SendStatus(fiber.StatusNotFound)
 		}
 
-		return res.WriteJSON(item.GetTrack())
+		return ctx.JSON(item.GetTrack())
 	}
 }
 
-func deleteItemHandler(app *App) air.Handler {
-	return func(req *air.Request, res *air.Response) error {
-		uid := getStringParam(req, "uid")
+func deleteItemHandler(app *App) fiber.Handler {
+	return func(ctx *fiber.Ctx) error {
+		uid := ctx.Params("uid")
 		app.items.Remove(uid)
 
 		r := make(map[string]any, 0)
 		r["units"] = getUnits(app)
 		r["messages"] = app.messages
 
-		return res.WriteJSON(r)
+		return ctx.JSON(r)
 	}
 }
 
-func getConnHandler(app *App) air.Handler {
-	return func(req *air.Request, res *air.Response) error {
+func getConnHandler(app *App) fiber.Handler {
+	return func(ctx *fiber.Ctx) error {
 		conn := make([]*Connection, 0)
 
 		app.ForAllClients(func(ch client.ClientHandler) bool {
@@ -268,17 +233,15 @@ func getConnHandler(app *App) air.Handler {
 			return conn[i].Addr < conn[j].Addr
 		})
 
-		return res.WriteJSON(conn)
+		return ctx.JSON(conn)
 	}
 }
 
-func getCotPostHandler(app *App) air.Handler {
-	return func(req *air.Request, res *air.Response) error {
+func getCotPostHandler(app *App) fiber.Handler {
+	return func(ctx *fiber.Ctx) error {
 		c := new(cot.CotMessage)
 
-		dec := json.NewDecoder(req.Body)
-
-		if err := dec.Decode(c); err != nil {
+		if err := json.Unmarshal(ctx.Body(), c); err != nil {
 			app.logger.Error("cot decode error", "error", err)
 
 			return err
@@ -290,18 +253,16 @@ func getCotPostHandler(app *App) air.Handler {
 	}
 }
 
-func getCotXMLPostHandler(app *App) air.Handler {
-	return func(req *air.Request, res *air.Response) error {
-		scope := getStringParam(req, "scope")
+func getCotXMLPostHandler(app *App) fiber.Handler {
+	return func(ctx *fiber.Ctx) error {
+		scope := ctx.Query("scope")
 		if scope == "" {
 			scope = "test"
 		}
 
 		ev := new(cot.Event)
 
-		dec := xml.NewDecoder(req.Body)
-
-		if err := dec.Decode(ev); err != nil {
+		if err := xml.Unmarshal(ctx.Body(), &ev); err != nil {
 			app.logger.Error("cot decode error", "error", err)
 
 			return err
@@ -321,8 +282,8 @@ func getCotXMLPostHandler(app *App) air.Handler {
 	}
 }
 
-func getAllMissionHandler(app *App) air.Handler {
-	return func(req *air.Request, res *air.Response) error {
+func getAllMissionHandler(app *App) fiber.Handler {
+	return func(ctx *fiber.Ctx) error {
 		data := app.missions.GetAllMissionsAdm()
 
 		result := make([]*model.MissionDTO, len(data))
@@ -331,26 +292,24 @@ func getAllMissionHandler(app *App) air.Handler {
 			result[i] = model.ToMissionDTOAdm(m, app.packageManager)
 		}
 
-		return res.WriteJSON(result)
+		return ctx.JSON(result)
 	}
 }
 
-func getAllMissionPackagesHandler(app *App) air.Handler {
-	return func(req *air.Request, res *air.Response) error {
+func getAllMissionPackagesHandler(app *App) fiber.Handler {
+	return func(ctx *fiber.Ctx) error {
 		data := app.packageManager.GetList(nil)
 
-		return res.WriteJSON(data)
+		return ctx.JSON(data)
 	}
 }
 
-func getPackageHandler(app *App) air.Handler {
-	return func(req *air.Request, res *air.Response) error {
-		pi := app.packageManager.Get(getStringParam(req, "uid"))
+func getPackageHandler(app *App) fiber.Handler {
+	return func(ctx *fiber.Ctx) error {
+		pi := app.packageManager.Get(ctx.Params("uid"))
 
 		if pi == nil {
-			res.Status = http.StatusNotFound
-
-			return nil
+			return ctx.SendStatus(fiber.StatusNotFound)
 		}
 
 		f, err := app.packageManager.GetFile(pi.Hash)
@@ -362,65 +321,53 @@ func getPackageHandler(app *App) air.Handler {
 
 		defer f.Close()
 
-		res.Header.Set("Content-Type", pi.MIMEType)
+		ctx.Set(fiber.HeaderContentType, pi.MIMEType)
 
 		if !strings.HasPrefix(pi.MIMEType, "image/") {
 			fn := pi.Name
 			if pi.MIMEType == "application/x-zip-compressed" && !strings.HasSuffix(fn, ".zip") {
 				fn += ".zip"
 			}
-			res.Header.Set("Content-Disposition", "attachment; filename="+fn)
+			ctx.Set(fiber.HeaderContentDisposition, "attachment; filename="+fn)
 		}
 
-		res.Header.Set("Last-Modified", pi.SubmissionDateTime.UTC().Format(http.TimeFormat))
-		res.Header.Set("Content-Length", strconv.Itoa(pi.Size))
+		ctx.Set("Last-Modified", pi.SubmissionDateTime.UTC().Format(http.TimeFormat))
+		ctx.Set("Content-Length", strconv.Itoa(pi.Size))
 
-		return res.Write(f)
+		_, err = io.Copy(ctx, f)
+
+		return err
 	}
 }
 
-func getWsHandler(app *App) air.Handler {
-	return func(req *air.Request, res *air.Response) error {
-		ws, err := res.WebSocket()
-		if err != nil {
-			return err
-		}
-
+func getWsHandler(app *App) fiber.Handler {
+	return websocket.New(func(ws *websocket.Conn) {
 		name := uuid.NewString()
 
-		h := wshandler.NewHandler(name, ws)
+		h := wshandler.NewHandler(app.logger, name, ws)
 
 		app.logger.Debug("ws listener connected")
 		app.changeCb.SubscribeNamed(name, h.SendItem)
 		app.deleteCb.SubscribeNamed(name, h.DeleteItem)
 		h.Listen()
 		app.logger.Debug("ws listener disconnected")
-
-		return nil
-	}
+	})
 }
 
 // handler for WebTAK client - sends/receives protobuf COTs
-func getTakWsHandler(app *App) air.Handler {
-	return func(req *air.Request, res *air.Response) error {
-		ws, err := res.WebSocket()
-		if err != nil {
-			return err
-		}
-
+func getTakWsHandler(app *App) fiber.Handler {
+	return websocket.New(func(ws *websocket.Conn) {
 		defer ws.Close()
 
-		app.logger.Info("WS connection from " + req.ClientAddress())
-		name := "ws:" + req.ClientAddress()
+		app.logger.Info("WS connection from " + ws.RemoteAddr().String())
+		name := "ws:" + ws.RemoteAddr().String()
 		w := tak_ws.New(name, nil, ws, app.NewCotMessage)
 
 		app.AddClientHandler(w)
 		w.Listen()
 		app.logger.Info("ws disconnected")
 		app.RemoveClientHandler(w.GetName())
-
-		return nil
-	}
+	})
 }
 
 func getDefaultLayers() []map[string]any {

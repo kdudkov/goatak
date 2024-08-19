@@ -10,7 +10,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/aofei/air"
+	"github.com/gofiber/contrib/websocket"
 
 	"github.com/kdudkov/goatak/internal/model"
 	"github.com/kdudkov/goatak/pkg/cot"
@@ -20,14 +20,14 @@ import (
 type MessageCb func(msg *cot.CotMessage)
 
 type WsClientHandler struct {
+	log       *slog.Logger
 	name      string
 	user      *model.User
-	ws        *air.WebSocket
+	ws        *websocket.Conn
 	ch        chan []byte
 	uids      sync.Map
 	active    int32
 	messageCb MessageCb
-	logger    *slog.Logger
 }
 
 func (w *WsClientHandler) GetName() string {
@@ -72,15 +72,15 @@ func (w *WsClientHandler) GetLastSeen() *time.Time {
 	return nil
 }
 
-func New(name string, user *model.User, ws *air.WebSocket, mc MessageCb) *WsClientHandler {
+func New(name string, user *model.User, ws *websocket.Conn, mc MessageCb) *WsClientHandler {
 	return &WsClientHandler{
+		log:       slog.Default().With("logger", "tak_ws", "name", name, "user", user),
 		name:      name,
 		user:      user,
 		ws:        ws,
 		uids:      sync.Map{},
 		ch:        make(chan []byte, 10),
 		active:    1,
-		logger:    slog.Default().With("logger", "tak_ws", "name", name, "user", user),
 		messageCb: mc,
 	}
 }
@@ -120,11 +120,32 @@ func (w *WsClientHandler) IsActive() bool {
 
 func (w *WsClientHandler) writer() {
 	for b := range w.ch {
-		if err := w.ws.WriteBinary(b); err != nil {
-			w.logger.Error("send error", "error", err.Error())
+		if err := w.ws.WriteMessage(websocket.BinaryMessage, b); err != nil {
+			w.log.Error("send error", "error", err.Error())
 			w.Stop()
 
 			break
+		}
+	}
+}
+
+func (w *WsClientHandler) reader() {
+	defer w.Stop()
+
+	for {
+		mt, b, err := w.ws.ReadMessage()
+
+		if err != nil {
+			w.log.Error("read error", slog.Any("error", err))
+			return
+		}
+
+		if mt != websocket.BinaryMessage {
+			continue
+		}
+
+		if err = w.parse(b); err != nil {
+			w.log.Error("parse", slog.Any("error", err))
 		}
 	}
 }
@@ -137,26 +158,20 @@ func (w *WsClientHandler) Stop() {
 }
 
 func (w *WsClientHandler) Listen() {
-	w.ws.BinaryHandler = w.binaryReader
 	go w.writer()
-	w.ws.Listen()
-	w.logger.Info("stop listening")
-	w.Stop()
+	w.reader()
+	w.log.Info("stop listening")
 }
 
-func (w *WsClientHandler) binaryReader(b []byte) error {
+func (w *WsClientHandler) parse(b []byte) error {
 	msg, err := cot.ReadProto(bufio.NewReader(bytes.NewReader(b)))
 	if err != nil {
-		w.logger.Error("read error", "error", err.Error())
-
-		return err
+		return fmt.Errorf("read error %w", err)
 	}
 
 	cotmsg, err := cot.CotFromProto(msg, w.name, w.GetUser().GetScope())
 	if err != nil {
-		w.logger.Error("defaults get error", "error", err.Error())
-
-		return err
+		return fmt.Errorf("convert error %w", err)
 	}
 
 	if cotmsg.IsContact() {

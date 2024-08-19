@@ -2,85 +2,80 @@ package main
 
 import (
 	"embed"
-	"encoding/json"
 	"fmt"
+	"net/http"
 	"runtime/pprof"
 	"time"
 
 	"github.com/kdudkov/goatak/internal/wshandler"
+	"github.com/kdudkov/goatak/pkg/log"
+	"github.com/kdudkov/goatak/staticfiles"
 
-	"github.com/aofei/air"
+	"github.com/gofiber/contrib/websocket"
+	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/template/html/v2"
 	"github.com/google/uuid"
 
 	"github.com/kdudkov/goatak/pkg/cot"
 	"github.com/kdudkov/goatak/pkg/model"
-	"github.com/kdudkov/goatak/staticfiles"
 )
 
 //go:embed templates
 var templates embed.FS
 
-func NewHttp(app *App, address string) *air.Air {
-	srv := air.New()
-	srv.Address = address
+func NewHttp(app *App) *fiber.App {
+	engine := html.NewFileSystem(http.FS(templates), ".html")
 
-	staticfiles.EmbedFiles(srv, "/static")
-	renderer := new(staticfiles.Renderer)
-	renderer.LeftDelimeter = "[["
-	renderer.RightDelimeter = "]]"
-	_ = renderer.Load(templates)
+	engine.Delims("[[", "]]")
 
-	srv.GET("/", getIndexHandler(app, renderer))
-	srv.GET("/config", getConfigHandler(app))
-	srv.GET("/types", getTypes)
-	srv.POST("/dp", getDpHandler(app))
-	srv.POST("/pos", getPosHandler(app))
+	srv := fiber.New(fiber.Config{EnablePrintRoutes: false, DisableStartupMessage: true, Views: engine})
 
-	srv.GET("/ws", getWsHandler(app))
+	srv.Use(log.NewFiberLogger("http", nil))
+	staticfiles.Embed(srv)
 
-	srv.GET("/unit", getUnitsHandler(app))
-	srv.POST("/unit", addItemHandler(app))
-	srv.GET("/message", getMessagesHandler(app))
-	srv.POST("/message", addMessageHandler(app))
-	srv.DELETE("/unit/:uid", deleteItemHandler(app))
+	srv.Get("/", getIndexHandler(app))
+	srv.Get("/config", getConfigHandler(app))
+	srv.Get("/types", getTypes)
+	srv.Post("/dp", getDpHandler(app))
+	srv.Post("/pos", getPosHandler(app))
 
-	srv.GET("/stack", getStackHandler())
+	srv.Get("/ws", getWsHandler(app))
 
-	srv.RendererTemplateLeftDelim = "[["
-	srv.RendererTemplateRightDelim = "]]"
+	srv.Get("/unit", getUnitsHandler(app))
+	srv.Post("/unit", addItemHandler(app))
+	srv.Get("/message", getMessagesHandler(app))
+	srv.Post("/message", addMessageHandler(app))
+	srv.Delete("/unit/:uid", deleteItemHandler(app))
+
+	srv.Get("/stack", getStackHandler())
 
 	return srv
 }
 
-func getIndexHandler(app *App, r *staticfiles.Renderer) air.Handler {
-	return func(req *air.Request, res *air.Response) error {
-		data := map[string]any{
+func getIndexHandler(_ *App) fiber.Handler {
+	return func(ctx *fiber.Ctx) error {
+		data := fiber.Map{
 			"js": []string{"util.js", "map.js"},
 		}
 
-		s, err := r.Render(data, "map.html", "header.html")
-		if err != nil {
-			return err
-		}
-
-		return res.WriteHTML(s)
+		return ctx.Render("templates/map", data, "templates/header")
 	}
 }
 
-func getUnitsHandler(app *App) air.Handler {
-	return func(req *air.Request, res *air.Response) error {
-		return res.WriteJSON(getUnits(app))
+func getUnitsHandler(app *App) fiber.Handler {
+	return func(ctx *fiber.Ctx) error {
+		return ctx.JSON(getUnits(app))
 	}
 }
 
-func getMessagesHandler(app *App) air.Handler {
-	return func(req *air.Request, res *air.Response) error {
-		return res.WriteJSON(app.chatMessages.Chats)
+func getMessagesHandler(app *App) fiber.Handler {
+	return func(ctx *fiber.Ctx) error {
+		return ctx.JSON(app.chatMessages.Chats)
 	}
 }
 
-func getConfigHandler(app *App) air.Handler {
-	return func(req *air.Request, res *air.Response) error {
+func getConfigHandler(app *App) fiber.Handler {
+	return func(ctx *fiber.Ctx) error {
 		m := make(map[string]any, 0)
 		m["version"] = getVersion()
 		m["uid"] = app.uid
@@ -95,38 +90,30 @@ func getConfigHandler(app *App) air.Handler {
 
 		m["layers"] = getLayers()
 
-		return res.WriteJSON(m)
+		return ctx.JSON(m)
 	}
 }
 
-func getDpHandler(app *App) air.Handler {
-	return func(req *air.Request, res *air.Response) error {
+func getDpHandler(app *App) fiber.Handler {
+	return func(ctx *fiber.Ctx) error {
 		dp := new(model.DigitalPointer)
 
-		if req.Body == nil {
-			return nil
-		}
-
-		if err := json.NewDecoder(req.Body).Decode(dp); err != nil {
+		if err := ctx.BodyParser(dp); err != nil {
 			return err
 		}
 
 		msg := cot.MakeDpMsg(app.uid, app.typ, app.callsign+"."+dp.Name, dp.Lat, dp.Lon)
 		app.SendMsg(msg)
 
-		return res.WriteString("Ok")
+		return ctx.SendString("Ok")
 	}
 }
 
-func getPosHandler(app *App) air.Handler {
-	return func(req *air.Request, res *air.Response) error {
+func getPosHandler(app *App) fiber.Handler {
+	return func(ctx *fiber.Ctx) error {
 		pos := make(map[string]float64)
 
-		if req.Body == nil {
-			return nil
-		}
-
-		if err := json.NewDecoder(req.Body).Decode(&pos); err != nil {
+		if err := ctx.BodyParser(pos); err != nil {
 			return err
 		}
 
@@ -140,19 +127,15 @@ func getPosHandler(app *App) air.Handler {
 
 		app.SendMsg(app.MakeMe())
 
-		return res.WriteString("Ok")
+		return ctx.SendString("Ok")
 	}
 }
 
-func addItemHandler(app *App) air.Handler {
-	return func(req *air.Request, res *air.Response) error {
+func addItemHandler(app *App) fiber.Handler {
+	return func(ctx *fiber.Ctx) error {
 		wu := new(model.WebUnit)
 
-		if req.Body == nil {
-			return nil
-		}
-
-		if err := json.NewDecoder(req.Body).Decode(wu); err != nil {
+		if err := ctx.BodyParser(wu); err != nil {
 			return err
 		}
 
@@ -176,21 +159,15 @@ func addItemHandler(app *App) air.Handler {
 			}
 		}
 
-		return res.WriteJSON(u.ToWeb())
+		return ctx.JSON(u.ToWeb())
 	}
 }
 
-func addMessageHandler(app *App) air.Handler {
-	return func(req *air.Request, res *air.Response) error {
+func addMessageHandler(app *App) fiber.Handler {
+	return func(ctx *fiber.Ctx) error {
 		msg := new(model.ChatMessage)
 
-		if req.Body == nil {
-			return nil
-		}
-
-		defer req.Body.Close()
-
-		if err := json.NewDecoder(req.Body).Decode(msg); err != nil {
+		if err := ctx.BodyParser(msg); err != nil {
 			return err
 		}
 
@@ -212,49 +189,40 @@ func addMessageHandler(app *App) air.Handler {
 		app.SendMsg(m)
 		app.chatMessages.Add(msg)
 
-		return res.WriteJSON(app.chatMessages.Chats)
+		return ctx.JSON(app.chatMessages.Chats)
 	}
 }
 
-func deleteItemHandler(app *App) air.Handler {
-	return func(req *air.Request, res *air.Response) error {
-		uid := getStringParam(req, "uid")
+func deleteItemHandler(app *App) fiber.Handler {
+	return func(ctx *fiber.Ctx) error {
+		uid := ctx.Params("uid")
 		app.items.Remove(uid)
 
 		r := make(map[string]any, 0)
 		r["units"] = getUnits(app)
 		r["messages"] = app.chatMessages
 
-		return res.WriteJSON(r)
+		return ctx.JSON(r)
 	}
 }
 
-func getStackHandler() air.Handler {
-	return func(req *air.Request, res *air.Response) error {
-		return pprof.Lookup("goroutine").WriteTo(res.Body, 1)
+func getStackHandler() fiber.Handler {
+	return func(ctx *fiber.Ctx) error {
+		return pprof.Lookup("goroutine").WriteTo(ctx.Response().BodyWriter(), 1)
 	}
 }
 
-func getWsHandler(app *App) air.Handler {
-	return func(req *air.Request, res *air.Response) error {
-		ws, err := res.WebSocket()
-		if err != nil {
-			return err
-		}
-
+func getWsHandler(app *App) fiber.Handler {
+	return websocket.New(func(c *websocket.Conn) {
 		name := uuid.NewString()
 
-		h := wshandler.NewHandler(name, ws)
+		h := wshandler.NewHandler(app.logger, name, c)
 
-		app.logger.Debug("ws listener connected")
 		app.changeCb.SubscribeNamed(name, h.SendItem)
 		app.deleteCb.SubscribeNamed(name, h.DeleteItem)
 		app.chatCb.SubscribeNamed(name, h.NewChatMessage)
 		h.Listen()
-		app.logger.Debug("ws listener disconnected")
-
-		return nil
-	}
+	})
 }
 
 func getUnits(app *App) []*model.WebUnit {
@@ -269,17 +237,8 @@ func getUnits(app *App) []*model.WebUnit {
 	return units
 }
 
-func getStringParam(req *air.Request, name string) string {
-	p := req.Param(name)
-	if p == nil {
-		return ""
-	}
-
-	return p.Value().String()
-}
-
-func getTypes(_ *air.Request, res *air.Response) error {
-	return res.WriteJSON(cot.Root)
+func getTypes(ctx *fiber.Ctx) error {
+	return ctx.JSON(cot.Root)
 }
 
 func getLayers() []map[string]any {

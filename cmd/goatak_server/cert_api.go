@@ -1,19 +1,17 @@
 package main
 
 import (
-	"bytes"
 	"crypto"
 	"crypto/rand"
 	"crypto/x509"
 	"fmt"
-	"io"
 	"math/big"
-	"net/http"
 	"strings"
 	"time"
 
-	"github.com/aofei/air"
+	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
+	"github.com/kdudkov/goatak/pkg/log"
 
 	"github.com/kdudkov/goatak/cmd/goatak_server/mp"
 	"github.com/kdudkov/goatak/pkg/tlsutil"
@@ -23,23 +21,38 @@ const (
 	p12Password = "atakatak"
 )
 
-func getCertAPI(app *App, addr string) *air.Air {
-	certApi := air.New()
-	certApi.Address = addr
-
-	certApi.Gases = []air.Gas{LoggerGas("cert_api"), AuthGas(app)}
-
-	certApi.GET("/Marti/api/tls/config", getTLSConfigHandler(app))
-	certApi.POST("/Marti/api/tls/signClient", getSignHandler(app))
-	certApi.POST("/Marti/api/tls/signClient/v2", getSignHandlerV2(app))
-	certApi.GET("/Marti/api/tls/profile/enrollment", getProfileEnrollmentHandler(app))
-
-	certApi.NotFoundHandler = getNotFoundHandler()
-
-	return certApi
+type CertAPI struct {
+	f    *fiber.App
+	addr string
 }
 
-func getTLSConfigHandler(app *App) air.Handler {
+func NewCertAPI(app *App, addr string) *CertAPI {
+	api := &CertAPI{
+		f:    fiber.New(fiber.Config{EnablePrintRoutes: false, DisableStartupMessage: true}),
+		addr: addr,
+	}
+
+	api.f.Use(log.NewFiberLogger("cert_api", Username))
+
+	api.f.Use(getUserAuth(app.users))
+
+	api.f.Get("/Marti/api/tls/config", getTLSConfigHandler(app))
+	api.f.Post("/Marti/api/tls/signClient", getSignHandler(app))
+	api.f.Post("/Marti/api/tls/signClient/v2", getSignHandlerV2(app))
+	api.f.Get("/Marti/api/tls/profile/enrollment", getProfileEnrollmentHandler(app))
+
+	return api
+}
+
+func (api *CertAPI) Address() string {
+	return api.addr
+}
+
+func (api *CertAPI) Listen() error {
+	return api.f.Listen(api.addr)
+}
+
+func getTLSConfigHandler(app *App) fiber.Handler {
 	names := map[string]string{"C": "RU", "O": "goatak", "OU": "goatak"}
 	buf := strings.Builder{}
 	buf.WriteString("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n")
@@ -50,12 +63,11 @@ func getTLSConfigHandler(app *App) air.Handler {
 	}
 
 	buf.WriteString("</nameEntries></certificateConfig>")
-	data := buf.String()
 
-	return func(req *air.Request, res *air.Response) error {
-		res.Header.Set("Content-Type", "application/xml")
+	return func(ctx *fiber.Ctx) error {
+		ctx.Set(fiber.HeaderContentType, "application/xml")
 
-		return res.Write(strings.NewReader(data))
+		return ctx.SendString(buf.String())
 	}
 }
 
@@ -87,10 +99,10 @@ func signClientCert(uid string, clientCSR *x509.CertificateRequest, serverCert *
 	return x509.ParseCertificate(certBytes)
 }
 
-func (app *App) processSignRequest(req *air.Request) (*x509.Certificate, error) {
-	username := getUsernameFromReq(req)
-	uid := getStringParamIgnoreCaps(req, "clientUid")
-	ver := getStringParam(req, "version")
+func (app *App) processSignRequest(ctx *fiber.Ctx) (*x509.Certificate, error) {
+	username := Username(ctx)
+	uid := ctx.Query("clientUid")
+	ver := ctx.Query("version")
 
 	app.logger.Info(fmt.Sprintf("cert sign req from %s %s ver %s", username, uid, ver))
 
@@ -98,12 +110,7 @@ func (app *App) processSignRequest(req *air.Request) (*x509.Certificate, error) 
 		return nil, fmt.Errorf("bad user")
 	}
 
-	b, err := io.ReadAll(req.Body)
-	if err != nil {
-		return nil, err
-	}
-
-	clientCSR, err := tlsutil.ParseCsr(b)
+	clientCSR, err := tlsutil.ParseCsr(ctx.Body())
 	if err != nil {
 		return nil, fmt.Errorf("empty csr block")
 	}
@@ -123,9 +130,9 @@ func (app *App) processSignRequest(req *air.Request) (*x509.Certificate, error) 
 	return signedCert, nil
 }
 
-func getSignHandler(app *App) air.Handler {
-	return func(req *air.Request, res *air.Response) error {
-		signedCert, err := app.processSignRequest(req)
+func getSignHandler(app *App) fiber.Handler {
+	return func(ctx *fiber.Ctx) error {
+		signedCert, err := app.processSignRequest(ctx)
 		if err != nil {
 			app.logger.Error("error", "error", err.Error())
 
@@ -144,20 +151,20 @@ func getSignHandler(app *App) air.Handler {
 			return err
 		}
 
-		return res.Write(bytes.NewReader(p12Bytes))
+		return ctx.Send(p12Bytes)
 	}
 }
 
-func getSignHandlerV2(app *App) air.Handler {
-	return func(req *air.Request, res *air.Response) error {
-		signedCert, err := app.processSignRequest(req)
+func getSignHandlerV2(app *App) fiber.Handler {
+	return func(ctx *fiber.Ctx) error {
+		signedCert, err := app.processSignRequest(ctx)
 		if err != nil {
 			app.logger.Error("error", "error", err.Error())
 
 			return err
 		}
 
-		accept := req.Header.Get("Accept")
+		accept := ctx.Get(fiber.HeaderAccept)
 
 		switch {
 		case accept == "", strings.Contains(accept, "*/*"), strings.Contains(accept, "application/json"):
@@ -168,7 +175,7 @@ func getSignHandlerV2(app *App) air.Handler {
 				certs[fmt.Sprintf("ca%d", i+1)] = tlsutil.CertToStr(c, false)
 			}
 
-			return res.WriteJSON(certs)
+			return ctx.JSON(certs)
 		case strings.Contains(accept, "application/xml"):
 			buf := strings.Builder{}
 			buf.WriteString("<?xml version=\"1.0\" encoding=\"UTF-8\"?>")
@@ -187,27 +194,23 @@ func getSignHandlerV2(app *App) air.Handler {
 			}
 
 			buf.WriteString("</enrollment>")
-			res.Header.Set("Content-Type", "application/xml; charset=utf-8")
+			ctx.Set(fiber.HeaderContentType, "application/xml; charset=utf-8")
 
-			return res.Write(strings.NewReader(buf.String()))
+			return ctx.SendString(buf.String())
 		default:
-			res.Status = http.StatusBadRequest
-
-			return res.WriteString("")
+			return ctx.SendStatus(fiber.StatusBadRequest)
 		}
 	}
 }
 
-func getProfileEnrollmentHandler(app *App) air.Handler {
-	return func(req *air.Request, res *air.Response) error {
-		username := getUsernameFromReq(req)
-		uid := getStringParamIgnoreCaps(req, "clientUid")
+func getProfileEnrollmentHandler(app *App) fiber.Handler {
+	return func(ctx *fiber.Ctx) error {
+		username := Username(ctx)
+		uid := ctx.Query("clientUid")
 
 		files := app.GetProfileFiles(username, uid)
 		if len(files) == 0 {
-			res.Status = http.StatusNoContent
-
-			return nil
+			return ctx.SendStatus(fiber.StatusNoContent)
 		}
 
 		mp := mp.NewMissionPackage("ProfileMissionPackage-"+uuid.NewString(), "Enrollment")
@@ -218,15 +221,15 @@ func getProfileEnrollmentHandler(app *App) air.Handler {
 			mp.AddFile(f)
 		}
 
-		res.Header.Set("Content-Type", "application/zip")
-		res.Header.Set("Content-Disposition", "attachment; filename=profile.zip")
+		ctx.Set(fiber.HeaderContentType, "application/zip")
+		ctx.Set(fiber.HeaderContentDisposition, "attachment; filename=profile.zip")
 
 		dat, err := mp.Create()
 		if err != nil {
 			return err
 		}
 
-		return res.Write(bytes.NewReader(dat))
+		return ctx.Send(dat)
 	}
 }
 
