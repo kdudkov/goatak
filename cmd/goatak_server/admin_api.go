@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"encoding/xml"
 	"io"
+	"log/slog"
 	"net/http"
 	"runtime/pprof"
 	"sort"
@@ -15,6 +16,7 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/adaptor"
 	"github.com/gofiber/template/html/v2"
 	"github.com/google/uuid"
+	"github.com/kdudkov/goatak/pkg/log"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
@@ -39,6 +41,8 @@ func NewAdminAPI(app *App, addr string, webtakRoot string) *AdminAPI {
 	engine.Delims("[[", "]]")
 
 	api.f = fiber.New(fiber.Config{EnablePrintRoutes: false, DisableStartupMessage: true, Views: engine})
+
+	api.f.Use(log.NewFiberLogger(&log.LoggerConfig{Name: "admin_api", Level: slog.LevelDebug}))
 
 	staticfiles.Embed(api.f)
 
