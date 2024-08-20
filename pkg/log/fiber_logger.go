@@ -1,6 +1,7 @@
 package log
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 	"strconv"
@@ -29,15 +30,15 @@ var (
 )
 
 type LoggerConfig struct {
-	Name          string
-	UserGetter    func(c *fiber.Ctx) string
-	DoMetrics     bool
-	LogErrorsOnly bool
+	Name       string
+	UserGetter func(c *fiber.Ctx) string
+	DoMetrics  bool
+	Level      slog.Level
 }
 
 func NewFiberLogger(conf *LoggerConfig) fiber.Handler {
 	if conf == nil {
-		conf = &LoggerConfig{Name: "http"}
+		conf = &LoggerConfig{Name: "http", Level: slog.LevelInfo}
 	}
 
 	logger := slog.Default().With(slog.String("logger", conf.Name))
@@ -54,11 +55,11 @@ func NewFiberLogger(conf *LoggerConfig) fiber.Handler {
 		msg := fmt.Sprintf("%d %s %s %s", c.Response().StatusCode(), c.Method(), c.Path(), c.Request().URI().QueryArgs().String())
 		l := logger
 
-		if chainErr != nil {
+		status := c.Response().StatusCode()
+
+		if chainErr != nil && status >= 500 {
 			l = l.With(slog.Any("error", chainErr))
 		}
-
-		status := c.Response().StatusCode()
 
 		var attrs []any
 		if conf.UserGetter != nil {
@@ -76,18 +77,18 @@ func NewFiberLogger(conf *LoggerConfig) fiber.Handler {
 			}
 		}
 
-		if conf.LogErrorsOnly {
-			switch {
-			case status < 300:
-				l.Debug(msg, attrs...)
-			case status < 400:
-				l.Info(msg, attrs...)
-			default:
-				l.Warn(msg, attrs...)
-			}
-		} else {
-			l.Info(msg, attrs...)
+		var lvl slog.Level
+
+		switch {
+		case status < 300:
+			lvl = conf.Level
+		case status < 400:
+			lvl = slog.LevelWarn
+		default:
+			lvl = slog.LevelError
 		}
+
+		l.Log(context.Background(), lvl, msg, attrs...)
 
 		return chainErr
 	}
