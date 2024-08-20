@@ -4,55 +4,24 @@ import (
 	"log/slog"
 	"strings"
 
-	"github.com/aofei/air"
+	"github.com/gofiber/fiber/v2"
 )
 
-func logParams(logger *slog.Logger, req *air.Request) {
+func logParams(log *slog.Logger, ctx *fiber.Ctx) {
 	var params []string
-	for _, r := range req.Params() {
-		params = append(params, r.Name+"="+r.Value().String())
+
+	for k, v := range ctx.AllParams() {
+		params = append(params, k+"="+v)
 	}
 
-	logger.Info("params: " + strings.Join(params, ","))
+	log.Info("params: " + strings.Join(params, ","))
 }
 
-func getStringParam(req *air.Request, name string) string {
-	p := req.Param(name)
-	if p == nil {
-		return ""
-	}
-
-	return p.Value().String()
-}
-
-func getBoolParam(req *air.Request, name string, def bool) bool {
-	p := req.Param(name)
-	if p == nil {
-		return def
-	}
-
-	v, _ := p.Value().Bool()
-	return v
-}
-
-func getIntParam(req *air.Request, name string, def int) int {
-	p := req.Param(name)
-	if p == nil {
-		return def
-	}
-
-	if n, err := p.Value().Int(); err == nil {
-		return n
-	}
-
-	return def
-}
-
-func getStringParamIgnoreCaps(req *air.Request, name string) string {
+func getStringParamIgnoreCaps(c *fiber.Ctx, name string) string {
 	nn := strings.ToLower(name)
-	for _, p := range req.Params() {
-		if strings.ToLower(p.Name) == nn {
-			return p.Value().String()
+	for k, v := range c.AllParams() {
+		if strings.ToLower(k) == nn {
+			return v
 		}
 	}
 

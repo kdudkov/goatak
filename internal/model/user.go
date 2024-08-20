@@ -45,3 +45,11 @@ func (u *User) CanSeeScope(scope string) bool {
 
 	return false
 }
+
+func (u *User) HasProfile() bool {
+	if u == nil {
+		return false
+	}
+
+	return u.Callsign != "" || u.Team != "" || u.Role != "" || u.Typ != ""
+}

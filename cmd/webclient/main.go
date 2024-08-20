@@ -131,7 +131,7 @@ func (app *App) Run(ctx context.Context) {
 			addr := fmt.Sprintf(":%d", app.webPort)
 			app.logger.Info("listening " + addr)
 
-			if err := NewHttp(app, addr).Serve(); err != nil {
+			if err := NewHttp(app).Listen(addr); err != nil {
 				panic(err)
 			}
 		}()

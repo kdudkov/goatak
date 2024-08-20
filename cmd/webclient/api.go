@@ -19,17 +19,17 @@ const (
 )
 
 type RemoteAPI struct {
+	logger *slog.Logger
 	host   string
 	client *http.Client
-	logger *slog.Logger
 	tls    bool
 }
 
 func NewRemoteAPI(host string, logger *slog.Logger) *RemoteAPI {
 	return &RemoteAPI{
+		logger: logger,
 		host:   host,
 		client: &http.Client{Timeout: httpTimeout},
-		logger: logger,
 	}
 }
 

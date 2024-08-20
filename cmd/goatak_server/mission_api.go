@@ -4,12 +4,10 @@ import (
 	"encoding/json"
 	"encoding/xml"
 	"fmt"
-	"io"
-	"net/http"
 	"strings"
 	"time"
 
-	"github.com/aofei/air"
+	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
 
 	"github.com/kdudkov/goatak/internal/model"
@@ -25,37 +23,37 @@ const (
 	missionChangeType       = "MissionChange"
 )
 
-func addMissionApi(app *App, api *air.Air) {
-	g := api.Group("/Marti/api/missions")
+func addMissionApi(app *App, f fiber.Router) {
+	g := f.Group("/Marti/api/missions")
 
-	g.GET("", getMissionsHandler(app))
+	g.Get("/", getMissionsHandler(app))
 
-	g.GET("/all/invitations", getMissionsInvitationsHandler(app))
+	g.Get("/all/invitations", getMissionsInvitationsHandler(app))
 
-	g.GET("/:missionname", getMissionHandler(app))
-	g.PUT("/:missionname", getMissionPutHandler(app))
-	g.DELETE("/:missionname", getMissionDeleteHandler(app))
-	g.GET("/:missionname/changes", getMissionChangesHandler(app))
-	g.GET("/:missionname/cot", getMissionCotHandler(app))
-	g.GET("/:missionname/contacts", getMissionContactsHandler(app))
-	g.PUT("/:missionname/contents", getMissionContentPutHandler(app))
-	g.DELETE("/:missionname/contents", getMissionContentDeleteHandler(app))
-	g.GET("/:missionname/log", getMissionLogHandler(app))
-	g.PUT("/:missionname/keywords", getMissionKeywordsPutHandler(app))
-	g.GET("/:missionname/role", getMissionRoleHandler(app))
-	g.PUT("/:missionname/role", getMissionRolePutHandler(app))
-	g.GET("/:missionname/subscription", getMissionSubscriptionHandler(app))
-	g.PUT("/:missionname/subscription", getMissionSubscriptionPutHandler(app))
-	g.DELETE("/:missionname/subscription", getMissionSubscriptionDeleteHandler(app))
-	g.GET("/:missionname/subscriptions", getMissionSubscriptionsHandler(app))
-	g.GET("/:missionname/subscriptions/roles", getMissionSubscriptionRolesHandler(app))
-	g.PUT("/:missionname/invite/:type/:uid", getInvitePutHandler(app))
-	g.DELETE("/:missionname/invite/:type/:uid", getInviteDeleteHandler(app))
+	g.Get("/:missionname", getMissionHandler(app))
+	g.Put("/:missionname", getMissionPutHandler(app))
+	g.Delete("/:missionname", getMissionDeleteHandler(app))
+	g.Get("/:missionname/changes", getMissionChangesHandler(app))
+	g.Get("/:missionname/cot", getMissionCotHandler(app))
+	g.Get("/:missionname/contacts", getMissionContactsHandler(app))
+	g.Put("/:missionname/contents", getMissionContentPutHandler(app))
+	g.Delete("/:missionname/contents", getMissionContentDeleteHandler(app))
+	g.Get("/:missionname/log", getMissionLogHandler(app))
+	g.Put("/:missionname/keywords", getMissionKeywordsPutHandler(app))
+	g.Get("/:missionname/role", getMissionRoleHandler(app))
+	g.Put("/:missionname/role", getMissionRolePutHandler(app))
+	g.Get("/:missionname/subscription", getMissionSubscriptionHandler(app))
+	g.Put("/:missionname/subscription", getMissionSubscriptionPutHandler(app))
+	g.Delete("/:missionname/subscription", getMissionSubscriptionDeleteHandler(app))
+	g.Get("/:missionname/subscriptions", getMissionSubscriptionsHandler(app))
+	g.Get("/:missionname/subscriptions/roles", getMissionSubscriptionRolesHandler(app))
+	g.Put("/:missionname/invite/:type/:uid", getInvitePutHandler(app))
+	g.Delete("/:missionname/invite/:type/:uid", getInviteDeleteHandler(app))
 }
 
-func getMissionsHandler(app *App) air.Handler {
-	return func(req *air.Request, res *air.Response) error {
-		user := app.users.GetUser(getUsernameFromReq(req))
+func getMissionsHandler(app *App) fiber.Handler {
+	return func(ctx *fiber.Ctx) error {
+		user := app.users.GetUser(Username(ctx))
 
 		data := app.missions.GetAllMissions(user.GetScope())
 		result := make([]*model.MissionDTO, len(data))
@@ -64,306 +62,254 @@ func getMissionsHandler(app *App) air.Handler {
 			result[i] = model.ToMissionDTO(m, app.packageManager, false)
 		}
 
-		return res.WriteJSON(makeAnswer(missionType, result))
+		return ctx.JSON(makeAnswer(missionType, result))
 	}
 }
 
-func getMissionHandler(app *App) air.Handler {
-	return func(req *air.Request, res *air.Response) error {
-		user := app.users.GetUser(getUsernameFromReq(req))
-		m := app.missions.GetMission(user.GetScope(), getStringParam(req, "missionname"))
+func getMissionHandler(app *App) fiber.Handler {
+	return func(ctx *fiber.Ctx) error {
+		user := app.users.GetUser(Username(ctx))
+		m := app.missions.GetMission(user.GetScope(), ctx.Params("missionname"))
 
 		if m == nil {
-			res.Status = http.StatusNotFound
-
-			return nil
+			return ctx.SendStatus(fiber.StatusNotFound)
 		}
 
-		return res.WriteJSON(makeAnswer(missionType, []*model.MissionDTO{model.ToMissionDTO(m, app.packageManager, false)}))
+		return ctx.JSON(makeAnswer(missionType, []*model.MissionDTO{model.ToMissionDTO(m, app.packageManager, false)}))
 	}
 }
 
-func getMissionPutHandler(app *App) air.Handler {
-	return func(req *air.Request, res *air.Response) error {
-		username := getUsernameFromReq(req)
+func getMissionPutHandler(app *App) fiber.Handler {
+	return func(ctx *fiber.Ctx) error {
+		username := Username(ctx)
 		user := app.users.GetUser(username)
 
-		logParams(app.logger, req)
+		body := ctx.Body()
 
-		if req.Body != nil {
-			defer req.Body.Close()
-			body, _ := io.ReadAll(req.Body)
-
-			if len(body) > 0 {
-				app.logger.Info("body: " + string(body))
-			}
+		if len(body) > 0 {
+			app.logger.Info("body: " + string(body))
 		}
 
 		m := &model.Mission{
-			Name:           getStringParam(req, "missionname"),
+			Name:           ctx.Params("missionname"),
 			Scope:          user.GetScope(),
 			Username:       username,
-			CreatorUID:     getStringParam(req, "creatorUid"),
+			CreatorUID:     ctx.Query("creatorUid"),
 			CreateTime:     time.Now(),
 			LastEdit:       time.Now(),
-			BaseLayer:      getStringParam(req, "baseLayer"),
-			Bbox:           getStringParam(req, "bbox"),
-			ChatRoom:       getStringParam(req, "chatRoom"),
-			Classification: getStringParam(req, "classification"),
-			Description:    getStringParam(req, "description"),
-			InviteOnly:     getBoolParam(req, "inviteOnly", false),
-			Password:       getStringParam(req, "password"),
-			Path:           getStringParam(req, "path"),
-			Tool:           getStringParam(req, "tool"),
+			BaseLayer:      ctx.Query("baseLayer"),
+			Bbox:           ctx.Query("bbox"),
+			ChatRoom:       ctx.Query("chatRoom"),
+			Classification: ctx.Query("classification"),
+			Description:    ctx.Query("description"),
+			InviteOnly:     ctx.QueryBool("inviteOnly", false),
+			Password:       ctx.Query("password"),
+			Path:           ctx.Query("path"),
+			Tool:           ctx.Query("tool"),
 			Groups:         "",
 			Keywords:       "",
 			Token:          uuid.NewString(),
 		}
 
 		if err := app.missions.PutMission(m); err != nil {
-			res.Status = http.StatusConflict
 			app.logger.Warn("mission add error", "error", err.Error())
-
-			return res.WriteString(err.Error())
+			return ctx.Status(fiber.StatusConflict).SendString(err.Error())
 		}
-
-		res.Status = http.StatusCreated
 
 		if !m.InviteOnly {
 			app.NewCotMessage(model.MissionCreateNotificationMsg(m))
 		}
 
-		return res.WriteJSON(makeAnswer(missionType, []*model.MissionDTO{model.ToMissionDTO(m, app.packageManager, true)}))
+		return ctx.Status(fiber.StatusCreated).
+			JSON(makeAnswer(missionType, []*model.MissionDTO{model.ToMissionDTO(m, app.packageManager, true)}))
 	}
 }
 
-func getMissionDeleteHandler(app *App) air.Handler {
-	return func(req *air.Request, res *air.Response) error {
-		user := app.users.GetUser(getUsernameFromReq(req))
-		m := app.missions.GetMission(user.GetScope(), getStringParam(req, "missionname"))
+func getMissionDeleteHandler(app *App) fiber.Handler {
+	return func(ctx *fiber.Ctx) error {
+		user := app.users.GetUser(Username(ctx))
+		m := app.missions.GetMission(user.GetScope(), ctx.Params("missionname"))
 
 		if m == nil {
-			res.Status = http.StatusNotFound
-			return nil
+			return ctx.SendStatus(fiber.StatusNotFound)
 		}
 
 		app.missions.DeleteMission(m.ID)
 
-		return res.WriteJSON(makeAnswer(missionType, []*model.MissionDTO{model.ToMissionDTO(m, app.packageManager, false)}))
+		return ctx.JSON(makeAnswer(missionType, []*model.MissionDTO{model.ToMissionDTO(m, app.packageManager, false)}))
 	}
 }
 
-func getMissionsInvitationsHandler(app *App) air.Handler {
-	return func(req *air.Request, res *air.Response) error {
-		uid := getStringParam(req, "clientUid")
+func getMissionsInvitationsHandler(app *App) fiber.Handler {
+	return func(ctx *fiber.Ctx) error {
+		uid := ctx.Query("clientUid")
 
-		return res.WriteJSON(makeAnswer(missionInvitationType, app.missions.GetInvitations(uid)))
+		return ctx.JSON(makeAnswer(missionInvitationType, app.missions.GetInvitations(uid)))
 	}
 }
 
-func getMissionRoleHandler(app *App) air.Handler {
-	return func(req *air.Request, res *air.Response) error {
-		user := app.users.GetUser(getUsernameFromReq(req))
-		m := app.missions.GetMission(user.GetScope(), getStringParam(req, "missionname"))
+func getMissionRoleHandler(app *App) fiber.Handler {
+	return func(ctx *fiber.Ctx) error {
+		user := app.users.GetUser(Username(ctx))
+		m := app.missions.GetMission(user.GetScope(), ctx.Params("missionname"))
 
 		if m == nil {
-			res.Status = http.StatusNotFound
-			return nil
+			return ctx.SendStatus(fiber.StatusNotFound)
 		}
 
-		return res.WriteJSON(makeAnswer(missionRoleType, model.GetRole("")))
+		return ctx.JSON(makeAnswer(missionRoleType, model.GetRole("")))
 	}
 }
 
-func getMissionRolePutHandler(app *App) air.Handler {
-	return func(req *air.Request, res *air.Response) error {
-		user := app.users.GetUser(getUsernameFromReq(req))
-		m := app.missions.GetMission(user.GetScope(), getStringParam(req, "missionname"))
+func getMissionRolePutHandler(app *App) fiber.Handler {
+	return func(ctx *fiber.Ctx) error {
+		user := app.users.GetUser(Username(ctx))
+		m := app.missions.GetMission(user.GetScope(), ctx.Params("missionname"))
 
 		if m == nil {
-			res.Status = http.StatusNotFound
-			return nil
+			return ctx.SendStatus(fiber.StatusNotFound)
 		}
 
-		logParams(app.logger, req)
-
-		if req.Body != nil {
-			defer req.Body.Close()
-			body, _ := io.ReadAll(req.Body)
-
-			if len(body) > 0 {
-				app.logger.Info("body: " + string(body))
-			}
-		}
-
-		return res.WriteJSON(makeAnswer(missionRoleType, model.GetRole("")))
+		return ctx.JSON(makeAnswer(missionRoleType, model.GetRole("")))
 	}
 }
 
-func getMissionLogHandler(app *App) air.Handler {
+func getMissionLogHandler(app *App) fiber.Handler {
 	result := makeAnswer(logEntryType, []*model.MissionLogEntryDTO{})
 
-	return func(req *air.Request, res *air.Response) error {
-		user := app.users.GetUser(getUsernameFromReq(req))
-		m := app.missions.GetMission(user.GetScope(), getStringParam(req, "missionname"))
+	return func(ctx *fiber.Ctx) error {
+		user := app.users.GetUser(Username(ctx))
+		m := app.missions.GetMission(user.GetScope(), ctx.Params("missionname"))
 
 		if m == nil {
-			res.Status = http.StatusNotFound
-			return nil
+			return ctx.SendStatus(fiber.StatusNotFound)
 		}
 
-		return res.WriteJSON(result)
+		return ctx.JSON(result)
 	}
 }
 
-func getMissionKeywordsPutHandler(app *App) air.Handler {
-	return func(req *air.Request, res *air.Response) error {
-		user := app.users.GetUser(getUsernameFromReq(req))
-		m := app.missions.GetMission(user.GetScope(), getStringParam(req, "missionname"))
+func getMissionKeywordsPutHandler(app *App) fiber.Handler {
+	return func(ctx *fiber.Ctx) error {
+		user := app.users.GetUser(Username(ctx))
+		m := app.missions.GetMission(user.GetScope(), ctx.Params("missionname"))
 
 		if m == nil {
-			res.Status = http.StatusNotFound
-			return nil
-		}
-
-		if req.Body == nil {
-			return nil
-		}
-
-		defer req.Body.Close()
-		b, err := io.ReadAll(req.Body)
-
-		if err != nil {
-			return err
+			return ctx.SendStatus(fiber.StatusNotFound)
 		}
 
 		var kw []string
 
-		if err := json.Unmarshal(b, &kw); err != nil {
+		if err := json.Unmarshal(ctx.Body(), &kw); err != nil {
 			return err
 		}
 
-		app.missions.AddKw(getStringParam(req, "missionname"), kw)
+		app.missions.AddKw(ctx.Params("missionname"), kw)
 
 		return nil
 	}
 }
 
-func getMissionSubscriptionsHandler(app *App) air.Handler {
-	return func(req *air.Request, res *air.Response) error {
-		user := app.users.GetUser(getUsernameFromReq(req))
-		m := app.missions.GetMission(user.GetScope(), getStringParam(req, "missionname"))
+func getMissionSubscriptionsHandler(app *App) fiber.Handler {
+	return func(ctx *fiber.Ctx) error {
+		user := app.users.GetUser(Username(ctx))
+		m := app.missions.GetMission(user.GetScope(), ctx.Params("missionname"))
 
 		if m == nil {
-			res.Status = http.StatusNotFound
-			return nil
+			return ctx.SendStatus(fiber.StatusNotFound)
 		}
 
-		return res.WriteJSON(makeAnswer(missionSubscriptionType, app.missions.GetSubscribers(m.ID)))
+		return ctx.JSON(makeAnswer(missionSubscriptionType, app.missions.GetSubscribers(m.ID)))
 	}
 }
 
-func getMissionSubscriptionHandler(app *App) air.Handler {
-	return func(req *air.Request, res *air.Response) error {
-		user := app.users.GetUser(getUsernameFromReq(req))
-		m := app.missions.GetMission(user.GetScope(), getStringParam(req, "missionname"))
+func getMissionSubscriptionHandler(app *App) fiber.Handler {
+	return func(ctx *fiber.Ctx) error {
+		user := app.users.GetUser(Username(ctx))
+		m := app.missions.GetMission(user.GetScope(), ctx.Params("missionname"))
 
 		if m == nil {
-			res.Status = http.StatusNotFound
-			return nil
+			return ctx.SendStatus(fiber.StatusNotFound)
 		}
 
-		s := app.missions.GetSubscription(m.ID, getStringParam(req, "uid"))
+		s := app.missions.GetSubscription(m.ID, ctx.Query("uid"))
 		if s == nil {
-			res.Status = http.StatusNotFound
-			return nil
+			return ctx.SendStatus(fiber.StatusNotFound)
 		}
 
-		return res.WriteJSON(makeAnswer(missionSubscriptionType, model.ToMissionSubscriptionDTO(s, m.Token)))
+		return ctx.JSON(makeAnswer(missionSubscriptionType, model.ToMissionSubscriptionDTO(s, m.Token)))
 	}
 }
 
-func getMissionSubscriptionPutHandler(app *App) air.Handler {
-	return func(req *air.Request, res *air.Response) error {
-		user := app.users.GetUser(getUsernameFromReq(req))
-		m := app.missions.GetMission(user.GetScope(), getStringParam(req, "missionname"))
+func getMissionSubscriptionPutHandler(app *App) fiber.Handler {
+	return func(ctx *fiber.Ctx) error {
+		user := app.users.GetUser(Username(ctx))
+		m := app.missions.GetMission(user.GetScope(), ctx.Params("missionname"))
 
 		if m == nil {
-			res.Status = http.StatusNotFound
-
-			return nil
+			return ctx.SendStatus(fiber.StatusNotFound)
 		}
-
-		logParams(app.logger, req)
 
 		if m.InviteOnly {
-			res.Status = http.StatusForbidden
-			return res.WriteString("Illegal attempt to subscribe to invite only mission!")
+			return ctx.Status(fiber.StatusForbidden).SendString("Illegal attempt to subscribe to invite only mission!")
 		}
 
-		if m.Password != "" && getStringParam(req, "password") != m.Password {
-			res.Status = http.StatusForbidden
-			return res.WriteString("Illegal attempt to subscribe to mission! Password did not match.")
+		if m.Password != "" && ctx.Query("password") != m.Password {
+			return ctx.Status(fiber.StatusForbidden).SendString("Illegal attempt to subscribe to mission! Password did not match.")
 		}
 
 		s := &model.Subscription{
 			MissionID:  m.ID,
-			ClientUID:  getStringParam(req, "uid"),
-			Username:   getUsernameFromReq(req),
+			ClientUID:  ctx.Query("uid"),
+			Username:   Username(ctx),
 			CreateTime: time.Now(),
 			Role:       "MISSION_SUBSCRIBER",
 		}
 
 		app.missions.PutSubscription(s)
-		res.Status = http.StatusCreated
 
-		return res.WriteJSON(makeAnswer(missionSubscriptionType, model.ToMissionSubscriptionDTO(s, m.Token)))
+		return ctx.Status(fiber.StatusCreated).JSON(makeAnswer(missionSubscriptionType, model.ToMissionSubscriptionDTO(s, m.Token)))
 	}
 }
 
-func getMissionSubscriptionDeleteHandler(app *App) air.Handler {
-	return func(req *air.Request, res *air.Response) error {
-		user := app.users.GetUser(getUsernameFromReq(req))
-		m := app.missions.GetMission(user.GetScope(), getStringParam(req, "missionname"))
+func getMissionSubscriptionDeleteHandler(app *App) fiber.Handler {
+	return func(ctx *fiber.Ctx) error {
+		user := app.users.GetUser(Username(ctx))
+		m := app.missions.GetMission(user.GetScope(), ctx.Params("missionname"))
 
 		if m == nil {
-			res.Status = http.StatusNotFound
-
-			return nil
+			return ctx.SendStatus(fiber.StatusNotFound)
 		}
 
-		app.missions.DeleteSubscription(getStringParam(req, "missionname"), getStringParam(req, "uid"))
+		app.missions.DeleteSubscription(ctx.Params("missionname"), ctx.Query("uid"))
 
 		return nil
 	}
 }
 
-func getMissionSubscriptionRolesHandler(app *App) air.Handler {
-	return func(req *air.Request, res *air.Response) error {
-		user := app.users.GetUser(getUsernameFromReq(req))
-		m := app.missions.GetMission(user.GetScope(), getStringParam(req, "missionname"))
+func getMissionSubscriptionRolesHandler(app *App) fiber.Handler {
+	return func(ctx *fiber.Ctx) error {
+		user := app.users.GetUser(Username(ctx))
+		m := app.missions.GetMission(user.GetScope(), ctx.Params("missionname"))
 
 		if m == nil {
-			res.Status = http.StatusNotFound
-
-			return nil
+			return ctx.SendStatus(fiber.StatusNotFound)
 		}
 
 		s := app.missions.GetSubscriptions(m.ID)
 
-		return res.WriteJSON(makeAnswer(missionSubscriptionType, model.ToMissionSubscriptionsDTO(s)))
+		return ctx.JSON(makeAnswer(missionSubscriptionType, model.ToMissionSubscriptionsDTO(s)))
 	}
 }
 
-func getMissionChangesHandler(app *App) air.Handler {
-	return func(req *air.Request, res *air.Response) error {
-		user := app.users.GetUser(getUsernameFromReq(req))
-		mission := app.missions.GetMission(user.GetScope(), getStringParam(req, "missionname"))
-		d1 := time.Now().Add(-time.Second * time.Duration(getIntParam(req, "secago", 31536000)))
+func getMissionChangesHandler(app *App) fiber.Handler {
+	return func(ctx *fiber.Ctx) error {
+		user := app.users.GetUser(Username(ctx))
+		mission := app.missions.GetMission(user.GetScope(), ctx.Params("missionname"))
+		d1 := time.Now().Add(-time.Second * time.Duration(ctx.QueryInt("secago", 31536000)))
 
 		if mission == nil {
-			res.Status = http.StatusNotFound
-			return nil
+			return ctx.SendStatus(fiber.StatusNotFound)
 		}
 
 		ch := app.missions.GetChanges(mission.ID, d1)
@@ -374,22 +320,20 @@ func getMissionChangesHandler(app *App) air.Handler {
 			result[i] = model.NewChangeDTO(c, mission.Name)
 		}
 
-		return res.WriteJSON(makeAnswer(missionChangeType, result))
+		return ctx.JSON(makeAnswer(missionChangeType, result))
 	}
 }
 
-func getMissionCotHandler(app *App) air.Handler {
-	return func(req *air.Request, res *air.Response) error {
-		user := app.users.GetUser(getUsernameFromReq(req))
-		mission := app.missions.GetMission(user.GetScope(), getStringParam(req, "missionname"))
+func getMissionCotHandler(app *App) fiber.Handler {
+	return func(ctx *fiber.Ctx) error {
+		user := app.users.GetUser(Username(ctx))
+		mission := app.missions.GetMission(user.GetScope(), ctx.Params("missionname"))
 
 		if mission == nil {
-			res.Status = http.StatusNotFound
-
-			return nil
+			return ctx.SendStatus(fiber.StatusNotFound)
 		}
 
-		res.Header.Set("Content-Type", "application/xml")
+		ctx.Set(fiber.HeaderContentType, "application/xml")
 
 		fb := new(strings.Builder)
 		fb.WriteString("<?xml version='1.0' encoding='UTF-8' standalone='yes'?>\n")
@@ -404,50 +348,36 @@ func getMissionCotHandler(app *App) air.Handler {
 
 		fb.WriteString("\n</events>")
 
-		return res.WriteString(fb.String())
+		return ctx.SendString(fb.String())
 	}
 }
 
-func getMissionContactsHandler(app *App) air.Handler {
-	return func(req *air.Request, res *air.Response) error {
-		user := app.users.GetUser(getUsernameFromReq(req))
-		m := app.missions.GetMission(user.GetScope(), getStringParam(req, "missionname"))
+func getMissionContactsHandler(app *App) fiber.Handler {
+	return func(ctx *fiber.Ctx) error {
+		user := app.users.GetUser(Username(ctx))
+		m := app.missions.GetMission(user.GetScope(), ctx.Params("missionname"))
 
 		if m == nil {
-			res.Status = http.StatusNotFound
-
-			return nil
+			return ctx.SendStatus(fiber.StatusNotFound)
 		}
 
-		return res.WriteJSON([]any{})
+		return ctx.JSON([]any{})
 	}
 }
 
-func getMissionContentPutHandler(app *App) air.Handler {
-	return func(req *air.Request, res *air.Response) error {
-		user := app.users.GetUser(getUsernameFromReq(req))
-		mission := app.missions.GetMission(user.GetScope(), getStringParam(req, "missionname"))
+func getMissionContentPutHandler(app *App) fiber.Handler {
+	return func(ctx *fiber.Ctx) error {
+		user := app.users.GetUser(Username(ctx))
+		mission := app.missions.GetMission(user.GetScope(), ctx.Params("missionname"))
 
 		if mission == nil {
-			res.Status = http.StatusNotFound
-
-			return nil
+			return ctx.SendStatus(fiber.StatusNotFound)
 		}
-
-		if req.Body == nil {
-			return nil
-		}
-
-		defer req.Body.Close()
 
 		var data map[string][]string
 
-		dec := json.NewDecoder(req.Body)
-
-		if err := dec.Decode(&data); err != nil {
-			res.Status = http.StatusInternalServerError
-
-			return res.WriteString(err.Error())
+		if err := json.Unmarshal(ctx.Body(), &data); err != nil {
+			return ctx.SendStatus(fiber.StatusInternalServerError)
 		}
 
 		var added = false
@@ -460,81 +390,64 @@ func getMissionContentPutHandler(app *App) air.Handler {
 			mission.LastEdit = time.Now()
 			app.missions.Save(mission)
 
-			res.Status = http.StatusCreated
+			ctx.Status(fiber.StatusCreated)
 		}
 
-		return res.WriteJSON(makeAnswer(missionType, []*model.MissionDTO{model.ToMissionDTO(mission, app.packageManager, false)}))
+		return ctx.JSON(makeAnswer(missionType, []*model.MissionDTO{model.ToMissionDTO(mission, app.packageManager, false)}))
 	}
 }
 
-func getMissionContentDeleteHandler(app *App) air.Handler {
-	return func(req *air.Request, res *air.Response) error {
-		user := app.users.GetUser(getUsernameFromReq(req))
-		mission := app.missions.GetMission(user.GetScope(), getStringParam(req, "missionname"))
+func getMissionContentDeleteHandler(app *App) fiber.Handler {
+	return func(ctx *fiber.Ctx) error {
+		user := app.users.GetUser(Username(ctx))
+		mission := app.missions.GetMission(user.GetScope(), ctx.Params("missionname"))
 
 		if mission == nil {
-			res.Status = http.StatusNotFound
-
-			return nil
+			return ctx.SendStatus(fiber.StatusNotFound)
 		}
 
-		author := getStringParam(req, "creatorUid")
+		author := ctx.Query("creatorUid")
 
-		if uid := getStringParam(req, "uid"); uid != "" {
+		if uid := ctx.Query("uid"); uid != "" {
 			change := app.missions.DeleteMissionPoint(mission.ID, uid, author)
 
 			app.notifyMissionSubscribers(mission, change)
 		}
 
-		if hash := getStringParam(req, "hash"); hash != "" {
+		if hash := ctx.Query("hash"); hash != "" {
 			app.missions.DeleteMissionContent(mission.ID, hash, author)
 		}
 
 		m1 := app.missions.GetMissionById(mission.ID)
 
-		return res.WriteJSON(makeAnswer(missionType, []*model.MissionDTO{model.ToMissionDTO(m1, app.packageManager, false)}))
+		return ctx.JSON(makeAnswer(missionType, []*model.MissionDTO{model.ToMissionDTO(m1, app.packageManager, false)}))
 	}
 }
 
-func getInvitePutHandler(app *App) air.Handler {
-	return func(req *air.Request, res *air.Response) error {
-		user := app.users.GetUser(getUsernameFromReq(req))
-		mission := app.missions.GetMission(user.GetScope(), getStringParam(req, "missionname"))
+func getInvitePutHandler(app *App) fiber.Handler {
+	return func(ctx *fiber.Ctx) error {
+		user := app.users.GetUser(Username(ctx))
+		mission := app.missions.GetMission(user.GetScope(), ctx.Params("missionname"))
 
 		if mission == nil {
-			res.Status = http.StatusNotFound
-
-			return nil
+			return ctx.SendStatus(fiber.StatusNotFound)
 		}
 
 		// type can be: clientUid, callsign, userName, group, team
-		typ := getStringParam(req, "type")
+		typ := ctx.Params("type")
 
 		if typ != "clientUid" {
 			app.logger.Warn(fmt.Sprintf("we do not support invitation with type %s now", typ))
-			res.Status = http.StatusBadRequest
-
-			return nil
-		}
-
-		logParams(app.logger, req)
-
-		if req.Body != nil {
-			defer req.Body.Close()
-			body, _ := io.ReadAll(req.Body)
-
-			if len(body) > 0 {
-				app.logger.Info("body: " + string(body))
-			}
+			return ctx.SendStatus(fiber.StatusBadRequest)
 		}
 
 		inv := &model.Invitation{
 			MissionID:  mission.ID,
 			Typ:        typ,
-			Invitee:    getStringParam(req, "uid"),
-			CreatorUID: getStringParam(req, "creatorUid"),
+			Invitee:    ctx.Params("uid"),
+			CreatorUID: ctx.Query("creatorUid"),
 			CreateTime: time.Now(),
-			Role:       getStringParam(req, "role"),
+			Role:       ctx.Query("role"),
 		}
 
 		app.missions.PutInvitation(inv)
@@ -543,18 +456,16 @@ func getInvitePutHandler(app *App) air.Handler {
 	}
 }
 
-func getInviteDeleteHandler(app *App) air.Handler {
-	return func(req *air.Request, res *air.Response) error {
-		user := app.users.GetUser(getUsernameFromReq(req))
-		mission := app.missions.GetMission(user.GetScope(), getStringParam(req, "missionname"))
+func getInviteDeleteHandler(app *App) fiber.Handler {
+	return func(ctx *fiber.Ctx) error {
+		user := app.users.GetUser(Username(ctx))
+		mission := app.missions.GetMission(user.GetScope(), ctx.Params("missionname"))
 
 		if mission == nil {
-			res.Status = http.StatusNotFound
-
-			return nil
+			return ctx.SendStatus(fiber.StatusNotFound)
 		}
 
-		app.missions.DeleteInvitation(mission.ID, getStringParam(req, "uid"), getStringParam(req, "type"))
+		app.missions.DeleteInvitation(mission.ID, ctx.Params("uid"), ctx.Params("type"))
 
 		return nil
 	}
