@@ -23,7 +23,7 @@ const (
 	missionChangeType       = "MissionChange"
 )
 
-func addMissionApi(app *App, f *fiber.App) {
+func addMissionApi(app *App, f fiber.Router) {
 	g := f.Group("/Marti/api/missions")
 
 	g.Get("/", getMissionsHandler(app))

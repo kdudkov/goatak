@@ -118,7 +118,7 @@ func getMapHandler() fiber.Handler {
 			"js":    []string{"util.js", "map.js"},
 		}
 
-		return ctx.Render("templates/map", data, "templates/menu", "templates/header")
+		return ctx.Render("templates/map", data, "templates/header")
 	}
 }
 

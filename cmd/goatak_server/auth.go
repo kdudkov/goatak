@@ -39,7 +39,7 @@ func SSLCheckHandler(app *App) fiber.Handler {
 
 		time.Sleep(3 * time.Second)
 
-		return ctx.SendStatus(fiber.StatusUnauthorized)
+		return fiber.ErrUnauthorized
 	}
 }
 

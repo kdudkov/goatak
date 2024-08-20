@@ -74,7 +74,7 @@ func (api *MartiAPI) Listen() error {
 	}
 }
 
-func addMartiRoutes(app *App, f *fiber.App) {
+func addMartiRoutes(app *App, f fiber.Router) {
 	f.Get("/Marti/api/version", getVersionHandler(app))
 	f.Get("/Marti/api/version/config", getVersionConfigHandler(app))
 	f.Get("/Marti/api/clientEndPoints", getEndpointsHandler(app))

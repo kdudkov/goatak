@@ -89,7 +89,7 @@ func NewFiberLogger(conf *LoggerConfig) fiber.Handler {
 			l.Info(msg, attrs...)
 		}
 
-		return nil
+		return chainErr
 	}
 }
 
