@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"encoding/xml"
 	"fmt"
+	"log/slog"
 	"strings"
 	"time"
 
@@ -112,7 +113,7 @@ func getMissionPutHandler(app *App) fiber.Handler {
 		}
 
 		if err := app.missions.PutMission(m); err != nil {
-			app.logger.Warn("mission add error", "error", err.Error())
+			app.logger.Warn("mission add error", slog.Any("error", err))
 			return ctx.Status(fiber.StatusConflict).SendString(err.Error())
 		}
 
@@ -342,7 +343,7 @@ func getMissionCotHandler(app *App) fiber.Handler {
 
 		for _, item := range mission.Items {
 			if err := enc.Encode(cot.CotToEvent(item.GetEvent())); err != nil {
-				app.logger.Error("xml encode error", "error", err)
+				app.logger.Error("xml encode error", slog.Any("error", err))
 			}
 		}
 

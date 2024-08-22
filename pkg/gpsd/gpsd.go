@@ -87,7 +87,7 @@ func (c *GpsdClient) connect(ctx context.Context) bool {
 			return true
 		}
 
-		c.logger.Error("dial error", "error", err)
+		c.logger.Error("dial error", slog.Any("error", err))
 
 		select {
 		case <-time.After(timeout):
@@ -113,7 +113,7 @@ func (c *GpsdClient) Listen(ctx context.Context, cb func(lat, lon, alt, speed, t
 		line, err := c.reader.ReadString('\n')
 
 		if err != nil {
-			c.logger.Error("error", "error", err)
+			c.logger.Error("error", slog.Any("error", err))
 
 			_ = c.conn.Close()
 			c.conn = nil
@@ -125,7 +125,7 @@ func (c *GpsdClient) Listen(ctx context.Context, cb func(lat, lon, alt, speed, t
 		var msg BaseMsg
 
 		if err1 := json.Unmarshal(data, &msg); err1 != nil {
-			c.logger.Error("JSON decode error", "error", err1)
+			c.logger.Error("JSON decode error", slog.Any("error", err1))
 			c.logger.Debug("bad json: " + line)
 			_ = c.conn.Close()
 			c.conn = nil
@@ -136,7 +136,7 @@ func (c *GpsdClient) Listen(ctx context.Context, cb func(lat, lon, alt, speed, t
 		case "TPV":
 			var r *TPVMsg
 			if err1 := json.Unmarshal(data, &r); err1 != nil {
-				c.logger.Error("JSON decode error", "error", err1)
+				c.logger.Error("JSON decode error", slog.Any("error", err1))
 			}
 
 			if cb != nil {
@@ -145,7 +145,7 @@ func (c *GpsdClient) Listen(ctx context.Context, cb func(lat, lon, alt, speed, t
 		case "VERSION":
 			var r *VERSIONMsg
 			if err1 := json.Unmarshal(data, &r); err1 != nil {
-				c.logger.Error("JSON decode error", "error", err1)
+				c.logger.Error("JSON decode error", slog.Any("error", err1))
 			}
 			c.logger.Info(fmt.Sprintf("got version %s, rev. %s", r.Release, r.Rev))
 		}

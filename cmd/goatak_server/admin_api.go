@@ -246,7 +246,7 @@ func getCotPostHandler(app *App) fiber.Handler {
 		c := new(cot.CotMessage)
 
 		if err := json.Unmarshal(ctx.Body(), c); err != nil {
-			app.logger.Error("cot decode error", "error", err)
+			app.logger.Error("cot decode error", slog.Any("error", err))
 
 			return err
 		}
@@ -267,14 +267,14 @@ func getCotXMLPostHandler(app *App) fiber.Handler {
 		ev := new(cot.Event)
 
 		if err := xml.Unmarshal(ctx.Body(), &ev); err != nil {
-			app.logger.Error("cot decode error", "error", err)
+			app.logger.Error("cot decode error", slog.Any("error", err))
 
 			return err
 		}
 
 		c, err := cot.EventToProto(ev)
 		if err != nil {
-			app.logger.Error("cot convert error", "error", err)
+			app.logger.Error("cot convert error", slog.Any("error", err))
 
 			return err
 		}
@@ -319,7 +319,7 @@ func getPackageHandler(app *App) fiber.Handler {
 		f, err := app.packageManager.GetFile(pi.Hash)
 
 		if err != nil {
-			app.logger.Error("get file error", "error", err)
+			app.logger.Error("get file error", slog.Any("error", err))
 			return err
 		}
 

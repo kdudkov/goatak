@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"strings"
@@ -110,7 +111,7 @@ func (app *App) chatProcessor(msg *cot.CotMessage) bool {
 
 	app.messages = append(app.messages, c)
 	if err := logChatMessage(c); err != nil {
-		app.logger.Warn("error logging chat", "error", err.Error())
+		app.logger.Warn("error logging chat", slog.Any("error", err))
 	}
 
 	return true
@@ -159,7 +160,7 @@ func (app *App) fileLoggerProcessor(msg *cot.CotMessage) bool {
 	}
 
 	if err := logMessage(msg, filepath.Join(app.config.dataDir, "log")); err != nil {
-		app.logger.Warn("error logging message", "error", err.Error())
+		app.logger.Warn("error logging message", slog.Any("error", err))
 	}
 
 	return true

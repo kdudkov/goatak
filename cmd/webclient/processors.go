@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log/slog"
 	"os"
 	"strings"
 
@@ -129,7 +130,7 @@ func (app *App) fileLoggerProcessor(msg *cot.CotMessage) {
 	}
 
 	if err := logMessage(msg, app.saveFile); err != nil {
-		app.logger.Warn("error logging message", "error", err.Error())
+		app.logger.Warn("error logging message", slog.Any("error", err))
 	}
 }
 

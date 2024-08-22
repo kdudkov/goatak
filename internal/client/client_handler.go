@@ -172,7 +172,7 @@ func (h *ConnClientHandler) Start() {
 		h.logger.Debug("send version msg")
 
 		if err := h.sendEvent(cot.VersionSupportMsg(1)); err != nil {
-			h.logger.Error("error sending ver req", "error", err.Error())
+			h.logger.Error("error sending ver req", slog.Any("error", err))
 		}
 	}
 }
@@ -187,7 +187,7 @@ func (h *ConnClientHandler) pinger(ctx context.Context) {
 			h.logger.Debug("ping")
 
 			if err := h.SendCot(cot.MakePing(h.localUID)); err != nil {
-				h.logger.Debug("sendMsg error", "error", err)
+				h.logger.Debug("sendMsg error", slog.Any("error", err))
 			}
 		case <-ctx.Done():
 			return
@@ -220,7 +220,7 @@ func (h *ConnClientHandler) handleRead(ctx context.Context) {
 				break
 			}
 
-			h.logger.Warn("error", "error", err.Error())
+			h.logger.Warn("error", slog.Any("error", err))
 
 			break
 		}
@@ -256,7 +256,7 @@ func (h *ConnClientHandler) handleRead(ctx context.Context) {
 			h.logger.Debug(fmt.Sprintf("ping from %s %s", h.addr, msg.GetUID()))
 
 			if err := h.SendCot(cot.MakePong()); err != nil {
-				h.logger.Error("SendMsg error", "error", err)
+				h.logger.Error("SendMsg error", slog.Any("error", err))
 			}
 
 			continue

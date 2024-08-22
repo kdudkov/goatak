@@ -32,7 +32,7 @@ func NewFileUserRepo(userFile string) *UserFileRepository {
 	}
 
 	if err := um.loadUsersFile(); err != nil {
-		um.logger.Error("error loading users file", "error", err.Error())
+		um.logger.Error("error loading users file", slog.Any("error", err))
 	}
 
 	if len(um.users) == 0 {
@@ -112,7 +112,7 @@ func (r *UserFileRepository) Start() error {
 					r.logger.Info("users file is modified, reloading")
 
 					if err := r.loadUsersFile(); err != nil {
-						r.logger.Error("error", "error", err.Error())
+						r.logger.Error("error", slog.Any("error", err))
 					}
 				}
 			case err, ok := <-r.watcher.Errors:
@@ -120,7 +120,7 @@ func (r *UserFileRepository) Start() error {
 					return
 				}
 
-				r.logger.Error("error", "error", err.Error())
+				r.logger.Error("error", slog.Any("error", err))
 			}
 		}
 	}()
@@ -141,7 +141,7 @@ func (r *UserFileRepository) CheckUserAuth(user, password string) bool {
 	if user, ok := r.users[user]; ok {
 		err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))
 		if err != nil {
-			r.logger.Debug("password check failed", "error", err)
+			r.logger.Debug("password check failed", slog.Any("error", err))
 			return false
 		}
 		return true

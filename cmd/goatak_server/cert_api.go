@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"crypto/x509"
 	"fmt"
+	"log/slog"
 	"math/big"
 	"strings"
 	"time"
@@ -135,7 +136,7 @@ func getSignHandler(app *App) fiber.Handler {
 	return func(ctx *fiber.Ctx) error {
 		signedCert, err := app.processSignRequest(ctx)
 		if err != nil {
-			app.logger.Error("error", "error", err.Error())
+			app.logger.Error("error", slog.Any("error", err))
 
 			return err
 		}
@@ -147,7 +148,7 @@ func getSignHandler(app *App) fiber.Handler {
 
 		p12Bytes, err := tlsutil.MakeP12TrustStore(certs, p12Password)
 		if err != nil {
-			app.logger.Error("error making p12", "error", err)
+			app.logger.Error("error making p12", slog.Any("error", err))
 
 			return err
 		}
@@ -160,7 +161,7 @@ func getSignHandlerV2(app *App) fiber.Handler {
 	return func(ctx *fiber.Ctx) error {
 		signedCert, err := app.processSignRequest(ctx)
 		if err != nil {
-			app.logger.Error("error", "error", err.Error())
+			app.logger.Error("error", slog.Any("error", err))
 
 			return err
 		}

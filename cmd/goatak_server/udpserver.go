@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/xml"
+	"log/slog"
 	"net"
 
 	"google.golang.org/protobuf/proto"
@@ -11,14 +12,17 @@ import (
 	"github.com/kdudkov/goatak/pkg/cotproto"
 )
 
-const magicByte = 0xbf
+const (
+	magicByte      = 0xbf
+	scopeBroadcast = "broadcast"
+)
 
 func (app *App) ListenUDP(ctx context.Context, addr string) error {
 	app.logger.Info("listening UDP at " + addr)
 
 	p, err := net.ListenPacket("udp", addr)
 	if err != nil {
-		app.logger.Error("error", "error", err)
+		app.logger.Error("error", slog.Any("error", err))
 
 		return err
 	}
@@ -28,7 +32,7 @@ func (app *App) ListenUDP(ctx context.Context, addr string) error {
 	for ctx.Err() == nil {
 		n, _, err := p.ReadFrom(buf)
 		if err != nil {
-			app.logger.Error("read error", "error", err)
+			app.logger.Error("read error", slog.Any("error", err))
 
 			return err
 		}
@@ -43,14 +47,14 @@ func (app *App) ListenUDP(ctx context.Context, addr string) error {
 
 				err = proto.Unmarshal(buf[3:n], msg)
 				if err != nil {
-					app.logger.Error("protobuf decode error", "error", err.Error())
+					app.logger.Error("protobuf decode error", slog.Any("error", err))
 
 					continue
 				}
 
 				c, err := cot.CotFromProto(msg, "", cot.BroadcastScope)
 				if err != nil {
-					app.logger.Error("protobuf detail extract error", "error", err.Error())
+					app.logger.Error("protobuf detail extract error", slog.Any("error", err))
 
 					continue
 				}
@@ -61,14 +65,14 @@ func (app *App) ListenUDP(ctx context.Context, addr string) error {
 
 				err = xml.Unmarshal(buf[3:n], ev)
 				if err != nil {
-					app.logger.Error("xml decode error", "error", err.Error())
+					app.logger.Error("xml decode error", slog.Any("error", err))
 
 					continue
 				}
 
-				c, err := cot.EventToProtoExt(ev, "", "BROADCAST")
+				c, err := cot.EventToProtoExt(ev, "", scopeBroadcast)
 				if err != nil {
-					app.logger.Error("error", "error", err.Error())
+					app.logger.Error("error", slog.Any("error", err))
 				}
 
 				app.NewCotMessage(c)
@@ -76,14 +80,14 @@ func (app *App) ListenUDP(ctx context.Context, addr string) error {
 		} else {
 			ev := &cot.Event{}
 			if err := xml.Unmarshal(buf[:n], ev); err != nil {
-				app.logger.Error("decode error", "error", err)
+				app.logger.Error("decode error", slog.Any("error", err))
 
 				continue
 			}
 
-			c, err := cot.EventToProtoExt(ev, "", "broadcast")
+			c, err := cot.EventToProtoExt(ev, "", scopeBroadcast)
 			if err != nil {
-				app.logger.Error("error", "error", err.Error())
+				app.logger.Error("error", slog.Any("error", err))
 			}
 
 			app.NewCotMessage(c)

@@ -55,7 +55,7 @@ func (pm *PackageManagerFS) Start() error {
 		if pi, err := loadInfo(pm.baseDir, f.Name()); err == nil {
 			pm.data.Store(uid, pi)
 		} else {
-			pm.logger.Error("error loading info for "+uid, "error", err.Error())
+			pm.logger.Error("error loading info for "+uid, slog.Any("error", err))
 		}
 	}
 
@@ -74,7 +74,7 @@ func (pm *PackageManagerFS) Store(pi *PackageInfo) {
 	}
 
 	if err := saveInfo(pm.baseDir, pi); err != nil {
-		pm.logger.Error("store error", "error", err.Error())
+		pm.logger.Error("store error", slog.Any("error", err))
 	}
 }
 

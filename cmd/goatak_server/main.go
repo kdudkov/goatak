@@ -259,7 +259,7 @@ func (app *App) ConnectTo(ctx context.Context, addr string) {
 	for ctx.Err() == nil {
 		conn, err := app.connect(addr)
 		if err != nil {
-			app.logger.Error("connect error", "error", err.Error())
+			app.logger.Error("connect error", slog.Any("error", err))
 			time.Sleep(time.Second * 5)
 
 			continue
@@ -478,7 +478,7 @@ func (app *App) sendToCallsign(callsign string, msg *cot.CotMessage) {
 		for _, c := range ch.GetUids() {
 			if c == callsign {
 				if err := ch.SendMsg(msg); err != nil {
-					app.logger.Error("error", "error", err)
+					app.logger.Error("send error", slog.Any("error", err))
 				}
 			}
 		}
@@ -491,7 +491,7 @@ func (app *App) sendToUID(uid string, msg *cot.CotMessage) {
 	app.ForAllClients(func(ch client.ClientHandler) bool {
 		if ch.HasUID(uid) {
 			if err := ch.SendMsg(msg); err != nil {
-				app.logger.Error("error", "error", err)
+				app.logger.Error("send error", slog.Any("error", err))
 			}
 		}
 

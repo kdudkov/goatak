@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
+	"log/slog"
 	"net"
 	"time"
 
@@ -15,13 +16,13 @@ func (app *App) ListenTCP(ctx context.Context, addr string) (err error) {
 	app.logger.Info("listening TCP at " + addr)
 	defer func() {
 		if r := recover(); r != nil {
-			app.logger.Error("panic in ListenTCP", "error", r)
+			app.logger.Error("panic in ListenTCP", slog.Any("error", r))
 		}
 	}()
 
 	listener, err := net.Listen("tcp", addr)
 	if err != nil {
-		app.logger.Error("Failed to listen", "error", err)
+		app.logger.Error("Failed to listen", slog.Any("error", err))
 
 		return err
 	}
@@ -31,7 +32,7 @@ func (app *App) ListenTCP(ctx context.Context, addr string) (err error) {
 	for ctx.Err() == nil {
 		conn, err := listener.Accept()
 		if err != nil {
-			app.logger.Error("Unable to accept connections", "error", err)
+			app.logger.Error("Unable to accept connections", slog.Any("error", err))
 
 			return err
 		}
@@ -56,7 +57,7 @@ func (app *App) listenTLS(ctx context.Context, addr string) error {
 
 	defer func() {
 		if r := recover(); r != nil {
-			app.logger.Error("panic in ListenTLS", "error", r)
+			app.logger.Error("panic in ListenTLS", slog.Any("error", r))
 		}
 	}()
 
@@ -77,7 +78,7 @@ func (app *App) listenTLS(ctx context.Context, addr string) error {
 	for ctx.Err() == nil {
 		conn, err := listener.Accept()
 		if err != nil {
-			app.logger.Error("Unable to accept connections", "error", err)
+			app.logger.Error("Unable to accept connections", slog.Any("error", err))
 
 			continue
 		}
@@ -95,7 +96,7 @@ func (app *App) processTLSConn(ctx context.Context, conn *tls.Conn) {
 	defer cancel()
 
 	if err := conn.HandshakeContext(ctx1); err != nil {
-		app.logger.Debug("Handshake error", "error", err)
+		app.logger.Debug("Handshake error", slog.Any("error", err))
 		_ = conn.Close()
 
 		return

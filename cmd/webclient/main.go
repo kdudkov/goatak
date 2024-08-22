@@ -142,7 +142,7 @@ func (app *App) Run(ctx context.Context) {
 	for ctx.Err() == nil {
 		conn, err := app.connect()
 		if err != nil {
-			app.logger.Error("connect error", "error", err)
+			app.logger.Error("connect error", slog.Any("error", err))
 			time.Sleep(time.Second * 5)
 
 			continue
@@ -223,7 +223,7 @@ func (app *App) myPosSender(ctx context.Context, wg *sync.WaitGroup) {
 func (app *App) SendMsg(msg *cotproto.TakMessage) {
 	if app.cl != nil {
 		if err := app.cl.SendCot(msg); err != nil {
-			app.logger.Error("error", "error", err)
+			app.logger.Error("error", slog.Any("error", err))
 		}
 	}
 }

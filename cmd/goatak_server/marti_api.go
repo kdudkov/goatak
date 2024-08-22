@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"strconv"
 	"time"
@@ -233,7 +234,7 @@ func getMissionUploadHandler(app *App) fiber.Handler {
 
 		pi, err := app.uploadMultipart(ctx, "", hash, fname, true)
 		if err != nil {
-			app.logger.Error("error", "error", err)
+			app.logger.Error("error", slog.Any("error", err))
 			return ctx.SendStatus(fiber.StatusNotAcceptable)
 		}
 
@@ -258,7 +259,7 @@ func getUploadHandler(app *App) fiber.Handler {
 		case "multipart/form-data":
 			pi, err := app.uploadMultipart(ctx, uid, "", fname, false)
 			if err != nil {
-				app.logger.Error("error", "error", err)
+				app.logger.Error("error", slog.Any("error", err))
 				return ctx.SendStatus(fiber.StatusNotAcceptable)
 			}
 
@@ -267,7 +268,7 @@ func getUploadHandler(app *App) fiber.Handler {
 		default:
 			pi, err := app.uploadFile(ctx, uid, fname)
 			if err != nil {
-				app.logger.Error("error", "error", err)
+				app.logger.Error("error", slog.Any("error", err))
 				return ctx.SendStatus(fiber.StatusNotAcceptable)
 			}
 
@@ -283,7 +284,7 @@ func (app *App) uploadMultipart(ctx *fiber.Ctx, uid, hash, filename string, pack
 	fh, err := ctx.FormFile("assetfile")
 
 	if err != nil {
-		app.logger.Error("error", "error", err)
+		app.logger.Error("error", slog.Any("error", err))
 		return nil, err
 	}
 
@@ -310,12 +311,12 @@ func (app *App) uploadMultipart(ctx *fiber.Ctx, uid, hash, filename string, pack
 	f, err := fh.Open()
 
 	if err != nil {
-		app.logger.Error("error", "error", err)
+		app.logger.Error("error", slog.Any("error", err))
 		return nil, err
 	}
 
 	if err := app.packageManager.SaveFile(pi, f); err != nil {
-		app.logger.Error("save file error", "error", err)
+		app.logger.Error("save file error", slog.Any("error", err))
 		return nil, err
 	}
 
@@ -342,7 +343,7 @@ func (app *App) uploadFile(ctx *fiber.Ctx, uid, filename string) (*pm.PackageInf
 	}
 
 	if err1 := app.packageManager.SaveFile(pi, ctx.Request().BodyStream()); err1 != nil {
-		app.logger.Error("save file error", "error", err1)
+		app.logger.Error("save file error", slog.Any("error", err1))
 		return nil, err1
 	}
 
@@ -363,7 +364,7 @@ func getContentGetHandler(app *App) fiber.Handler {
 
 					return ctx.Status(fiber.StatusNotFound).SendString("not found")
 				}
-				app.logger.Error("get file error", "error", err)
+				app.logger.Error("get file error", slog.Any("error", err))
 
 				return err
 			}
@@ -386,7 +387,7 @@ func getContentGetHandler(app *App) fiber.Handler {
 				f, err := app.packageManager.GetFile(pi.Hash)
 
 				if err != nil {
-					app.logger.Error("get file error", "error", err)
+					app.logger.Error("get file error", slog.Any("error", err))
 					return err
 				}
 

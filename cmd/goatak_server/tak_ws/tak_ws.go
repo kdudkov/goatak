@@ -121,7 +121,7 @@ func (w *WsClientHandler) IsActive() bool {
 func (w *WsClientHandler) writer() {
 	for b := range w.ch {
 		if err := w.ws.WriteMessage(websocket.BinaryMessage, b); err != nil {
-			w.log.Error("send error", "error", err.Error())
+			w.log.Error("send error", slog.Any("error", err))
 			w.Stop()
 
 			break

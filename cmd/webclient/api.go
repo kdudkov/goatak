@@ -75,7 +75,7 @@ func (app *App) periodicGetter(ctx context.Context) {
 		case <-ticker.C:
 			dat, err := app.remoteAPI.getContacts(ctx)
 			if err != nil {
-				app.logger.Warn("error getting contacts", "error", err.Error())
+				app.logger.Warn("error getting contacts", slog.Any("error", err))
 
 				continue
 			}

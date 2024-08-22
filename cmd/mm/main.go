@@ -151,7 +151,7 @@ func (app *App) UI() {
 	}
 
 	if err := app.g.MainLoop(); err != nil && !errors.Is(err, gocui.ErrQuit) {
-		app.Logger.Error("error", "error", err.Error())
+		app.Logger.Error("error", slog.Any("error", err))
 	}
 }
 

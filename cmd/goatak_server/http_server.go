@@ -57,7 +57,7 @@ func (h *HttpServer) Start() {
 			h.log.Info(fmt.Sprintf("listening %s at %s", name, listener.Address()))
 
 			if err := listener.Listen(); err != nil {
-				h.log.Error("error", "error", err.Error())
+				h.log.Error("error", slog.Any("error", err))
 				panic(err)
 			}
 		}(name, listener)

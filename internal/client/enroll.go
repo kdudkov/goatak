@@ -166,14 +166,14 @@ func (e *Enroller) GetOrEnrollCert(ctx context.Context, uid, version string) (*t
 
 	if e.save {
 		if err := e.saveP12(key, cert, ca); err != nil {
-			e.logger.Error("error", "error", err.Error())
+			e.logger.Error("error", slog.Any("error", err))
 		}
 	}
 
 	e.logger.Info("cert enrollment successful")
 
 	if err := e.getProfile(ctx, uid); err != nil {
-		e.logger.Warn("error", "error", err.Error())
+		e.logger.Warn("error", slog.Any("error", err))
 	}
 
 	return &tls.Certificate{Certificate: [][]byte{cert.Raw}, PrivateKey: key, Leaf: cert}, ca, nil
