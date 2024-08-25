@@ -40,7 +40,7 @@ func NewAdminAPI(app *App, addr string, webtakRoot string) *AdminAPI {
 
 	engine.Delims("[[", "]]")
 
-	api.f = fiber.New(fiber.Config{EnablePrintRoutes: false, DisableStartupMessage: true, Views: engine})
+	api.f = fiber.New(fiber.Config{EnablePrintRoutes: false, DisableStartupMessage: true, Views: engine, BodyLimit: 64 * 1024 * 1024})
 
 	api.f.Use(log.NewFiberLogger(&log.LoggerConfig{Name: "admin_api", Level: slog.LevelDebug}))
 

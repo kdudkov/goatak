@@ -63,7 +63,7 @@ func (m *BlobManager) PutFile(hash string, r io.Reader) (string, int64, error) {
 		return hash, 0, nil
 	}
 
-	f, err := os.CreateTemp("", "")
+	f, err := os.OpenFile(m.name(hash), os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0600)
 
 	if err != nil {
 		return "", 0, err
@@ -84,10 +84,9 @@ func (m *BlobManager) PutFile(hash string, r io.Reader) (string, int64, error) {
 	hash1 := hex.EncodeToString(h.Sum(nil))
 
 	if hash != "" && hash != hash1 {
+		os.Remove(f.Name())
 		return "", 0, fmt.Errorf("invalid hash")
 	}
-
-	err = os.Rename(f.Name(), m.name(hash1))
 
 	return hash1, n, err
 }

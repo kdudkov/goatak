@@ -37,7 +37,7 @@ type MartiAPI struct {
 
 func NewMartiApi(app *App, addr string) *MartiAPI {
 	api := &MartiAPI{
-		f:    fiber.New(fiber.Config{EnablePrintRoutes: false, DisableStartupMessage: true}),
+		f:    fiber.New(fiber.Config{EnablePrintRoutes: false, DisableStartupMessage: true, BodyLimit: 64 * 1024 * 1024}),
 		addr: addr,
 	}
 
@@ -201,7 +201,7 @@ func getMissionQueryHandler(app *App) fiber.Handler {
 		if pi := app.packageManager.GetFirst(func(pi *pm.PackageInfo) bool {
 			return pi.Hash == hash && user.CanSeeScope(pi.Scope)
 		}); pi != nil {
-			return ctx.SendString(packageUrl(pi))
+			return ctx.SendString(ctx.BaseURL() + packageUrl(pi))
 		}
 
 		return ctx.Status(fiber.StatusNotFound).SendString("not found")
@@ -229,7 +229,7 @@ func getMissionUploadHandler(app *App) fiber.Handler {
 			return pi.Hash == hash && user.CanSeeScope(pi.Scope)
 		}); pi != nil {
 			app.logger.Info("hash already exists: " + hash)
-			return ctx.SendString(packageUrl(pi))
+			return ctx.SendString(ctx.BaseURL() + packageUrl(pi))
 		}
 
 		pi, err := app.uploadMultipart(ctx, "", hash, fname, true)
@@ -240,7 +240,7 @@ func getMissionUploadHandler(app *App) fiber.Handler {
 
 		app.logger.Info(fmt.Sprintf("save packege %s %s %s", pi.Name, pi.UID, pi.Hash))
 
-		return ctx.SendString(packageUrl(pi))
+		return ctx.SendString(ctx.BaseURL() + packageUrl(pi))
 	}
 }
 
@@ -425,7 +425,22 @@ func getMetadataGetHandler(app *App) fiber.Handler {
 		if pi := app.packageManager.GetFirst(func(pi *pm.PackageInfo) bool {
 			return pi.Hash == hash && user.CanSeeScope(pi.Scope)
 		}); pi != nil {
-			return ctx.SendString(pi.Tool)
+			f, err := app.packageManager.GetFile(pi.Hash)
+
+			if err != nil {
+				app.logger.Error("get file error", slog.Any("error", err))
+				return err
+			}
+
+			defer f.Close()
+
+			ctx.Set(fiber.HeaderContentType, pi.MIMEType)
+			ctx.Set(fiber.HeaderLastModified, pi.SubmissionDateTime.UTC().Format(http.TimeFormat))
+			ctx.Set(fiber.HeaderContentLength, strconv.Itoa(pi.Size))
+			ctx.Set(fiber.HeaderETag, pi.Hash)
+
+			_, err = io.Copy(ctx.Response().BodyWriter(), f)
+			return err
 		}
 
 		return ctx.SendStatus(fiber.StatusNotFound)
