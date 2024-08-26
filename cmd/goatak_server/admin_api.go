@@ -71,9 +71,12 @@ func NewAdminAPI(app *App, addr string, webtakRoot string) *AdminAPI {
 		api.f.Get("/mission", getAllMissionHandler(app))
 	}
 
+	api.f.All("/webtak", webTakPathHandler())
 	if webtakRoot != "" {
 		api.f.Static("/webtak", webtakRoot)
-
+		addMartiRoutes(app, api.f)
+	} else {
+		staticfiles.EmbedWebTak(api.f)
 		addMartiRoutes(app, api.f)
 	}
 
@@ -81,6 +84,15 @@ func NewAdminAPI(app *App, addr string, webtakRoot string) *AdminAPI {
 	api.f.Get("/metrics", getMetricsHandler())
 
 	return api
+}
+
+func webTakPathHandler() fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		if c.Path() == "/webtak" {
+			return c.Redirect("/webtak/", http.StatusMovedPermanently)
+		}
+		return c.Next()
+	}
 }
 
 func (api *AdminAPI) Address() string {
