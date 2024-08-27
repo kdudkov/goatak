@@ -13,6 +13,7 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
+
 	"github.com/kdudkov/goatak/cmd/goatak_server/mp"
 	"github.com/kdudkov/goatak/internal/pm"
 	"github.com/kdudkov/goatak/pkg/cot"
@@ -37,7 +38,7 @@ type MartiAPI struct {
 
 func NewMartiApi(app *App, addr string) *MartiAPI {
 	api := &MartiAPI{
-		f:    fiber.New(fiber.Config{EnablePrintRoutes: false, DisableStartupMessage: true}),
+		f:    fiber.New(fiber.Config{EnablePrintRoutes: false, DisableStartupMessage: true, BodyLimit: 64 * 1024 * 1024}),
 		addr: addr,
 	}
 
