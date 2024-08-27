@@ -16,7 +16,6 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/adaptor"
 	"github.com/gofiber/template/html/v2"
 	"github.com/google/uuid"
-	"github.com/kdudkov/goatak/pkg/log"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
@@ -25,6 +24,7 @@ import (
 	"github.com/kdudkov/goatak/internal/model"
 	"github.com/kdudkov/goatak/internal/wshandler"
 	"github.com/kdudkov/goatak/pkg/cot"
+	"github.com/kdudkov/goatak/pkg/log"
 	"github.com/kdudkov/goatak/staticfiles"
 )
 
