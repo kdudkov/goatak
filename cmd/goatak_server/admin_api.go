@@ -236,7 +236,7 @@ func getConnHandler(app *App) fiber.Handler {
 				Uids:     ch.GetUids(),
 				User:     ch.GetUser().GetLogin(),
 				Ver:      ch.GetVersion(),
-				Addr:     ch.GetName(),
+				Addr:     ch.GetIdentifier(),
 				Scope:    ch.GetUser().GetScope(),
 				LastSeen: ch.GetLastSeen(),
 			}
@@ -382,7 +382,7 @@ func getTakWsHandler(app *App) fiber.Handler {
 		app.AddClientHandler(w)
 		w.Listen()
 		app.logger.Info("ws disconnected")
-		app.RemoveClientHandler(w.GetName())
+		app.RemoveClientHandler(w.GetIdentifier())
 	})
 }
 

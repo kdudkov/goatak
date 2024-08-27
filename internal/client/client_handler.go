@@ -25,6 +25,7 @@ const (
 )
 
 type HandlerConfig struct {
+	Name         string
 	User         *model.User
 	Serial       string
 	UID          string
@@ -34,9 +35,13 @@ type HandlerConfig struct {
 	NewContactCb func(uid, callsign string)
 	Logger       *slog.Logger
 	DropMetric   *prometheus.CounterVec
+	// 屏蔽接收或发送功能
+	DisableSend bool
+	DisableRecv bool
 }
 
 type ClientHandler interface {
+	GetIdentifier() string
 	GetName() string
 	HasUID(uid string) bool
 	GetUids() map[string]string
@@ -47,15 +52,20 @@ type ClientHandler interface {
 	GetLastSeen() *time.Time
 	CanSeeScope(scope string) bool
 	Stop()
+	CanSend() bool
+	CanReceive() bool
 }
 
 type ConnClientHandler struct {
 	cancel       context.CancelFunc
 	conn         net.Conn
 	addr         string
+	name         string
 	localUID     string
 	ver          int32
 	isClient     bool
+	disableRecv  bool
+	disableSend  bool
 	uids         sync.Map
 	lastActivity atomic.Pointer[time.Time]
 	closeTimer   *time.Timer
@@ -70,9 +80,9 @@ type ConnClientHandler struct {
 	dropMetric   *prometheus.CounterVec
 }
 
-func NewConnClientHandler(name string, conn net.Conn, config *HandlerConfig) *ConnClientHandler {
+func NewConnClientHandler(addr string, conn net.Conn, config *HandlerConfig) *ConnClientHandler {
 	c := &ConnClientHandler{
-		addr:         name,
+		addr:         addr,
 		conn:         conn,
 		ver:          0,
 		sendChan:     make(chan []byte, 50),
@@ -86,12 +96,19 @@ func NewConnClientHandler(name string, conn net.Conn, config *HandlerConfig) *Co
 		c.serial = config.Serial
 		c.localUID = config.UID
 		c.isClient = config.IsClient
+		c.disableSend = config.DisableSend
+		c.disableRecv = config.DisableRecv
 		c.messageCb = config.MessageCb
 		c.removeCb = config.RemoveCb
 		c.newContactCb = config.NewContactCb
 		c.dropMetric = config.DropMetric
+		if config.Name != "" {
+			c.name = config.Name
+		} else {
+			c.name = addr
+		}
 
-		params := []any{"client", name}
+		params := []any{"client", addr}
 
 		if u := config.User; u != nil {
 			params = append(params, "login", u.GetLogin(), "scope", u.GetScope())
@@ -113,8 +130,17 @@ func NewConnClientHandler(name string, conn net.Conn, config *HandlerConfig) *Co
 	return c
 }
 
-func (h *ConnClientHandler) GetName() string {
+func (h *ConnClientHandler) GetIdentifier() string {
 	return h.addr
+}
+func (h *ConnClientHandler) GetName() string {
+	return h.name
+}
+func (h *ConnClientHandler) CanSend() bool {
+	return !h.disableSend
+}
+func (h *ConnClientHandler) CanReceive() bool {
+	return !h.disableRecv
 }
 
 func (h *ConnClientHandler) CanSeeScope(scope string) bool {
@@ -225,11 +251,11 @@ func (h *ConnClientHandler) handleRead(ctx context.Context) {
 			break
 		}
 
-		if msg == nil {
+		if msg == nil || (!h.CanReceive() && !msg.IsPing() && !msg.IsControl()) {
 			continue
 		}
 
-		msg.From = h.addr
+		msg.From = h.name
 		msg.Scope = h.GetUser().GetScope()
 
 		// add new contact uid
@@ -253,7 +279,7 @@ func (h *ConnClientHandler) handleRead(ctx context.Context) {
 
 		// ping
 		if msg.GetType() == "t-x-c-t" {
-			h.logger.Debug(fmt.Sprintf("ping from %s %s", h.addr, msg.GetUID()))
+			h.logger.Debug(fmt.Sprintf("ping from [%s]%s %s", h.name, h.addr, msg.GetUID()))
 
 			if err := h.SendCot(cot.MakePong()); err != nil {
 				h.logger.Error("SendMsg error", slog.Any("error", err))
@@ -266,14 +292,13 @@ func (h *ConnClientHandler) handleRead(ctx context.Context) {
 		if msg.GetType() == "t-x-c-t-r" {
 			continue
 		}
-
 		h.messageCb(msg)
 	}
 }
 
 //nolint:nilnil
 func (h *ConnClientHandler) processXMLRead(er *cot.TagReader) (*cot.CotMessage, error) {
-	tag, dat, err := er.ReadTag()
+	tag, dat, err := er.ReadTag() // 读取xml的最外层标签及其全部内容
 	if err != nil {
 		return nil, err
 	}
@@ -304,7 +329,7 @@ func (h *ConnClientHandler) processXMLRead(er *cot.TagReader) (*cot.CotMessage, 
 		ver := ev.Detail.GetFirst("TakControl").GetFirst("TakRequest").GetAttr("version")
 		if ver == "1" {
 			if err := h.sendEvent(cot.ProtoChangeOkMsg()); err == nil {
-				h.logger.Info(fmt.Sprintf("client %s switch to v.1", h.addr))
+				h.logger.Info(fmt.Sprintf("client [%s](%s) switch to v.1", h.name, h.addr))
 				h.SetVersion(1)
 
 				return nil, nil
@@ -397,7 +422,7 @@ func (h *ConnClientHandler) ForAllUID(fn func(string, string) bool) {
 func (h *ConnClientHandler) handleWrite() {
 	for msg := range h.sendChan {
 		if _, err := h.conn.Write(msg); err != nil {
-			h.logger.Debug(fmt.Sprintf("client %s write error %v", h.addr, err))
+			h.logger.Debug(fmt.Sprintf("client [%s](%s) write error %v", h.name, h.addr, err))
 			h.Stop()
 
 			break

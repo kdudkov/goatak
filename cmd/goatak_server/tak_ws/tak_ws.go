@@ -30,6 +30,10 @@ type WsClientHandler struct {
 	messageCb MessageCb
 }
 
+func (w *WsClientHandler) GetIdentifier() string {
+	return w.name
+}
+
 func (w *WsClientHandler) GetName() string {
 	return w.name
 }
@@ -83,6 +87,13 @@ func New(name string, user *model.User, ws *websocket.Conn, mc MessageCb) *WsCli
 		active:    1,
 		messageCb: mc,
 	}
+}
+
+func (h *WsClientHandler) CanSend() bool {
+	return true
+}
+func (h *WsClientHandler) CanReceive() bool {
+	return true
 }
 
 func (w *WsClientHandler) SendMsg(msg *cot.CotMessage) error {

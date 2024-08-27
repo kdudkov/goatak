@@ -45,13 +45,23 @@ var (
 	lastSeenOfflineTimeout = time.Minute * 5
 )
 
+type FedConfig struct {
+	Host  string `mapstructure:"host"`
+	Proto string `mapstructure:"proto"`
+	Port  int    `mapstructure:"port"`
+	Name  string `mapstructure:"name"`
+}
+
 type AppConfig struct {
-	udpAddr   string
-	tcpAddr   string
-	adminAddr string
-	apiAddr   string
-	certAddr  string
-	tlsAddr   string
+	udpAddr    string
+	tcpAddr    string
+	tcpFedAddr string
+	adminAddr  string
+	apiAddr    string
+	certAddr   string
+	tlsAddr    string
+
+	feds *[]FedConfig
 
 	usersFile string
 
@@ -168,6 +178,25 @@ func (app *App) Run() {
 		}()
 	}
 
+	if app.config.tcpFedAddr != "" {
+		go func() {
+			if err := app.ListenTcpFed(ctx, app.config.tcpFedAddr); err != nil {
+				panic(err)
+			}
+		}()
+	}
+
+	// 这里配置连接到fed服务器的逻辑
+	if app.config.feds != nil {
+		for _, fed := range *app.config.feds {
+			go func() {
+				if err := app.connToFed(ctx, &fed); err != nil {
+					panic(err)
+				}
+			}()
+		}
+	}
+
 	if app.config.tlsCert != nil && app.config.tlsAddr != "" {
 		go func() {
 			if err := app.listenTLS(ctx, app.config.tlsAddr); err != nil {
@@ -193,6 +222,8 @@ func (app *App) Run() {
 	cancel()
 }
 
+func (app *App) DummyHandler(msg *cot.CotMessage) {}
+
 func (app *App) NewCotMessage(msg *cot.CotMessage) {
 	if msg != nil {
 		t := msg.GetType()
@@ -212,7 +243,7 @@ func (app *App) NewCotMessage(msg *cot.CotMessage) {
 }
 
 func (app *App) AddClientHandler(ch client.ClientHandler) {
-	app.handlers.Store(ch.GetName(), ch)
+	app.handlers.Store(ch.GetIdentifier(), ch)
 	connectionsMetric.With(prometheus.Labels{"scope": ch.GetUser().GetScope()}).Inc()
 }
 
@@ -227,13 +258,12 @@ func (app *App) RemoveClientHandler(name string) {
 func (app *App) ForAllClients(f func(ch client.ClientHandler) bool) {
 	app.handlers.Range(func(_, value any) bool {
 		h := value.(client.ClientHandler)
-
 		return f(h)
 	})
 }
 
 func (app *App) RemoveHandlerCb(cl client.ClientHandler) {
-	app.RemoveClientHandler(cl.GetName())
+	app.RemoveClientHandler(cl.GetIdentifier())
 
 	for uid := range cl.GetUids() {
 		if c := app.items.Get(uid); c != nil {
@@ -463,33 +493,35 @@ func (app *App) cleanOldUnits() {
 
 func (app *App) sendBroadcast(msg *cot.CotMessage) {
 	app.ForAllClients(func(ch client.ClientHandler) bool {
-		if ch.GetName() != msg.From {
+		// 需要判断是否允许向当前接口发送消息，以及是否是消息来源
+		if (ch.CanSend() || msg.IsPing() || msg.IsControl()) &&
+			ch.GetName() != msg.From {
 			if err := ch.SendMsg(msg); err != nil {
 				app.logger.Error(fmt.Sprintf("error sending to %s: %v", ch.GetName(), err))
 			}
 		}
-
 		return true
 	})
 }
 
 func (app *App) sendToCallsign(callsign string, msg *cot.CotMessage) {
 	app.ForAllClients(func(ch client.ClientHandler) bool {
-		for _, c := range ch.GetUids() {
-			if c == callsign {
-				if err := ch.SendMsg(msg); err != nil {
-					app.logger.Error("send error", slog.Any("error", err))
+		if ch.CanSend() || msg.IsPing() || msg.IsControl() {
+			for _, c := range ch.GetUids() {
+				if c == callsign {
+					if err := ch.SendMsg(msg); err != nil {
+						app.logger.Error("send error", slog.Any("error", err))
+					}
 				}
 			}
 		}
-
 		return true
 	})
 }
 
 func (app *App) sendToUID(uid string, msg *cot.CotMessage) {
 	app.ForAllClients(func(ch client.ClientHandler) bool {
-		if ch.HasUID(uid) {
+		if (ch.CanSend() || msg.IsPing() || msg.IsControl()) && ch.HasUID(uid) {
 			if err := ch.SendMsg(msg); err != nil {
 				app.logger.Error("send error", slog.Any("error", err))
 			}
@@ -608,6 +640,7 @@ func main() {
 	config := &AppConfig{
 		udpAddr:     viper.GetString("udp_addr"),
 		tcpAddr:     viper.GetString("tcp_addr"),
+		tcpFedAddr:  viper.GetString("tcp_fed_addr"),
 		adminAddr:   viper.GetString("admin_addr"),
 		apiAddr:     viper.GetString("api_addr"),
 		certAddr:    viper.GetString("cert_addr"),
@@ -621,6 +654,20 @@ func main() {
 		webtakRoot:  viper.GetString("webtak_root"),
 		certTTLDays: viper.GetInt("ssl.cert_ttl_days"),
 		dataSync:    viper.GetBool("datasync"),
+		feds:        &[]FedConfig{},
+	}
+
+	feds, ok := viper.Get("feds").([]interface{})
+	if ok && feds != nil {
+		for _, fed := range feds {
+			var fedConf FedConfig
+			if err := decodeMapToStruct(&fed, &fedConf); err != nil {
+				slog.Default().Error(err.Error())
+			}
+			*config.feds = append(*config.feds, fedConf)
+		}
+	} else {
+		slog.Default().Info("no feds found in configuration")
 	}
 
 	if err := processCerts(config); err != nil {
