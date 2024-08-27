@@ -20,7 +20,8 @@ func (app *App) ConnectToFedServer(ctx context.Context, fed *FedConfig) {
 			continue
 		}
 
-		app.logger.Info("connected")
+		fedName := fmt.Sprintf("fed_%s:%v", fed.Host, fed.Port)
+		app.logger.Info(fmt.Sprintf("Federation to %s connected", fedName))
 
 		wg := &sync.WaitGroup{}
 		wg.Add(1)
@@ -32,10 +33,11 @@ func (app *App) ConnectToFedServer(ctx context.Context, fed *FedConfig) {
 				app.handlers.Delete(addr)
 				app.logger.Info("disconnected")
 			},
-			Name:        fmt.Sprintf("fed_%s", fed.Host),
-			DisableSend: true,
-			IsClient:    true,
-			UID:         app.uid,
+			NewContactCb: app.NewContactCb,
+			Name:         fedName,
+			DisableSend:  true,
+			IsClient:     true,
+			UID:          app.uid,
 		})
 
 		go h.Start()

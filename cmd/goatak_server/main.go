@@ -491,7 +491,35 @@ func (app *App) cleanOldUnits() {
 	}
 }
 
+var msgLRU = NewLRUCache[cot.CotMessage](2 << 10)
+
+func mayCauseBroadCastStorm(msg *cot.CotMessage) bool {
+	//fmt.Printf("msg [%s@%s], send time = %v", msg.GetType(), msg.GetUID(), msg.GetSendTime())
+	if cachedMsg, ok := msgLRU.get(msg.GetUID()); !ok {
+		// 这里设定了map的最大限制，不用担心内存泄露
+		msgLRU.put(msg.GetUID(), msg)
+	} else {
+		// 如果消息间隔小于1s，则进行二次判断确认是否转发
+		if msg.GetSendTime().Sub(cachedMsg.GetSendTime()) < time.Second {
+			lat, lon := msg.GetLatLon()
+			clat, clon := cachedMsg.GetLatLon()
+			if lat == clat && lon == clon {
+				// 如果此消息的经纬度与上次转发的消息相同，判定为重复，屏蔽转发
+				slog.Warn(fmt.Sprintf("drop message [%s@%s] to avoid broadcast storm",
+					msg.TakMessage.CotEvent.Type, msg.TakMessage.CotEvent.Uid))
+				return true
+			}
+		}
+		// 如果允许发送，要更新cot状态
+		msgLRU.put(msg.GetUID(), msg)
+	}
+	return false
+}
+
 func (app *App) sendBroadcast(msg *cot.CotMessage) {
+	if mayCauseBroadCastStorm(msg) {
+		return
+	}
 	app.ForAllClients(func(ch client.ClientHandler) bool {
 		// 需要判断是否允许向当前接口发送消息，以及是否是消息来源
 		if (ch.CanSend() || msg.IsPing() || msg.IsControl()) &&
@@ -505,13 +533,27 @@ func (app *App) sendBroadcast(msg *cot.CotMessage) {
 }
 
 func (app *App) sendToCallsign(callsign string, msg *cot.CotMessage) {
+	if mayCauseBroadCastStorm(msg) {
+		return
+	}
+
 	app.ForAllClients(func(ch client.ClientHandler) bool {
-		if ch.CanSend() || msg.IsPing() || msg.IsControl() {
-			for _, c := range ch.GetUids() {
-				if c == callsign {
-					if err := ch.SendMsg(msg); err != nil {
-						app.logger.Error("send error", slog.Any("error", err))
-					}
+		if !ch.CanSend() && !msg.IsPing() && !msg.IsControl() {
+			return true
+		}
+
+		// 对 fed 服务器的链路使用无条件广播，确保信息能传出
+		if strings.HasPrefix(ch.GetName(), "fed_") && ch.GetName() != msg.From {
+			if err := ch.SendMsg(msg); err != nil {
+				app.logger.Error("send error", slog.Any("error", err))
+			}
+			return true
+		}
+
+		for _, c := range ch.GetUids() {
+			if c == callsign {
+				if err := ch.SendMsg(msg); err != nil {
+					app.logger.Error("send error", slog.Any("error", err))
 				}
 			}
 		}
@@ -520,13 +562,25 @@ func (app *App) sendToCallsign(callsign string, msg *cot.CotMessage) {
 }
 
 func (app *App) sendToUID(uid string, msg *cot.CotMessage) {
+	if mayCauseBroadCastStorm(msg) {
+		return
+	}
+
 	app.ForAllClients(func(ch client.ClientHandler) bool {
-		if (ch.CanSend() || msg.IsPing() || msg.IsControl()) && ch.HasUID(uid) {
+		if !ch.CanSend() && !msg.IsPing() && !msg.IsControl() {
+			return true
+		}
+		if strings.HasPrefix(ch.GetName(), "fed_") && ch.GetName() != msg.From {
+			if err := ch.SendMsg(msg); err != nil {
+				app.logger.Error("send error", slog.Any("error", err))
+			}
+			return true
+		}
+		if ch.HasUID(uid) {
 			if err := ch.SendMsg(msg); err != nil {
 				app.logger.Error("send error", slog.Any("error", err))
 			}
 		}
-
 		return true
 	})
 }

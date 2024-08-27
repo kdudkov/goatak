@@ -251,14 +251,14 @@ func (h *ConnClientHandler) handleRead(ctx context.Context) {
 			break
 		}
 
-		if msg == nil || (!h.CanReceive() && !msg.IsPing() && !msg.IsControl()) {
+		if msg == nil {
 			continue
 		}
 
 		msg.From = h.name
 		msg.Scope = h.GetUser().GetScope()
 
-		// add new contact uid
+		// put new contact uid
 		if msg.IsContact() {
 			uid := msg.GetUID()
 			uid = strings.TrimSuffix(uid, "-ping")
@@ -292,7 +292,11 @@ func (h *ConnClientHandler) handleRead(ctx context.Context) {
 		if msg.GetType() == "t-x-c-t-r" {
 			continue
 		}
-		h.messageCb(msg)
+
+		// 如果允许收消息，再调用接收函数
+		if h.CanReceive() {
+			h.messageCb(msg)
+		}
 	}
 }
 
@@ -497,6 +501,7 @@ func (h *ConnClientHandler) sendEvent(evt *cot.Event) error {
 }
 
 func (h *ConnClientHandler) SendMsg(msg *cot.CotMessage) error {
+
 	if msg.IsLocal() || h.CanSeeScope(msg.Scope) {
 		return h.SendCot(msg.GetTakMessage())
 	}
@@ -505,6 +510,7 @@ func (h *ConnClientHandler) SendMsg(msg *cot.CotMessage) error {
 }
 
 func (h *ConnClientHandler) SendCot(msg *cotproto.TakMessage) error {
+	//slog.Default().Warn(fmt.Sprintf("sending message %s", cot.ProtoToEvent(msg)))
 	switch h.GetVersion() {
 	case 0:
 		buf, err := xml.Marshal(cot.ProtoToEvent(msg))

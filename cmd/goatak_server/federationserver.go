@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"github.com/kdudkov/goatak/internal/client"
 	"log/slog"
 	"net"
@@ -36,6 +37,7 @@ func (app *App) ListenTcpFed(ctx context.Context, addr string) (err error) {
 		}
 
 		remoteAddr := conn.RemoteAddr().String()
+		localAddr := conn.LocalAddr().String()
 		app.logger.Info("TCP Federation connection from " + remoteAddr)
 		h := client.NewConnClientHandler(
 			conn.RemoteAddr().Network()+"_"+remoteAddr,
@@ -46,7 +48,7 @@ func (app *App) ListenTcpFed(ctx context.Context, addr string) (err error) {
 				NewContactCb: app.NewContactCb,
 				DropMetric:   dropMetric,
 				DisableRecv:  true,
-				Name:         "fed_" + strings.Split(remoteAddr, ":")[0],
+				Name:         fmt.Sprintf("fed_%s:%v", strings.Split(remoteAddr, ":")[0], strings.Split(localAddr, ":")[1]),
 			})
 		app.AddClientHandler(h)
 		h.Start()

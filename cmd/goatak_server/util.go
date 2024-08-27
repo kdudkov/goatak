@@ -1,6 +1,7 @@
 package main
 
 import (
+	"container/list"
 	"fmt"
 	"github.com/mitchellh/mapstructure"
 	"log/slog"
@@ -51,4 +52,34 @@ func getStringParamIgnoreCaps(c *fiber.Ctx, name string) string {
 	}
 
 	return ""
+}
+
+// LRSCache last recent store cache 存储满后，将最早之前存储的对象删除
+type LRSCache[T any] struct {
+	maxEntries int
+	cache      map[string]*T
+	lru        *list.List
+}
+
+func NewLRUCache[T any](maxEntries int) *LRSCache[T] {
+	return &LRSCache[T]{
+		maxEntries: maxEntries,
+		cache:      make(map[string]*T),
+		lru:        list.New(),
+	}
+}
+
+func (l *LRSCache[T]) put(key string, value *T) {
+	l.cache[key] = value
+	l.lru.PushBack(key)
+	if l.lru.Len() > l.maxEntries {
+		front := l.lru.Front()
+		l.cache[front.Value.(string)] = nil
+		l.lru.Remove(front)
+	}
+}
+
+func (l *LRSCache[T]) get(key string) (*T, bool) {
+	t := l.cache[key]
+	return t, t != nil
 }
