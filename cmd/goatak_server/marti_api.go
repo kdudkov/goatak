@@ -50,14 +50,6 @@ func NewMartiApi(app *App, addr string) *MartiAPI {
 		api.cert = *app.config.tlsCert
 		api.certPool = app.config.certPool
 		api.f.Use(SSLCheckHandler(app))
-
-		//api.TLSConfig = &tls.Config{
-		//	Certificates: []tls.Certificate{*app.config.tlsCert},
-		//	ClientCAs:    app.config.certPool,
-		//	RootCAs:      app.config.certPool,
-		//	ClientAuth:   tls.RequireAndVerifyClientCert,
-		//	MinVersion:   tls.VersionTLS10,
-		//}
 	}
 
 	addMartiRoutes(app, api.f)
