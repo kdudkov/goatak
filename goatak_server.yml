@@ -6,10 +6,11 @@ admin_addr: ":8088"
 api_addr: ":8080"
 # Certificate enrollment listener. You must provide external certificate validation, not server cert!
 cert_addr: ":8446"
+tcp_fed_addr: ":9000"
 # TCP stream listener
-tcp_addr: ":8999"
+tcp_addr: ":8087"
 # UDP stream listener
-udp_addr: ":8999"
+udp_addr: ":8087"
 # TCP TLS listener for ATAK clients. Port should be 8089
 ssl_addr: ":8089"
 # if true server will save all messages to files in data/log folder
@@ -22,6 +23,16 @@ users_file: users.yml
 webtak_root: ""
 # enable Datasync/missions api
 datasync: false
+
+feds:
+  - host: 127.0.0.1
+    proto: tcp
+    port: 19000
+    name: "fed_server_s1"
+  - host: 127.0.0.1
+    proto: tcp
+    port: 29000
+    name: "fed_server_s2"
 
 me:
   lat: 35.462939
