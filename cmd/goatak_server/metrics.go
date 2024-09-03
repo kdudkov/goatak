@@ -8,6 +8,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
+	"github.com/savsgio/gotils/strings"
 )
 
 var (
@@ -41,12 +42,13 @@ var (
 func NewMetricHandler(api string) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		start := time.Now()
+		m := strings.Copy(c.Method())
 		chainErr := c.Next()
 		t := time.Since(start)
 
 		httpRequestsDuration.With(prometheus.Labels{
 			"api":    api,
-			"method": c.Method(),
+			"method": m,
 			"code":   strconv.Itoa(c.Response().StatusCode()),
 		}).Observe(t.Seconds())
 
