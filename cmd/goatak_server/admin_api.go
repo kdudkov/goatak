@@ -183,10 +183,12 @@ func getStackHandler() fiber.Handler {
 }
 
 func getMetricsHandler() fiber.Handler {
-	return adaptor.HTTPHandler(promhttp.HandlerFor(
+	handler := promhttp.HandlerFor(
 		prometheus.DefaultGatherer,
 		promhttp.HandlerOpts{DisableCompression: true},
-	))
+	)
+
+	return adaptor.HTTPHandler(handler)
 }
 
 func getUnitTrackHandler(app *App) fiber.Handler {
