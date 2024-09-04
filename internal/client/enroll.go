@@ -17,11 +17,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/spf13/viper"
 	"software.sslmate.com/src/go-pkcs12"
 
-	"github.com/kdudkov/goatak/pkg/tlsutil"
 	"github.com/kdudkov/goutils/request"
+
+	"github.com/kdudkov/goatak/pkg/tlsutil"
 )
 
 const (
@@ -30,13 +30,14 @@ const (
 )
 
 type Enroller struct {
-	logger *slog.Logger
-	host   string
-	port   int
-	client *http.Client
-	user   string
-	passwd string
-	save   bool
+	logger      *slog.Logger
+	host        string
+	port        int
+	client      *http.Client
+	user        string
+	passwd      string
+	p12Password string
+	save        bool
 }
 
 type CertificateConfig struct {
@@ -50,7 +51,7 @@ type CertificateConfig struct {
 	} `xml:"nameEntries"`
 }
 
-func NewEnroller(host, user, passwd string, save bool) *Enroller {
+func NewEnroller(host, user, passwd string, save bool, p12Password string) *Enroller {
 	tlsConf := &tls.Config{InsecureSkipVerify: true}
 
 	return &Enroller{
@@ -92,7 +93,7 @@ func (e *Enroller) getConfig(ctx context.Context) (*CertificateConfig, error) {
 
 func (e *Enroller) GetOrEnrollCert(ctx context.Context, uid, version string) (*tls.Certificate, []*x509.Certificate, error) {
 	fname := fmt.Sprintf("%s_%s.p12", e.host, e.user)
-	if cert, cas, err := LoadP12(fname, viper.GetString("ssl.password")); err == nil {
+	if cert, cas, err := LoadP12(fname, e.p12Password); err == nil {
 		e.logger.Info("loading cert from file " + fname)
 
 		return cert, cas, nil
@@ -227,7 +228,7 @@ func (e *Enroller) saveP12(key interface{}, cert *x509.Certificate, ca []*x509.C
 	}
 	defer f.Close()
 
-	data, err := pkcs12.Modern.Encode(key, cert, ca, viper.GetString("ssl.password"))
+	data, err := pkcs12.Modern.Encode(key, cert, ca, e.p12Password)
 	if err != nil {
 		return err
 	}

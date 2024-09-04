@@ -13,7 +13,7 @@ func (app *App) connect() (net.Conn, error) {
 	if app.tls {
 		app.logger.Info(fmt.Sprintf("connecting with SSL to %s...", addr))
 
-		conn, err := tls.Dial("tcp", addr, app.getTLSConfig())
+		conn, err := tls.Dial("tcp", addr, app.getTLSConfig(app.tlsStrict))
 		if err != nil {
 			return nil, err
 		}

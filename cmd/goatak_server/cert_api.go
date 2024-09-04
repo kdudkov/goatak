@@ -12,6 +12,7 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
+
 	"github.com/kdudkov/goatak/pkg/log"
 
 	"github.com/kdudkov/goatak/cmd/goatak_server/mp"
@@ -58,7 +59,7 @@ func getTLSConfigHandler(app *App) fiber.Handler {
 	names := map[string]string{"C": "RU", "O": "goatak", "OU": "goatak"}
 	buf := strings.Builder{}
 	buf.WriteString("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n")
-	buf.WriteString(fmt.Sprintf("<certificateConfig validityDays=\"%d\"><nameEntries>", app.config.certTTLDays))
+	buf.WriteString(fmt.Sprintf("<certificateConfig validityDays=\"%d\"><nameEntries>", app.config.CertTTLDays()))
 
 	for k, v := range names {
 		buf.WriteString(fmt.Sprintf("<nameEntry name=\"%s\" value=\"%s\"/>", k, v))
@@ -122,7 +123,7 @@ func (app *App) processSignRequest(ctx *fiber.Ctx) (*x509.Certificate, error) {
 	}
 
 	signedCert, err := signClientCert(uid, clientCSR,
-		app.config.serverCert, app.config.tlsCert.PrivateKey, app.config.certTTLDays)
+		app.config.serverCert, app.config.tlsCert.PrivateKey, app.config.CertTTLDays())
 	if err != nil {
 		return nil, err
 	}
@@ -215,18 +216,18 @@ func getProfileEnrollmentHandler(app *App) fiber.Handler {
 			return ctx.SendStatus(fiber.StatusNoContent)
 		}
 
-		mp := mp.NewMissionPackage("ProfileMissionPackage-"+uuid.NewString(), "Enrollment")
-		mp.Param("onReceiveImport", "true")
-		mp.Param("onReceiveDelete", "true")
+		pkg := mp.NewMissionPackage("ProfileMissionPackage-"+uuid.NewString(), "Enrollment")
+		pkg.Param("onReceiveImport", "true")
+		pkg.Param("onReceiveDelete", "true")
 
 		for _, f := range files {
-			mp.AddFile(f)
+			pkg.AddFile(f)
 		}
 
 		ctx.Set(fiber.HeaderContentType, "application/zip")
 		ctx.Set(fiber.HeaderContentDisposition, "attachment; filename=profile.zip")
 
-		dat, err := mp.Create()
+		dat, err := pkg.Create()
 		if err != nil {
 			return err
 		}

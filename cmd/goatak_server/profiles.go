@@ -47,16 +47,16 @@ func (app *App) GetProfileFiles(username, uid string) []mp.FileContent {
 		}
 	}
 
-	if f, err := mp.NewFsFile(prefix+"/defaults.pref", filepath.Join(app.config.dataDir, "defaults.pref")); err == nil {
+	if f, err := mp.NewFsFile(prefix+"/defaults.pref", filepath.Join(app.config.DataDir(), "defaults.pref")); err == nil {
 		app.logger.Debug("add default.prefs")
 
 		res = append(res, f)
 	}
 
-	if paths, err := os.ReadDir(filepath.Join(app.config.dataDir, "maps")); err == nil {
+	if paths, err := os.ReadDir(filepath.Join(app.config.DataDir(), "maps")); err == nil {
 		for _, p := range paths {
 			if !p.IsDir() && strings.HasSuffix(p.Name(), ".xml") {
-				if f, err := mp.NewFsFile("maps/"+p.Name(), filepath.Join(app.config.dataDir, "maps", p.Name())); err == nil {
+				if f, err := mp.NewFsFile("maps/"+p.Name(), filepath.Join(app.config.DataDir(), "maps", p.Name())); err == nil {
 					app.logger.Debug("add " + p.Name())
 
 					res = append(res, f)

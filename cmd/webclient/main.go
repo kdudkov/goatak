@@ -18,9 +18,13 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/knadh/koanf/parsers/yaml"
+	"github.com/knadh/koanf/providers/file"
+	"github.com/knadh/koanf/v2"
+
 	"github.com/kdudkov/goatak/pkg/gpsd"
 
-	"github.com/spf13/viper"
+	"github.com/kdudkov/goutils/callback"
 
 	"github.com/kdudkov/goatak/internal/client"
 	"github.com/kdudkov/goatak/internal/repository"
@@ -29,7 +33,6 @@ import (
 	"github.com/kdudkov/goatak/pkg/log"
 	"github.com/kdudkov/goatak/pkg/model"
 	"github.com/kdudkov/goatak/pkg/tlsutil"
-	"github.com/kdudkov/goutils/callback"
 )
 
 const (
@@ -43,11 +46,13 @@ type App struct {
 	host            string
 	tcpPort         string
 	webPort         int
+	gpsd            string
 	logger          *slog.Logger
 	ch              chan []byte
 	items           repository.ItemsRepository
 	chatMessages    *model.ChatMessages
 	tls             bool
+	tlsStrict       bool
 	tlsCert         *tls.Certificate
 	cas             *x509.CertPool
 	cl              *client.ConnClientHandler
@@ -118,7 +123,7 @@ func (app *App) Init() {
 	app.remoteAPI = NewRemoteAPI(app.host, app.logger.With("logger", "api"))
 
 	if app.tls {
-		app.remoteAPI.SetTLS(app.getTLSConfig())
+		app.remoteAPI.SetTLS(app.getTLSConfig(app.tlsStrict))
 	}
 
 	app.ch = make(chan []byte, 20)
@@ -172,8 +177,8 @@ func (app *App) Run(ctx context.Context) {
 		go app.periodicGetter(ctx1)
 		go app.myPosSender(ctx1, wg)
 
-		if addr := viper.GetString("gpsd"); addr != "" {
-			c := gpsd.New(addr, app.logger.With("logger", "gpsd"))
+		if app.gpsd != "" {
+			c := gpsd.New(app.gpsd, app.logger.With("logger", "gpsd"))
 			go c.Listen(ctx1, func(lat, lon, alt, speed, track float64) {
 				app.pos.Store(model.NewPosFull(lat, lon, alt, speed, track))
 			})
@@ -334,14 +339,14 @@ func (app *App) sendMyPoints() {
 	})
 }
 
-func (app *App) getTLSConfig() *tls.Config {
+func (app *App) getTLSConfig(strict bool) *tls.Config {
 	conf := &tls.Config{ //nolint:exhaustruct
 		Certificates: []tls.Certificate{*app.tlsCert},
 		RootCAs:      app.cas,
 		ClientCAs:    app.cas,
 	}
 
-	if !viper.GetBool("ssl.strict") {
+	if !strict {
 		conf.InsecureSkipVerify = true
 	}
 
@@ -355,26 +360,26 @@ func main() {
 	saveFile := flag.String("file", "", "record all events to file")
 	flag.Parse()
 
-	viper.SetConfigFile(*conf)
+	k := koanf.New(".")
 
-	viper.SetDefault("server_address", "204.48.30.216:8087:tcp")
-	viper.SetDefault("web_port", 8080)
-	viper.SetDefault("me.callsign", RandString(10))
-	viper.SetDefault("me.lat", 0.0)
-	viper.SetDefault("me.lon", 0.0)
-	viper.SetDefault("me.zoom", 5)
-	viper.SetDefault("me.type", "a-f-G-U-C")
-	viper.SetDefault("me.team", "Blue")
-	viper.SetDefault("me.role", "HQ")
-	viper.SetDefault("me.platform", "GoATAK_client")
-	viper.SetDefault("me.version", getVersion())
-	viper.SetDefault("ssl.password", "atakatak")
-	viper.SetDefault("ssl.save_cert", true)
-	viper.SetDefault("ssl.strict", false)
+	k.Set("server_address", "204.48.30.216:8087:tcp")
+	k.Set("web_port", 8080)
+	k.Set("me.callsign", RandString(10))
+	k.Set("me.lat", 0.0)
+	k.Set("me.lon", 0.0)
+	k.Set("me.zoom", 5)
+	k.Set("me.type", "a-f-G-U-C")
+	k.Set("me.team", "Blue")
+	k.Set("me.role", "HQ")
+	k.Set("me.platform", "GoATAK_client")
+	k.Set("me.version", getVersion())
+	k.Set("ssl.password", "atakatak")
+	k.Set("ssl.save_cert", true)
+	k.Set("ssl.strict", false)
 
-	err := viper.ReadInConfig()
-	if err != nil {
-		panic(fmt.Errorf("Fatal error config file: %w \n", err))
+	if err := k.Load(file.Provider(*conf), yaml.Parser()); err != nil {
+		fmt.Printf("error loading config: %s", err.Error())
+		return
 	}
 
 	var h slog.Handler
@@ -386,16 +391,16 @@ func main() {
 
 	slog.SetDefault(slog.New(h))
 
-	uid := viper.GetString("me.uid")
+	uid := k.String("me.uid")
 	if uid == "auto" || uid == "" {
-		uid = makeUID(viper.GetString("me.callsign"))
+		uid = makeUID(k.String("me.callsign"))
 	}
 
 	app := NewApp(
 		uid,
-		viper.GetString("me.callsign"),
-		viper.GetString("server_address"),
-		viper.GetInt("web_port"),
+		k.String("me.callsign"),
+		k.String("server_address"),
+		k.Int("web_port"),
 	)
 
 	app.saveFile = *saveFile
@@ -404,35 +409,37 @@ func main() {
 		app.webPort = -1
 	}
 
-	app.pos.Store(model.NewPos(viper.GetFloat64("me.lat"), viper.GetFloat64("me.lon")))
-	app.zoom = int8(viper.GetInt("me.zoom"))
-	app.typ = viper.GetString("me.type")
-	app.team = viper.GetString("me.team")
-	app.role = viper.GetString("me.role")
+	app.pos.Store(model.NewPos(k.Float64("me.lat"), k.Float64("me.lon")))
+	app.zoom = int8(k.Int("me.zoom"))
+	app.typ = k.String("me.type")
+	app.team = k.String("me.team")
+	app.role = k.String("me.role")
 
-	app.device = viper.GetString("me.device")
-	app.version = viper.GetString("me.version")
-	app.platform = viper.GetString("me.platform")
-	app.os = viper.GetString("me.os")
+	app.device = k.String("me.device")
+	app.version = k.String("me.version")
+	app.platform = k.String("me.platform")
+	app.os = k.String("me.os")
+
+	app.gpsd = k.String("gpsd")
 
 	app.logger.Info("callsign: " + app.callsign)
 	app.logger.Info("uid: " + app.uid)
 	app.logger.Info("team: " + app.team)
 	app.logger.Info("role: " + app.role)
-	app.logger.Info("server: " + viper.GetString("server_address"))
+	app.logger.Info("server: " + k.String("server_address"))
 
 	ctx, cancel := context.WithCancel(context.Background())
 
 	if app.tls {
-		if user := viper.GetString("ssl.enroll_user"); user != "" {
-			passw := viper.GetString("ssl.enroll_password")
+		if user := k.String("ssl.enroll_user"); user != "" {
+			passw := k.String("ssl.enroll_password")
 			if passw == "" {
 				fmt.Println("no enroll_password")
 
 				return
 			}
 
-			enr := client.NewEnroller(app.host, user, passw, viper.GetBool("ssl.save_cert"))
+			enr := client.NewEnroller(app.host, user, passw, k.Bool("ssl.save_cert"), k.String("ssl.password"))
 
 			cert, cas, err := enr.GetOrEnrollCert(ctx, app.uid, app.GetVersion())
 			if err != nil {
@@ -444,9 +451,9 @@ func main() {
 			app.tlsCert = cert
 			app.cas = tlsutil.MakeCertPool(cas...)
 		} else {
-			app.logger.Info("loading cert from file " + viper.GetString("ssl.cert"))
+			app.logger.Info("loading cert from file " + k.String("ssl.cert"))
 
-			cert, cas, err := client.LoadP12(viper.GetString("ssl.cert"), viper.GetString("ssl.password"))
+			cert, cas, err := client.LoadP12(k.String("ssl.cert"), k.String("ssl.password"))
 			if err != nil {
 				app.logger.Error("error while loading cert: " + err.Error())
 

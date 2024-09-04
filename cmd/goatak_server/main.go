@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto"
 	"crypto/tls"
-	"crypto/x509"
 	"flag"
 	"fmt"
 	"log"
@@ -21,8 +20,11 @@ import (
 	"github.com/glebarez/sqlite"
 	"github.com/google/uuid"
 	"github.com/kdudkov/goutils/callback"
+	"github.com/knadh/koanf/parsers/yaml"
+	"github.com/knadh/koanf/providers/env"
+	"github.com/knadh/koanf/providers/file"
+	"github.com/knadh/koanf/v2"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/spf13/viper"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 	"software.sslmate.com/src/go-pkcs12"
@@ -34,7 +36,6 @@ import (
 	"github.com/kdudkov/goatak/internal/repository"
 	"github.com/kdudkov/goatak/pkg/cot"
 	"github.com/kdudkov/goatak/pkg/model"
-	"github.com/kdudkov/goatak/pkg/tlsutil"
 )
 
 const (
@@ -44,35 +45,6 @@ const (
 var (
 	lastSeenOfflineTimeout = time.Minute * 5
 )
-
-type AppConfig struct {
-	udpAddr   string
-	tcpAddr   string
-	adminAddr string
-	apiAddr   string
-	certAddr  string
-	tlsAddr   string
-
-	usersFile string
-
-	dataDir string
-
-	logging    bool
-	tlsCert    *tls.Certificate
-	certPool   *x509.CertPool
-	serverCert *x509.Certificate
-	ca         []*x509.Certificate
-
-	useSsl bool
-
-	webtakRoot string
-
-	debug    bool
-	dataSync bool
-
-	certTTLDays int
-	connections []string
-}
 
 type App struct {
 	logger         *slog.Logger
@@ -103,19 +75,19 @@ func NewApp(config *AppConfig) *App {
 	app := &App{
 		logger:          slog.Default(),
 		config:          config,
-		packageManager:  pm.NewPackageManager(filepath.Join(config.dataDir, "mp")),
-		users:           repository.NewFileUserRepo(config.usersFile),
+		packageManager:  pm.NewPackageManager(filepath.Join(config.DataDir(), "mp")),
+		users:           repository.NewFileUserRepo(config.UsersFile()),
 		ch:              make(chan *cot.CotMessage, 100),
 		handlers:        sync.Map{},
 		changeCb:        callback.New[*model.Item](),
 		deleteCb:        callback.New[string](),
 		items:           repository.NewItemsMemoryRepo(),
-		feeds:           repository.NewFeedsFileRepo(filepath.Join(config.dataDir, "feeds")),
+		feeds:           repository.NewFeedsFileRepo(filepath.Join(config.DataDir(), "feeds")),
 		uid:             uuid.NewString(),
 		eventProcessors: make([]*EventProcessor, 0),
 	}
 
-	if app.config.dataSync {
+	if app.config.DataSync() {
 		db, err := getDatabase()
 
 		if err != nil {
@@ -152,25 +124,25 @@ func (app *App) Run() {
 
 	ctx, cancel := context.WithCancel(context.Background())
 
-	if app.config.udpAddr != "" {
+	if addr := app.config.k.String("udp_addr"); addr != "" {
 		go func() {
-			if err := app.ListenUDP(ctx, app.config.udpAddr); err != nil {
+			if err := app.ListenUDP(ctx, addr); err != nil {
 				panic(err)
 			}
 		}()
 	}
 
-	if app.config.tcpAddr != "" {
+	if addr := app.config.k.String("tcp_addr"); addr != "" {
 		go func() {
-			if err := app.ListenTCP(ctx, app.config.tcpAddr); err != nil {
+			if err := app.ListenTCP(ctx, addr); err != nil {
 				panic(err)
 			}
 		}()
 	}
 
-	if app.config.tlsCert != nil && app.config.tlsAddr != "" {
+	if addr := app.config.k.String("ssl_addr"); addr != "" && app.config.tlsCert != nil {
 		go func() {
-			if err := app.listenTLS(ctx, app.config.tlsAddr); err != nil {
+			if err := app.listenTLS(ctx, addr); err != nil {
 				panic(err)
 			}
 		}()
@@ -181,7 +153,7 @@ func (app *App) Run() {
 	go app.messageProcessLoop()
 	go app.cleaner()
 
-	for _, c := range app.config.connections {
+	for _, c := range app.config.Connections() {
 		app.logger.Info("start external connection to " + c)
 		go app.ConnectTo(ctx, c)
 	}
@@ -342,13 +314,13 @@ func (app *App) connect(connectStr string) (net.Conn, error) {
 }
 
 func (app *App) getTLSConfig() *tls.Config {
-	p12Data, err := os.ReadFile(viper.GetString("ssl.cert"))
+	p12Data, err := os.ReadFile(app.config.k.String("ssl.cert"))
 	if err != nil {
 		app.logger.Error(err.Error())
 		panic(err)
 	}
 
-	key, cert, _, err := pkcs12.DecodeChain(p12Data, viper.GetString("ssl.password"))
+	key, cert, _, err := pkcs12.DecodeChain(p12Data, app.config.k.String("ssl.password"))
 	if err != nil {
 		app.logger.Error(err.Error())
 		panic(err)
@@ -499,63 +471,6 @@ func (app *App) sendToUID(uid string, msg *cot.CotMessage) {
 	})
 }
 
-func loadPem(name string) ([]*x509.Certificate, error) {
-	if name == "" {
-		return nil, nil
-	}
-
-	pemBytes, err := os.ReadFile(name)
-	if err != nil {
-		return nil, fmt.Errorf("error loading %s: %s", name, err.Error())
-	}
-
-	return tlsutil.DecodeAllCerts(pemBytes)
-}
-
-func processCerts(conf *AppConfig) error {
-	for _, k := range []string{"ssl.ca", "ssl.cert", "ssl.key"} {
-		if viper.GetString(k) == "" {
-			return nil
-		}
-	}
-
-	roots := x509.NewCertPool()
-	conf.certPool = roots
-
-	ca, err := loadPem(viper.GetString("ssl.ca"))
-	if err != nil {
-		return err
-	}
-
-	for _, c := range ca {
-		roots.AddCert(c)
-	}
-
-	conf.ca = ca
-
-	cert, err := loadPem(viper.GetString("ssl.cert"))
-	if err != nil {
-		return err
-	}
-
-	if len(cert) > 0 {
-		conf.serverCert = cert[0]
-	}
-
-	for _, c := range cert {
-		roots.AddCert(c)
-	}
-
-	tlsCert, err := tls.LoadX509KeyPair(viper.GetString("ssl.cert"), viper.GetString("ssl.key"))
-	if err != nil {
-		return err
-	}
-
-	conf.tlsCert = &tlsCert
-
-	return nil
-}
-
 func getDatabase() (*gorm.DB, error) {
 	db, err := gorm.Open(sqlite.Open(dbName), &gorm.Config{Logger: logger.Default.LogMode(logger.Silent)})
 	if err != nil {
@@ -571,33 +486,22 @@ func main() {
 	conf := flag.String("config", "goatak_server.yml", "name of config file")
 	flag.Parse()
 
-	viper.SetConfigFile(*conf)
+	k := koanf.New(".")
 
-	viper.SetDefault("udp_addr", ":8999")
-	viper.SetDefault("tcp_addr", ":8999")
-	viper.SetDefault("ssl_addr", ":8089")
-	viper.SetDefault("api_addr", ":8080")
-	viper.SetDefault("log", false)
-	viper.SetDefault("data_dir", "data")
+	SetDefaults(k)
 
-	viper.SetDefault("me.lat", 59.8396)
-	viper.SetDefault("me.lon", 31.0213)
-	viper.SetDefault("users_file", "users.yml")
-
-	viper.SetDefault("me.zoom", 10)
-	viper.SetDefault("ssl.cert_ttl_days", 365)
-
-	err := viper.ReadInConfig()
-	if err != nil {
-		panic(fmt.Errorf("Fatal error config file: %w \n", err))
+	if err := k.Load(file.Provider(*conf), yaml.Parser()); err != nil {
+		fmt.Printf("error loading config: %s", err.Error())
+		return
 	}
 
-	flag.Parse()
-
-	debug := viper.GetBool("debug")
+	_ = k.Load(env.Provider("GOATAK_", ".", func(s string) string {
+		return strings.Replace(strings.ToLower(
+			strings.TrimPrefix(s, "GOATAK_")), "_", ".", -1)
+	}), nil)
 
 	var h slog.Handler
-	if debug {
+	if k.Bool("debug") {
 		h = slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug})
 	} else {
 		h = slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo})
@@ -606,31 +510,17 @@ func main() {
 	slog.SetDefault(slog.New(h))
 
 	config := &AppConfig{
-		udpAddr:     viper.GetString("udp_addr"),
-		tcpAddr:     viper.GetString("tcp_addr"),
-		adminAddr:   viper.GetString("admin_addr"),
-		apiAddr:     viper.GetString("api_addr"),
-		certAddr:    viper.GetString("cert_addr"),
-		tlsAddr:     viper.GetString("ssl_addr"),
-		useSsl:      viper.GetBool("ssl.use_ssl"),
-		logging:     viper.GetBool("log"),
-		dataDir:     viper.GetString("data_dir"),
-		debug:       debug,
-		connections: viper.GetStringSlice("connections"),
-		usersFile:   viper.GetString("users_file"),
-		webtakRoot:  viper.GetString("webtak_root"),
-		certTTLDays: viper.GetInt("ssl.cert_ttl_days"),
-		dataSync:    viper.GetBool("datasync"),
+		k: k,
 	}
 
-	if err := processCerts(config); err != nil {
+	if err := config.processCerts(); err != nil {
 		slog.Default().Error(err.Error())
 	}
 
 	app := NewApp(config)
 
-	app.lat = viper.GetFloat64("me.lat")
-	app.lon = viper.GetFloat64("me.lon")
-	app.zoom = int8(viper.GetInt("me.zoom"))
+	app.lat = k.Float64("me.lat")
+	app.lon = k.Float64("me.lon")
+	app.zoom = int8(k.Int("me.zoom"))
 	app.Run()
 }

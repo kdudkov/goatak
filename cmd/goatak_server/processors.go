@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/spf13/viper"
 	"google.golang.org/protobuf/proto"
 
 	"github.com/kdudkov/goatak/pkg/cot"
@@ -31,7 +30,7 @@ func (app *App) AddEventProcessor(name string, cb func(msg *cot.CotMessage) bool
 func (app *App) InitMessageProcessors() {
 	app.AddEventProcessor("logger", app.loggerProcessor, ".-")
 
-	if app.config.logging {
+	if app.config.LogAll() {
 		app.AddEventProcessor("file_logger", app.fileLoggerProcessor, ".-")
 	}
 
@@ -134,7 +133,7 @@ func (app *App) saveItemProcessor(msg *cot.CotMessage) bool {
 		app.items.Store(item)
 		app.changeCb.AddMessage(item)
 
-		if cl == model.CONTACT && viper.GetString("welcome_msg") != "" {
+		if cl == model.CONTACT && app.config.WelcomeMsg() != "" {
 			chat := &model.ChatMessage{
 				ID:       uuid.NewString(),
 				Time:     time.Now(),
@@ -144,7 +143,7 @@ func (app *App) saveItemProcessor(msg *cot.CotMessage) bool {
 				FromUID:  WELCOME_MESSAGE_FROM_UID,
 				ToUID:    item.GetUID(),
 				Direct:   true,
-				Text:     viper.GetString("welcome_msg"),
+				Text:     app.config.WelcomeMsg(),
 			}
 
 			app.NewCotMessage(cot.LocalCotMessage(model.MakeChatMessage(chat)))
@@ -155,11 +154,11 @@ func (app *App) saveItemProcessor(msg *cot.CotMessage) bool {
 }
 
 func (app *App) fileLoggerProcessor(msg *cot.CotMessage) bool {
-	if msg.IsPing() || cot.MatchAnyPattern(msg.GetType(), viper.GetStringSlice("log_exclude")...) {
+	if msg.IsPing() || cot.MatchAnyPattern(msg.GetType(), app.config.LogExclude()...) {
 		return true
 	}
 
-	if err := logMessage(msg, filepath.Join(app.config.dataDir, "log")); err != nil {
+	if err := logMessage(msg, filepath.Join(app.config.DataDir(), "log")); err != nil {
 		app.logger.Warn("error logging message", slog.Any("error", err))
 	}
 

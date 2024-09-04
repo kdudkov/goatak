@@ -15,9 +15,10 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-
 	"github.com/jroimartin/gocui"
-	"github.com/spf13/viper"
+	"github.com/knadh/koanf/parsers/yaml"
+	"github.com/knadh/koanf/providers/file"
+	"github.com/knadh/koanf/v2"
 
 	"github.com/kdudkov/goatak/internal/client"
 	"github.com/kdudkov/goatak/pkg/tlsutil"
@@ -75,7 +76,7 @@ func (app *App) Run(cmd string, args []string) {
 	app.remoteAPI = NewRemoteAPI(app.host)
 
 	if app.tls {
-		app.remoteAPI.SetTLS(app.getTLSConfig())
+		app.remoteAPI.SetTLS(app.getTLSConfig(false))
 	}
 
 	switch cmd {
@@ -163,14 +164,14 @@ func (app *App) stop(_ *gocui.Gui, _ *gocui.View) error {
 	return gocui.ErrQuit
 }
 
-func (app *App) getTLSConfig() *tls.Config {
+func (app *App) getTLSConfig(strict bool) *tls.Config {
 	conf := &tls.Config{ //nolint:exhaustruct
 		Certificates: []tls.Certificate{*app.tlsCert},
 		RootCAs:      app.cas,
 		ClientCAs:    app.cas,
 	}
 
-	if !viper.GetBool("ssl.strict") {
+	if !strict {
 		conf.InsecureSkipVerify = true
 	}
 
@@ -183,16 +184,16 @@ func main() {
 	cmd := flag.String("cmd", "", "command")
 	flag.Parse()
 
-	viper.SetConfigFile(*conf)
+	k := koanf.New(".")
 
-	viper.SetDefault("server_address", "204.48.30.216:8087:tcp")
-	viper.SetDefault("ssl.password", "atakatak")
-	viper.SetDefault("ssl.save_cert", true)
-	viper.SetDefault("ssl.strict", false)
+	k.Set("server_address", "204.48.30.216:8087:tcp")
+	k.Set("ssl.password", "atakatak")
+	k.Set("ssl.save_cert", true)
+	k.Set("ssl.strict", false)
 
-	err := viper.ReadInConfig()
-	if err != nil {
-		panic(fmt.Errorf("Fatal error config file: %w \n", err))
+	if err := k.Load(file.Provider(*conf), yaml.Parser()); err != nil {
+		fmt.Printf("error loading config: %s", err.Error())
+		return
 	}
 
 	var h slog.Handler
@@ -204,20 +205,20 @@ func main() {
 
 	slog.SetDefault(slog.New(h))
 
-	app := NewApp(viper.GetString("server_address"))
+	app := NewApp(k.String("server_address"))
 
-	app.Logger.Info("server:" + viper.GetString("server_address"))
+	app.Logger.Info("server:" + k.String("server_address"))
 
 	if app.tls {
-		if user := viper.GetString("ssl.enroll_user"); user != "" {
-			passw := viper.GetString("ssl.enroll_password")
+		if user := k.String("ssl.enroll_user"); user != "" {
+			passw := k.String("ssl.enroll_password")
 			if passw == "" {
 				fmt.Println("no enroll_password")
 
 				return
 			}
 
-			enr := client.NewEnroller(app.host, user, passw, viper.GetBool("ssl.save_cert"))
+			enr := client.NewEnroller(app.host, user, passw, k.Bool("ssl.save_cert"), k.String("ssl.password"))
 
 			cert, cas, err := enr.GetOrEnrollCert(context.Background(), uuid.NewString(), "")
 			if err != nil {
@@ -229,9 +230,9 @@ func main() {
 			app.tlsCert = cert
 			app.cas = tlsutil.MakeCertPool(cas...)
 		} else {
-			app.Logger.Info("loading cert from file " + viper.GetString("ssl.cert"))
+			app.Logger.Info("loading cert from file " + k.String("ssl.cert"))
 
-			cert, cas, err := client.LoadP12(viper.GetString("ssl.cert"), viper.GetString("ssl.password"))
+			cert, cas, err := client.LoadP12(k.String("ssl.cert"), k.String("ssl.password"))
 			if err != nil {
 				app.Logger.Error("error while loading cert: " + err.Error())
 
