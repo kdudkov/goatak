@@ -47,7 +47,7 @@ you can run it with docker, using `docker run -p 8088:8088 -p 8080:8080 -p 8999:
 * Add and edit units on map
 * ability to log all cot's and cli utility to view cot's log and convert it to json or gpx
 
-![Client screen](img/client.png?raw=true "Client csreen")
+![Client screen](img/client.png?raw=true "Client screen")
 
 ## Libraries used
 
