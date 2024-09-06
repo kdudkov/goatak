@@ -295,7 +295,7 @@ func RandString(strlen int) string {
 }
 
 func (app *App) cleaner() {
-	for range time.Tick(time.Minute) {
+	for range time.Tick(time.Second * 5) {
 		app.cleanOldUnits()
 	}
 }

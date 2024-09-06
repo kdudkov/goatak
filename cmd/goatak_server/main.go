@@ -399,7 +399,7 @@ func (app *App) notifyMissionSubscribers(mission *im.Mission, c *im.Change) {
 }
 
 func (app *App) cleaner() {
-	for range time.Tick(time.Minute) {
+	for range time.Tick(time.Second * 5) {
 		app.cleanOldUnits()
 	}
 }
