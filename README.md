@@ -33,7 +33,8 @@ iTAK connect qr-code:
 * default preferences and maps provisioning to connected devices
 * ability to log all cot's and cli utility to view cot's log and convert it to json or gpx
 
-you can run it with docker, using `docker run -p 8088:8088 -p 8080:8080 -p 8999:8999 kdudkov/goatak_server:latest`
+you can run it with docker,
+using `docker run -p 8088:8088 -p 8080:8080 -p 8999:8999 ghcr.io/kdudkov/goatak_server:latest`
 
 ## Client features
 
