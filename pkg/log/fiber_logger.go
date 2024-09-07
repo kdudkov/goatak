@@ -2,6 +2,7 @@ package log
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"time"
@@ -32,7 +33,12 @@ func NewFiberLogger(conf *LoggerConfig) fiber.Handler {
 
 		status := c.Response().StatusCode()
 
-		if chainErr != nil && status >= 500 {
+		if chainErr != nil {
+			var e *fiber.Error
+			if errors.As(chainErr, &e) {
+				status = e.Code
+			}
+
 			l = l.With(slog.Any("error", chainErr))
 		}
 
