@@ -13,10 +13,11 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/prometheus/client_golang/prometheus"
+
 	"github.com/kdudkov/goatak/internal/model"
 	"github.com/kdudkov/goatak/pkg/cot"
 	"github.com/kdudkov/goatak/pkg/cotproto"
-	"github.com/prometheus/client_golang/prometheus"
 )
 
 const (
@@ -108,7 +109,7 @@ func NewConnClientHandler(name string, conn net.Conn, config *HandlerConfig) *Co
 		}
 	}
 
-	c.closeTimer = time.AfterFunc(idleTimeout, c.closeIdle)
+	c.setActivity()
 
 	return c
 }
