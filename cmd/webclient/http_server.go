@@ -113,7 +113,7 @@ func getPosHandler(app *App) fiber.Handler {
 	return func(ctx *fiber.Ctx) error {
 		pos := make(map[string]float64)
 
-		if err := ctx.BodyParser(pos); err != nil {
+		if err := ctx.BodyParser(&pos); err != nil {
 			return err
 		}
 
