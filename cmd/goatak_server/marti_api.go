@@ -290,7 +290,7 @@ func (app *App) uploadMultipart(ctx *fiber.Ctx, uid, hash, filename string, pack
 		SubmissionUser:     user.GetLogin(),
 		PrimaryKey:         0,
 		Hash:               hash,
-		CreatorUID:         getStringParamIgnoreCaps(ctx, "creatorUid"),
+		CreatorUID:         queryIgnoreCase(ctx, "creatorUid"),
 		Scope:              user.GetScope(),
 		Name:               filename,
 		Tool:               "",
@@ -329,7 +329,7 @@ func (app *App) uploadFile(ctx *fiber.Ctx, uid, filename string) (*pm.PackageInf
 		SubmissionUser:     user.GetLogin(),
 		PrimaryKey:         0,
 		Hash:               "",
-		CreatorUID:         getStringParamIgnoreCaps(ctx, "creatorUid"),
+		CreatorUID:         queryIgnoreCase(ctx, "creatorUid"),
 		Scope:              user.GetScope(),
 		Name:               filename,
 		Tool:               "",
@@ -500,7 +500,7 @@ func getAllGroupsCacheHandler(_ *App) fiber.Handler {
 func getProfileConnectionHandler(app *App) fiber.Handler {
 	return func(ctx *fiber.Ctx) error {
 		username := Username(ctx)
-		uid := getStringParamIgnoreCaps(ctx, "clientUid")
+		uid := queryIgnoreCase(ctx, "clientUid")
 
 		files := app.GetProfileFiles(username, uid)
 		if len(files) == 0 {
