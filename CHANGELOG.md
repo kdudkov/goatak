@@ -1,3 +1,22 @@
+# 0.19.0
+
+FEATURES:
+
+- switch to koanf from viper
+- switch to fiber from air
+- smaller icons in menu
+- do not log welcome message in messages log
+
+FIXES:
+
+- fix ws handler never removed
+- fix meshastic plugin versions
+- fix metrics
+- enlarge body limit for marti api
+- fix error in pos message handler
+- fix fiber error logging
+- fix null initial handler time
+
 # 0.18.1
 
 FEATURES:
