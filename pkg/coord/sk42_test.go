@@ -20,8 +20,8 @@ func TestConvert(t *testing.T) {
 	for _, d := range data {
 		x, y, _ := Wgs84_sk42(d.lat, d.lon, 0)
 
-		assert.InDelta(t, d.x, x, 3)
-		assert.InDelta(t, d.y, y, 3)
+		assert.InDelta(t, d.x, x, 1)
+		assert.InDelta(t, d.y, y, 1)
 
 		lat1, lon1 := Sk42_wgs(d.x, d.y)
 

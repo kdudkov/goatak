@@ -11,7 +11,7 @@ type testData struct {
 	x, y float64
 }
 
-func TestSK42(t *testing.T) {
+func TestStringConvert(t *testing.T) {
 	data := []testData{
 		{"x5709130 y6648746", 51.49220977324127, 35.14007432073565},
 		{"X=5709130, y6648746", 51.49220977324127, 35.14007432073565},
