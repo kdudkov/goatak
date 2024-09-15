@@ -120,29 +120,30 @@ class Unit {
     }
 }
 
-let app = new Vue({
-    el: '#app',
-    data: {
-        map: null,
-        layers: null,
-        conn: null,
-        units: new Map(),
-        messages: [],
-        seenMessages: new Set(),
-        ts: 0,
-        locked_unit_uid: '',
-        current_unit_uid: null,
-        config: null,
-        tools: new Map(),
-        me: null,
-        coords: null,
-        point_num: 1,
-        coord_format: "d",
-        form_unit: {},
-        types: null,
-        chatroom: "",
-        chat_uid: "",
-        chat_msg: "",
+let app = Vue.createApp({
+    data: function () {
+        return {
+            map: null,
+            layers: null,
+            conn: null,
+            units: new Map(),
+            messages: [],
+            seenMessages: new Set(),
+            ts: 0,
+            locked_unit_uid: '',
+            current_unit_uid: null,
+            config: null,
+            tools: new Map(),
+            me: null,
+            coords: null,
+            point_num: 1,
+            coord_format: "d",
+            form_unit: {},
+            types: null,
+            chatroom: "",
+            chat_uid: "",
+            chat_msg: "",
+        }
     },
 
     mounted() {
@@ -802,6 +803,4 @@ let app = new Vue({
 
         }
     },
-});
-
-
+}).mount('#app');
