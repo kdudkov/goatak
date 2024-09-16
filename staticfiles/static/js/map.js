@@ -677,24 +677,24 @@ let app = Vue.createApp({
             return total;
         },
 
-        msgNum: function () {
+        msgNum: function (all) {
             if (!this.messages) return 0;
             let n = 0;
             for (const [key, value] of Object.entries(this.messages)) {
                 if (value.messages) {
                     for (m of value.messages) {
-                        if (!this.seenMessages.has(m.message_id)) n++;
+                        if (all || !this.seenMessages.has(m.message_id)) n++;
                     }
                 }
             }
             return n;
         },
 
-        msgNum1: function (uid) {
+        msgNum1: function (uid, all) {
             if (!this.messages || !this.messages[uid].messages) return 0;
             let n = 0;
             for (m of this.messages[uid].messages) {
-                if (!this.seenMessages.has(m.message_id)) n++;
+                if (all || !this.seenMessages.has(m.message_id)) n++;
             }
             return n;
         },
