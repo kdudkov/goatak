@@ -3,7 +3,7 @@
         <div class="container-fluid">
             <a class="navbar-brand" href="#">GoATAK server <span v-if="config">{{ config.version }}</span></a>
             <span class="badge rounded-pill bg-primary"
-                  :class="connected() ?'bg-success': 'bg-secondary'">.</span>
+                  :class="connected() ?'text-bg-success': 'text-bg-secondary'">.</span>
             <div class="collapse navbar-collapse" id="navbarCollapse">
                 <ul class="navbar-nav me-auto mb-2 mb-md-0">
                     <li class="nav-item dropdown">
@@ -51,7 +51,7 @@
                     <li class="nav-item">
                         <a class="nav-link" href="#" data-bs-toggle="modal" data-bs-target="#messages">
                             Chat <span class="badge rounded-pill"
-                                       :class="msgNum(false) == 0?'bg-success':'bg-warning'">
+                                       :class="msgNum(false) == 0?'text-bg-success':'text-bg-warning'">
                             {{ msgNum(false) }}/{{ msgNum(true) }}
                         </span></a>
                     </li>
