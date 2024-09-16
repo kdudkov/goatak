@@ -52,13 +52,13 @@
                         <a class="nav-link dropdown-toggle" href="#" id="navbarDarkDropdownMenuLink4" role="button"
                            data-bs-toggle="dropdown" aria-expanded="false">
                             Messages <span class="badge rounded-pill"
-                                           :class="msgNum(false) == 0?'bg-secondary':'bg-success'">{{ msgNum(false) }}/{{ msgNum(true) }}</span>
+                                           :class="msgNum(false) == 0?'bg-success':'bg-warning'">{{ msgNum(false) }}/{{ msgNum(true) }}</span>
                         </a>
                         <ul class="dropdown-menu dropdown-menu-dark" aria-labelledby="navbarDarkDropdownMenuLink4">
                             <li v-for="m in Object.values(messages)">
                                 <a class="dropdown-item" href="#" @click="openChat(m.uid, m.from)">
                                     {{ m.from }} <span class="badge rounded-pill"
-                                                       :class="msgNum1(m.uid, false) == 0?'bg-secondary':'bg-success'">{{ msgNum1(m.uid,false) }}/{{ msgNum1(m.uid,true) }}</span>
+                                                       :class="msgNum1(m.uid, false) == 0?'bg-success':'bg-warning'">{{ msgNum1(m.uid,false) }}/{{ msgNum1(m.uid,true) }}</span>
                                 </a>
                             </li>
                         </ul>
