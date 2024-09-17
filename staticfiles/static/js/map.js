@@ -126,6 +126,7 @@ let app = Vue.createApp({
             map: null,
             layers: null,
             conn: null,
+            status: "",
             units: new Map(),
             messages: [],
             seenMessages: new Set(),
@@ -242,25 +243,19 @@ let app = Vue.createApp({
 
             this.conn.onopen = function (e) {
                 console.log("connected");
-                vm.ts += 1;
+                vm.status = "connected";
             };
 
             this.conn.onerror = function (e) {
                 console.log("error");
-                vm.ts += 1;
+                vm.status = "error";
             };
 
             this.conn.onclose = function (e) {
                 console.log("closed");
-                vm.ts += 1;
+                vm.status = "";
                 setTimeout(vm.connect, 3000);
             };
-        },
-
-        connected: function () {
-            if (!this.conn) return false;
-
-            return this.ts && this.conn.readyState === 1;
         },
 
         fetchAllUnits: function () {
