@@ -1,11 +1,10 @@
-let app = Vue.createApp({
-    data: function () {
-        return {
-            missions: [],
-            current: null,
-            alert: null,
-            ts: 0,
-        }
+let app = new Vue({
+    el: '#app',
+    data: {
+        missions: [],
+        current: null,
+        alert: null,
+        ts: 0,
     },
 
     mounted() {
@@ -37,4 +36,4 @@ let app = Vue.createApp({
                 d.getFullYear() + " " + ("0" + d.getHours()).slice(-2) + ":" + ("0" + d.getMinutes()).slice(-2);
         }
     },
-}).mount('#app');
+});

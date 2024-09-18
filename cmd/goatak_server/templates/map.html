@@ -13,7 +13,7 @@
                         </a>
                         <ul class="dropdown-menu dropdown-menu-dark" aria-labelledby="navbarDarkDropdownMenuLink">
                             <li v-for="u in byCategory('contact')">
-                                <a class="dropdown-item" href="#" @click="setCurrentUnitUid(u.uid, true)">
+                                <a class="dropdown-item" href="#" v-on:click="setCurrentUnitUid(u.uid, true)">
                                     <img :src="getImg(u.unit, 20)"/>
                                     <span v-if="u.unit.lat === 0 && u.unit.lon === 0">* </span>{{ u.unit.callsign }}<span
                                         v-if="u.unit.status && u.unit.status !=='Online'"> ({{ u.unit.status }})</span>
@@ -28,7 +28,7 @@
                         </a>
                         <ul class="dropdown-menu dropdown-menu-dark" aria-labelledby="navbarDarkDropdownMenuLink2">
                             <li v-for="u in byCategory('unit')">
-                                <a class="dropdown-item" href="#" @click="setCurrentUnitUid(u.uid, true)">
+                                <a class="dropdown-item" href="#" v-on:click="setCurrentUnitUid(u.uid, true)">
                                     <img :src="getImg(u.unit, 14)"/>
                                     {{ getUnitName(u) }}
                                 </a>
@@ -42,7 +42,7 @@
                         </a>
                         <ul class="dropdown-menu dropdown-menu-dark" aria-labelledby="navbarDarkDropdownMenuLink3">
                             <li v-for="u in byCategory('point')">
-                                <a class="dropdown-item" href="#" @click="setCurrentUnitUid(u.uid, true)">
+                                <a class="dropdown-item" href="#" v-on:click="setCurrentUnitUid(u.uid, true)">
                                     {{ getUnitName(u) }}
                                 </a>
                             </li>
@@ -75,7 +75,7 @@
                         <div>
                             <b>coords:</b> {{ printCoords(config.lat, config.lon) }}
                             <span class="badge rounded-pill bg-success" style="cursor:default;"
-                                  @click="map.setView([config.lat, config.lon])"><i
+                                  v-on:click="map.setView([config.lat, config.lon])"><i
                                     class="bi bi-geo"></i></span>
                             <span v-if="coords">({{ distBea(latlng(config.lat, config.lon), coords) }} to cursor)</span>
                         </div>
@@ -95,16 +95,16 @@
                         <div v-if="getTool('redx')" class="mt-1">
                             <span class="badge bg-danger">RedX</span>: {{ printCoordsll(getTool('redx').getLatLng()) }}
                             <span class="badge rounded-pill bg-success" style="cursor:default;"
-                                  @click="map.setView(getTool('redx').getLatLng())"><i class="bi bi-geo"></i></span>
+                                  v-on:click="map.setView(getTool('redx').getLatLng())"><i class="bi bi-geo"></i></span>
                             <span class="badge rounded-pill bg-danger" style="cursor:default;"
-                                  @click="removeTool('redx')">X</span>
+                                  v-on:click="removeTool('redx')">X</span>
                         </div>
                         <div v-if="getTool('dp1')" class="mt-1">
                             <span class="badge bg-success">DP1</span>: {{ printCoordsll(getTool('dp1').getLatLng()) }}
                             <span class="badge rounded-pill bg-success" style="cursor:default;"
-                                  @click="map.setView(getTool('dp1').getLatLng())"><i class="bi bi-geo"></i></span>
+                                  v-on:click="map.setView(getTool('dp1').getLatLng())"><i class="bi bi-geo"></i></span>
                             <span class="badge rounded-pill bg-danger" style="cursor:default;"
-                                  @click="removeTool('dp1')">X</span>
+                                  v-on:click="removeTool('dp1')">X</span>
                         </div>
                         <div v-if="coords" class="mt-1">
                             <span class="badge bg-secondary">cursor</span>: {{ printCoordsll(coords) }} <span
@@ -114,15 +114,15 @@
                 </div>
                 <div class="card" v-if="current_unit">
                     <div class="card-header">
-                            <span class="pull-left fw-bold" @click="mapToUnit(current_unit)">
+                            <span class="pull-left fw-bold" v-on:click="mapToUnit(current_unit)">
                                 <img :src="milImg(current_unit.unit)"/> {{ getUnitName(current_unit) }} <span
                                     v-if="current_unit.unit.status"> ({{ current_unit.unit.status }})</span>
                                 <img height="24" src="/static/icons/coord_unlock.png"
                                      v-if="current_unit.unit.category !== 'point' && locked_unit_uid != current_unit.uid"
-                                     @click="locked_unit_uid=current_unit.uid"/>
+                                     v-on:click="locked_unit_uid=current_unit.uid"/>
                                 <img height="24" src="/static/icons/coord_lock.png"
                                      v-if="locked_unit_uid == current_unit.uid"
-                                     @click="locked_unit_uid=''"/>
+                                     v-on:click="locked_unit_uid=''"/>
                             </span>
                     </div>
                     <div class="card-body">
@@ -137,7 +137,7 @@
                         <div>
                             <b>coords:</b> {{ printCoords(current_unit.unit.lat, current_unit.unit.lon) }}
                             <span class="badge rounded-pill bg-success" style="cursor:default;"
-                                  @click="map.setView(current_unit.coords())"><i
+                                  v-on:click="map.setView(current_unit.coords())"><i
                                     class="bi bi-geo"></i></span>
                             <span v-if="coords">({{ distBea(current_unit.latlng(), coords) }} to cursor)</span>
                         </div>

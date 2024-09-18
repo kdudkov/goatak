@@ -1,11 +1,10 @@
-let app = Vue.createApp({
-    data: function () {
-        return {
-            units: [],
-            connections: [],
-            alert: null,
-            ts: 0,
-        }
+let app = new Vue({
+    el: '#app',
+    data: {
+        units: [],
+        connections: [],
+        alert: null,
+        ts: 0,
     },
 
     mounted() {
@@ -72,4 +71,4 @@ let app = Vue.createApp({
             return online + "/" + total;
         },
     },
-}).mount('#app');
+});

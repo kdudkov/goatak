@@ -6,7 +6,7 @@
                 <th>Scope</th>
                 <th>Creator</th>
             </tr>
-            <tr v-for="c in all_missions" @click="current = c">
+            <tr v-for="c in all_missions" v-on:click="current = c">
                 <td>{{ c.name }}</td>
                 <td>{{ c.scope }}</td>
                 <td>{{ c.creatorUid }}</td>

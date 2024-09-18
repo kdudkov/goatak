@@ -120,7 +120,8 @@ class Unit {
     }
 }
 
-let app = Vue.createApp({
+let app = new Vue({
+    el: '#app',
     data: function () {
         return {
             map: null,
@@ -798,4 +799,6 @@ let app = Vue.createApp({
 
         }
     },
-}).mount('#app');
+});
+
+
