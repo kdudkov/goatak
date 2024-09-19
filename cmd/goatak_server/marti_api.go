@@ -502,6 +502,10 @@ func getProfileConnectionHandler(app *App) fiber.Handler {
 		username := Username(ctx)
 		uid := queryIgnoreCase(ctx, "clientUid")
 
+		if !app.checkUID(uid) {
+			return ctx.SendStatus(fiber.StatusForbidden)
+		}
+
 		files := app.GetProfileFiles(username, uid)
 		if len(files) == 0 {
 			return ctx.SendStatus(fiber.StatusNoContent)

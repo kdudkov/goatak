@@ -135,6 +135,13 @@ func (app *App) processSignRequest(ctx *fiber.Ctx) (*x509.Certificate, error) {
 
 func getSignHandler(app *App) fiber.Handler {
 	return func(ctx *fiber.Ctx) error {
+		uid := ctx.Query("clientUid")
+
+		if !app.checkUID(uid) {
+			app.logger.Warn("bad uid - " + uid)
+			return ctx.SendStatus(fiber.StatusForbidden)
+		}
+
 		signedCert, err := app.processSignRequest(ctx)
 		if err != nil {
 			app.logger.Error("error", slog.Any("error", err))
@@ -160,6 +167,13 @@ func getSignHandler(app *App) fiber.Handler {
 
 func getSignHandlerV2(app *App) fiber.Handler {
 	return func(ctx *fiber.Ctx) error {
+		uid := ctx.Query("clientUid")
+
+		if !app.checkUID(uid) {
+			app.logger.Warn("bad uid - " + uid)
+			return ctx.SendStatus(fiber.StatusForbidden)
+		}
+
 		signedCert, err := app.processSignRequest(ctx)
 		if err != nil {
 			app.logger.Error("error", slog.Any("error", err))
@@ -210,6 +224,11 @@ func getProfileEnrollmentHandler(app *App) fiber.Handler {
 	return func(ctx *fiber.Ctx) error {
 		username := Username(ctx)
 		uid := ctx.Query("clientUid")
+
+		if !app.checkUID(uid) {
+			app.logger.Warn("bad uid - " + uid)
+			return ctx.SendStatus(fiber.StatusForbidden)
+		}
 
 		files := app.GetProfileFiles(username, uid)
 		if len(files) == 0 {
