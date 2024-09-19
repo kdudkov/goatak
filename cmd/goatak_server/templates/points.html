@@ -20,9 +20,7 @@
                         <tr v-for="c in all_conns">
                             <td>{{ c.addr }}</td>
                             <td>
-                                    <span v-for="(k, v) in c.uids">
-                                        {{ k }}: {{ v }}
-                                    </span>
+                                <span v-for="(k, v) in c.uids">{{ k }}: {{ v }}</span>
                             </td>
                             <td>{{ c.user }}</td>
                             <td>{{ c.scope }}</td>
@@ -46,13 +44,12 @@
                             <th>TAK ver.</th>
                         </tr>
                         <tr v-for="u in byCategory('contact')">
-                            <td>
-                                <img :src="getImg(u, 18)"/>
-                            </td>
+                            <td><img :src="getImg(u, 18)"/></td>
                             <td>{{ u.callsign }}</td>
                             <td>{{ u.scope }}</td>
                             <td><span class="badge"
-                                      :class="u.status=='Online' ? 'text-bg-success' : 'text-bg-secondary'">{{ u.status }}</span>
+                                      :class="u.status=='Online' ? 'text-bg-success' : 'text-bg-secondary'">
+                                {{ u.status }}</span>
                             </td>
                             <td>{{ printCoords(u.lat, u.lon) }}</td>
                             <td>{{ u.tak_version }}</td>
@@ -76,8 +73,7 @@
                         <th>stale time</th>
                     </tr>
                     <tr v-for="u in byCategory('unit')">
-                        <td>
-                            <img :src="getImg(u, 18)"/>
+                        <td><img :src="getImg(u, 18)"/>
                         </td>
                         <td>{{ u.type }}</td>
                         <td>{{ u.callsign }}</td>

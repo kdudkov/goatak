@@ -44,6 +44,7 @@ func (app *App) ListenTCP(ctx context.Context, addr string) (err error) {
 			RemoveCb:     app.RemoveHandlerCb,
 			NewContactCb: app.NewContactCb,
 			DropMetric:   dropMetric,
+			UidChecker:   app.checkUID,
 		})
 		app.AddClientHandler(h)
 		h.Start()
@@ -113,6 +114,7 @@ func (app *App) processTLSConn(ctx context.Context, conn *tls.Conn) {
 		RemoveCb:     app.RemoveHandlerCb,
 		NewContactCb: app.NewContactCb,
 		DropMetric:   dropMetric,
+		UidChecker:   app.checkUID,
 	})
 	app.AddClientHandler(h)
 	h.Start()

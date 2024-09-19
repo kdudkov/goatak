@@ -54,6 +54,10 @@ func (c *AppConfig) LogExclude() []string {
 	return c.k.Strings("log_exclude")
 }
 
+func (c *AppConfig) BlacklistedUID() []string {
+	return c.k.Strings("blacklist")
+}
+
 func (c *AppConfig) processCerts() error {
 	for _, name := range []string{"ssl.ca", "ssl.cert", "ssl.key"} {
 		if c.k.String(name) == "" {

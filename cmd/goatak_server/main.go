@@ -471,6 +471,17 @@ func (app *App) sendToUID(uid string, msg *cot.CotMessage) {
 	})
 }
 
+func (app *App) checkUID(uid string) bool {
+	u := strings.ToLower(uid)
+	for _, s := range app.config.BlacklistedUID() {
+		if u == strings.ToLower(s) {
+			return false
+		}
+	}
+
+	return true
+}
+
 func getDatabase() (*gorm.DB, error) {
 	db, err := gorm.Open(sqlite.Open(dbName), &gorm.Config{Logger: logger.Default.LogMode(logger.Silent)})
 	if err != nil {

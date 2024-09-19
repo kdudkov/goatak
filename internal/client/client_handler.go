@@ -35,6 +35,7 @@ type HandlerConfig struct {
 	NewContactCb func(uid, callsign string)
 	Logger       *slog.Logger
 	DropMetric   *prometheus.CounterVec
+	UidChecker   func(uid string) bool
 }
 
 type ClientHandler interface {
@@ -69,6 +70,7 @@ type ConnClientHandler struct {
 	newContactCb func(uid, callsign string)
 	logger       *slog.Logger
 	dropMetric   *prometheus.CounterVec
+	uidChecker   func(uid string) bool
 }
 
 func NewConnClientHandler(name string, conn net.Conn, config *HandlerConfig) *ConnClientHandler {
@@ -91,6 +93,7 @@ func NewConnClientHandler(name string, conn net.Conn, config *HandlerConfig) *Co
 		c.removeCb = config.RemoveCb
 		c.newContactCb = config.NewContactCb
 		c.dropMetric = config.DropMetric
+		c.uidChecker = config.UidChecker
 
 		params := []any{"client", name}
 
@@ -237,6 +240,11 @@ func (h *ConnClientHandler) handleRead(ctx context.Context) {
 		if msg.IsContact() {
 			uid := msg.GetUID()
 			uid = strings.TrimSuffix(uid, "-ping")
+
+			if h.uidChecker != nil && !h.uidChecker(uid) {
+				h.logger.Warn(fmt.Sprintf("blacklisted uid %s - dropped", uid))
+				return
+			}
 
 			if _, present := h.uids.Swap(uid, msg.GetCallsign()); !present {
 				if h.newContactCb != nil {
