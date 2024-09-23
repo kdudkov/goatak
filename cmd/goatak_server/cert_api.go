@@ -138,7 +138,7 @@ func getSignHandler(app *App) fiber.Handler {
 		uid := ctx.Query("clientUid")
 
 		if !app.checkUID(uid) {
-			app.logger.Warn("bad uid - " + uid)
+			app.logger.Warn("blacklisted uid - " + uid)
 			return ctx.SendStatus(fiber.StatusForbidden)
 		}
 
@@ -170,7 +170,7 @@ func getSignHandlerV2(app *App) fiber.Handler {
 		uid := ctx.Query("clientUid")
 
 		if !app.checkUID(uid) {
-			app.logger.Warn("bad uid - " + uid)
+			app.logger.Warn("blacklisted uid - " + uid)
 			return ctx.SendStatus(fiber.StatusForbidden)
 		}
 
@@ -226,7 +226,7 @@ func getProfileEnrollmentHandler(app *App) fiber.Handler {
 		uid := ctx.Query("clientUid")
 
 		if !app.checkUID(uid) {
-			app.logger.Warn("bad uid - " + uid)
+			app.logger.Warn("blacklisted uid - " + uid)
 			return ctx.SendStatus(fiber.StatusForbidden)
 		}
 

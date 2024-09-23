@@ -65,11 +65,10 @@ func (app *App) removeItemProcessor(msg *cot.CotMessage) {
 			case model.CONTACT:
 				app.logger.Debug(fmt.Sprintf("remove %s by message", uid))
 				v.SetOffline()
-				app.changeCb.AddMessage(v)
+				app.items.Store(v)
 			case model.UNIT, model.POINT:
 				app.logger.Debug(fmt.Sprintf("remove unit/point %s type %s by message", uid, typ))
 				app.items.Remove(uid)
-				app.deleteCb.AddMessage(uid)
 			}
 		}
 	}
@@ -111,12 +110,10 @@ func (app *App) saveItemProcessor(msg *cot.CotMessage) {
 		app.logger.Debug(fmt.Sprintf("update %s %s (%s) %s", cl, msg.GetUID(), msg.GetCallsign(), msg.GetType()))
 		c.Update(msg)
 		app.items.Store(c)
-		app.changeCb.AddMessage(c)
 	} else {
 		app.logger.Info(fmt.Sprintf("new %s %s (%s) %s", cl, msg.GetUID(), msg.GetCallsign(), msg.GetType()))
 		item := model.FromMsg(msg)
 		app.items.Store(item)
-		app.changeCb.AddMessage(item)
 	}
 }
 

@@ -2,19 +2,31 @@ package repository
 
 import (
 	"sync"
+	"time"
 
 	"github.com/kdudkov/goatak/pkg/model"
+	"github.com/kdudkov/goutils/callback"
 )
 
+const lastSeenContactOfflineTimeout = time.Minute * 15
+
 type ItemsMemoryRepo struct {
-	items sync.Map
+	items    sync.Map
+	changeCb *callback.Callback[*model.Item]
+	deleteCb *callback.Callback[string]
 }
 
 func NewItemsMemoryRepo() *ItemsMemoryRepo {
-	return new(ItemsMemoryRepo)
+	return &ItemsMemoryRepo{
+		items:    sync.Map{},
+		changeCb: callback.New[*model.Item](),
+		deleteCb: callback.New[string](),
+	}
 }
 
 func (r *ItemsMemoryRepo) Start() error {
+	go r.cleaner()
+
 	return nil
 }
 
@@ -22,9 +34,18 @@ func (r *ItemsMemoryRepo) Stop() {
 	// no-op
 }
 
+func (r *ItemsMemoryRepo) ChangeCallback() *callback.Callback[*model.Item] {
+	return r.changeCb
+}
+
+func (r *ItemsMemoryRepo) DeleteCallback() *callback.Callback[string] {
+	return r.deleteCb
+}
+
 func (r *ItemsMemoryRepo) Store(i *model.Item) {
 	if i != nil {
 		r.items.Store(i.GetUID(), i)
+		r.changeCb.AddMessage(i)
 	}
 }
 
@@ -53,7 +74,9 @@ func (r *ItemsMemoryRepo) GetByCallsign(callsign string) *model.Item {
 }
 
 func (r *ItemsMemoryRepo) Remove(uid string) {
-	r.items.Delete(uid)
+	if _, ok := r.items.LoadAndDelete(uid); ok {
+		r.deleteCb.AddMessage(uid)
+	}
 }
 
 func (r *ItemsMemoryRepo) ForEach(f func(item *model.Item) bool) {
@@ -73,18 +96,34 @@ func (r *ItemsMemoryRepo) GetCallsign(uid string) string {
 	return ""
 }
 
-func (r *ItemsMemoryRepo) ForMission(name string) []*model.Item {
-	var res []*model.Item
+func (r *ItemsMemoryRepo) cleaner() {
+	for range time.Tick(time.Second) {
+		r.cleanOldUnits()
+	}
+}
 
-	r.items.Range(func(_, value any) bool {
-		i := value.(*model.Item)
+func (r *ItemsMemoryRepo) cleanOldUnits() {
+	toDelete := make([]string, 0)
 
-		if i.HasMission(name) {
-			res = append(res, i)
+	r.ForEach(func(item *model.Item) bool {
+		switch item.GetClass() {
+		case model.UNIT, model.POINT:
+			if item.IsOld() {
+				toDelete = append(toDelete, item.GetUID())
+			}
+		case model.CONTACT:
+			if item.IsOld() {
+				toDelete = append(toDelete, item.GetUID())
+			} else if item.IsOnline() && time.Since(item.GetLastSeen()) > lastSeenContactOfflineTimeout {
+				item.SetOffline()
+				r.changeCb.AddMessage(item)
+			}
 		}
 
 		return true
 	})
 
-	return res
+	for _, uid := range toDelete {
+		r.Remove(uid)
+	}
 }

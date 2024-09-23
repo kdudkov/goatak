@@ -218,8 +218,8 @@ func getWsHandler(app *App) fiber.Handler {
 
 		h := wshandler.NewHandler(app.logger, name, c)
 
-		app.changeCb.SubscribeNamed(name, h.SendItem)
-		app.deleteCb.SubscribeNamed(name, h.DeleteItem)
+		app.items.ChangeCallback().SubscribeNamed(name, h.SendItem)
+		app.items.DeleteCallback().SubscribeNamed(name, h.DeleteItem)
 		app.chatCb.SubscribeNamed(name, h.NewChatMessage)
 		h.Listen()
 	})

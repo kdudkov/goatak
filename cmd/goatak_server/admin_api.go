@@ -350,8 +350,8 @@ func getWsHandler(app *App) fiber.Handler {
 		h := wshandler.NewHandler(app.logger, name, ws)
 
 		app.logger.Debug("ws listener connected")
-		app.changeCb.SubscribeNamed(name, h.SendItem)
-		app.deleteCb.SubscribeNamed(name, h.DeleteItem)
+		app.items.ChangeCallback().SubscribeNamed(name, h.SendItem)
+		app.items.DeleteCallback().SubscribeNamed(name, h.DeleteItem)
 		h.Listen()
 		app.logger.Debug("ws listener disconnected")
 	})

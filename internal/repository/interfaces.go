@@ -3,6 +3,7 @@ package repository
 import (
 	internal "github.com/kdudkov/goatak/internal/model"
 	"github.com/kdudkov/goatak/pkg/model"
+	"github.com/kdudkov/goutils/callback"
 )
 
 type UserRepository interface {
@@ -16,13 +17,13 @@ type UserRepository interface {
 type ItemsRepository interface {
 	Start() error
 	Stop()
+	ChangeCallback() *callback.Callback[*model.Item]
+	DeleteCallback() *callback.Callback[string]
 	Store(i *model.Item)
 	Get(uid string) *model.Item
-	GetByCallsign(callsign string) *model.Item
 	Remove(uid string)
 	ForEach(f func(item *model.Item) bool)
 	GetCallsign(uid string) string
-	ForMission(name string) []*model.Item
 }
 
 type FeedsRepository interface {

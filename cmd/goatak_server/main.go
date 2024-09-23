@@ -19,7 +19,6 @@ import (
 
 	"github.com/glebarez/sqlite"
 	"github.com/google/uuid"
-	"github.com/kdudkov/goutils/callback"
 	"github.com/knadh/koanf/parsers/yaml"
 	"github.com/knadh/koanf/providers/env"
 	"github.com/knadh/koanf/providers/file"
@@ -56,9 +55,6 @@ type App struct {
 
 	handlers sync.Map
 
-	changeCb *callback.Callback[*model.Item]
-	deleteCb *callback.Callback[string]
-
 	items    repository.ItemsRepository
 	messages []*model.ChatMessage
 	feeds    repository.FeedsRepository
@@ -79,8 +75,6 @@ func NewApp(config *AppConfig) *App {
 		users:           repository.NewFileUserRepo(config.UsersFile()),
 		ch:              make(chan *cot.CotMessage, 100),
 		handlers:        sync.Map{},
-		changeCb:        callback.New[*model.Item](),
-		deleteCb:        callback.New[string](),
 		items:           repository.NewItemsMemoryRepo(),
 		feeds:           repository.NewFeedsFileRepo(filepath.Join(config.DataDir(), "feeds")),
 		uid:             uuid.NewString(),
@@ -105,6 +99,10 @@ func NewApp(config *AppConfig) *App {
 
 func (app *App) Run() {
 	app.InitMessageProcessors()
+
+	if err := app.items.Start(); err != nil {
+		log.Fatal(err)
+	}
 
 	if app.users != nil {
 		if err := app.users.Start(); err != nil {
@@ -151,7 +149,6 @@ func (app *App) Run() {
 	NewHttp(app).Start()
 
 	go app.messageProcessLoop()
-	go app.cleaner()
 
 	for _, c := range app.config.Connections() {
 		app.logger.Info("start external connection to " + c)
@@ -395,41 +392,6 @@ func (app *App) notifyMissionSubscribers(mission *im.Mission, c *im.Change) {
 	msg := im.MissionChangeNotificationMsg(mission.Name, mission.Scope, c)
 	for _, uid := range app.missions.GetSubscribers(mission.ID) {
 		app.sendToUID(uid, msg)
-	}
-}
-
-func (app *App) cleaner() {
-	for range time.Tick(time.Second * 5) {
-		app.cleanOldUnits()
-	}
-}
-
-func (app *App) cleanOldUnits() {
-	toDelete := make([]string, 0)
-
-	app.items.ForEach(func(item *model.Item) bool {
-		switch item.GetClass() {
-		case model.UNIT, model.POINT:
-			if item.IsOld() {
-				toDelete = append(toDelete, item.GetUID())
-				app.logger.Debug(fmt.Sprintf("removing %s %s", item.GetClass(), item.GetUID()))
-			}
-		case model.CONTACT:
-			if item.IsOld() {
-				toDelete = append(toDelete, item.GetUID())
-				app.logger.Debug("removing contact " + item.GetUID())
-			} else if item.IsOnline() && item.GetLastSeen().Add(lastSeenOfflineTimeout).Before(time.Now()) {
-				item.SetOffline()
-				app.changeCb.AddMessage(item)
-			}
-		}
-
-		return true
-	})
-
-	for _, uid := range toDelete {
-		app.items.Remove(uid)
-		app.deleteCb.AddMessage(uid)
 	}
 }
 

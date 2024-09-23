@@ -18,11 +18,10 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/kdudkov/goatak/pkg/gpsd"
 	"github.com/knadh/koanf/parsers/yaml"
 	"github.com/knadh/koanf/providers/file"
 	"github.com/knadh/koanf/v2"
-
-	"github.com/kdudkov/goatak/pkg/gpsd"
 
 	"github.com/kdudkov/goutils/callback"
 
@@ -56,8 +55,6 @@ type App struct {
 	tlsCert         *tls.Certificate
 	cas             *x509.CertPool
 	cl              *client.ConnClientHandler
-	changeCb        *callback.Callback[*model.Item]
-	deleteCb        *callback.Callback[string]
 	chatCb          *callback.Callback[*model.ChatMessage]
 	eventProcessors []*EventProcessor
 	remoteAPI       *RemoteAPI
@@ -110,8 +107,6 @@ func NewApp(uid string, callsign string, connectStr string, webPort int) *App {
 		webPort:         webPort,
 		items:           repository.NewItemsMemoryRepo(),
 		dialTimeout:     time.Second * 5,
-		changeCb:        callback.New[*model.Item](),
-		deleteCb:        callback.New[string](),
 		chatCb:          callback.New[*model.ChatMessage](),
 		chatMessages:    model.NewChatMessages(uid),
 		eventProcessors: make([]*EventProcessor, 0),
@@ -131,6 +126,8 @@ func (app *App) Init() {
 }
 
 func (app *App) Run(ctx context.Context) {
+	_ = app.items.Start()
+
 	if app.webPort >= 0 {
 		go func() {
 			addr := fmt.Sprintf(":%d", app.webPort)
@@ -142,7 +139,12 @@ func (app *App) Run(ctx context.Context) {
 		}()
 	}
 
-	go app.cleaner()
+	if app.gpsd != "" {
+		c := gpsd.New(app.gpsd, app.logger.With("logger", "gpsd"))
+		go c.Listen(ctx, func(lat, lon, alt, speed, track float64) {
+			app.pos.Store(model.NewPosFull(lat, lon, alt, speed, track))
+		})
+	}
 
 	for ctx.Err() == nil {
 		conn, err := app.connect()
@@ -177,12 +179,6 @@ func (app *App) Run(ctx context.Context) {
 		go app.periodicGetter(ctx1)
 		go app.myPosSender(ctx1, wg)
 
-		if app.gpsd != "" {
-			c := gpsd.New(app.gpsd, app.logger.With("logger", "gpsd"))
-			go c.Listen(ctx1, func(lat, lon, alt, speed, track float64) {
-				app.pos.Store(model.NewPosFull(lat, lon, alt, speed, track))
-			})
-		}
 		wg.Wait()
 	}
 }
@@ -292,41 +288,6 @@ func RandString(strlen int) string {
 	}
 
 	return string(result)
-}
-
-func (app *App) cleaner() {
-	for range time.Tick(time.Second * 5) {
-		app.cleanOldUnits()
-	}
-}
-
-func (app *App) cleanOldUnits() {
-	toDelete := make([]string, 0)
-
-	app.items.ForEach(func(item *model.Item) bool {
-		switch item.GetClass() {
-		case model.UNIT, model.POINT:
-			if item.IsOld() {
-				toDelete = append(toDelete, item.GetUID())
-				app.logger.Debug(fmt.Sprintf("removing %s %s", item.GetClass(), item.GetUID()))
-			}
-		case model.CONTACT:
-			if item.IsOld() {
-				toDelete = append(toDelete, item.GetUID())
-				app.logger.Debug("removing contact " + item.GetUID())
-			} else if item.IsOnline() && item.GetLastSeen().Add(lastSeenOfflineTimeout).Before(time.Now()) {
-				item.SetOffline()
-				app.changeCb.AddMessage(item)
-			}
-		}
-
-		return true
-	})
-
-	for _, uid := range toDelete {
-		app.items.Remove(uid)
-		app.deleteCb.AddMessage(uid)
-	}
 }
 
 func (app *App) sendMyPoints() {
