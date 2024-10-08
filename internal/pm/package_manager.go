@@ -178,6 +178,10 @@ func (pm *PackageManagerFS) GetFileSize(hash string) (int64, error) {
 }
 
 func (pm *PackageManagerFS) SaveFile(pi *PackageInfo, r io.Reader) error {
+	if r == nil {
+		return fmt.Errorf("nil reader")
+	}
+
 	hash1, size, err := pm.files.PutFile(pi.Hash, r)
 
 	if err != nil {
