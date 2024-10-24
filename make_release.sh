@@ -26,7 +26,7 @@ fi
 while true; do
     read -p "Continue? " yn
     case $yn in
-        [Yy]* ) make install; break;;
+        [Yy]* ) break;;
         [Nn]* ) exit;;
         * ) echo "Please answer yes or no.";;
     esac
