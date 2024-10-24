@@ -105,7 +105,7 @@ func NewApp(uid string, callsign string, connectStr string, webPort int) *App {
 		tcpPort:         parts[1],
 		tls:             tlsConn,
 		webPort:         webPort,
-		items:           repository.NewItemsMemoryRepo(),
+		items:           repository.NewItemsMemoryRepo(time.Minute * 5),
 		dialTimeout:     time.Second * 5,
 		chatCb:          callback.New[*model.ChatMessage](),
 		chatMessages:    model.NewChatMessages(uid),

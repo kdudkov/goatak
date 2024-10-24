@@ -8,19 +8,25 @@ import (
 	"github.com/kdudkov/goutils/callback"
 )
 
-const lastSeenContactOfflineTimeout = time.Minute * 15
-
 type ItemsMemoryRepo struct {
-	items    sync.Map
-	changeCb *callback.Callback[*model.Item]
-	deleteCb *callback.Callback[string]
+	items                         sync.Map
+	lastSeenContactOfflineTimeout time.Duration
+	changeCb                      *callback.Callback[*model.Item]
+	deleteCb                      *callback.Callback[string]
 }
 
-func NewItemsMemoryRepo() *ItemsMemoryRepo {
+func NewItemsMemoryRepo(tm ...time.Duration) *ItemsMemoryRepo {
+	defaultTm := time.Minute * 5
+
+	if len(tm) > 0 && tm[0] > 0 {
+		defaultTm = tm[0]
+	}
+
 	return &ItemsMemoryRepo{
-		items:    sync.Map{},
-		changeCb: callback.New[*model.Item](),
-		deleteCb: callback.New[string](),
+		items:                         sync.Map{},
+		lastSeenContactOfflineTimeout: defaultTm,
+		changeCb:                      callback.New[*model.Item](),
+		deleteCb:                      callback.New[string](),
 	}
 }
 
@@ -114,7 +120,7 @@ func (r *ItemsMemoryRepo) cleanOldUnits() {
 		case model.CONTACT:
 			if item.IsOld() {
 				toDelete = append(toDelete, item.GetUID())
-			} else if item.IsOnline() && time.Since(item.GetLastSeen()) > lastSeenContactOfflineTimeout {
+			} else if item.IsOnline() && time.Since(item.GetLastSeen()) > r.lastSeenContactOfflineTimeout {
 				item.SetOffline()
 				r.changeCb.AddMessage(item)
 			}
