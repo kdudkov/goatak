@@ -4,7 +4,7 @@ default: all
 all: dep test build
 
 GIT_REVISION=$(shell git describe --tags --always --dirty)
-GIT_BRANCH=$(shell git rev-parse --symbolic-full-name --abbrev-ref HEAD)
+GIT_BRANCH=$(shell git branch --show-current)
 
 LDFLAGS=-ldflags "-s -X main.gitRevision=$(GIT_REVISION) -X main.gitBranch=$(GIT_BRANCH)"
 

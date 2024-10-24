@@ -1,0 +1,3 @@
+kind: Added
+body: Block user by UID (drops connection and prevent cert enrollment)
+time: 2024-10-23T14:58:16.020621+03:00

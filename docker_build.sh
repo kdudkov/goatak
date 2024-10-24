@@ -3,7 +3,7 @@
 image="ghcr.io/kdudkov/goatak_server"
 #image="kdudkov/goatak_server"
 ver=$(git describe --always --tags --dirty)
-branch=$(git rev-parse --symbolic-full-name --abbrev-ref HEAD)
+branch=$(git branch --show-current)
 
 docker build . --build-arg branch=$branch --build-arg commit=${ver} -t ${image}:${ver} -t ${image}:latest
 
@@ -14,5 +14,7 @@ if [[ ${ver} != *-* ]]; then
   docker push ${image}:${ver}
 fi
 
-echo "pushing latest"
-docker push ${image}:latest
+if [[ ${ver} != *-dirty ]]; then
+  echo "pushing latest"
+  docker push ${image}:latest
+fi
