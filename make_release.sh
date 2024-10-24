@@ -34,8 +34,8 @@ done
 
 changie batch $1
 changie merge
-git add .changes
+git add .changes/*
 git add CHANGELOG.md
 
-git commit -ma 'changelog'
+git commit -am 'changelog'
 git tag $(changie latest)

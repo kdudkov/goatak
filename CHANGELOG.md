@@ -1,5 +1,10 @@
 # GoATAK changelog
 
+## v0.19.1: 2024-10-24
+### Added
+* Block user by UID (drops connection and prevent cert enrollment)
+* Unread/total messages badge and different color, if unread > 0
+
 ## v0.19.0
 
 ### Added
