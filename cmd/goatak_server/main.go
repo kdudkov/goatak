@@ -19,10 +19,6 @@ import (
 
 	"github.com/glebarez/sqlite"
 	"github.com/google/uuid"
-	"github.com/knadh/koanf/parsers/yaml"
-	"github.com/knadh/koanf/providers/env"
-	"github.com/knadh/koanf/providers/file"
-	"github.com/knadh/koanf/v2"
 	"github.com/prometheus/client_golang/prometheus"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
@@ -456,25 +452,15 @@ func getDatabase() (*gorm.DB, error) {
 func main() {
 	fmt.Printf("version %s\n", getVersion())
 
-	conf := flag.String("config", "goatak_server.yml", "name of config file")
+	configName := flag.String("config", "goatak_server.yml", "name of config file")
 	flag.Parse()
 
-	k := koanf.New(".")
-
-	SetDefaults(k)
-
-	if err := k.Load(file.Provider(*conf), yaml.Parser()); err != nil {
-		fmt.Printf("error loading config: %s", err.Error())
-		return
-	}
-
-	_ = k.Load(env.Provider("GOATAK_", ".", func(s string) string {
-		return strings.Replace(strings.ToLower(
-			strings.TrimPrefix(s, "GOATAK_")), "_", ".", -1)
-	}), nil)
+	config := NewAppConfig()
+	config.Load(*configName)
+	_ = config.LoadEnv("GOATAK_")
 
 	var h slog.Handler
-	if k.Bool("debug") {
+	if config.Bool("debug") {
 		h = slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug})
 	} else {
 		h = slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo})
@@ -482,18 +468,14 @@ func main() {
 
 	slog.SetDefault(slog.New(h))
 
-	config := &AppConfig{
-		k: k,
-	}
-
 	if err := config.processCerts(); err != nil {
 		slog.Default().Error(err.Error())
 	}
 
 	app := NewApp(config)
 
-	app.lat = k.Float64("me.lat")
-	app.lon = k.Float64("me.lon")
-	app.zoom = int8(k.Int("me.zoom"))
+	app.lat = config.Float64("me.lat")
+	app.lon = config.Float64("me.lon")
+	app.zoom = int8(config.Int("me.zoom"))
 	app.Run()
 }
