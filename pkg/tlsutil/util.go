@@ -13,7 +13,7 @@ import (
 
 const cr = 10
 
-func ParseBlock(b []byte, typ string) *pem.Block {
+func ParseBlock(typ string, b []byte) *pem.Block {
 	bb := bytes.Buffer{}
 	bb.WriteString(fmt.Sprintf("-----BEGIN %s-----\n", typ))
 	bb.Write(b)
@@ -24,13 +24,13 @@ func ParseBlock(b []byte, typ string) *pem.Block {
 }
 
 func ParseCert(s string) (*x509.Certificate, error) {
-	csrBlock := ParseBlock([]byte(s), "CERTIFICATE")
+	csrBlock := ParseBlock("CERTIFICATE", []byte(s))
 
 	return x509.ParseCertificate(csrBlock.Bytes)
 }
 
 func ParseCsr(b []byte) (*x509.CertificateRequest, error) {
-	csrBlock := ParseBlock(b, "REQUEST")
+	csrBlock := ParseBlock("REQUEST", b)
 
 	return x509.ParseCertificateRequest(csrBlock.Bytes)
 }
@@ -78,32 +78,6 @@ func MakeCertPool(certs ...*x509.Certificate) *x509.CertPool {
 	return cp
 }
 
-func LogCert(logger *slog.Logger, name string, cert *x509.Certificate) {
-	if cert == nil {
-		logger.Error("no cert for " + name)
-
-		return
-	}
-
-	logger.Info(fmt.Sprintf("%s sn: %x", name, cert.SerialNumber))
-	logger.Info(fmt.Sprintf("%s subject: %s", name, cert.Subject.String()))
-	logger.Info(fmt.Sprintf("%s issuer: %s", name, cert.Issuer.String()))
-	logger.Info(fmt.Sprintf("%s valid till %s", name, cert.NotAfter))
-
-	if len(cert.DNSNames) > 0 {
-		logger.Info(fmt.Sprintf("%s dns_names: %s", name, strings.Join(cert.DNSNames, ",")))
-	}
-
-	if len(cert.IPAddresses) > 0 {
-		ip1 := make([]string, len(cert.IPAddresses))
-		for i, ip := range cert.IPAddresses {
-			ip1[i] = ip.String()
-		}
-
-		logger.Info(fmt.Sprintf("%s ip_addresses: %s", name, strings.Join(ip1, ",")))
-	}
-}
-
 func DecodeAllCerts(bytes []byte) ([]*x509.Certificate, error) {
 	return DecodeAllByType("CERTIFICATE", bytes)
 }
@@ -129,15 +103,37 @@ func DecodeAllByType(typ string, bytes []byte) ([]*x509.Certificate, error) {
 		}
 	}
 
-	if len(certs) == 0 {
-		return nil, fmt.Errorf("no %s in found", typ)
-	}
-
 	return certs, nil
 }
 
 func LogCerts(logger *slog.Logger, certs ...*x509.Certificate) {
 	for i, c := range certs {
 		LogCert(logger, fmt.Sprintf("cert #%d", i), c)
+	}
+}
+
+func LogCert(logger *slog.Logger, name string, cert *x509.Certificate) {
+	if cert == nil {
+		logger.Error("no cert for " + name)
+
+		return
+	}
+
+	logger.Info(fmt.Sprintf("%s sn: %x", name, cert.SerialNumber))
+	logger.Info(fmt.Sprintf("%s subject: %s", name, cert.Subject.String()))
+	logger.Info(fmt.Sprintf("%s issuer: %s", name, cert.Issuer.String()))
+	logger.Info(fmt.Sprintf("%s valid till %s", name, cert.NotAfter))
+
+	if len(cert.DNSNames) > 0 {
+		logger.Info(fmt.Sprintf("%s dns_names: %s", name, strings.Join(cert.DNSNames, ",")))
+	}
+
+	if len(cert.IPAddresses) > 0 {
+		ip1 := make([]string, len(cert.IPAddresses))
+		for i, ip := range cert.IPAddresses {
+			ip1[i] = ip.String()
+		}
+
+		logger.Info(fmt.Sprintf("%s ip_addresses: %s", name, strings.Join(ip1, ",")))
 	}
 }

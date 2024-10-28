@@ -4,6 +4,7 @@ import (
 	"crypto"
 	"crypto/rand"
 	"crypto/x509"
+	"crypto/x509/pkix"
 	"fmt"
 	"log/slog"
 	"math/big"
@@ -75,31 +76,35 @@ func getTLSConfigHandler(app *App) fiber.Handler {
 }
 
 func signClientCert(uid string, clientCSR *x509.CertificateRequest, serverCert *x509.Certificate, privateKey crypto.PrivateKey, days int) (*x509.Certificate, error) {
+	tpl := getCertTemplate(&serverCert.Subject, clientCSR, uid, days)
+
+	certBytes, err := x509.CreateCertificate(rand.Reader, tpl, serverCert, clientCSR.PublicKey, privateKey)
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate certificate, error: %w", err)
+	}
+
+	return x509.ParseCertificate(certBytes)
+}
+
+func getCertTemplate(issuer *pkix.Name, csr *x509.CertificateRequest, uid string, days int) *x509.Certificate {
 	serialNumber, _ := rand.Int(rand.Reader, new(big.Int).Lsh(big.NewInt(1), 128))
 
-	template := x509.Certificate{
-		Signature:          clientCSR.Signature,
-		SignatureAlgorithm: clientCSR.SignatureAlgorithm,
+	return &x509.Certificate{
+		Signature:          csr.Signature,
+		SignatureAlgorithm: csr.SignatureAlgorithm,
 
-		PublicKeyAlgorithm: clientCSR.PublicKeyAlgorithm,
-		PublicKey:          clientCSR.PublicKey,
+		PublicKeyAlgorithm: csr.PublicKeyAlgorithm,
+		PublicKey:          csr.PublicKey,
 
 		SerialNumber:   serialNumber,
-		Issuer:         serverCert.Subject,
-		Subject:        clientCSR.Subject,
+		Issuer:         *issuer,
+		Subject:        csr.Subject,
 		NotBefore:      time.Now(),
 		NotAfter:       time.Now().Add(time.Duration(days*24) * time.Hour),
 		KeyUsage:       x509.KeyUsageDigitalSignature,
 		ExtKeyUsage:    []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth},
 		EmailAddresses: []string{uid},
 	}
-
-	certBytes, err := x509.CreateCertificate(rand.Reader, &template, serverCert, clientCSR.PublicKey, privateKey)
-	if err != nil {
-		return nil, fmt.Errorf("failed to generate certificate, error: %w", err)
-	}
-
-	return x509.ParseCertificate(certBytes)
 }
 
 func (app *App) processSignRequest(ctx *fiber.Ctx) (*x509.Certificate, error) {
@@ -150,8 +155,9 @@ func getSignHandler(app *App) fiber.Handler {
 		}
 
 		certs := map[string]*x509.Certificate{"signedCert": signedCert}
+		certs["ca0"] = app.config.serverCert
 		for i, c := range app.config.ca {
-			certs[fmt.Sprintf("ca%d", i)] = c
+			certs[fmt.Sprintf("ca%d", i+1)] = c
 		}
 
 		p12Bytes, err := tlsutil.MakeP12TrustStore(certs, p12Password)

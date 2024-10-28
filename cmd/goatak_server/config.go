@@ -115,18 +115,12 @@ func (c *AppConfig) processCerts() error {
 		}
 	}
 
-	roots := x509.NewCertPool()
-	c.certPool = roots
-
 	ca, err := loadPem(c.k.String("ssl.ca"))
 	if err != nil {
 		return err
 	}
 
-	for _, c := range ca {
-		roots.AddCert(c)
-	}
-
+	c.certPool = tlsutil.MakeCertPool(ca...)
 	c.ca = ca
 
 	cert, err := loadPem(c.k.String("ssl.cert"))
@@ -138,8 +132,8 @@ func (c *AppConfig) processCerts() error {
 		c.serverCert = cert[0]
 	}
 
-	for _, c := range cert {
-		roots.AddCert(c)
+	for _, crt := range cert {
+		c.certPool.AddCert(crt)
 	}
 
 	tlsCert, err := tls.LoadX509KeyPair(c.k.String("ssl.cert"), c.k.String("ssl.key"))
