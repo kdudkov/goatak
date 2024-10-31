@@ -6,6 +6,7 @@ import (
 	"sync/atomic"
 
 	"github.com/gofiber/contrib/websocket"
+
 	"github.com/kdudkov/goatak/pkg/model"
 )
 

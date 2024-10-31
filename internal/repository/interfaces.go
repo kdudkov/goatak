@@ -1,9 +1,10 @@
 package repository
 
 import (
+	"github.com/kdudkov/goutils/callback"
+
 	internal "github.com/kdudkov/goatak/internal/model"
 	"github.com/kdudkov/goatak/pkg/model"
-	"github.com/kdudkov/goutils/callback"
 )
 
 type UserRepository interface {

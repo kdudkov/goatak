@@ -4,8 +4,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/kdudkov/goatak/pkg/model"
 	"github.com/kdudkov/goutils/callback"
+
+	"github.com/kdudkov/goatak/pkg/model"
 )
 
 type ItemsMemoryRepo struct {

@@ -49,10 +49,10 @@ lint:
 lint-new:
 	golangci-lint run ./... --new-from-rev $(shell git describe --tags --abbrev=0)
 
-.PHONY: fmt
-fmt:
-	goimports -w .
-	gofmt -w .
+.PHONY: format
+format:
+	gofmt -s -w .
+	goimports -w -local=github.com/kdudkov/goatak .
 
 .PHONY: gox
 gox: clean dep
