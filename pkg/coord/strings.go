@@ -7,9 +7,9 @@ import (
 )
 
 var (
-	r1 = regexp.MustCompile(`[xX]=?(?P<x>\d{5,}),?\s+[yY]=?(?P<y>\d{5,})`)
-	r2 = regexp.MustCompile(`(?P<x>-?\d+\.\d+),?\s+(?P<y>-?\d+\.\d+)`)
-	r3 = regexp.MustCompile(`(?P<x>\d+\.\d+)([nNsS]),?\s+(?P<y>\d+\.\d+)([eEwW])`)
+	r1 = regexp.MustCompile(`[xX]=?(?P<x>\d{5,})[;,\s]*[yY]=?(?P<y>\d{5,})`)
+	r2 = regexp.MustCompile(`(?P<x>-?\d+\.\d+)[;,\s]*(?P<y>-?\d+\.\d+)`)
+	r3 = regexp.MustCompile(`(?P<x>\d+\.\d+)([nNsS])[;,\s]*(?P<y>\d+\.\d+)([eEwW])`)
 )
 
 func StringToLatLon(s string) (float64, float64, error) {
