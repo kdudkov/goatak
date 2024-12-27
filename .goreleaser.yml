@@ -11,7 +11,7 @@ builds:
     flags:
       - '-trimpath'
     ldflags:
-      - '-s -w -X main.gitRevision={{.Version}} -X main.gitCommit={{.Commit}}'
+      - '-s -w -X main.gitRevision={{.Version}} -X main.gitBranch={{.Branch}}'
     goos: [ windows, linux, darwin ]
     goarch: [ amd64, arm64 ]
     ignore:
@@ -25,7 +25,7 @@ builds:
     flags:
       - -trimpath
     ldflags:
-      - '-s -w -X main.gitRevision={{.Version}} -X main.gitCommit={{.Commit}}'
+      - '-s -w -X main.gitRevision={{.Version}} -X main.gitBranch={{.Branch}}'
     goos: [ windows, linux, darwin ]
     goarch: [ amd64, arm64 ]
     ignore:
@@ -38,7 +38,7 @@ builds:
     flags:
       - -trimpath
     ldflags:
-      - '-s -w -X main.gitRevision={{.Version}} -X main.gitCommit={{.Commit}}'
+      - '-s -w -X main.gitRevision={{.Version}} -X main.gitBranch={{.Branch}}'
     goos: [ windows, linux, darwin ]
     goarch: [ amd64, arm64 ]
     ignore:
@@ -51,7 +51,7 @@ builds:
     flags:
       - -trimpath
     ldflags:
-      - '-s -w -X main.gitRevision={{.Version}} -X main.gitCommit={{.Commit}}'
+      - '-s -w -X main.gitRevision={{.Version}} -X main.gitBranch={{.Branch}}'
     goos: [ windows, linux, darwin ]
     goarch: [ amd64, arm64 ]
     ignore:
@@ -73,6 +73,9 @@ archives:
     name_template: 'client_{{ .Version }}_{{ .Os }}_{{ .Arch }}{{ .Arm }}'
     files:
       - goatak_client*.yml
+
+snapshot:
+  version_template: "{{.Summary}}"
 
 changelog:
   use: github
