@@ -245,7 +245,7 @@ func getLayers() []map[string]any {
 	return []map[string]any{
 		{
 			"name":    "Google Hybrid",
-			"url":     "http://mt{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}&s=Galileo",
+			"url":     "http://mt{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}&s=Galileo&scale=2",
 			"maxzoom": 20,
 			"parts":   []string{"0", "1", "2", "3"},
 		},
