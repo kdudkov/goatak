@@ -6,7 +6,7 @@ require (
 	github.com/fsnotify/fsnotify v1.8.0
 	github.com/glebarez/sqlite v1.11.0
 	github.com/gofiber/contrib/websocket v1.3.2
-	github.com/gofiber/fiber/v2 v2.52.5
+	github.com/gofiber/fiber/v2 v2.52.6
 	github.com/gofiber/template/html/v2 v2.1.2
 	github.com/google/uuid v1.6.0
 	github.com/jroimartin/gocui v0.5.0
@@ -18,9 +18,9 @@ require (
 	github.com/prometheus/client_golang v1.20.5
 	github.com/savsgio/gotils v0.0.0-20240704082632-aef3928b8a38
 	github.com/stretchr/testify v1.10.0
-	golang.org/x/crypto v0.31.0
-	golang.org/x/net v0.33.0
-	google.golang.org/protobuf v1.36.1
+	golang.org/x/crypto v0.32.0
+	golang.org/x/net v0.34.0
+	google.golang.org/protobuf v1.36.2
 	gopkg.in/yaml.v3 v3.0.1
 	gorm.io/gorm v1.25.12
 	software.sslmate.com/src/go-pkcs12 v0.5.0
@@ -32,7 +32,7 @@ require (
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
-	github.com/fasthttp/websocket v1.5.11 // indirect
+	github.com/fasthttp/websocket v1.5.12 // indirect
 	github.com/glebarez/go-sqlite v1.22.0 // indirect
 	github.com/go-viper/mapstructure/v2 v2.2.1 // indirect
 	github.com/gofiber/template v1.8.3 // indirect
@@ -58,11 +58,11 @@ require (
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/valyala/fasthttp v1.58.0 // indirect
 	github.com/valyala/tcplisten v1.0.0 // indirect
-	golang.org/x/exp v0.0.0-20241217172543-b2144cdd0a67 // indirect
-	golang.org/x/sys v0.28.0 // indirect
+	golang.org/x/exp v0.0.0-20250106191152-7588d65b2ba8 // indirect
+	golang.org/x/sys v0.29.0 // indirect
 	golang.org/x/text v0.21.0 // indirect
-	modernc.org/libc v1.61.5 // indirect
+	modernc.org/libc v1.61.7 // indirect
 	modernc.org/mathutil v1.7.1 // indirect
-	modernc.org/memory v1.8.0 // indirect
+	modernc.org/memory v1.8.1 // indirect
 	modernc.org/sqlite v1.34.4 // indirect
 )
