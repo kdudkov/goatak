@@ -39,7 +39,11 @@ type MartiAPI struct {
 
 func NewMartiApi(app *App, addr string) *MartiAPI {
 	api := &MartiAPI{
-		f:    fiber.New(fiber.Config{EnablePrintRoutes: false, DisableStartupMessage: true, BodyLimit: 64 * 1024 * 1024}),
+		f: fiber.New(fiber.Config{
+			EnablePrintRoutes:     false,
+			DisableStartupMessage: true,
+			BodyLimit:             64 * 1024 * 1024,
+			StreamRequestBody:     true}),
 		addr: addr,
 	}
 
@@ -314,7 +318,7 @@ func (app *App) uploadFile(ctx *fiber.Ctx, uid, filename string) (*im.Content, e
 	username := Username(ctx)
 	user := app.users.GetUser(username)
 
-	hash, n, err := app.files.PutFile("", ctx.Request().BodyStream())
+	hash, n, err := app.files.PutFile("", ctx.Context().RequestBodyStream())
 
 	if err != nil {
 		app.logger.Error("save file error", slog.Any("error", err))

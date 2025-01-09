@@ -58,6 +58,10 @@ func (m *BlobManager) GetFileStat(hash string) (os.FileInfo, error) {
 }
 
 func (m *BlobManager) PutFile(hash string, r io.Reader) (string, int64, error) {
+	if r == nil {
+		return "", 0, fmt.Errorf("no reader")
+	}
+
 	m.mx.Lock()
 	defer m.mx.Unlock()
 

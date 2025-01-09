@@ -24,6 +24,7 @@ type Content struct {
 	Tool           string `gorm:"index"`
 	Keywords       string
 	Kw             tools.StringSet `gorm:"-"`
+	MissionFiles   []*MissionFile  `gorm:"constraint:OnDelete:CASCADE"`
 }
 
 type MissionFile struct {
