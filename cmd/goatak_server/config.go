@@ -85,9 +85,7 @@ func (c *AppConfig) WelcomeMsg() string {
 func (c *AppConfig) LogAll() bool {
 	return c.k.Bool("log")
 }
-func (c *AppConfig) DataSync() bool {
-	return c.k.Bool("datasync")
-}
+
 func (c *AppConfig) UseSSL() bool {
 	return c.k.Bool("ssl.use_ssl")
 }

@@ -24,7 +24,7 @@ import (
 	"gorm.io/gorm/logger"
 	"software.sslmate.com/src/go-pkcs12"
 
-	"github.com/kdudkov/goatak/cmd/goatak_server/missions"
+	"github.com/kdudkov/goatak/cmd/goatak_server/database"
 	"github.com/kdudkov/goatak/internal/client"
 	im "github.com/kdudkov/goatak/internal/model"
 	"github.com/kdudkov/goatak/internal/pm"
@@ -42,19 +42,19 @@ var (
 )
 
 type App struct {
-	logger         *slog.Logger
-	packageManager pm.PackageManager
-	config         *AppConfig
-	lat            float64
-	lon            float64
-	zoom           int8
+	logger *slog.Logger
+	files  *pm.BlobManager
+	config *AppConfig
+	lat    float64
+	lon    float64
+	zoom   int8
 
 	handlers sync.Map
 
 	items    repository.ItemsRepository
 	messages []*model.ChatMessage
 	feeds    repository.FeedsRepository
-	missions *missions.MissionManager
+	dbm      *database.DatabaseManager
 
 	users repository.UserRepository
 
@@ -67,7 +67,7 @@ func NewApp(config *AppConfig) *App {
 	app := &App{
 		logger:          slog.Default(),
 		config:          config,
-		packageManager:  pm.NewPackageManager(filepath.Join(config.DataDir(), "mp")),
+		files:           pm.NewBlobManages(filepath.Join(config.DataDir(), "blob")),
 		users:           repository.NewFileUserRepo(config.UsersFile()),
 		ch:              make(chan *cot.CotMessage, 100),
 		handlers:        sync.Map{},
@@ -77,17 +77,15 @@ func NewApp(config *AppConfig) *App {
 		eventProcessors: make([]*EventProcessor, 0),
 	}
 
-	if app.config.DataSync() {
-		db, err := getDatabase()
+	db, err := getDatabase()
 
-		if err != nil {
-			panic(err)
-		}
+	if err != nil {
+		panic(err)
+	}
 
-		app.missions = missions.New(db)
-		if err := app.missions.Migrate(); err != nil {
-			panic(err)
-		}
+	app.dbm = database.New(db)
+	if err := app.dbm.Migrate(); err != nil {
+		panic(err)
 	}
 
 	return app
@@ -110,10 +108,6 @@ func (app *App) Run() {
 		if err := app.feeds.Start(); err != nil {
 			log.Fatal(err)
 		}
-	}
-
-	if err := app.packageManager.Start(); err != nil {
-		log.Fatal(err)
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -359,7 +353,7 @@ func (app *App) route(msg *cot.CotMessage) bool {
 }
 
 func (app *App) processMissionPoint(missionName string, msg *cot.CotMessage) {
-	m := app.missions.GetMission(msg.Scope, missionName)
+	m := app.dbm.MissionQuery().Scope(msg.Scope).Name(missionName).One()
 
 	if m == nil {
 		return
@@ -369,10 +363,10 @@ func (app *App) processMissionPoint(missionName string, msg *cot.CotMessage) {
 
 	if msg.GetType() == "t-x-d-d" {
 		if uid := msg.GetFirstLink("p-p").GetAttr("uid"); uid != "" {
-			change = app.missions.DeleteMissionPoint(m.ID, uid, "")
+			change = app.dbm.DeleteMissionPoint(m.ID, uid, "")
 		}
 	} else {
-		change = app.missions.AddPoint(m, msg)
+		change = app.dbm.AddMissionPoint(m, msg)
 	}
 
 	if change != nil {
@@ -386,7 +380,7 @@ func (app *App) notifyMissionSubscribers(mission *im.Mission, c *im.Change) {
 	}
 
 	msg := im.MissionChangeNotificationMsg(mission.Name, mission.Scope, c)
-	for _, uid := range app.missions.GetSubscribers(mission.ID) {
+	for _, uid := range app.dbm.GetSubscribers(mission.ID) {
 		app.sendToUID(uid, msg)
 	}
 }

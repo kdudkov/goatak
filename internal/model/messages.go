@@ -25,7 +25,7 @@ func MissionChangeNotificationMsg(missionName string, scope string, c *Change) *
 	ch.AddChild("type", nil, c.Type)
 	ch.AddChild("isFederatedChange", nil, "false")
 	ch.AddChild("missionName", nil, missionName)
-	ch.AddChild("timestamp", nil, strconv.Itoa(int(c.CreateTime.Unix())))
+	ch.AddChild("timestamp", nil, strconv.Itoa(int(c.CreatedAt.Unix())))
 
 	msg.CotEvent.Detail = &cotproto.Detail{XmlDetail: xd.AsXMLString()}
 

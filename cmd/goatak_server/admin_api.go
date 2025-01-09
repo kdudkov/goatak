@@ -67,9 +67,7 @@ func NewAdminAPI(app *App, addr string, webtakRoot string) *AdminAPI {
 	api.f.Get("/mp", getAllMissionPackagesHandler(app))
 	api.f.Get("/mp/:uid", getPackageHandler(app))
 
-	if app.missions != nil {
-		api.f.Get("/mission", getAllMissionHandler(app))
-	}
+	api.f.Get("/mission", getAllMissionHandler(app))
 
 	if webtakRoot != "" {
 		api.f.Static("/webtak", webtakRoot)
@@ -287,12 +285,12 @@ func getCotXMLPostHandler(app *App) fiber.Handler {
 
 func getAllMissionHandler(app *App) fiber.Handler {
 	return func(ctx *fiber.Ctx) error {
-		data := app.missions.GetAllMissionsAdm()
+		data := app.dbm.MissionQuery().Full().Get()
 
 		result := make([]*model.MissionDTO, len(data))
 
 		for i, m := range data {
-			result[i] = model.ToMissionDTOAdm(m, app.packageManager)
+			result[i] = model.ToMissionDTOAdm(m)
 		}
 
 		return ctx.JSON(result)
@@ -301,7 +299,7 @@ func getAllMissionHandler(app *App) fiber.Handler {
 
 func getAllMissionPackagesHandler(app *App) fiber.Handler {
 	return func(ctx *fiber.Ctx) error {
-		data := app.packageManager.GetList(nil)
+		data := app.dbm.GetFiles()
 
 		return ctx.JSON(data)
 	}
@@ -309,13 +307,13 @@ func getAllMissionPackagesHandler(app *App) fiber.Handler {
 
 func getPackageHandler(app *App) fiber.Handler {
 	return func(ctx *fiber.Ctx) error {
-		pi := app.packageManager.Get(ctx.Params("uid"))
+		pi := app.dbm.FileQuery().UID(ctx.Params("uid")).One()
 
 		if pi == nil {
 			return ctx.SendStatus(fiber.StatusNotFound)
 		}
 
-		f, err := app.packageManager.GetFile(pi.Hash)
+		f, err := app.files.GetFile(pi.Hash)
 
 		if err != nil {
 			app.logger.Error("get file error", slog.Any("error", err))
@@ -324,7 +322,10 @@ func getPackageHandler(app *App) fiber.Handler {
 
 		defer f.Close()
 
+		ctx.Set(fiber.HeaderETag, pi.Hash)
 		ctx.Set(fiber.HeaderContentType, pi.MIMEType)
+		ctx.Set(fiber.HeaderLastModified, pi.CreatedAt.UTC().Format(http.TimeFormat))
+		ctx.Set(fiber.HeaderContentLength, strconv.Itoa(pi.Size))
 
 		if !strings.HasPrefix(pi.MIMEType, "image/") {
 			fn := pi.Name
@@ -333,9 +334,6 @@ func getPackageHandler(app *App) fiber.Handler {
 			}
 			ctx.Set(fiber.HeaderContentDisposition, "attachment; filename="+fn)
 		}
-
-		ctx.Set("Last-Modified", pi.SubmissionDateTime.UTC().Format(http.TimeFormat))
-		ctx.Set("Content-Length", strconv.Itoa(pi.Size))
 
 		_, err = io.Copy(ctx, f)
 

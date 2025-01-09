@@ -20,8 +20,6 @@ data_dir: data
 users_file: users.yml
 # Webtak files root folder
 webtak_root: ""
-# enable Datasync/missions api
-datasync: false
 
 me:
   lat: 35.462939

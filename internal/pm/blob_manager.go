@@ -9,6 +9,8 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+
+	"github.com/kdudkov/goatak/pkg/tools"
 )
 
 var NotFound = fmt.Errorf("blob is not found")
@@ -19,11 +21,11 @@ type BlobManager struct {
 	basedir string
 }
 
-func NewBlobManages(logger *slog.Logger, basedir string) *BlobManager {
+func NewBlobManages(basedir string) *BlobManager {
 	_ = os.MkdirAll(basedir, 0777)
 
 	return &BlobManager{
-		logger:  logger,
+		logger:  slog.With("logger", "file_manager"),
 		mx:      sync.RWMutex{},
 		basedir: basedir,
 	}
@@ -37,7 +39,7 @@ func (m *BlobManager) GetFile(hash string) (io.ReadSeekCloser, error) {
 	m.mx.RLock()
 	defer m.mx.RUnlock()
 
-	if hash == "" || !fileExists(m.name(hash)) {
+	if hash == "" || !tools.FileExists(m.name(hash)) {
 		return nil, NotFound
 	}
 
@@ -59,7 +61,7 @@ func (m *BlobManager) PutFile(hash string, r io.Reader) (string, int64, error) {
 	m.mx.Lock()
 	defer m.mx.Unlock()
 
-	if hash != "" && fileExists(m.name(hash)) {
+	if hash != "" && tools.FileExists(m.name(hash)) {
 		return hash, 0, nil
 	}
 

@@ -9,15 +9,16 @@ import (
 	"log/slog"
 	"net/http"
 	"strconv"
-	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
 
 	"github.com/kdudkov/goatak/cmd/goatak_server/mp"
+	im "github.com/kdudkov/goatak/internal/model"
 	"github.com/kdudkov/goatak/internal/pm"
 	"github.com/kdudkov/goatak/pkg/cot"
 	"github.com/kdudkov/goatak/pkg/log"
+	"github.com/kdudkov/goatak/pkg/tools"
 
 	"github.com/kdudkov/goatak/pkg/cotproto"
 	"github.com/kdudkov/goatak/pkg/model"
@@ -75,8 +76,6 @@ func addMartiRoutes(app *App, f fiber.Router) {
 	f.Get("/Marti/api/clientEndPoints", getEndpointsHandler(app))
 	f.Get("/Marti/api/contacts/all", getContactsHandler(app))
 
-	f.Get("/Marti/api/cot/xml/:uid", getXmlHandler(app))
-
 	f.Get("/Marti/api/util/user/roles", getUserRolesHandler(app))
 
 	f.Get("/Marti/api/groups/all", getAllGroupsHandler(app))
@@ -87,20 +86,18 @@ func addMartiRoutes(app *App, f fiber.Router) {
 	f.Get("/Marti/sync/search", getSearchHandler(app))
 	f.Get("/Marti/sync/missionquery", getMissionQueryHandler(app))
 	f.Post("/Marti/sync/missionupload", getMissionUploadHandler(app))
-	f.Get("/Marti/api/sync/metadata/:hash/tool", getMetadataGetHandler(app))
-	f.Put("/Marti/api/sync/metadata/:hash/tool", getMetadataPutHandler(app))
-
 	f.Get("/Marti/sync/content", getContentGetHandler(app))
 	f.Post("/Marti/sync/upload", getUploadHandler(app))
+	f.Get("/Marti/api/cot/xml/:uid", getXmlHandler(app))
+	f.Get("/Marti/api/sync/metadata/:hash/tool", getMetadataGetHandler(app))
+	f.Put("/Marti/api/sync/metadata/:hash/tool", getMetadataPutHandler(app))
 
 	f.Get("/Marti/vcm", getVideoListHandler(app))
 	f.Post("/Marti/vcm", getVideoPostHandler(app))
 
 	f.Get("/Marti/api/video", getVideo2ListHandler(app))
 
-	if app.config.DataSync() {
-		addMissionApi(app, f)
-	}
+	addMissionApi(app, f)
 }
 
 func getVersionHandler(app *App) fiber.Handler {
@@ -191,20 +188,17 @@ func getMissionQueryHandler(app *App) fiber.Handler {
 			return ctx.Status(fiber.StatusNotAcceptable).SendString("no hash")
 		}
 
-		if pi := app.packageManager.GetFirst(func(pi *pm.PackageInfo) bool {
-			return pi.Hash == hash && user.CanSeeScope(pi.Scope)
-		}); pi != nil {
-			return ctx.SendString(packageUrl(pi))
+		c := app.dbm.FileQuery().Hash(hash).Scope(user.GetScope()).One()
+		if c == nil {
+			return ctx.SendStatus(fiber.StatusNotFound)
 		}
 
-		return ctx.Status(fiber.StatusNotFound).SendString("not found")
+		return ctx.SendString(packageUrl(c))
 	}
 }
 
 func getMissionUploadHandler(app *App) fiber.Handler {
 	return func(ctx *fiber.Ctx) error {
-		username := Username(ctx)
-		user := app.users.GetUser(username)
 		hash := ctx.Query("hash")
 		fname := ctx.Query("filename")
 
@@ -218,22 +212,15 @@ func getMissionUploadHandler(app *App) fiber.Handler {
 			return ctx.Status(fiber.StatusNotAcceptable).SendString("no filename")
 		}
 
-		if pi := app.packageManager.GetFirst(func(pi *pm.PackageInfo) bool {
-			return pi.Hash == hash && user.CanSeeScope(pi.Scope)
-		}); pi != nil {
-			app.logger.Info("hash already exists: " + hash)
-			return ctx.SendString(packageUrl(pi))
-		}
-
-		pi, err := app.uploadMultipart(ctx, "", hash, fname, true)
+		c, err := app.uploadMultipart(ctx, "", hash, fname, true)
 		if err != nil {
 			app.logger.Error("error", slog.Any("error", err))
 			return ctx.SendStatus(fiber.StatusNotAcceptable)
 		}
 
-		app.logger.Info(fmt.Sprintf("save packege %s %s %s", pi.Name, pi.UID, pi.Hash))
+		app.logger.Info(fmt.Sprintf("save packege %s %s %s", c.Name, c.UID, c.Hash))
 
-		return ctx.SendString(packageUrl(pi))
+		return ctx.SendString(packageUrl(c))
 	}
 }
 
@@ -250,27 +237,27 @@ func getUploadHandler(app *App) fiber.Handler {
 
 		switch ctx.Get(fiber.HeaderContentType) {
 		case "multipart/form-data":
-			pi, err := app.uploadMultipart(ctx, uid, "", fname, false)
+			c, err := app.uploadMultipart(ctx, uid, "", fname, false)
 			if err != nil {
 				app.logger.Error("error", slog.Any("error", err))
 				return ctx.SendStatus(fiber.StatusNotAcceptable)
 			}
 
-			return ctx.SendString(fmt.Sprintf("/Marti/sync/content?hash=%s", pi.Hash))
+			return ctx.SendString(fmt.Sprintf("/Marti/sync/content?hash=%s", c.Hash))
 
 		default:
-			pi, err := app.uploadFile(ctx, uid, fname)
+			c, err := app.uploadFile(ctx, uid, fname)
 			if err != nil {
 				app.logger.Error("error", slog.Any("error", err))
 				return ctx.SendStatus(fiber.StatusNotAcceptable)
 			}
 
-			return ctx.SendString(fmt.Sprintf("/Marti/sync/content?hash=%s", pi.Hash))
+			return ctx.SendString(fmt.Sprintf("/Marti/sync/content?hash=%s", c.Hash))
 		}
 	}
 }
 
-func (app *App) uploadMultipart(ctx *fiber.Ctx, uid, hash, filename string, pack bool) (*pm.PackageInfo, error) {
+func (app *App) uploadMultipart(ctx *fiber.Ctx, uid, hash, filename string, pack bool) (*im.Content, error) {
 	username := Username(ctx)
 	user := app.users.GetUser(username)
 
@@ -281,26 +268,6 @@ func (app *App) uploadMultipart(ctx *fiber.Ctx, uid, hash, filename string, pack
 		return nil, err
 	}
 
-	pi := &pm.PackageInfo{
-		UID:                uid,
-		SubmissionDateTime: time.Now(),
-		Keywords:           nil,
-		MIMEType:           fh.Header.Get("Content-Type"),
-		Size:               int(fh.Size),
-		SubmissionUser:     user.GetLogin(),
-		PrimaryKey:         0,
-		Hash:               hash,
-		CreatorUID:         queryIgnoreCase(ctx, "creatorUid"),
-		Scope:              user.GetScope(),
-		Name:               filename,
-		Tool:               "",
-	}
-
-	if pack {
-		pi.Keywords = []string{"missionpackage"}
-		pi.Tool = "public"
-	}
-
 	f, err := fh.Open()
 
 	if err != nil {
@@ -308,39 +275,68 @@ func (app *App) uploadMultipart(ctx *fiber.Ctx, uid, hash, filename string, pack
 		return nil, err
 	}
 
-	if err := app.packageManager.SaveFile(pi, f); err != nil {
+	hash1, _, err := app.files.PutFile(hash, f)
+
+	if err != nil {
 		app.logger.Error("save file error", slog.Any("error", err))
 		return nil, err
 	}
 
-	return pi, nil
+	if hash != "" && hash != hash1 {
+		app.logger.Error("bad hash")
+		return nil, err
+	}
+
+	c := &im.Content{
+		Scope:          user.GetScope(),
+		Hash:           hash1,
+		UID:            uid,
+		Name:           filename,
+		MIMEType:       fh.Header.Get(fiber.HeaderContentType),
+		Size:           int(fh.Size),
+		SubmissionUser: user.GetLogin(),
+		CreatorUID:     queryIgnoreCase(ctx, "creatorUid"),
+		Tool:           "",
+		Kw:             tools.NewStringSet(),
+	}
+
+	if pack {
+		c.Kw.Add("missionpackage")
+		c.Tool = "public"
+	}
+
+	err = app.dbm.Create(c)
+
+	return c, err
 }
 
-func (app *App) uploadFile(ctx *fiber.Ctx, uid, filename string) (*pm.PackageInfo, error) {
+func (app *App) uploadFile(ctx *fiber.Ctx, uid, filename string) (*im.Content, error) {
 	username := Username(ctx)
 	user := app.users.GetUser(username)
 
-	pi := &pm.PackageInfo{
-		UID:                uid,
-		SubmissionDateTime: time.Now(),
-		Keywords:           nil,
-		MIMEType:           ctx.Get(fiber.HeaderContentType),
-		Size:               0,
-		SubmissionUser:     user.GetLogin(),
-		PrimaryKey:         0,
-		Hash:               "",
-		CreatorUID:         queryIgnoreCase(ctx, "creatorUid"),
-		Scope:              user.GetScope(),
-		Name:               filename,
-		Tool:               "",
+	hash, n, err := app.files.PutFile("", ctx.Request().BodyStream())
+
+	if err != nil {
+		app.logger.Error("save file error", slog.Any("error", err))
+		return nil, err
 	}
 
-	if err1 := app.packageManager.SaveFile(pi, ctx.Request().BodyStream()); err1 != nil {
-		app.logger.Error("save file error", slog.Any("error", err1))
-		return nil, err1
+	c := &im.Content{
+		Scope:          user.GetScope(),
+		Hash:           hash,
+		UID:            uid,
+		Name:           filename,
+		MIMEType:       ctx.Get(fiber.HeaderContentType),
+		Size:           int(n),
+		SubmissionUser: user.GetLogin(),
+		CreatorUID:     queryIgnoreCase(ctx, "creatorUid"),
+		Tool:           "",
+		Keywords:       "",
 	}
 
-	return pi, nil
+	err = app.dbm.Create(c)
+
+	return c, err
 }
 
 func getContentGetHandler(app *App) fiber.Handler {
@@ -348,60 +344,42 @@ func getContentGetHandler(app *App) fiber.Handler {
 		username := Username(ctx)
 		user := app.users.GetUser(username)
 
-		if hash := ctx.Query("hash"); hash != "" {
-			f, err := app.packageManager.GetFile(hash)
+		hash := ctx.Query("hash")
+		uid := ctx.Query("uid")
 
-			if err != nil {
-				if errors.Is(err, pm.NotFound) {
-					app.logger.Info("not found - hash " + hash)
+		if hash == "" && uid == "" {
+			return ctx.Status(fiber.StatusNotAcceptable).SendString("no hash or uid")
+		}
 
-					return ctx.Status(fiber.StatusNotFound).SendString("not found")
-				}
-				app.logger.Error("get file error", slog.Any("error", err))
+		fi := app.dbm.FileQuery().Scope(user.GetScope()).Hash(hash).UID(uid).One()
 
-				return err
+		if fi == nil {
+			return ctx.Status(fiber.StatusNotFound).SendString("not found")
+		}
+
+		f, err := app.files.GetFile(hash)
+
+		if err != nil {
+			if errors.Is(err, pm.NotFound) {
+				app.logger.Info("not found - hash " + hash)
+
+				return ctx.Status(fiber.StatusNotFound).SendString("not found")
 			}
-
-			defer f.Close()
-
-			ctx.Set("ETag", hash)
-
-			if size, err := app.packageManager.GetFileSize(hash); err == nil {
-				ctx.Set(fiber.HeaderContentLength, strconv.Itoa(int(size)))
-			}
-
-			_, err = io.Copy(ctx.Response().BodyWriter(), f)
+			app.logger.Error("get file error", slog.Any("error", err))
 
 			return err
 		}
 
-		if uid := ctx.Query("uid"); uid != "" {
-			if pi := app.packageManager.Get(uid); pi != nil && user.CanSeeScope(pi.Scope) {
-				f, err := app.packageManager.GetFile(pi.Hash)
+		defer f.Close()
 
-				if err != nil {
-					app.logger.Error("get file error", slog.Any("error", err))
-					return err
-				}
+		ctx.Set(fiber.HeaderContentType, fi.MIMEType)
+		ctx.Set(fiber.HeaderLastModified, fi.CreatedAt.UTC().Format(http.TimeFormat))
+		ctx.Set(fiber.HeaderContentLength, strconv.Itoa(fi.Size))
+		ctx.Set("ETag", fi.Hash)
 
-				defer f.Close()
+		_, err = io.Copy(ctx.Response().BodyWriter(), f)
 
-				ctx.Set(fiber.HeaderContentType, pi.MIMEType)
-				ctx.Set(fiber.HeaderLastModified, pi.SubmissionDateTime.UTC().Format(http.TimeFormat))
-				ctx.Set(fiber.HeaderContentLength, strconv.Itoa(pi.Size))
-				ctx.Set(fiber.HeaderETag, pi.Hash)
-
-				_, err = io.Copy(ctx.Response().BodyWriter(), f)
-
-				return err
-			}
-
-			app.logger.Info("not found - uid " + uid)
-
-			return ctx.Status(fiber.StatusNotFound).SendString("not found")
-		}
-
-		return ctx.Status(fiber.StatusNotAcceptable).SendString("no hash or uid")
+		return err
 	}
 }
 
@@ -415,13 +393,13 @@ func getMetadataGetHandler(app *App) fiber.Handler {
 			return ctx.Status(fiber.StatusNotAcceptable).SendString("no hash")
 		}
 
-		if pi := app.packageManager.GetFirst(func(pi *pm.PackageInfo) bool {
-			return pi.Hash == hash && user.CanSeeScope(pi.Scope)
-		}); pi != nil {
-			return ctx.SendString(pi.Tool)
+		cn := app.dbm.FileQuery().Scope(user.GetScope()).Hash(hash).One()
+
+		if cn == nil {
+			return ctx.SendStatus(fiber.StatusNotFound)
 		}
 
-		return ctx.SendStatus(fiber.StatusNotFound)
+		return ctx.SendString(cn.Tool)
 	}
 }
 
@@ -434,14 +412,13 @@ func getMetadataPutHandler(app *App) fiber.Handler {
 			return ctx.Status(fiber.StatusNotAcceptable).SendString("no hash")
 		}
 
-		pis := app.packageManager.GetList(func(pi *pm.PackageInfo) bool {
-			return pi.Hash == hash && user.CanSeeScope(pi.Scope)
-		})
+		cn := app.dbm.FileQuery().Scope(user.GetScope()).Hash(hash).One()
 
-		for _, pi := range pis {
-			pi.Tool = string(ctx.Body())
-			app.packageManager.Store(pi)
+		if cn == nil {
+			return ctx.SendStatus(fiber.StatusNotFound)
 		}
+
+		app.dbm.UpdateContentTool(cn.ID, string(ctx.Body()))
 
 		return nil
 	}
@@ -449,19 +426,21 @@ func getMetadataPutHandler(app *App) fiber.Handler {
 
 func getSearchHandler(app *App) fiber.Handler {
 	return func(ctx *fiber.Ctx) error {
-		kw := ctx.Query("keywords")
-		tool := ctx.Query("tool")
+		//kw := ctx.Query("keywords")
 
 		user := app.users.GetUser(Username(ctx))
 
 		result := make(map[string]any)
 
-		packages := app.packageManager.GetList(func(pi *pm.PackageInfo) bool {
-			return user.CanSeeScope(pi.Scope) && pi.HasKeyword(kw) && (tool == "" || pi.Tool == tool)
-		})
+		files := app.dbm.FileQuery().Scope(user.GetScope()).Tool(ctx.Query("tool")).Get()
+		res := make([]*im.ContentDTO, len(files))
 
-		result["results"] = packages
-		result["resultCount"] = len(packages)
+		for i, f := range files {
+			res[i] = im.ToContentDTO(f)
+		}
+
+		result["results"] = res
+		result["resultCount"] = len(res)
 
 		return ctx.JSON(result)
 	}
@@ -599,7 +578,7 @@ func getXmlHandler(app *App) fiber.Handler {
 		if item := app.items.Get(uid); item != nil {
 			evt = item.GetMsg().GetTakMessage().GetCotEvent()
 		} else {
-			di := app.missions.GetPoint(uid)
+			di := app.dbm.GetPoint(uid)
 			if di != nil {
 				evt = di.GetEvent()
 			}
@@ -613,8 +592,8 @@ func getXmlHandler(app *App) fiber.Handler {
 	}
 }
 
-func packageUrl(pi *pm.PackageInfo) string {
-	return fmt.Sprintf("/Marti/sync/content?hash=%s", pi.Hash)
+func packageUrl(c *im.Content) string {
+	return fmt.Sprintf("/Marti/sync/content?hash=%s", c.Hash)
 }
 
 func makeAnswer(typ string, data any) map[string]any {

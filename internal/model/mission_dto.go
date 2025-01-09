@@ -3,19 +3,19 @@ package model
 import (
 	"strings"
 	"time"
-
-	"github.com/kdudkov/goatak/internal/pm"
 )
+
+const cotFormat = "2006-01-02T15:04:05.999Z07:00"
 
 type CotTime time.Time
 
 func (x CotTime) MarshalText() ([]byte, error) {
-	return []byte(time.Time(x).UTC().Format("2006-01-02T15:04:05.999Z07:00")), nil
+	return []byte(time.Time(x).UTC().Format(cotFormat)), nil
 }
 
 // UnmarshalText implements the text unmarshaller method.
 func (x *CotTime) UnmarshalText(text []byte) error {
-	t, err := time.Parse("2006-01-02T15:04:05.999Z07:00", string(text))
+	t, err := time.Parse(cotFormat, string(text))
 	if err != nil {
 		return err
 	}
@@ -24,31 +24,31 @@ func (x *CotTime) UnmarshalText(text []byte) error {
 }
 
 type MissionDTO struct {
-	Name              string            `json:"name"`
-	Scope             string            `json:"scope,omitempty"`
-	CreatorUID        string            `json:"creatorUid"`
-	CreateTime        CotTime           `json:"createTime"`
-	LastEdit          CotTime           `json:"lastEdited"`
-	BaseLayer         string            `json:"baseLayer"`
-	Bbox              string            `json:"bbox"`
-	ChatRoom          string            `json:"chatRoom"`
-	Classification    string            `json:"classification"`
-	Contents          []*ContentItemDTO `json:"contents"`
-	DefaultRole       *MissionRoleDTO   `json:"defaultRole,omitempty"`
-	OwnerRole         *MissionRoleDTO   `json:"ownerRole,omitempty"`
-	Description       string            `json:"description"`
-	Expiration        int               `json:"expiration"`
-	ExternalData      []any             `json:"externalData"`
-	Feeds             []string          `json:"feeds"`
-	Groups            []string          `json:"groups,omitempty"`
-	InviteOnly        bool              `json:"inviteOnly"`
-	Keywords          []string          `json:"keywords"`
-	MapLayers         []string          `json:"mapLayers"`
-	PasswordProtected bool              `json:"passwordProtected"`
-	Path              string            `json:"path"`
-	Tool              string            `json:"tool"`
-	Uids              []*MissionItemDTO `json:"uids"`
-	Token             string            `json:"token"`
+	Name              string             `json:"name"`
+	Scope             string             `json:"scope,omitempty"`
+	CreatorUID        string             `json:"creatorUid"`
+	CreateTime        CotTime            `json:"createTime"`
+	LastEdit          CotTime            `json:"lastEdited"`
+	BaseLayer         string             `json:"baseLayer"`
+	Bbox              string             `json:"bbox"`
+	ChatRoom          string             `json:"chatRoom"`
+	Classification    string             `json:"classification"`
+	DefaultRole       *MissionRoleDTO    `json:"defaultRole,omitempty"`
+	OwnerRole         *MissionRoleDTO    `json:"ownerRole,omitempty"`
+	Description       string             `json:"description"`
+	Expiration        int                `json:"expiration"`
+	ExternalData      []any              `json:"externalData"`
+	Feeds             []string           `json:"feeds"`
+	Groups            []string           `json:"groups,omitempty"`
+	InviteOnly        bool               `json:"inviteOnly"`
+	Keywords          []string           `json:"keywords"`
+	MapLayers         []string           `json:"mapLayers"`
+	PasswordProtected bool               `json:"passwordProtected"`
+	Path              string             `json:"path"`
+	Tool              string             `json:"tool"`
+	Uids              []*MissionPointDTO `json:"uids"`
+	Contents          []*ContentItemDTO  `json:"contents"`
+	Token             string             `json:"token"`
 }
 
 type MissionRoleDTO struct {
@@ -74,7 +74,7 @@ type DataDTO struct {
 	Size           int      `json:"size"`
 }
 
-type MissionItemDTO struct {
+type MissionPointDTO struct {
 	CreatorUID string             `json:"creatorUid"`
 	Timestamp  CotTime            `json:"timestamp"`
 	Data       string             `json:"data"`
@@ -135,35 +135,28 @@ type MissionInvitationDTO struct {
 	Role        *MissionRoleDTO `json:"role"`
 }
 
-func ToMissionDTO(m *Mission, packages pm.PackageManager, withToken bool) *MissionDTO {
-	return ToMissionDTOFull(m, packages, withToken, false)
+func ToMissionDTO(m *Mission, withToken bool) *MissionDTO {
+	return ToMissionDTOFull(m, withToken, false)
 }
 
-func ToMissionDTOAdm(m *Mission, packages pm.PackageManager) *MissionDTO {
-	return ToMissionDTOFull(m, packages, false, true)
+func ToMissionDTOAdm(m *Mission) *MissionDTO {
+	return ToMissionDTOFull(m, false, true)
 }
 
-func ToMissionDTOFull(m *Mission, packages pm.PackageManager, withToken bool, withScope bool) *MissionDTO {
+func ToMissionDTOFull(m *Mission, withToken bool, withScope bool) *MissionDTO {
 	if m == nil {
 		return nil
-	}
-
-	uids := make([]*MissionItemDTO, len(m.Items))
-
-	for i, item := range m.Items {
-		uids[i] = NewItemDTO(item)
 	}
 
 	mDTO := &MissionDTO{
 		Name:              m.Name,
 		CreatorUID:        m.CreatorUID,
-		CreateTime:        CotTime(m.CreateTime),
-		LastEdit:          CotTime(m.LastEdit),
+		CreateTime:        CotTime(m.CreatedAt),
+		LastEdit:          CotTime(m.UpdatedAt),
 		BaseLayer:         m.BaseLayer,
 		Bbox:              m.Bbox,
 		ChatRoom:          m.ChatRoom,
 		Classification:    m.Classification,
-		Contents:          []*ContentItemDTO{},
 		DefaultRole:       GetRole("MISSION_SUBSCRIBER"),
 		OwnerRole:         GetRole("MISSION_OWNER"),
 		Description:       m.Description,
@@ -176,8 +169,16 @@ func ToMissionDTOFull(m *Mission, packages pm.PackageManager, withToken bool, wi
 		PasswordProtected: m.Password != "",
 		Path:              m.Path,
 		Tool:              m.Tool,
-		Uids:              uids,
-		Token:             m.Token,
+		Uids:              make([]*MissionPointDTO, len(m.Points)),
+		Contents:          make([]*ContentItemDTO, len(m.Files)),
+	}
+
+	for i, p := range m.Points {
+		mDTO.Uids[i] = ToMissionPointDTO(p)
+	}
+
+	for i, item := range m.Files {
+		mDTO.Contents[i] = ToContentItemDTO(item)
 	}
 
 	if withToken {
@@ -188,37 +189,7 @@ func ToMissionDTOFull(m *Mission, packages pm.PackageManager, withToken bool, wi
 		mDTO.Scope = m.Scope
 	}
 
-	if packages != nil {
-		for _, h := range m.GetHashes() {
-			pi := packages.GetFirst(func(x *pm.PackageInfo) bool {
-				return x.Hash == h && x.Scope == m.Scope
-			})
-
-			if pi != nil {
-				mDTO.Contents = append(mDTO.Contents, toContentItemDTO(pi))
-			}
-		}
-	}
-
 	return mDTO
-}
-
-func toContentItemDTO(pi *pm.PackageInfo) *ContentItemDTO {
-	return &ContentItemDTO{
-		CreatorUID: pi.CreatorUID,
-		Timestamp:  CotTime(pi.SubmissionDateTime),
-		Data: DataDTO{
-			UID:            pi.UID,
-			Name:           pi.Name,
-			Keywords:       pi.Keywords,
-			MimeType:       pi.MIMEType,
-			SubmissionTime: CotTime(pi.SubmissionDateTime),
-			Submitter:      pi.SubmissionUser,
-			CreatorUID:     pi.CreatorUID,
-			Hash:           pi.Hash,
-			Size:           pi.Size,
-		},
-	}
 }
 
 func ToMissionSubscriptionDTO(s *Subscription, token string) *MissionSubscriptionDTO {
@@ -229,7 +200,7 @@ func ToMissionSubscriptionDTO(s *Subscription, token string) *MissionSubscriptio
 	return &MissionSubscriptionDTO{
 		ClientUID:  s.ClientUID,
 		Username:   s.Username,
-		CreateTime: CotTime(s.CreateTime),
+		CreateTime: CotTime(s.CreatedAt),
 		Role:       GetRole(s.Role),
 		Token:      token,
 	}
@@ -251,17 +222,31 @@ func ToMissionInvitationDTO(m *Invitation, name string) *MissionInvitationDTO {
 		Invitee:     m.Invitee,
 		Type:        m.Typ,
 		CreatorUID:  m.CreatorUID,
-		CreateTime:  CotTime(m.CreateTime),
+		CreateTime:  CotTime(m.CreatedAt),
 		Role:        GetRole(m.Role),
 	}
 }
 
-func NewChangeDTO(c *Change, name string) *MissionChangeDTO {
+type ContentDTO struct {
+	ID                 uint      `json:"PrimaryKey"`
+	UID                string    `json:"UID"`
+	SubmissionDateTime time.Time `json:"SubmissionDateTime"`
+	Keywords           []string  `json:"Keywords"`
+	MIMEType           string    `json:"MIMEType"`
+	Size               int       `json:"Size"`
+	SubmissionUser     string    `json:"SubmissionUser"`
+	Hash               string    `json:"Hash"`
+	CreatorUID         string    `json:"CreatorUid"`
+	Name               string    `json:"Name"`
+	Tool               string    `json:"Tool"`
+}
+
+func ToChangeDTO(c *Change, name string) *MissionChangeDTO {
 	cd := &MissionChangeDTO{
 		Type:        c.Type,
 		MissionName: name,
-		Timestamp:   CotTime(c.CreateTime),
-		ServerTime:  CotTime(c.CreateTime),
+		Timestamp:   CotTime(c.CreatedAt),
+		ServerTime:  CotTime(c.CreatedAt),
 		CreatorUID:  c.CreatorUID,
 		ContentUID:  c.ContentUID,
 	}
@@ -282,10 +267,10 @@ func NewChangeDTO(c *Change, name string) *MissionChangeDTO {
 	return cd
 }
 
-func NewItemDTO(i *DataItem) *MissionItemDTO {
-	return &MissionItemDTO{
+func ToMissionPointDTO(i *MissionPoint) *MissionPointDTO {
+	return &MissionPointDTO{
 		CreatorUID: i.CreatorUID,
-		Timestamp:  CotTime(i.Timestamp),
+		Timestamp:  CotTime(i.CreatedAt),
 		Data:       i.UID,
 		Details: &MissionDetailsDTO{
 			Type:        i.Type,
@@ -298,6 +283,44 @@ func NewItemDTO(i *DataItem) *MissionItemDTO {
 				Lon: i.Lon,
 			},
 		},
+	}
+}
+
+func ToContentItemDTO(i *MissionFile) *ContentItemDTO {
+	return &ContentItemDTO{
+		CreatorUID: i.CreatorUID,
+		Timestamp:  CotTime(i.CreatedAt),
+		Data: DataDTO{
+			UID:            i.Content.UID,
+			Keywords:       strings.Split(i.Content.Keywords, ","),
+			MimeType:       i.Content.MIMEType,
+			Name:           i.Content.Name,
+			SubmissionTime: CotTime(i.Content.CreatedAt),
+			Submitter:      i.Content.SubmissionUser,
+			CreatorUID:     i.Content.CreatorUID,
+			Hash:           i.Content.Hash,
+			Size:           i.Content.Size,
+		},
+	}
+}
+
+func ToContentDTO(c *Content) *ContentDTO {
+	if c == nil {
+		return nil
+	}
+
+	return &ContentDTO{
+		ID:                 c.ID,
+		UID:                c.UID,
+		SubmissionDateTime: c.CreatedAt,
+		Keywords:           c.Kw.List(),
+		MIMEType:           c.MIMEType,
+		Size:               c.Size,
+		SubmissionUser:     c.SubmissionUser,
+		Hash:               c.Hash,
+		CreatorUID:         c.CreatorUID,
+		Name:               c.Name,
+		Tool:               c.Tool,
 	}
 }
 
