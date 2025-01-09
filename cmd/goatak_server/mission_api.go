@@ -13,6 +13,7 @@ import (
 
 	"github.com/kdudkov/goatak/internal/model"
 	"github.com/kdudkov/goatak/pkg/cot"
+	"github.com/kdudkov/goatak/pkg/tools"
 )
 
 const (
@@ -299,6 +300,36 @@ func getMissionChangesHandler(app *App) fiber.Handler {
 		}
 
 		ch := app.dbm.GetChanges(mission.ID, d1)
+
+		if ctx.QueryBool("squashed") {
+			uids := tools.NewStringSet()
+
+			n := 0
+
+			for i := range ch {
+				idx := len(ch) - i - 1
+				if uids.Has(ch[idx].ContentUID) {
+					ch[idx] = nil
+					continue
+				}
+				uids.Add(ch[idx].ContentUID)
+
+				if ch[idx].Type == "REMOVE_CONTENT" {
+					ch[idx] = nil
+				}
+				n++
+			}
+
+			ch1 := make([]*model.Change, 0, n)
+
+			for _, c := range ch {
+				if c != nil {
+					ch1 = append(ch, c)
+				}
+			}
+
+			ch = ch1
+		}
 
 		result := make([]*model.MissionChangeDTO, len(ch))
 

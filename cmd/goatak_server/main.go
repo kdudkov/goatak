@@ -353,7 +353,7 @@ func (app *App) route(msg *cot.CotMessage) bool {
 }
 
 func (app *App) processMissionPoint(missionName string, msg *cot.CotMessage) {
-	m := app.dbm.MissionQuery().Scope(msg.Scope).Name(missionName).One()
+	m := app.dbm.MissionQuery().Scope(msg.Scope).Name(missionName).Full().One()
 
 	if m == nil {
 		return

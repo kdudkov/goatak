@@ -31,7 +31,13 @@ func (mm *DatabaseManager) Create(s any) error {
 		return nil
 	}
 
-	return mm.db.Create(s).Error
+	err := mm.db.Create(s).Error
+
+	if err != nil {
+		mm.logger.Error("error create object", slog.Any("error", err))
+	}
+
+	return err
 }
 
 func (mm *DatabaseManager) Save(s any) error {
@@ -39,7 +45,13 @@ func (mm *DatabaseManager) Save(s any) error {
 		return nil
 	}
 
-	return mm.db.Save(s).Error
+	err := mm.db.Save(s).Error
+
+	if err != nil {
+		mm.logger.Error("error saving object", slog.Any("error", err))
+	}
+
+	return err
 }
 
 func (mm *DatabaseManager) MissionQuery() *MissionQuery {
@@ -109,35 +121,42 @@ func (mm *DatabaseManager) AddMissionPoint(mission *model.Mission, msg *cot.CotM
 
 	now := time.Now()
 
+	var point *model.MissionPoint
 	for _, p := range mission.Points {
 		if p.UID == msg.GetUID() {
-			mm.logger.Info("update existing point " + p.UID)
+			mm.logger.Info("update existing point " + p.Callsign + " " + p.UID)
 			p.UpdateFromMsg(msg)
-			mm.db.Save(p)
+			if err := mm.Save(p); err != nil {
+				return nil
+			}
+			point = p
+			break
+		}
+	}
 
+	if point == nil {
+		mm.logger.Info("add new point " + msg.GetCallsign() + " " + msg.GetUID())
+		point = &model.MissionPoint{
+			UID: msg.GetUID(),
+		}
+
+		point.UpdateFromMsg(msg)
+
+		mission.Points = append(mission.Points, point)
+		mission.UpdatedAt = now
+
+		if err := mm.Save(mission); err != nil {
 			return nil
 		}
 	}
 
-	mm.logger.Info("add new " + msg.GetUID())
-	i := &model.MissionPoint{
-		UID: msg.GetUID(),
-	}
-
-	i.UpdateFromMsg(msg)
-
-	mission.Points = append(mission.Points, i)
-	mission.UpdatedAt = now
-
-	mm.db.Save(mission)
-
 	// todo: use sender uid, not parent
-	p, _ := msg.GetParent()
+	parent, _ := msg.GetParent()
 
 	c := &model.Change{
 		Type:        "ADD_CONTENT",
 		MissionID:   mission.ID,
-		CreatorUID:  p,
+		CreatorUID:  parent,
 		ContentUID:  msg.GetUID(),
 		CotType:     msg.GetType(),
 		Callsign:    msg.GetCallsign(),
@@ -147,7 +166,7 @@ func (mm *DatabaseManager) AddMissionPoint(mission *model.Mission, msg *cot.CotM
 		Lon:         msg.GetLon(),
 	}
 
-	mm.db.Create(c)
+	_ = mm.Create(c)
 
 	return c
 }
@@ -184,7 +203,7 @@ func (mm *DatabaseManager) DeleteMissionPoint(missionId uint, uid string, author
 		Lon:         mp.Lon,
 	}
 
-	mm.db.Create(c)
+	_ = mm.Create(c)
 
 	return c
 }
