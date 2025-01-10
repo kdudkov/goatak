@@ -129,11 +129,7 @@ func getEndpointsHandler(app *App) fiber.Handler {
 		data := make([]map[string]any, 0)
 
 		app.items.ForEach(func(item *model.Item) bool {
-			if !user.CanSeeScope(item.GetScope()) {
-				return true
-			}
-
-			if item.GetClass() == model.CONTACT {
+			if user.CanSeeScope(item.GetScope()) && item.GetClass() == model.CONTACT {
 				info := make(map[string]any)
 				info["uid"] = item.GetUID()
 				info["callsign"] = item.GetCallsign()
@@ -161,11 +157,7 @@ func getContactsHandler(app *App) fiber.Handler {
 		result := make([]*model.Contact, 0)
 
 		app.items.ForEach(func(item *model.Item) bool {
-			if !user.CanSeeScope(item.GetScope()) {
-				return true
-			}
-
-			if item.GetClass() == model.CONTACT {
+			if user.CanSeeScope(item.GetScope()) && item.GetClass() == model.CONTACT {
 				c := &model.Contact{
 					UID:      item.GetUID(),
 					Callsign: item.GetCallsign(),
@@ -247,7 +239,7 @@ func getUploadHandler(app *App) fiber.Handler {
 				return ctx.SendStatus(fiber.StatusNotAcceptable)
 			}
 
-			return ctx.SendString(fmt.Sprintf("/Marti/sync/content?hash=%s", c.Hash))
+			return ctx.SendString(packageUrl(c))
 
 		default:
 			c, err := app.uploadFile(ctx, uid, fname)
@@ -256,7 +248,7 @@ func getUploadHandler(app *App) fiber.Handler {
 				return ctx.SendStatus(fiber.StatusNotAcceptable)
 			}
 
-			return ctx.SendString(fmt.Sprintf("/Marti/sync/content?hash=%s", c.Hash))
+			return ctx.SendString(packageUrl(c))
 		}
 	}
 }
