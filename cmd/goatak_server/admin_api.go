@@ -50,7 +50,7 @@ func NewAdminAPI(app *App, addr string, webtakRoot string) *AdminAPI {
 	api.f.Get("/points", getPointsHandler())
 	api.f.Get("/map", getMapHandler())
 	api.f.Get("/missions", getMissionsPageHandler())
-	api.f.Get("/packages", getMPPageHandler())
+	api.f.Get("/packages", getMPPageHandler()).Name("admin_files")
 	api.f.Get("/config", getConfigHandler(app))
 	api.f.Get("/connections", getConnHandler(app))
 
@@ -65,7 +65,8 @@ func NewAdminAPI(app *App, addr string, webtakRoot string) *AdminAPI {
 	api.f.Post("/cot_xml", getCotXMLPostHandler(app))
 
 	api.f.Get("/mp", getAllMissionPackagesHandler(app))
-	api.f.Get("/mp/:uid", getPackageHandler(app))
+	api.f.Get("/mp/:id", getPackageHandler(app))
+	api.f.Get("/mp/delete/:id", getPackageDeleteHandler(app))
 
 	api.f.Get("/mission", getAllMissionHandler(app))
 
@@ -307,7 +308,17 @@ func getAllMissionPackagesHandler(app *App) fiber.Handler {
 
 func getPackageHandler(app *App) fiber.Handler {
 	return func(ctx *fiber.Ctx) error {
-		pi := app.dbm.FileQuery().UID(ctx.Params("uid")).One()
+		id, err := ctx.ParamsInt("id")
+
+		if err != nil {
+			return err
+		}
+
+		if id == 0 {
+			return ctx.SendStatus(fiber.StatusBadRequest)
+		}
+
+		pi := app.dbm.FileQuery().Id(uint(id)).One()
 
 		if pi == nil {
 			return ctx.SendStatus(fiber.StatusNotFound)
@@ -338,6 +349,24 @@ func getPackageHandler(app *App) fiber.Handler {
 		_, err = io.Copy(ctx, f)
 
 		return err
+	}
+}
+
+func getPackageDeleteHandler(app *App) fiber.Handler {
+	return func(ctx *fiber.Ctx) error {
+		id, err := ctx.ParamsInt("id")
+
+		if err != nil {
+			return err
+		}
+
+		if id == 0 {
+			return ctx.SendStatus(fiber.StatusBadRequest)
+		}
+
+		app.dbm.DeleteFile(uint(id))
+
+		return ctx.RedirectToRoute("admin_files", nil)
 	}
 }
 

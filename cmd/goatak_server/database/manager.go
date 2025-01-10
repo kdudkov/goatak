@@ -275,3 +275,8 @@ func (mm *DatabaseManager) GetFiles() []*model.Content {
 
 	return m
 }
+
+func (mm *DatabaseManager) DeleteFile(id uint) {
+	mm.db.Where("id = ?", id).Delete(&model.Content{})
+	mm.db.Where("content_id = ?", id).Delete(&model.MissionFile{})
+}

@@ -1,22 +1,33 @@
-<div>
-    <table class="table table-hover table-sm units">
-        <tr>
-            <th>UID</th>
-            <th>File</th>
-            <th>Scope</th>
-            <th>Creator</th>
-            <th>Size</th>
-            <th>MIME type</th>
-            <th>Keywords</th>
-        </tr>
-        <tr v-for="p in all">
-            <td><a :href="'/mp/' + p.UID">{{ p.UID }}</a></td>
-            <td>{{ p.Name }}</td>
-            <td>{{ p.Scope }}</td>
-            <td>{{ p.CreatorUID }}</td>
-            <td>{{ p.Size }}</td>
-            <td>{{ p.MIMEType }}</td>
-            <td>{{ p.Keywords }}</td>
-        </tr>
-    </table>
+<div class="row">
+    <div class="col">
+        <table class="table table-hover table-sm units">
+            <tr>
+                <th>Scope</th>
+                <th>File</th>
+                <th>Size</th>
+                <th>MIME type</th>
+            </tr>
+            <tr v-for="p in all" @click="current = p">
+                <td>{{ p.Scope }}</td>
+                <td>{{ p.Name }}</td>
+                <td>{{ p.Size }}</td>
+                <td>{{ p.MIMEType }}</td>
+            </tr>
+        </table>
+    </div>
+    <div class="col">
+        <div v-if="current != null" class="overflow-auto">
+            <h3>{{ current.Name }}</h3>
+            <a class="btn btn-outline-primary" :href="'/mp/' + current.ID">download</a><br/>
+            Scope: {{ current.Scope }}<br/>
+            UID: {{ current.UID }}<br/>
+            Hash: {{ current.Hash }}<br/>
+            MimeType: {{ current.MIMEType }}<br/>
+            Keywords: {{ current.Keywords }}<br/>
+            Author: {{ current.SubmissionUser }} {{ current.CreatorUID }}<br/>
+            Tool: {{ current.Tool }}<br/>
+            <a class="btn btn-outline-danger" :href="'/mp/delete/' + current.ID">delete</a><br/>
+            <img class="w-100" v-if="current.MIMEType.startsWith('image/')" :src="'/mp/' + current.UID"/>
+        </div>
+    </div>
 </div>
