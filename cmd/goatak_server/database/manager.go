@@ -318,6 +318,19 @@ func (mm *DatabaseManager) GetFiles() []*model.Resource {
 	return m
 }
 
+func (mm *DatabaseManager) GetPoints() []*model.Point {
+	var m []*model.Point
+
+	err := mm.db.Order("created_at DESC").
+		Find(&m).Error
+
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil
+	}
+
+	return m
+}
+
 func (mm *DatabaseManager) DeleteFile(id uint) {
 	mm.db.Where("id = ?", id).Delete(&model.Resource{})
 }

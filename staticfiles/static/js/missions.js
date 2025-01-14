@@ -20,7 +20,7 @@ let app = new Vue({
         renew: function () {
             let vm = this;
 
-            fetch('/mission')
+            fetch('/api/mission')
                 .then(resp => resp.json())
                 .then(data => {
                     vm.missions = data;

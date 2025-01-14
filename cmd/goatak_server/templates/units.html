@@ -1,0 +1,111 @@
+<div class="row">
+    <div class="col">
+        <div class="overflow-auto">
+            <div class="alert alert-secondary info" role="alert" v-if="alert">
+                {{ alert }}
+            </div>
+            <div class="card mb-2">
+                <div class="card-header">Connections <span
+                        class="badge rounded-pill bg-success">{{ connections.size }}</span></div>
+                <div class="card-body">
+                    <table class="table table-hover table-sm units">
+                        <tr>
+                            <th>addr</th>
+                            <th>UIDS</th>
+                            <th>user</th>
+                            <th>scope</th>
+                            <th>ver</th>
+                            <th>last seen</th>
+                        </tr>
+                        <tr v-for="c in all_conns">
+                            <td>{{ c.addr }}</td>
+                            <td>
+                                <span v-for="(k, v) in c.uids">{{ k }}: {{ v }}</span>
+                            </td>
+                            <td>{{ c.user }}</td>
+                            <td>{{ c.scope }}</td>
+                            <td>{{ c.ver }}</td>
+                            <td>{{ dt(c.last_seen) }}</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+            <div class="card mb-2">
+                <div class="card-header">Contacts <span class="badge rounded-pill bg-success">{{ contactsNum() }}</span>
+                </div>
+                <div class="card-body">
+                    <table class="table table-hover table-sm units">
+                        <tr>
+                            <th></th>
+                            <th>callsign</th>
+                            <th>scope</th>
+                            <th>status</th>
+                            <th>coords</th>
+                            <th>TAK ver.</th>
+                        </tr>
+                        <tr v-for="u in byCategory('contact')">
+                            <td><img :src="getImg(u, 18)"/></td>
+                            <td>{{ u.callsign }}</td>
+                            <td>{{ u.scope }}</td>
+                            <td><span class="badge"
+                                      :class="u.status=='Online' ? 'text-bg-success' : 'text-bg-secondary'">
+                                {{ u.status }}</span>
+                            </td>
+                            <td>{{ printCoords(u.lat, u.lon) }}</td>
+                            <td>{{ u.tak_version }}</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col">
+        <div class="card mb-2">
+            <div class="card-header">Units</div>
+            <div class="card-body">
+                <table class="table table-hover table-sm units">
+                    <tr>
+                        <th></th>
+                        <th>type</th>
+                        <th>callsign</th>
+                        <th>coords</th>
+                        <th>scope</th>
+                        <th>stale time</th>
+                    </tr>
+                    <tr v-for="u in byCategory('unit')">
+                        <td><img :src="getImg(u, 18)"/>
+                        </td>
+                        <td>{{ u.type }}</td>
+                        <td>{{ u.callsign }}</td>
+                        <td>{{ printCoords(u.lat, u.lon) }}</td>
+                        <td>{{ u.scope }}</td>
+                        <td>{{ dt(u.stale_time) }}</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+        <div class="card mb-2">
+            <div class="card-header">Points</div>
+            <div class="card-body">
+                <table class="table table-hover table-sm units">
+                    <tr>
+                        <th></th>
+                        <th>type</th>
+                        <th>callsign</th>
+                        <th>coords</th>
+                        <th>scope</th>
+                        <th>stale time</th>
+                    </tr>
+                    <tr v-for="u in byCategory('point')">
+                        <td><img :src="getImg(u, 18)"/></td>
+                        <td>{{ u.type }}</td>
+                        <td>{{ u.callsign }}</td>
+                        <td>{{ printCoords(u.lat, u.lon) }}</td>
+                        <td>{{ u.scope }}</td>
+                        <td>{{ dt(u.stale_time) }}</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
