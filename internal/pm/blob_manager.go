@@ -31,22 +31,26 @@ func NewBlobManages(basedir string) *BlobManager {
 	}
 }
 
-func (m *BlobManager) name(hash string) string {
-	return filepath.Join(m.basedir, hash)
+func (m *BlobManager) fileName(scope, hash string) string {
+	if scope == "" {
+		return filepath.Join(m.basedir, hash)
+	}
+
+	return filepath.Join(m.basedir, scope, hash)
 }
 
-func (m *BlobManager) GetFile(hash string) (io.ReadSeekCloser, error) {
+func (m *BlobManager) GetFile(scope, hash string) (io.ReadSeekCloser, error) {
 	m.mx.RLock()
 	defer m.mx.RUnlock()
 
-	if hash == "" || !tools.FileExists(m.name(hash)) {
+	if hash == "" || !tools.FileExists(m.fileName(scope, hash)) {
 		return nil, NotFound
 	}
 
-	return os.Open(m.name(hash))
+	return os.Open(m.fileName(scope, hash))
 }
 
-func (m *BlobManager) GetFileStat(hash string) (os.FileInfo, error) {
+func (m *BlobManager) GetFileStat(scope, hash string) (os.FileInfo, error) {
 	m.mx.RLock()
 	defer m.mx.RUnlock()
 
@@ -54,10 +58,10 @@ func (m *BlobManager) GetFileStat(hash string) (os.FileInfo, error) {
 		return nil, fmt.Errorf("no hash")
 	}
 
-	return os.Stat(m.name(hash))
+	return os.Stat(m.fileName(scope, hash))
 }
 
-func (m *BlobManager) PutFile(hash string, r io.Reader) (string, int64, error) {
+func (m *BlobManager) PutFile(scope, hash string, r io.Reader) (string, int64, error) {
 	if r == nil {
 		return "", 0, fmt.Errorf("no reader")
 	}
@@ -65,7 +69,7 @@ func (m *BlobManager) PutFile(hash string, r io.Reader) (string, int64, error) {
 	m.mx.Lock()
 	defer m.mx.Unlock()
 
-	if hash != "" && tools.FileExists(m.name(hash)) {
+	if hash != "" && tools.FileExists(m.fileName(scope, hash)) {
 		return hash, 0, nil
 	}
 
@@ -93,7 +97,7 @@ func (m *BlobManager) PutFile(hash string, r io.Reader) (string, int64, error) {
 		return "", 0, fmt.Errorf("invalid hash")
 	}
 
-	err = os.Rename(f.Name(), m.name(hash1))
+	err = os.Rename(f.Name(), m.fileName(scope, hash1))
 
 	return hash1, n, err
 }

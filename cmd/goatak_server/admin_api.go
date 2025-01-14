@@ -324,7 +324,7 @@ func getPackageHandler(app *App) fiber.Handler {
 			return ctx.SendStatus(fiber.StatusNotFound)
 		}
 
-		f, err := app.files.GetFile(pi.Hash)
+		f, err := app.files.GetFile(pi.Scope, pi.Hash)
 
 		if err != nil {
 			app.logger.Error("get file error", slog.Any("error", err))

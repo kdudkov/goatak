@@ -271,7 +271,7 @@ func (app *App) uploadMultipart(ctx *fiber.Ctx, uid, hash, filename string, pack
 		return nil, err
 	}
 
-	hash1, _, err := app.files.PutFile(hash, f)
+	hash1, _, err := app.files.PutFile(user.GetScope(), hash, f)
 
 	if err != nil {
 		app.logger.Error("save file error", slog.Any("error", err))
@@ -310,7 +310,7 @@ func (app *App) uploadFile(ctx *fiber.Ctx, uid, filename string) (*im.Resource, 
 	username := Username(ctx)
 	user := app.users.GetUser(username)
 
-	hash, n, err := app.files.PutFile("", ctx.Context().RequestBodyStream())
+	hash, n, err := app.files.PutFile(user.GetScope(), "", ctx.Context().RequestBodyStream())
 
 	if err != nil {
 		app.logger.Error("save file error", slog.Any("error", err))
@@ -353,7 +353,7 @@ func getContentGetHandler(app *App) fiber.Handler {
 			return ctx.Status(fiber.StatusNotFound).SendString("not found")
 		}
 
-		f, err := app.files.GetFile(hash)
+		f, err := app.files.GetFile(user.GetScope(), hash)
 
 		if err != nil {
 			if errors.Is(err, pm.NotFound) {
