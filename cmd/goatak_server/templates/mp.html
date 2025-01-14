@@ -9,7 +9,7 @@
             </tr>
             <tr v-for="p in all" @click="current = p">
                 <td>{{ p.Scope }}</td>
-                <td>{{ p.Name }}</td>
+                <td>{{ p.FileName }}</td>
                 <td>{{ p.Size }}</td>
                 <td>{{ p.MIMEType }}</td>
             </tr>
@@ -27,7 +27,7 @@
             Author: {{ current.SubmissionUser }} {{ current.CreatorUID }}<br/>
             Tool: {{ current.Tool }}<br/>
             <a class="btn btn-outline-danger" :href="'/mp/delete/' + current.ID">delete</a><br/>
-            <img class="w-100" v-if="current.MIMEType.startsWith('image/')" :src="'/mp/' + current.UID"/>
+            <img class="w-100" v-if="current.MIMEType.startsWith('image/')" :src="'/mp/' + current.ID"/>
         </div>
     </div>
 </div>
