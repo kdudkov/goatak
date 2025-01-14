@@ -124,9 +124,7 @@ func (q *MissionQuery) Get() []*model.Mission {
 	tx := q.where(q.db.Table("Missions"))
 
 	if q.full {
-		tx = tx.Preload("Points").Preload("Files", func(db *gorm.DB) *gorm.DB {
-			return db.Joins("Content")
-		})
+		tx = tx.Preload("Points").Preload("Resources")
 	}
 
 	if q.order != "" {
@@ -160,9 +158,7 @@ func (q *MissionQuery) One() *model.Mission {
 	tx := q.where(q.db.Table("missions"))
 
 	if q.full {
-		tx = tx.Preload("Points").Preload("Files", func(db *gorm.DB) *gorm.DB {
-			return db.Joins("Content")
-		})
+		tx = tx.Preload("Points").Preload("Resources")
 	}
 
 	err := tx.Take(&res).Error

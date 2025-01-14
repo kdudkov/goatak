@@ -49,8 +49,7 @@ func (mm *DatabaseManager) DeleteMission(id uint) error {
 			&model.Subscription{},
 			&model.Invitation{},
 			&model.Change{},
-			&model.MissionPoint{},
-			&model.MissionFile{}}
+		}
 
 		if err := tx.Where("id = ?", id).Delete(&model.Mission{}).Error; err != nil {
 			return err
@@ -66,6 +65,6 @@ func (mm *DatabaseManager) DeleteMission(id uint) error {
 	})
 }
 
-func (mm *DatabaseManager) AddKw(name string, kw []string) error {
+func (mm *DatabaseManager) UpdateKw(name string, kw []string) error {
 	return mm.MissionQuery().Name(name).Update(map[string]any{"keywords": strings.Join(kw, ",")})
 }

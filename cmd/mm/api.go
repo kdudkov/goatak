@@ -44,7 +44,7 @@ type PackageInfo struct {
 	Hash               string    `json:"Hash"`
 	CreatorUID         string    `json:"CreatorUid"`
 	Scope              string    `json:"Scope"`
-	Name               string    `json:"Name"`
+	Name               string    `json:"FileName"`
 	Tool               string    `json:"Tool"`
 }
 

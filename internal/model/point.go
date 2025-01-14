@@ -11,13 +11,12 @@ import (
 	"github.com/kdudkov/goatak/pkg/cotproto"
 )
 
-type MissionPoint struct {
+type Point struct {
 	ID          uint   `gorm:"primaryKey"`
 	Scope       string `gorm:"index"`
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
 	UID         string `gorm:"index"`
-	MissionID   uint   `gorm:"index"`
 	CreatorUID  string
 	Type        string
 	Callsign    string
@@ -30,7 +29,7 @@ type MissionPoint struct {
 	event       *cotproto.CotEvent `gorm:"-"`
 }
 
-func (p *MissionPoint) String() string {
+func (p *Point) String() string {
 	if p == nil {
 		return "nil"
 	}
@@ -38,7 +37,7 @@ func (p *MissionPoint) String() string {
 	return fmt.Sprintf("%s %s %s", p.UID, p.Callsign, p.Title)
 }
 
-func (p *MissionPoint) GetEvent() *cotproto.CotEvent {
+func (p *Point) GetEvent() *cotproto.CotEvent {
 	if p == nil {
 		return nil
 	}
@@ -56,7 +55,7 @@ func (p *MissionPoint) GetEvent() *cotproto.CotEvent {
 	return p.event
 }
 
-func (p *MissionPoint) BeforeSave(_ *gorm.DB) error {
+func (p *Point) BeforeSave(_ *gorm.DB) error {
 	if p == nil {
 		return nil
 	}
@@ -76,7 +75,7 @@ func (p *MissionPoint) BeforeSave(_ *gorm.DB) error {
 	return err
 }
 
-func (p *MissionPoint) UpdateFromMsg(msg *cot.CotMessage) {
+func (p *Point) UpdateFromMsg(msg *cot.CotMessage) {
 	parent, _ := msg.GetParent()
 	p.CreatorUID = parent
 	p.Scope = msg.Scope

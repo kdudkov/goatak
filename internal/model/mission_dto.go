@@ -90,13 +90,15 @@ type MissionSubscriptionDTO struct {
 }
 
 type MissionChangeDTO struct {
-	Type        string             `json:"type"`
-	MissionName string             `json:"missionName"`
-	Timestamp   CotTime            `json:"timestamp"`
-	CreatorUID  string             `json:"creatorUid"`
-	ServerTime  CotTime            `json:"serverTime"`
-	ContentUID  string             `json:"contentUid,omitempty"`
-	Details     *MissionDetailsDTO `json:"details,omitempty"`
+	Type            string             `json:"type"`
+	MissionName     string             `json:"missionName"`
+	Timestamp       CotTime            `json:"timestamp"`
+	CreatorUID      string             `json:"creatorUid"`
+	ServerTime      CotTime            `json:"serverTime"`
+	ContentUID      string             `json:"contentUid,omitempty"`
+	ContentHash     string             `json:"contentHash,omitempty"`
+	Details         *MissionDetailsDTO `json:"details,omitempty"`
+	ContentResource *ResourceDTO       `json:"contentResource,omitempty"`
 }
 
 type MissionDetailsDTO struct {
@@ -170,14 +172,14 @@ func ToMissionDTOFull(m *Mission, withToken bool, withScope bool) *MissionDTO {
 		Path:              m.Path,
 		Tool:              m.Tool,
 		Uids:              make([]*MissionPointDTO, len(m.Points)),
-		Contents:          make([]*ContentItemDTO, len(m.Files)),
+		Contents:          make([]*ContentItemDTO, len(m.Resources)),
 	}
 
 	for i, p := range m.Points {
 		mDTO.Uids[i] = ToMissionPointDTO(p)
 	}
 
-	for i, item := range m.Files {
+	for i, item := range m.Resources {
 		mDTO.Contents[i] = ToContentItemDTO(item)
 	}
 
@@ -227,7 +229,7 @@ func ToMissionInvitationDTO(m *Invitation, name string) *MissionInvitationDTO {
 	}
 }
 
-type ContentDTO struct {
+type ResourceDTO struct {
 	ID                 uint      `json:"PrimaryKey"`
 	UID                string    `json:"UID"`
 	SubmissionDateTime time.Time `json:"SubmissionDateTime"`
@@ -237,7 +239,7 @@ type ContentDTO struct {
 	SubmissionUser     string    `json:"SubmissionUser"`
 	Hash               string    `json:"Hash"`
 	CreatorUID         string    `json:"CreatorUid"`
-	Name               string    `json:"Name"`
+	Name               string    `json:"FileName"`
 	Tool               string    `json:"Tool"`
 }
 
@@ -249,17 +251,18 @@ func ToChangeDTO(c *Change, name string) *MissionChangeDTO {
 		ServerTime:  CotTime(c.CreatedAt),
 		CreatorUID:  c.CreatorUID,
 		ContentUID:  c.ContentUID,
+		ContentHash: c.ContentHash,
 	}
 
-	if c.ContentUID != "" {
+	if p := c.MissionPoint; p != nil {
 		cd.Details = &MissionDetailsDTO{
-			Type:        c.CotType,
-			Callsign:    c.Callsign,
-			IconsetPath: c.IconsetPath,
-			Color:       c.Color,
+			Type:        p.Type,
+			Callsign:    p.Callsign,
+			IconsetPath: p.IconsetPath,
+			Color:       p.Color,
 			Location: &LocationDTO{
-				Lat: c.Lat,
-				Lon: c.Lon,
+				Lat: p.Lat,
+				Lon: p.Lon,
 			},
 		}
 	}
@@ -267,7 +270,7 @@ func ToChangeDTO(c *Change, name string) *MissionChangeDTO {
 	return cd
 }
 
-func ToMissionPointDTO(i *MissionPoint) *MissionPointDTO {
+func ToMissionPointDTO(i *Point) *MissionPointDTO {
 	return &MissionPointDTO{
 		CreatorUID: i.CreatorUID,
 		Timestamp:  CotTime(i.CreatedAt),
@@ -286,41 +289,41 @@ func ToMissionPointDTO(i *MissionPoint) *MissionPointDTO {
 	}
 }
 
-func ToContentItemDTO(i *MissionFile) *ContentItemDTO {
+func ToContentItemDTO(r *Resource) *ContentItemDTO {
 	return &ContentItemDTO{
-		CreatorUID: i.CreatorUID,
-		Timestamp:  CotTime(i.CreatedAt),
+		CreatorUID: r.CreatorUID,
+		Timestamp:  CotTime(r.CreatedAt),
 		Data: DataDTO{
-			UID:            i.Content.UID,
-			Keywords:       strings.Split(i.Content.Keywords, ","),
-			MimeType:       i.Content.MIMEType,
-			Name:           i.Content.Name,
-			SubmissionTime: CotTime(i.Content.CreatedAt),
-			Submitter:      i.Content.SubmissionUser,
-			CreatorUID:     i.Content.CreatorUID,
-			Hash:           i.Content.Hash,
-			Size:           i.Content.Size,
+			UID:            r.UID,
+			Keywords:       r.Kw.List(),
+			MimeType:       r.MIMEType,
+			Name:           r.FileName,
+			SubmissionTime: CotTime(r.CreatedAt),
+			Submitter:      r.SubmissionUser,
+			CreatorUID:     r.CreatorUID,
+			Hash:           r.Hash,
+			Size:           r.Size,
 		},
 	}
 }
 
-func ToContentDTO(c *Content) *ContentDTO {
-	if c == nil {
+func ToResourceDTO(r *Resource) *ResourceDTO {
+	if r == nil {
 		return nil
 	}
 
-	return &ContentDTO{
-		ID:                 c.ID,
-		UID:                c.UID,
-		SubmissionDateTime: c.CreatedAt,
-		Keywords:           c.Kw.List(),
-		MIMEType:           c.MIMEType,
-		Size:               c.Size,
-		SubmissionUser:     c.SubmissionUser,
-		Hash:               c.Hash,
-		CreatorUID:         c.CreatorUID,
-		Name:               c.Name,
-		Tool:               c.Tool,
+	return &ResourceDTO{
+		ID:                 r.ID,
+		UID:                r.UID,
+		SubmissionDateTime: r.CreatedAt,
+		Keywords:           r.Kw.List(),
+		MIMEType:           r.MIMEType,
+		Size:               r.Size,
+		SubmissionUser:     r.SubmissionUser,
+		Hash:               r.Hash,
+		CreatorUID:         r.CreatorUID,
+		Name:               r.FileName,
+		Tool:               r.Tool,
 	}
 }
 

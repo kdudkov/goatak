@@ -363,7 +363,7 @@ func (app *App) processMissionPoint(missionName string, msg *cot.CotMessage) {
 
 	if msg.GetType() == "t-x-d-d" {
 		if uid := msg.GetFirstLink("p-p").GetAttr("uid"); uid != "" {
-			change = app.dbm.DeleteMissionPoint(m.ID, uid, "")
+			change = app.dbm.DeleteMissionPoint(m, uid, "")
 		}
 	} else {
 		change = app.dbm.AddMissionPoint(m, msg)

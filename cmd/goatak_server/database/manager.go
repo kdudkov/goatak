@@ -1,6 +1,7 @@
 package database
 
 import (
+	"database/sql"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -10,6 +11,7 @@ import (
 
 	"github.com/kdudkov/goatak/internal/model"
 	"github.com/kdudkov/goatak/pkg/cot"
+	"github.com/kdudkov/goatak/pkg/tools"
 )
 
 type DatabaseManager struct {
@@ -62,12 +64,12 @@ func (mm *DatabaseManager) MissionQuery() *MissionQuery {
 	return NewMissionQuery(mm.db)
 }
 
-func (mm *DatabaseManager) FileQuery() *FileQuery {
+func (mm *DatabaseManager) ResourceQuery() *ResourceQuery {
 	if mm == nil || mm.db == nil {
 		return nil
 	}
 
-	return NewFileQuery(mm.db)
+	return NewResourceQuery(mm.db)
 }
 
 func (mm *DatabaseManager) Migrate() error {
@@ -79,23 +81,23 @@ func (mm *DatabaseManager) Migrate() error {
 	if err := mm.db.AutoMigrate(
 		&model.Mission{},
 		&model.Change{},
-		&model.MissionPoint{},
-		&model.MissionFile{},
+		&model.Point{},
 		&model.Subscription{},
 		&model.Invitation{},
-		&model.Content{}); err != nil {
+		&model.Resource{},
+	); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (mm *DatabaseManager) GetPoint(uid string) *model.MissionPoint {
+func (mm *DatabaseManager) GetPoint(uid string) *model.Point {
 	if mm == nil || mm.db == nil {
 		return nil
 	}
 
-	var d *model.MissionPoint
+	var d *model.Point
 
 	err := mm.db.Where("uid = ?", uid).Take(&d).Error
 
@@ -119,88 +121,108 @@ func (mm *DatabaseManager) AddMissionPoint(mission *model.Mission, msg *cot.CotM
 		return nil
 	}
 
-	now := time.Now()
+	var point *model.Point
 
-	var point *model.MissionPoint
 	for _, p := range mission.Points {
 		if p.UID == msg.GetUID() {
-			mm.logger.Info("update existing point " + p.Callsign + " " + p.UID)
-			p.UpdateFromMsg(msg)
-			if err := mm.Save(p); err != nil {
-				return nil
-			}
+			point = p
+			break
+		}
+	}
+
+	if point != nil {
+		point.UpdateFromMsg(msg)
+		mm.Save(point)
+		return nil
+	}
+
+	point = &model.Point{UID: msg.GetUID()}
+	point.UpdateFromMsg(msg)
+	mm.Save(point)
+
+	mm.db.Model(mission).Association("Points").Append(point)
+
+	// todo: use sender uid, not parent
+	parent, _ := msg.GetParent()
+
+	c := &model.Change{
+		Type:           "ADD_CONTENT",
+		MissionID:      mission.ID,
+		CreatorUID:     parent,
+		ContentUID:     msg.GetUID(),
+		MissionPointID: sql.NullInt32{int32(point.ID), true},
+	}
+
+	_ = mm.Create(c)
+
+	return c
+}
+
+func (mm *DatabaseManager) DeleteMissionPoint(mission *model.Mission, uid string, authorUID string) *model.Change {
+	if mm == nil || mm.db == nil || uid == "" {
+		return nil
+	}
+
+	var point *model.Point
+
+	for _, p := range mission.Points {
+		if p.UID == uid {
 			point = p
 			break
 		}
 	}
 
 	if point == nil {
-		mm.logger.Info("add new point " + msg.GetCallsign() + " " + msg.GetUID())
-		point = &model.MissionPoint{
-			UID: msg.GetUID(),
-		}
+		return nil
+	}
 
-		point.UpdateFromMsg(msg)
+	mm.db.Model(mission).Association("Points").Delete(point)
 
-		mission.Points = append(mission.Points, point)
-		mission.UpdatedAt = now
+	c := &model.Change{
+		Type:           "REMOVE_CONTENT",
+		MissionID:      mission.ID,
+		CreatorUID:     authorUID,
+		ContentUID:     uid,
+		MissionPointID: sql.NullInt32{int32(point.ID), true},
+	}
 
-		if err := mm.Save(mission); err != nil {
-			return nil
+	_ = mm.Create(c)
+
+	return c
+}
+
+func (mm *DatabaseManager) AddMissionResource(mission *model.Mission, hash string, authorUID string) *model.Change {
+	if mm == nil || mm.db == nil || hash == "" {
+		return nil
+	}
+
+	var res *model.Resource
+
+	for _, r := range mission.Resources {
+		if r.Hash == hash {
+			res = r
+			break
 		}
 	}
 
-	// todo: use sender uid, not parent
-	parent, _ := msg.GetParent()
+	if res != nil {
+		return nil
+	}
+
+	res = mm.ResourceQuery().Scope(mission.Scope).Hash(hash).One()
+
+	if res == nil {
+		return nil
+	}
+
+	mm.db.Model(mission).Association("Resources").Append(res)
 
 	c := &model.Change{
 		Type:        "ADD_CONTENT",
 		MissionID:   mission.ID,
-		CreatorUID:  parent,
-		ContentUID:  msg.GetUID(),
-		CotType:     msg.GetType(),
-		Callsign:    msg.GetCallsign(),
-		IconsetPath: msg.GetIconsetPath(),
-		Color:       msg.GetColor(),
-		Lat:         msg.GetLat(),
-		Lon:         msg.GetLon(),
-	}
-
-	_ = mm.Create(c)
-
-	return c
-}
-
-func (mm *DatabaseManager) DeleteMissionPoint(missionId uint, uid string, authorUID string) *model.Change {
-	if mm == nil || mm.db == nil || uid == "" {
-		return nil
-	}
-
-	var mp *model.MissionPoint
-	res := mm.db.Where("mission_id = ? AND uid = ?", missionId, uid).Take(&mp)
-
-	if errors.Is(res.Error, gorm.ErrRecordNotFound) {
-		return nil
-	}
-
-	res = mm.db.Where("id = ?", mp.ID).Delete(&model.MissionPoint{})
-
-	if res.Error != nil {
-		mm.logger.Error("delete point error", slog.Any("error", res.Error))
-		return nil
-	}
-
-	c := &model.Change{
-		Type:        "REMOVE_CONTENT",
-		MissionID:   missionId,
 		CreatorUID:  authorUID,
-		ContentUID:  uid,
-		CotType:     mp.Type,
-		Callsign:    mp.Callsign,
-		IconsetPath: mp.IconsetPath,
-		Color:       mp.Color,
-		Lat:         mp.Lat,
-		Lon:         mp.Lon,
+		ContentHash: hash,
+		ResourceID:  sql.NullInt32{int32(res.ID), true},
 	}
 
 	_ = mm.Create(c)
@@ -208,63 +230,80 @@ func (mm *DatabaseManager) DeleteMissionPoint(missionId uint, uid string, author
 	return c
 }
 
-func (mm *DatabaseManager) AddMissionContent(mission *model.Mission, hash string, authorUID string) bool {
-	c := mm.FileQuery().Scope(mission.Scope).Hash(hash).One()
-
-	if c == nil {
-		return false
+func (mm *DatabaseManager) DeleteMissionContent(mission *model.Mission, hash string, authorUID string) *model.Change {
+	if mm == nil || mm.db == nil || hash == "" {
+		return nil
 	}
 
-	for _, ca := range mission.Files {
-		if ca.ContentID == c.ID {
-			return false
+	var res *model.Resource
+
+	for _, r := range mission.Resources {
+		if r.Hash == hash {
+			res = r
+			break
 		}
 	}
 
-	ca := &model.MissionFile{ContentID: c.ID, Content: c, MissionID: mission.ID, CreatorUID: authorUID}
+	if res == nil {
+		return nil
+	}
 
-	mission.Files = append(mission.Files, ca)
-	mm.Save(mission)
+	mm.db.Model(mission).Association("Resources").Delete(res)
 
-	return true
+	c := &model.Change{
+		Type:        "REMOVE_CONTENT",
+		MissionID:   mission.ID,
+		CreatorUID:  authorUID,
+		ContentHash: hash,
+		ResourceID:  sql.NullInt32{int32(res.ID), true},
+	}
+
+	_ = mm.Create(c)
+
+	return c
 }
 
-func (mm *DatabaseManager) DeleteMissionContent(scope string, missionId uint, hash string, authorUID string) bool {
-	if mm == nil || mm.db == nil || hash == "" {
-		return false
-	}
-
-	c := mm.FileQuery().Scope(scope).Hash(hash).One()
-
-	if c == nil {
-		return false
-	}
-
-	res := mm.db.Where("mission_id = ? and content_id = ?", missionId, c.ID).Delete(&model.MissionFile{})
-
-	if res.RowsAffected > 0 {
-		mm.UpdateMissionChanged(missionId)
-		return true
-	}
-
-	return false
-}
-
-func (mm *DatabaseManager) GetChanges(missionId uint, after time.Time) []*model.Change {
-	var m []*model.Change
+func (mm *DatabaseManager) GetChanges(missionId uint, after time.Time, squashed bool) []*model.Change {
+	var ch []*model.Change
 
 	err := mm.db.Where("mission_id = ? and created_at > ?", missionId, after).Order("created_at DESC").
-		Find(&m).Error
+		Find(&ch).Error
 
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil
 	}
 
-	return m
+	if !squashed {
+		return ch
+	}
+
+	uids := tools.NewStringSet()
+
+	n := 0
+	ch1 := make([]*model.Change, 0)
+
+	for _, c := range ch {
+		key := c.ContentUID
+		if key == "" {
+			key = c.ContentHash
+		}
+
+		if uids.Has(key) {
+			continue
+		}
+		uids.Add(key)
+
+		if c.Type != "REMOVE_CONTENT" {
+			ch1 = append(ch1, c)
+		}
+		n++
+	}
+
+	return ch1
 }
 
-func (mm *DatabaseManager) GetFiles() []*model.Content {
-	var m []*model.Content
+func (mm *DatabaseManager) GetFiles() []*model.Resource {
+	var m []*model.Resource
 
 	err := mm.db.Order("created_at DESC").
 		Find(&m).Error
@@ -277,6 +316,5 @@ func (mm *DatabaseManager) GetFiles() []*model.Content {
 }
 
 func (mm *DatabaseManager) DeleteFile(id uint) {
-	mm.db.Where("id = ?", id).Delete(&model.Content{})
-	mm.db.Where("content_id = ?", id).Delete(&model.MissionFile{})
+	mm.db.Where("id = ?", id).Delete(&model.Resource{})
 }

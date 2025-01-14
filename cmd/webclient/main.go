@@ -12,6 +12,7 @@ import (
 	"math/rand"
 	"os"
 	"os/signal"
+	"runtime"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -344,11 +345,18 @@ func main() {
 		return
 	}
 
+	var opts *slog.HandlerOptions
 	var h slog.Handler
 	if *debug {
-		h = log.NewHandler(&slog.HandlerOptions{Level: slog.LevelDebug})
+		opts = &slog.HandlerOptions{Level: slog.LevelDebug}
 	} else {
-		h = log.NewHandler(&slog.HandlerOptions{Level: slog.LevelInfo})
+		opts = &slog.HandlerOptions{Level: slog.LevelInfo}
+	}
+
+	if runtime.GOOS == "windows" {
+		h = slog.NewTextHandler(os.Stdout, opts)
+	} else {
+		h = log.NewHandler(opts)
 	}
 
 	slog.SetDefault(slog.New(h))

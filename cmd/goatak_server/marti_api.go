@@ -184,12 +184,12 @@ func getMissionQueryHandler(app *App) fiber.Handler {
 			return ctx.Status(fiber.StatusNotAcceptable).SendString("no hash")
 		}
 
-		c := app.dbm.FileQuery().Hash(hash).Scope(user.GetScope()).One()
+		c := app.dbm.ResourceQuery().Hash(hash).Scope(user.GetScope()).One()
 		if c == nil {
 			return ctx.SendStatus(fiber.StatusNotFound)
 		}
 
-		return ctx.SendString(packageUrl(c))
+		return ctx.SendString(resourceUrl(c))
 	}
 }
 
@@ -214,9 +214,9 @@ func getMissionUploadHandler(app *App) fiber.Handler {
 			return ctx.SendStatus(fiber.StatusNotAcceptable)
 		}
 
-		app.logger.Info(fmt.Sprintf("save packege %s %s %s", c.Name, c.UID, c.Hash))
+		app.logger.Info(fmt.Sprintf("save packege %s %s %s", c.FileName, c.UID, c.Hash))
 
-		return ctx.SendString(packageUrl(c))
+		return ctx.SendString(resourceUrl(c))
 	}
 }
 
@@ -239,7 +239,7 @@ func getUploadHandler(app *App) fiber.Handler {
 				return ctx.SendStatus(fiber.StatusNotAcceptable)
 			}
 
-			return ctx.SendString(packageUrl(c))
+			return ctx.SendString(resourceUrl(c))
 
 		default:
 			c, err := app.uploadFile(ctx, uid, fname)
@@ -248,12 +248,12 @@ func getUploadHandler(app *App) fiber.Handler {
 				return ctx.SendStatus(fiber.StatusNotAcceptable)
 			}
 
-			return ctx.SendString(packageUrl(c))
+			return ctx.SendString(resourceUrl(c))
 		}
 	}
 }
 
-func (app *App) uploadMultipart(ctx *fiber.Ctx, uid, hash, filename string, pack bool) (*im.Content, error) {
+func (app *App) uploadMultipart(ctx *fiber.Ctx, uid, hash, filename string, pack bool) (*im.Resource, error) {
 	username := Username(ctx)
 	user := app.users.GetUser(username)
 
@@ -283,11 +283,11 @@ func (app *App) uploadMultipart(ctx *fiber.Ctx, uid, hash, filename string, pack
 		return nil, err
 	}
 
-	c := &im.Content{
+	c := &im.Resource{
 		Scope:          user.GetScope(),
 		Hash:           hash1,
 		UID:            uid,
-		Name:           filename,
+		FileName:       filename,
 		MIMEType:       fh.Header.Get(fiber.HeaderContentType),
 		Size:           int(fh.Size),
 		SubmissionUser: user.GetLogin(),
@@ -306,7 +306,7 @@ func (app *App) uploadMultipart(ctx *fiber.Ctx, uid, hash, filename string, pack
 	return c, err
 }
 
-func (app *App) uploadFile(ctx *fiber.Ctx, uid, filename string) (*im.Content, error) {
+func (app *App) uploadFile(ctx *fiber.Ctx, uid, filename string) (*im.Resource, error) {
 	username := Username(ctx)
 	user := app.users.GetUser(username)
 
@@ -317,11 +317,11 @@ func (app *App) uploadFile(ctx *fiber.Ctx, uid, filename string) (*im.Content, e
 		return nil, err
 	}
 
-	c := &im.Content{
+	c := &im.Resource{
 		Scope:          user.GetScope(),
 		Hash:           hash,
 		UID:            uid,
-		Name:           filename,
+		FileName:       filename,
 		MIMEType:       ctx.Get(fiber.HeaderContentType),
 		Size:           int(n),
 		SubmissionUser: user.GetLogin(),
@@ -347,7 +347,7 @@ func getContentGetHandler(app *App) fiber.Handler {
 			return ctx.Status(fiber.StatusNotAcceptable).SendString("no hash or uid")
 		}
 
-		fi := app.dbm.FileQuery().Scope(user.GetScope()).Hash(hash).UID(uid).One()
+		fi := app.dbm.ResourceQuery().Scope(user.GetScope()).Hash(hash).UID(uid).One()
 
 		if fi == nil {
 			return ctx.Status(fiber.StatusNotFound).SendString("not found")
@@ -389,7 +389,7 @@ func getMetadataGetHandler(app *App) fiber.Handler {
 			return ctx.Status(fiber.StatusNotAcceptable).SendString("no hash")
 		}
 
-		cn := app.dbm.FileQuery().Scope(user.GetScope()).Hash(hash).One()
+		cn := app.dbm.ResourceQuery().Scope(user.GetScope()).Hash(hash).One()
 
 		if cn == nil {
 			return ctx.SendStatus(fiber.StatusNotFound)
@@ -408,7 +408,7 @@ func getMetadataPutHandler(app *App) fiber.Handler {
 			return ctx.Status(fiber.StatusNotAcceptable).SendString("no hash")
 		}
 
-		cn := app.dbm.FileQuery().Scope(user.GetScope()).Hash(hash).One()
+		cn := app.dbm.ResourceQuery().Scope(user.GetScope()).Hash(hash).One()
 
 		if cn == nil {
 			return ctx.SendStatus(fiber.StatusNotFound)
@@ -428,11 +428,11 @@ func getSearchHandler(app *App) fiber.Handler {
 
 		result := make(map[string]any)
 
-		files := app.dbm.FileQuery().Scope(user.GetScope()).Tool(ctx.Query("tool")).Get()
-		res := make([]*im.ContentDTO, len(files))
+		files := app.dbm.ResourceQuery().Scope(user.GetScope()).Tool(ctx.Query("tool")).Get()
+		res := make([]*im.ResourceDTO, len(files))
 
 		for i, f := range files {
-			res[i] = im.ToContentDTO(f)
+			res[i] = im.ToResourceDTO(f)
 		}
 
 		result["results"] = res
@@ -588,7 +588,7 @@ func getXmlHandler(app *App) fiber.Handler {
 	}
 }
 
-func packageUrl(c *im.Content) string {
+func resourceUrl(c *im.Resource) string {
 	return fmt.Sprintf("/Marti/sync/content?hash=%s", c.Hash)
 }
 

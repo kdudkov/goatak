@@ -23,7 +23,7 @@ type Mission struct {
 	Tool           string
 	Groups         string
 	Keywords       string
-	Points         []*MissionPoint `gorm:"constraint:OnDelete:CASCADE"`
-	Files          []*MissionFile  `gorm:"constraint:OnDelete:CASCADE"`
+	Resources      []*Resource `gorm:"many2many:mission_resources;"`
+	Points         []*Point    `gorm:"many2many:mission_points;"`
 	Token          string
 }

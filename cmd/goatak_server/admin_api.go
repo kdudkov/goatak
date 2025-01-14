@@ -318,7 +318,7 @@ func getPackageHandler(app *App) fiber.Handler {
 			return ctx.SendStatus(fiber.StatusBadRequest)
 		}
 
-		pi := app.dbm.FileQuery().Id(uint(id)).One()
+		pi := app.dbm.ResourceQuery().Id(uint(id)).One()
 
 		if pi == nil {
 			return ctx.SendStatus(fiber.StatusNotFound)
@@ -339,7 +339,7 @@ func getPackageHandler(app *App) fiber.Handler {
 		ctx.Set(fiber.HeaderContentLength, strconv.Itoa(pi.Size))
 
 		if !strings.HasPrefix(pi.MIMEType, "image/") {
-			fn := pi.Name
+			fn := pi.FileName
 			if pi.MIMEType == "application/x-zip-compressed" && !strings.HasSuffix(fn, ".zip") {
 				fn += ".zip"
 			}

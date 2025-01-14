@@ -13,7 +13,6 @@ import (
 
 	"github.com/kdudkov/goatak/internal/model"
 	"github.com/kdudkov/goatak/pkg/cot"
-	"github.com/kdudkov/goatak/pkg/tools"
 )
 
 const (
@@ -204,7 +203,7 @@ func getMissionKeywordsPutHandler(app *App) fiber.Handler {
 			return err
 		}
 
-		return app.dbm.AddKw(ctx.Params("missionname"), kw)
+		return app.dbm.UpdateKw(ctx.Params("missionname"), kw)
 	}
 }
 
@@ -299,37 +298,7 @@ func getMissionChangesHandler(app *App) fiber.Handler {
 			return ctx.SendStatus(fiber.StatusNotFound)
 		}
 
-		ch := app.dbm.GetChanges(mission.ID, d1)
-
-		if ctx.QueryBool("squashed") {
-			uids := tools.NewStringSet()
-
-			n := 0
-
-			for i := range ch {
-				idx := len(ch) - i - 1
-				if uids.Has(ch[idx].ContentUID) {
-					ch[idx] = nil
-					continue
-				}
-				uids.Add(ch[idx].ContentUID)
-
-				if ch[idx].Type == "REMOVE_CONTENT" {
-					ch[idx] = nil
-				}
-				n++
-			}
-
-			ch1 := make([]*model.Change, 0, n)
-
-			for _, c := range ch {
-				if c != nil {
-					ch1 = append(ch, c)
-				}
-			}
-
-			ch = ch1
-		}
+		ch := app.dbm.GetChanges(mission.ID, d1, ctx.QueryBool("squashed"))
 
 		result := make([]*model.MissionChangeDTO, len(ch))
 
@@ -402,13 +371,13 @@ func getMissionContentPutHandler(app *App) fiber.Handler {
 
 		if d, ok := data["hashes"]; ok {
 			for _, h := range d {
-				added = added || app.dbm.AddMissionContent(mission, h, author)
+				change := app.dbm.AddMissionResource(mission, h, author)
+
+				app.notifyMissionSubscribers(mission, change)
 			}
 		}
 
 		if added {
-			app.dbm.UpdateMissionChanged(mission.ID)
-
 			ctx.Status(fiber.StatusCreated)
 		}
 
@@ -428,13 +397,15 @@ func getMissionContentDeleteHandler(app *App) fiber.Handler {
 		author := ctx.Query("creatorUid")
 
 		if uid := ctx.Query("uid"); uid != "" {
-			change := app.dbm.DeleteMissionPoint(mission.ID, uid, author)
+			change := app.dbm.DeleteMissionPoint(mission, uid, author)
 
 			app.notifyMissionSubscribers(mission, change)
 		}
 
 		if hash := ctx.Query("hash"); hash != "" {
-			app.dbm.DeleteMissionContent(user.GetScope(), mission.ID, hash, author)
+			change := app.dbm.DeleteMissionContent(mission, hash, author)
+
+			app.notifyMissionSubscribers(mission, change)
 		}
 
 		m1 := app.dbm.MissionQuery().Id(mission.ID).Full().One()

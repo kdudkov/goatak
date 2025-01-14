@@ -1,23 +1,23 @@
 package model
 
 import (
+	"database/sql"
 	"fmt"
 	"time"
 )
 
 type Change struct {
-	ID          uint      `gorm:"primaryKey"`
-	CreatedAt   time.Time `gorm:"index"`
-	Type        string
-	MissionID   uint `gorm:"index"`
-	CreatorUID  string
-	ContentUID  string `gorm:"index"`
-	CotType     string
-	Callsign    string
-	IconsetPath string
-	Color       string
-	Lat         float64
-	Lon         float64
+	ID             uint      `gorm:"primaryKey"`
+	CreatedAt      time.Time `gorm:"index"`
+	Type           string
+	MissionID      uint `gorm:"index"`
+	CreatorUID     string
+	ContentUID     string
+	MissionPointID sql.NullInt32
+	MissionPoint   *Point `gorm:"foreignKey:MissionPointID"`
+	ContentHash    string
+	ResourceID     sql.NullInt32
+	Resource       *Resource `gorm:"foreignKey:ResourceID"`
 }
 
 func (c *Change) String() string {

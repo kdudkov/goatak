@@ -135,7 +135,7 @@ func (app *App) drawMission() {
 
 		if val, ok := app.missions.Load(name); ok {
 			if m, ok1 := val.(*model.MissionDTO); ok1 {
-				fmt.Fprintf(v, "Name: %s\n", m.Name)
+				fmt.Fprintf(v, "FileName: %s\n", m.Name)
 				fmt.Fprintf(v, "Description: %s\n", m.Description)
 				fmt.Fprintf(v, "Created: %s by %s\n", ft(m.CreateTime), m.CreatorUID)
 				fmt.Fprintf(v, "Token: %s\n", m.Token)

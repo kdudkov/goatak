@@ -9,7 +9,7 @@ import (
 	"github.com/kdudkov/goatak/internal/model"
 )
 
-type FileQuery struct {
+type ResourceQuery struct {
 	Query
 	id    uint
 	scope string
@@ -19,18 +19,18 @@ type FileQuery struct {
 	name  string
 }
 
-func NewFileQuery(db *gorm.DB) *FileQuery {
-	return &FileQuery{
+func NewResourceQuery(db *gorm.DB) *ResourceQuery {
+	return &ResourceQuery{
 		Query: Query{
 			db:     db,
 			limit:  100,
 			offset: 0,
-			order:  "contents.created_at",
+			order:  "resources.created_at",
 		},
 	}
 }
 
-func (q *FileQuery) Order(s string) *FileQuery {
+func (q *ResourceQuery) Order(s string) *ResourceQuery {
 	if q == nil {
 		return nil
 	}
@@ -39,7 +39,7 @@ func (q *FileQuery) Order(s string) *FileQuery {
 	return q
 }
 
-func (q *FileQuery) Limit(n int) *FileQuery {
+func (q *ResourceQuery) Limit(n int) *ResourceQuery {
 	if q == nil {
 		return nil
 	}
@@ -48,7 +48,7 @@ func (q *FileQuery) Limit(n int) *FileQuery {
 	return q
 }
 
-func (q *FileQuery) Offset(n int) *FileQuery {
+func (q *ResourceQuery) Offset(n int) *ResourceQuery {
 	if q == nil {
 		return nil
 	}
@@ -57,7 +57,7 @@ func (q *FileQuery) Offset(n int) *FileQuery {
 	return q
 }
 
-func (q *FileQuery) Id(id uint) *FileQuery {
+func (q *ResourceQuery) Id(id uint) *ResourceQuery {
 	if q == nil {
 		return nil
 	}
@@ -66,7 +66,7 @@ func (q *FileQuery) Id(id uint) *FileQuery {
 	return q
 }
 
-func (q *FileQuery) Scope(scope string) *FileQuery {
+func (q *ResourceQuery) Scope(scope string) *ResourceQuery {
 	if q == nil {
 		return nil
 	}
@@ -75,7 +75,7 @@ func (q *FileQuery) Scope(scope string) *FileQuery {
 	return q
 }
 
-func (q *FileQuery) UID(uid string) *FileQuery {
+func (q *ResourceQuery) UID(uid string) *ResourceQuery {
 	if q == nil {
 		return nil
 	}
@@ -84,7 +84,7 @@ func (q *FileQuery) UID(uid string) *FileQuery {
 	return q
 }
 
-func (q *FileQuery) Tool(tool string) *FileQuery {
+func (q *ResourceQuery) Tool(tool string) *ResourceQuery {
 	if q == nil {
 		return nil
 	}
@@ -93,7 +93,7 @@ func (q *FileQuery) Tool(tool string) *FileQuery {
 	return q
 }
 
-func (q *FileQuery) Hash(hash string) *FileQuery {
+func (q *ResourceQuery) Hash(hash string) *ResourceQuery {
 	if q == nil {
 		return nil
 	}
@@ -102,7 +102,7 @@ func (q *FileQuery) Hash(hash string) *FileQuery {
 	return q
 }
 
-func (q *FileQuery) Name(name string) *FileQuery {
+func (q *ResourceQuery) Name(name string) *ResourceQuery {
 	if q == nil {
 		return nil
 	}
@@ -111,7 +111,7 @@ func (q *FileQuery) Name(name string) *FileQuery {
 	return q
 }
 
-func (q *FileQuery) where(tx *gorm.DB) *gorm.DB {
+func (q *ResourceQuery) where(tx *gorm.DB) *gorm.DB {
 	if q.id != 0 {
 		tx = tx.Where("id = ?", q.id)
 	}
@@ -139,14 +139,14 @@ func (q *FileQuery) where(tx *gorm.DB) *gorm.DB {
 	return tx
 }
 
-func (q *FileQuery) Get() []*model.Content {
+func (q *ResourceQuery) Get() []*model.Resource {
 	if q == nil {
 		return nil
 	}
 
-	var res []*model.Content
+	var res []*model.Resource
 
-	tx := q.where(q.db.Table("contents"))
+	tx := q.where(q.db.Table("resources"))
 
 	if q.order != "" {
 		tx = tx.Order(q.order)
@@ -169,14 +169,14 @@ func (q *FileQuery) Get() []*model.Content {
 	return res
 }
 
-func (q *FileQuery) One() *model.Content {
+func (q *ResourceQuery) One() *model.Resource {
 	if q == nil {
 		return nil
 	}
 
-	res := new(model.Content)
+	res := new(model.Resource)
 
-	tx := q.where(q.db.Table("contents"))
+	tx := q.where(q.db.Table("resources"))
 
 	err := tx.Take(&res).Error
 
@@ -187,12 +187,12 @@ func (q *FileQuery) One() *model.Content {
 	return res
 }
 
-func (q *FileQuery) Update(updates map[string]any) error {
+func (q *ResourceQuery) Update(updates map[string]any) error {
 	if q == nil {
 		return nil
 	}
 
-	res := q.where(q.db.Table("contents"))
+	res := q.where(q.db.Table("resources"))
 	res.Updates(updates)
 
 	if res.Error != nil {
@@ -200,7 +200,7 @@ func (q *FileQuery) Update(updates map[string]any) error {
 	}
 
 	if res.RowsAffected == 0 {
-		return fmt.Errorf("Content is not found")
+		return fmt.Errorf("Resource is not found")
 	}
 
 	return nil

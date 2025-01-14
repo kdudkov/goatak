@@ -112,8 +112,8 @@ func TestPointCRUD(t *testing.T) {
 	require.Len(t, m.MissionQuery().Scope("scope1").Name(m1.Name).Full().One().Points, 2)
 	require.Len(t, m.MissionQuery().Scope("scope1").Name(m2.Name).Full().One().Points, 1)
 
-	require.NotNil(t, m.DeleteMissionPoint(m1.ID, "uid1", ""))
-	require.Nil(t, m.DeleteMissionPoint(m1.ID, "uid1", ""))
+	require.NotNil(t, m.DeleteMissionPoint(m1, "uid1", ""))
+	require.Nil(t, m.DeleteMissionPoint(m1, "uid1", ""))
 
 	require.Len(t, m.MissionQuery().Scope("scope1").Name(m1.Name).Full().One().Points, 1)
 	require.Len(t, m.MissionQuery().Scope("scope1").Name(m2.Name).Full().One().Points, 1)
@@ -128,20 +128,21 @@ func TestMissionContent(t *testing.T) {
 	m1 := &model.Mission{Name: "mission1", Scope: "scope1"}
 	require.NoError(t, m.CreateMission(m1))
 
-	require.NoError(t, m.Save(&model.Content{Name: "file1", Hash: "aaa", Scope: "scope1"}))
-	require.NoError(t, m.Save(&model.Content{Name: "file2", Hash: "bbb", Scope: "scope1"}))
-	require.NoError(t, m.Save(&model.Content{Name: "file3", Hash: "ccc", Scope: "scope1"}))
+	require.NoError(t, m.Save(&model.Resource{FileName: "file1", Hash: "aaa", Scope: "scope1"}))
+	require.NoError(t, m.Save(&model.Resource{FileName: "file2", Hash: "bbb", Scope: "scope1"}))
+	require.NoError(t, m.Save(&model.Resource{FileName: "file3", Hash: "ccc", Scope: "scope1"}))
 
-	m.AddMissionContent(m1, "aaa", "author")
-	m.AddMissionContent(m1, "aaa", "author")
-	m.AddMissionContent(m1, "bbb", "author")
+	require.NotNil(t, m.AddMissionResource(m1, "aaa", "author"))
+	require.Nil(t, m.AddMissionResource(m1, "aaa", "author"))
+	require.NotNil(t, m.AddMissionResource(m1, "bbb", "author"))
 
-	assert.Len(t, m1.Files, 2)
+	assert.Len(t, m1.Resources, 2)
+	assert.NotNil(t, m1.Resources[0])
 
 	m2 := m.MissionQuery().Id(m1.ID).Full().One()
 
-	assert.Len(t, m2.Files, 2)
-	assert.NotNil(t, m2.Files[0].Content)
+	assert.Len(t, m2.Resources, 2)
+	assert.NotNil(t, m2.Resources[0])
 }
 
 func getTestDatabase() *gorm.DB {
