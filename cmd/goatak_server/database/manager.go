@@ -136,7 +136,12 @@ func (mm *DatabaseManager) AddMissionPoint(mission *model.Mission, msg *cot.CotM
 		return nil
 	}
 
-	point = &model.Point{UID: msg.GetUID()}
+	point = mm.GetPoint(msg.GetUID())
+
+	if point == nil {
+		point = &model.Point{UID: msg.GetUID()}
+	}
+
 	point.UpdateFromMsg(msg)
 	mm.Save(point)
 

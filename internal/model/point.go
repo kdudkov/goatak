@@ -16,7 +16,7 @@ type Point struct {
 	Scope       string `gorm:"index"`
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
-	UID         string `gorm:"index"`
+	UID         string `gorm:"uniqueIndex"`
 	CreatorUID  string
 	Type        string
 	Callsign    string
