@@ -23,7 +23,7 @@ func (mm *DatabaseManager) CreateMission(m *model.Mission) error {
 		return fmt.Errorf("null mission name")
 	}
 
-	return mm.db.Transaction(func(tx *gorm.DB) error {
+	err := mm.db.Transaction(func(tx *gorm.DB) error {
 		if NewMissionQuery(tx).Scope(m.Scope).Name(m.Name).One() != nil {
 			return fmt.Errorf("mission %s exists", m.Name)
 		}
@@ -41,6 +41,14 @@ func (mm *DatabaseManager) CreateMission(m *model.Mission) error {
 
 		return tx.Create(c).Error
 	})
+
+	if err != nil {
+		return err
+	}
+
+	_, err = mm.subscribe(m.ID, m.CreatorUID, m.Creator, true)
+
+	return err
 }
 
 func (mm *DatabaseManager) DeleteMission(id uint) error {

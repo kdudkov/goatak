@@ -18,11 +18,16 @@ func (mm *DatabaseManager) Subscribe(user *model.User, mission *model.Mission, u
 		return nil, fmt.Errorf("Illegal attempt to subscribe to mission! Password did not match.")
 	}
 
-	return mm.subscribe(mission.ID, uid, user.GetLogin())
+	return mm.subscribe(mission.ID, uid, user.GetLogin(), false)
 }
 
-func (mm *DatabaseManager) subscribe(missionID uint, clientUID string, username string) (*model.Subscription, error) {
+func (mm *DatabaseManager) subscribe(missionID uint, clientUID string, username string, creator bool) (*model.Subscription, error) {
 	var s *model.Subscription
+
+	role := "MISSION_SUBSCRIBER"
+	if creator {
+		role = "MISSION_CREATOR"
+	}
 
 	err := mm.db.Transaction(func(tx *gorm.DB) error {
 		err := tx.Where("mission_id = ? AND client_uid = ?", missionID, clientUID).Find(&s).Error
@@ -34,7 +39,7 @@ func (mm *DatabaseManager) subscribe(missionID uint, clientUID string, username 
 		s.MissionID = missionID
 		s.ClientUID = clientUID
 		s.Username = username
-		s.Role = "MISSION_SUBSCRIBER"
+		s.Role = role
 
 		return tx.Save(s).Error
 	})
