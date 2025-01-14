@@ -22,6 +22,10 @@ func (mm *DatabaseManager) Subscribe(user *model.User, mission *model.Mission, u
 }
 
 func (mm *DatabaseManager) subscribe(missionID uint, clientUID string, username string, creator bool) (*model.Subscription, error) {
+	if clientUID == "" {
+		return nil, nil
+	}
+
 	var s *model.Subscription
 
 	role := "MISSION_SUBSCRIBER"
