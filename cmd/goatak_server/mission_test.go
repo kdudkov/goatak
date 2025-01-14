@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
@@ -117,6 +118,9 @@ func TestPointCRUD(t *testing.T) {
 
 	require.Len(t, m.MissionQuery().Scope("scope1").Name(m1.Name).Full().One().Points, 1)
 	require.Len(t, m.MissionQuery().Scope("scope1").Name(m2.Name).Full().One().Points, 1)
+
+	ch := m.GetChanges(m1.ID, time.Now().Add(-time.Hour), false)
+	fmt.Println(ch)
 }
 
 func TestMissionContent(t *testing.T) {

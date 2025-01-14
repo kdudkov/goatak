@@ -25,5 +25,13 @@ func (c *Change) String() string {
 		return "nil"
 	}
 
-	return fmt.Sprintf("%s, mid: %d, uid: %s", c.Type, c.MissionID, c.ContentUID)
+	if c.MissionPointID.Valid {
+		return fmt.Sprintf("POINT %s, mid: %d, uid: %s, %d", c.Type, c.MissionID, c.ContentUID, c.MissionPointID.Int32)
+	}
+
+	if c.ResourceID.Valid {
+		return fmt.Sprintf("RESOURCE %s, mid: %d, uid: %s, %d", c.Type, c.MissionID, c.ContentUID, c.ResourceID.Int32)
+	}
+
+	return fmt.Sprintf("INVALID %s, mid: %d, uid: %s", c.Type, c.MissionID, c.ContentUID)
 }

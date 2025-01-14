@@ -266,10 +266,10 @@ func (mm *DatabaseManager) DeleteMissionContent(mission *model.Mission, hash str
 func (mm *DatabaseManager) GetChanges(missionId uint, after time.Time, squashed bool) []*model.Change {
 	var ch []*model.Change
 
-	err := mm.db.Where("mission_id = ? and created_at > ?", missionId, after).
+	err := mm.db.Where("changes.mission_id = ? and changes.created_at > ?", missionId, after).
 		Joins("MissionPoint").
-		Joins("Resources").
-		Order("created_at DESC").
+		Joins("Resource").
+		Order("changes.created_at DESC").
 		Find(&ch).Error
 
 	if errors.Is(err, gorm.ErrRecordNotFound) {
