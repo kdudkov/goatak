@@ -36,6 +36,8 @@ func (m *BlobManager) fileName(scope, hash string) string {
 		return filepath.Join(m.basedir, hash)
 	}
 
+	_ = os.MkdirAll(filepath.Join(m.basedir, scope), 0777)
+
 	return filepath.Join(m.basedir, scope, hash)
 }
 
