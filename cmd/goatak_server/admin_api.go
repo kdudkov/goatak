@@ -10,6 +10,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/gofiber/contrib/websocket"
 	"github.com/gofiber/fiber/v2"
@@ -72,6 +73,7 @@ func NewAdminAPI(app *App, addr string, webtakRoot string) *AdminAPI {
 	api.f.Get("/api/point", getApiPointsHandler(app))
 
 	api.f.Get("/api/mission", getApiAllMissionHandler(app))
+	api.f.Get("/api/mission/:id/changes", getApiAllMissionChangesHandler(app))
 
 	if webtakRoot != "" {
 		api.f.Static("/webtak", webtakRoot)
@@ -307,6 +309,27 @@ func getApiAllMissionHandler(app *App) fiber.Handler {
 
 		for i, m := range data {
 			result[i] = model.ToMissionDTOAdm(m)
+		}
+
+		return ctx.JSON(result)
+	}
+}
+
+func getApiAllMissionChangesHandler(app *App) fiber.Handler {
+	return func(ctx *fiber.Ctx) error {
+		id, err := ctx.ParamsInt("id")
+		if err != nil {
+			return err
+		}
+
+		m := app.dbm.MissionQuery().Id(uint(id)).One()
+
+		ch := app.dbm.GetChanges(m.ID, time.Now().Add(-time.Hour*24*365), false)
+
+		result := make([]*model.MissionChangeDTO, len(ch))
+
+		for i, c := range ch {
+			result[i] = model.ToChangeDTO(c, m.Name)
 		}
 
 		return ctx.JSON(result)
