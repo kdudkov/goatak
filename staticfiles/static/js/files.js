@@ -20,10 +20,10 @@ let app = new Vue({
         renew: function () {
             let vm = this;
 
-            fetch('/mp')
+            fetch('/api/file')
                 .then(resp => resp.json())
                 .then(function (data) {
-                    vm.mp = data.sort((a, b) => a.Scope.localeCompare(b.Scope) || a.Name.toLowerCase().localeCompare(b.Name.toLowerCase()));
+                    vm.mp = data.sort((a, b) => a.Scope.localeCompare(b.Scope) || a.FileName.toLowerCase().localeCompare(b.FileName.toLowerCase()));
                     vm.ts += 1;
                 });
         },

@@ -18,7 +18,7 @@
     <div class="col">
         <div v-if="current != null" class="overflow-auto">
             <h3>{{ current.Name }}</h3>
-            <a class="btn btn-outline-primary" :href="'/mp/' + current.ID">download</a><br/>
+            <a class="btn btn-outline-primary" :href="'/api/file/' + current.ID">download</a><br/>
             Scope: {{ current.Scope }}<br/>
             UID: {{ current.UID }}<br/>
             Hash: {{ current.Hash }}<br/>
@@ -26,8 +26,8 @@
             Keywords: {{ current.Keywords }}<br/>
             Author: {{ current.SubmissionUser }} {{ current.CreatorUID }}<br/>
             Tool: {{ current.Tool }}<br/>
-            <a class="btn btn-outline-danger" :href="'/mp/delete/' + current.ID">delete</a><br/>
-            <img class="w-100" v-if="current.MIMEType.startsWith('image/')" :src="'/mp/' + current.ID"/>
+            <a class="btn btn-outline-danger" :href="'/api/file/delete/' + current.ID">delete</a><br/>
+            <img class="w-100" v-if="current.MIMEType.startsWith('image/')" :src="'/api/file/' + current.ID"/>
         </div>
     </div>
 </div>

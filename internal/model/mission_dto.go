@@ -241,6 +241,7 @@ type ResourceDTO struct {
 	CreatorUID         string    `json:"CreatorUid"`
 	Name               string    `json:"FileName"`
 	Tool               string    `json:"Tool"`
+	Expiration         int64     `json:"Expiration"`
 }
 
 func ToChangeDTO(c *Change, name string) *MissionChangeDTO {
@@ -265,6 +266,10 @@ func ToChangeDTO(c *Change, name string) *MissionChangeDTO {
 				Lon: p.Lon,
 			},
 		}
+	}
+
+	if r := c.Resource; r != nil {
+		cd.ContentResource = ToResourceDTO(r)
 	}
 
 	return cd
@@ -324,6 +329,7 @@ func ToResourceDTO(r *Resource) *ResourceDTO {
 		CreatorUID:         r.CreatorUID,
 		Name:               r.FileName,
 		Tool:               r.Tool,
+		Expiration:         r.Expiration,
 	}
 }
 

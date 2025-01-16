@@ -10,6 +10,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/gofiber/contrib/websocket"
 	"github.com/gofiber/fiber/v2"
@@ -47,28 +48,32 @@ func NewAdminAPI(app *App, addr string, webtakRoot string) *AdminAPI {
 	staticfiles.Embed(api.f)
 
 	api.f.Get("/", getIndexHandler())
-	api.f.Get("/points", getPointsHandler())
+	api.f.Get("/units", getUnitsHandler())
 	api.f.Get("/map", getMapHandler())
 	api.f.Get("/missions", getMissionsPageHandler())
-	api.f.Get("/packages", getMPPageHandler()).Name("admin_files")
-	api.f.Get("/config", getConfigHandler(app))
-	api.f.Get("/connections", getConnHandler(app))
+	api.f.Get("/files", getFilesPage()).Name("admin_files")
+	api.f.Get("/points", getPointsPage())
 
-	api.f.Get("/unit", getUnitsHandler(app))
-	api.f.Get("/unit/:uid/track", getUnitTrackHandler(app))
-	api.f.Delete("/unit/:uid", deleteItemHandler(app))
-	api.f.Get("/message", getMessagesHandler(app))
+	api.f.Get("/api/config", getConfigHandler(app))
+	api.f.Get("/api/connections", getApiConnHandler(app))
+
+	api.f.Get("/api/unit", getApiUnitsHandler(app))
+	api.f.Get("/api/unit/:uid/track", getApiUnitTrackHandler(app))
+	api.f.Delete("/api/unit/:uid", deleteItemHandler(app))
+	api.f.Get("/api/message", getMessagesHandler(app))
 
 	api.f.Get("/ws", getWsHandler(app))
 	api.f.Get("/takproto/1", getTakWsHandler(app))
 	api.f.Post("/cot", getCotPostHandler(app))
 	api.f.Post("/cot_xml", getCotXMLPostHandler(app))
 
-	api.f.Get("/mp", getAllMissionPackagesHandler(app))
-	api.f.Get("/mp/:id", getPackageHandler(app))
-	api.f.Get("/mp/delete/:id", getPackageDeleteHandler(app))
+	api.f.Get("/api/file", getApiFilesHandler(app))
+	api.f.Get("/api/file/:id", GetApiFileHandler(app))
+	api.f.Get("/api/file/delete/:id", getApiFileDeleteHandler(app))
+	api.f.Get("/api/point", getApiPointsHandler(app))
 
-	api.f.Get("/mission", getAllMissionHandler(app))
+	api.f.Get("/api/mission", getApiAllMissionHandler(app))
+	api.f.Get("/api/mission/:id/changes", getApiAllMissionChangesHandler(app))
 
 	if webtakRoot != "" {
 		api.f.Static("/webtak", webtakRoot)
@@ -102,15 +107,15 @@ func getIndexHandler() fiber.Handler {
 	}
 }
 
-func getPointsHandler() fiber.Handler {
+func getUnitsHandler() fiber.Handler {
 	return func(ctx *fiber.Ctx) error {
 		data := map[string]any{
 			"theme": "auto",
-			"page":  " points",
-			"js":    []string{"util.js", "points.js"},
+			"page":  " units",
+			"js":    []string{"util.js", "units.js"},
 		}
 
-		return ctx.Render("templates/points", data, "templates/menu", "templates/header")
+		return ctx.Render("templates/units", data, "templates/menu", "templates/header")
 	}
 }
 
@@ -137,15 +142,27 @@ func getMissionsPageHandler() fiber.Handler {
 	}
 }
 
-func getMPPageHandler() fiber.Handler {
+func getFilesPage() fiber.Handler {
 	return func(ctx *fiber.Ctx) error {
 		data := map[string]any{
 			"theme": "auto",
-			"page":  " mp",
-			"js":    []string{"mp.js"},
+			"page":  " files",
+			"js":    []string{"files.js"},
 		}
 
-		return ctx.Render("templates/mp", data, "templates/menu", "templates/header")
+		return ctx.Render("templates/files", data, "templates/menu", "templates/header")
+	}
+}
+
+func getPointsPage() fiber.Handler {
+	return func(ctx *fiber.Ctx) error {
+		data := map[string]any{
+			"theme": "auto",
+			"page":  " points",
+			"js":    []string{"points.js"},
+		}
+
+		return ctx.Render("templates/points", data, "templates/menu", "templates/header")
 	}
 }
 
@@ -163,7 +180,7 @@ func getConfigHandler(app *App) fiber.Handler {
 	}
 }
 
-func getUnitsHandler(app *App) fiber.Handler {
+func getApiUnitsHandler(app *App) fiber.Handler {
 	return func(ctx *fiber.Ctx) error {
 		return ctx.JSON(getUnits(app))
 	}
@@ -187,7 +204,7 @@ func getMetricsHandler() fiber.Handler {
 	return adaptor.HTTPHandler(handler)
 }
 
-func getUnitTrackHandler(app *App) fiber.Handler {
+func getApiUnitTrackHandler(app *App) fiber.Handler {
 	return func(ctx *fiber.Ctx) error {
 		uid := ctx.Params("uid")
 
@@ -213,7 +230,7 @@ func deleteItemHandler(app *App) fiber.Handler {
 	}
 }
 
-func getConnHandler(app *App) fiber.Handler {
+func getApiConnHandler(app *App) fiber.Handler {
 	return func(ctx *fiber.Ctx) error {
 		conn := make([]*Connection, 0)
 
@@ -284,7 +301,7 @@ func getCotXMLPostHandler(app *App) fiber.Handler {
 	}
 }
 
-func getAllMissionHandler(app *App) fiber.Handler {
+func getApiAllMissionHandler(app *App) fiber.Handler {
 	return func(ctx *fiber.Ctx) error {
 		data := app.dbm.MissionQuery().Full().Get()
 
@@ -298,7 +315,28 @@ func getAllMissionHandler(app *App) fiber.Handler {
 	}
 }
 
-func getAllMissionPackagesHandler(app *App) fiber.Handler {
+func getApiAllMissionChangesHandler(app *App) fiber.Handler {
+	return func(ctx *fiber.Ctx) error {
+		id, err := ctx.ParamsInt("id")
+		if err != nil {
+			return err
+		}
+
+		m := app.dbm.MissionQuery().Id(uint(id)).One()
+
+		ch := app.dbm.GetChanges(m.ID, time.Now().Add(-time.Hour*24*365), false)
+
+		result := make([]*model.MissionChangeDTO, len(ch))
+
+		for i, c := range ch {
+			result[i] = model.ToChangeDTO(c, m.Name)
+		}
+
+		return ctx.JSON(result)
+	}
+}
+
+func getApiFilesHandler(app *App) fiber.Handler {
 	return func(ctx *fiber.Ctx) error {
 		data := app.dbm.GetFiles()
 
@@ -306,7 +344,7 @@ func getAllMissionPackagesHandler(app *App) fiber.Handler {
 	}
 }
 
-func getPackageHandler(app *App) fiber.Handler {
+func GetApiFileHandler(app *App) fiber.Handler {
 	return func(ctx *fiber.Ctx) error {
 		id, err := ctx.ParamsInt("id")
 
@@ -352,7 +390,7 @@ func getPackageHandler(app *App) fiber.Handler {
 	}
 }
 
-func getPackageDeleteHandler(app *App) fiber.Handler {
+func getApiFileDeleteHandler(app *App) fiber.Handler {
 	return func(ctx *fiber.Ctx) error {
 		id, err := ctx.ParamsInt("id")
 
@@ -367,6 +405,14 @@ func getPackageDeleteHandler(app *App) fiber.Handler {
 		app.dbm.DeleteFile(uint(id))
 
 		return ctx.RedirectToRoute("admin_files", nil)
+	}
+}
+
+func getApiPointsHandler(app *App) fiber.Handler {
+	return func(ctx *fiber.Ctx) error {
+		data := app.dbm.GetPoints()
+
+		return ctx.JSON(data)
 	}
 }
 

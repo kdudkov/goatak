@@ -341,6 +341,7 @@ func (app *App) route(msg *cot.CotMessage) bool {
 
 	if dest := msg.GetDetail().GetDestCallsign(); len(dest) > 0 {
 		for _, s := range dest {
+			app.logger.Info(fmt.Sprintf("point %s %s -> callsign %s", msg.GetUID(), msg.GetCallsign(), s))
 			app.sendToCallsign(s, msg)
 		}
 

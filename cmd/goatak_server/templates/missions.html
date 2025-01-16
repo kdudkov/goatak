@@ -34,7 +34,7 @@
                 <h5>Files</h5>
                 <table class="table table-hover table-sm units">
                     <tr v-for="c in current.contents">
-                        <td><a :href="'/mp/' + c.data?.uid">{{ c.data?.name }}</a></td>
+                        <td><a :href="'/api/file/' + c.data?.uid">{{ c.data?.name }}</a></td>
                         <td>{{ c.data?.mimeType }}</td>
                         <td>{{ c.data?.size }}</td>
                     </tr>

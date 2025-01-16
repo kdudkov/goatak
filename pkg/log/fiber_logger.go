@@ -27,11 +27,9 @@ func NewFiberLogger(conf *LoggerConfig) fiber.Handler {
 		start := time.Now()
 		chainErr := c.Next()
 		wt := time.Since(start)
-
-		msg := fmt.Sprintf("%d %s %s %s", c.Response().StatusCode(), c.Method(), c.Path(), c.Request().URI().QueryArgs().String())
-		l := logger
-
 		status := c.Response().StatusCode()
+
+		l := logger
 
 		if chainErr != nil {
 			var e *fiber.Error
@@ -41,6 +39,8 @@ func NewFiberLogger(conf *LoggerConfig) fiber.Handler {
 
 			l = l.With(slog.Any("error", chainErr))
 		}
+
+		msg := fmt.Sprintf("%d %s %s %s", status, c.Method(), c.Path(), c.Request().URI().QueryArgs().String())
 
 		var attrs []any
 		if conf.UserGetter != nil {

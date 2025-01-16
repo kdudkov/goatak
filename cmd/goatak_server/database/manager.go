@@ -136,7 +136,12 @@ func (mm *DatabaseManager) AddMissionPoint(mission *model.Mission, msg *cot.CotM
 		return nil
 	}
 
-	point = &model.Point{UID: msg.GetUID()}
+	point = mm.GetPoint(msg.GetUID())
+
+	if point == nil {
+		point = &model.Point{UID: msg.GetUID()}
+	}
+
 	point.UpdateFromMsg(msg)
 	mm.Save(point)
 
@@ -307,6 +312,19 @@ func (mm *DatabaseManager) GetChanges(missionId uint, after time.Time, squashed 
 
 func (mm *DatabaseManager) GetFiles() []*model.Resource {
 	var m []*model.Resource
+
+	err := mm.db.Order("created_at DESC").
+		Find(&m).Error
+
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil
+	}
+
+	return m
+}
+
+func (mm *DatabaseManager) GetPoints() []*model.Point {
+	var m []*model.Point
 
 	err := mm.db.Order("created_at DESC").
 		Find(&m).Error

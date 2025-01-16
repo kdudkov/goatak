@@ -37,6 +37,7 @@ func addMissionApi(app *App, f fiber.Router) {
 	g.Get("/:missionname/cot", getMissionCotHandler(app))
 	g.Get("/:missionname/contacts", getMissionContactsHandler(app))
 	g.Put("/:missionname/contents", getMissionContentPutHandler(app))
+	//g.Put("/:missionname/contents/missionpackage", getMissionContentPutHandler(app))
 	g.Delete("/:missionname/contents", getMissionContentDeleteHandler(app))
 	g.Get("/:missionname/log", getMissionLogHandler(app))
 	g.Put("/:missionname/keywords", getMissionKeywordsPutHandler(app))
