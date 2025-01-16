@@ -3,9 +3,7 @@ package tak_ws
 import (
 	"bufio"
 	"bytes"
-	"encoding/hex"
 	"fmt"
-	"log"
 	"log/slog"
 	"strings"
 	"sync"
@@ -121,7 +119,6 @@ func (w *WsClientHandler) IsActive() bool {
 
 func (w *WsClientHandler) writer() {
 	for b := range w.ch {
-		log.Println(hex.EncodeToString(b))
 		if err := w.ws.WriteMessage(websocket.BinaryMessage, b); err != nil {
 			w.log.Error("send error", slog.Any("error", err))
 			w.Stop()
