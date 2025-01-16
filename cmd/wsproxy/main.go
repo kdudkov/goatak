@@ -27,6 +27,8 @@ import (
 type App struct {
 	webPort      int
 	webAddress   string
+	mcastPort    int
+	mcastAddress string
 	dialTimeout  time.Duration
 	host         string
 	tcpPort      string
@@ -38,6 +40,7 @@ type App struct {
 	connected    uint32
 	serverClient *client.ConnClientHandler
 	wsClients    map[string]client.ClientHandler
+	mcastHandler *UdpClientHandler
 }
 
 func (app *App) SetConnected(connected bool) {
@@ -48,19 +51,38 @@ func (app *App) SetConnected(connected bool) {
 	}
 }
 
+// ProcessCotFromWSClient processes COT messages from websocket clients and forwards them to the server connection or multicast connection
 func (app *App) ProcessCotFromWSClient(msg *cot.CotMessage) {
 	if msg != nil {
+		sent := false
 		if app.connected == 1 {
 			app.serverClient.SendMsg(msg)
-		} else {
-			app.logger.Info("not connected to TAK server, drop message", slog.Any("msg", msg))
+			sent = true
+		}
+		if app.mcastHandler.IsActive() {
+			app.mcastHandler.SendMsg(msg)
+			sent = true
+		}
+		if !sent {
+			app.logger.Info("not connected to server or multicast, drop message", slog.Any("msg", msg))
 		}
 	}
 }
 
-func (app *App) ProcessCotFromTAKServer(msg *cot.CotMessage) {
-	app.logger.Info("process cot from server", slog.Any("msg", msg))
+// ProcessCotFromMcast processes COT messages from multicast and forwards them to the websocket connected clients
+func (app *App) ProcessCotFromMcast(msg *cot.CotMessage) {
+	if len(app.wsClients) == 0 {
+		app.logger.Info("no websocket clients connected, drop message", slog.Any("msg", msg))
+		return
+	}
 
+	for _, ch := range app.wsClients {
+		ch.SendMsg(msg)
+	}
+}
+
+// ProcessCotFromTAKServer processes COT messages from the TAK server and forwards them to the websocket connected clients
+func (app *App) ProcessCotFromTAKServer(msg *cot.CotMessage) {
 	if len(app.wsClients) == 0 {
 		app.logger.Info("no websocket clients connected, drop message", slog.Any("msg", msg))
 		return
@@ -118,6 +140,19 @@ func (app *App) Run(ctx context.Context) {
 				panic(err)
 			}
 
+		}()
+	}
+
+	if app.mcastPort > 0 {
+		go func() {
+			addr := fmt.Sprintf("%s:%d", app.mcastAddress, app.mcastPort)
+			app.logger.Info("listening multicast " + addr)
+
+			app.mcastHandler = NewUdpClientHandler(app.logger, app.ProcessCotFromMcast)
+			err := app.mcastHandler.Listen(addr)
+			if err != nil {
+				panic(err)
+			}
 		}()
 	}
 
@@ -198,6 +233,8 @@ func main() {
 	k.Set("server_address", "204.48.30.216:8087:tcp")
 	k.Set("web_address", "0.0.0.0")
 	k.Set("web_port", 8088)
+	k.Set("mcast_address", "239.2.3.1")
+	k.Set("mcast_port", 6969)
 	k.Set("ssl.password", "atakatak")
 	k.Set("ssl.strict", false)
 
@@ -218,6 +255,8 @@ func main() {
 	app := NewApp(k.String("server_address"))
 	app.webPort = k.Int("web_port")
 	app.webAddress = k.String("web_address")
+	app.mcastPort = k.Int("mcast_port")
+	app.mcastAddress = k.String("mcast_address")
 	ctx, cancel := context.WithCancel(context.Background())
 
 	if app.tls {
