@@ -23,7 +23,7 @@ let app = new Vue({
         getData: function () {
             let vm = this;
 
-            fetch('/connections')
+            fetch('/api/connections')
                 .then(resp => resp.json())
                 .then(function (data) {
                     vm.connections = data;
