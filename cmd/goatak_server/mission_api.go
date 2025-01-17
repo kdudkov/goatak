@@ -1,10 +1,13 @@
 package main
 
 import (
+	"archive/zip"
 	"encoding/json"
 	"encoding/xml"
 	"fmt"
+	"io"
 	"log/slog"
+	"os"
 	"strings"
 	"time"
 
@@ -37,7 +40,7 @@ func addMissionApi(app *App, f fiber.Router) {
 	g.Get("/:missionname/cot", getMissionCotHandler(app))
 	g.Get("/:missionname/contacts", getMissionContactsHandler(app))
 	g.Put("/:missionname/contents", getMissionContentPutHandler(app))
-	//g.Put("/:missionname/contents/missionpackage", getMissionContentPutHandler(app))
+	g.Put("/:missionname/contents/missionpackage", getMissionContentPackagePutHandler(app))
 	g.Delete("/:missionname/contents", getMissionContentDeleteHandler(app))
 	g.Get("/:missionname/log", getMissionLogHandler(app))
 	g.Put("/:missionname/keywords", getMissionKeywordsPutHandler(app))
@@ -383,6 +386,70 @@ func getMissionContentPutHandler(app *App) fiber.Handler {
 		}
 
 		return ctx.JSON(makeAnswer(missionType, []*model.MissionDTO{model.ToMissionDTO(mission, false)}))
+	}
+}
+
+func getMissionContentPackagePutHandler(app *App) fiber.Handler {
+	return func(ctx *fiber.Ctx) error {
+		user := app.users.GetUser(Username(ctx))
+		mission := app.dbm.MissionQuery().Scope(user.GetScope()).Name(ctx.Params("missionname")).One()
+		_ = ctx.Query("creatorUid")
+
+		if mission == nil {
+			return ctx.SendStatus(fiber.StatusNotFound)
+		}
+
+		f, err := os.CreateTemp("", "tak_pkg_*.zip")
+
+		if err != nil {
+			app.logger.Error("error open temp file", slog.Any("error", err))
+			return err
+		}
+
+		defer func() {
+			_ = f.Close()
+			_ = os.Remove(f.Name())
+		}()
+
+		n, err := io.Copy(f, ctx.Request().BodyStream())
+
+		if err != nil {
+			app.logger.Error("error", slog.Any("error", err))
+			return err
+		}
+
+		_ = f.Close()
+
+		app.logger.Info(fmt.Sprintf("got package file with size %d", n))
+		z, err := zip.OpenReader(f.Name())
+
+		if err != nil {
+			app.logger.Error("error", slog.Any("error", err))
+			return err
+		}
+
+		defer z.Close()
+
+		for _, zf := range z.File {
+			app.logger.Info("file " + zf.Name)
+
+			if zf.Name == "changes.json" {
+				f1, _ := zf.Open()
+				content, _ := io.ReadAll(f1)
+				f1.Close()
+				fmt.Println(content)
+			}
+		}
+
+		d1 := time.Now().Add(-time.Second * time.Duration(ctx.QueryInt("secago", 31536000)))
+		ch := app.dbm.GetChanges(mission.ID, d1, ctx.QueryBool("squashed"))
+		result := make([]*model.MissionChangeDTO, len(ch))
+
+		for i, c := range ch {
+			result[i] = model.ToChangeDTO(c, mission.Name)
+		}
+
+		return ctx.JSON(makeAnswer(missionChangeType, result))
 	}
 }
 
