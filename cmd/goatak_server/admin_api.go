@@ -467,7 +467,7 @@ func getDefaultLayers() []map[string]any {
 		},
 		{
 			"name":    "Yandex maps",
-			"url":     "https://core-renderer-tiles.maps.yandex.net/tiles?l=map&x={x}&y={y}&z={z}&scale=1&lang=ru_RU&projection=web_mercator",
+			"url":     "https://core-renderer-tiles.maps.yandex.net/tiles?l=map&x={x}&y={y}&z={z}&scale=2&lang=ru_RU&projection=web_mercator",
 			"maxzoom": 20,
 		},
 	}
