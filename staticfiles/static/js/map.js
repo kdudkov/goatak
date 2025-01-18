@@ -183,7 +183,7 @@ let app = new Vue({
         getConfig: function () {
             let vm = this;
 
-            fetch('/config')
+            fetch('/api/config')
                 .then(resp => resp.json())
                 .then(data => {
                     vm.config = data;
@@ -198,7 +198,7 @@ let app = new Vue({
                         }));
                         vm.me.addTo(vm.map);
 
-                        fetch('/types')
+                        fetch('/api/types')
                             .then(resp => resp.json())
                             .then(d => vm.types = d);
                     }
@@ -262,7 +262,7 @@ let app = new Vue({
         fetchAllUnits: function () {
             let vm = this;
 
-            fetch('/unit')
+            fetch('/api/unit')
                 .then(resp => resp.json())
                 .then(vm.processUnits);
         },
@@ -270,7 +270,7 @@ let app = new Vue({
         fetchMessages: function () {
             let vm = this;
 
-            fetch('/message')
+            fetch('/api/message')
                 .then(resp => resp.json())
                 .then(d => vm.messages = d);
         },
@@ -291,7 +291,7 @@ let app = new Vue({
                     headers: {"Content-Type": "application/json"},
                     body: JSON.stringify({lat: p.lat, lon: p.lng, name: "DP1"})
                 };
-                fetch("/dp", requestOptions);
+                fetch("/api/dp", requestOptions);
             }
         },
 
