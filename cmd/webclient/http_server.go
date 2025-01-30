@@ -34,18 +34,18 @@ func NewHttp(app *App) *fiber.App {
 	staticfiles.Embed(srv)
 
 	srv.Get("/", getIndexHandler(app))
-	srv.Get("/config", getConfigHandler(app))
-	srv.Get("/types", getTypes)
-	srv.Post("/dp", getDpHandler(app))
-	srv.Post("/pos", getPosHandler(app))
+	srv.Get("/api/config", getConfigHandler(app))
+	srv.Get("/api/types", getTypes)
+	srv.Post("/api/dp", getDpHandler(app))
+	srv.Post("/api/pos", getPosHandler(app))
 
 	srv.Get("/ws", getWsHandler(app))
 
-	srv.Get("/unit", getUnitsHandler(app))
-	srv.Post("/unit", addItemHandler(app))
-	srv.Get("/message", getMessagesHandler(app))
-	srv.Post("/message", addMessageHandler(app))
-	srv.Delete("/unit/:uid", deleteItemHandler(app))
+	srv.Get("/api/unit", getUnitsHandler(app))
+	srv.Post("/api/unit", addItemHandler(app))
+	srv.Get("/api/message", getMessagesHandler(app))
+	srv.Post("/api/message", addMessageHandler(app))
+	srv.Delete("/api/unit/:uid", deleteItemHandler(app))
 
 	srv.Get("/stack", getStackHandler())
 

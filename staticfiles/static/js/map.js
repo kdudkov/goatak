@@ -469,7 +469,7 @@ let app = new Vue({
                     headers: {"Content-Type": "application/json"},
                     body: JSON.stringify({lat: e.latlng.lat, lon: e.latlng.lng})
                 };
-                fetch("/pos", requestOptions);
+                fetch("/api/pos", requestOptions);
             }
         },
 
@@ -774,7 +774,7 @@ let app = new Vue({
 
         deleteCurrentUnit: function () {
             if (!this.current_unit_uid) return;
-            fetch("unit/" + this.current_unit_uid, {method: "DELETE"});
+            fetch("/api/unit/" + this.current_unit_uid, {method: "DELETE"});
         },
 
         sendMessage: function () {
@@ -793,7 +793,7 @@ let app = new Vue({
                 body: JSON.stringify(msg)
             };
             let vm = this;
-            fetch("/message", requestOptions)
+            fetch("/api/message", requestOptions)
                 .then(resp => resp.json())
                 .then(d => vm.messages = d);
 
