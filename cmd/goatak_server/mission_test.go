@@ -39,12 +39,12 @@ func TestMissionSubscriptions(t *testing.T) {
 	m.Subscribe(user, m1, "uid2", "")
 	m.Subscribe(user, m2, "uid1", "")
 
-	assert.Len(t, m.GetSubscriptions(m1.ID), 2)
+	assert.Len(t, m.SubscriptionQuery().Mission(m1.ID).Get(), 2)
 	assert.Len(t, m.GetSubscribers(m1.ID), 2)
-	assert.Len(t, m.GetSubscriptions(m2.ID), 1)
+	assert.Len(t, m.SubscriptionQuery().Mission(m2.ID).Get(), 1)
 	assert.Len(t, m.GetSubscribers(m2.ID), 1)
 
-	s1 := m.GetSubscription(m1.ID, "uid1")
+	s1 := m.SubscriptionQuery().Mission(m1.ID).Client("uid1").One()
 	assert.Equal(t, m1.ID, s1.MissionID)
 	assert.Equal(t, "MISSION_SUBSCRIBER", s1.Role)
 }
@@ -78,17 +78,17 @@ func TestMissionCRUD(t *testing.T) {
 	m.Subscribe(user, m1, "uid2", "")
 	m.Subscribe(user, m2, "uid1", "")
 
-	assert.Len(t, m.GetSubscriptions(m1.ID), 2)
+	assert.Len(t, m.SubscriptionQuery().Mission(m1.ID).Get(), 2)
 	assert.Len(t, m.GetSubscribers(m1.ID), 2)
-	assert.Len(t, m.GetSubscriptions(m2.ID), 1)
+	assert.Len(t, m.SubscriptionQuery().Mission(m2.ID).Get(), 1)
 	assert.Len(t, m.GetSubscribers(m2.ID), 1)
 
-	m.DeleteMission(m2.ID)
+	m.MissionQuery().Delete(m2.ID)
 	assert.Len(t, m.MissionQuery().Scope("scope1").Full().Get(), 1)
 
-	assert.Len(t, m.GetSubscriptions(m1.ID), 2)
+	assert.Len(t, m.SubscriptionQuery().Mission(m1.ID).Get(), 2)
 	assert.Len(t, m.GetSubscribers(m1.ID), 2)
-	assert.Empty(t, m.GetSubscriptions(m2.ID))
+	assert.Empty(t, m.SubscriptionQuery().Mission(m2.ID).Get())
 	assert.Empty(t, m.GetSubscribers(m2.ID))
 }
 

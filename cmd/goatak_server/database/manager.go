@@ -57,19 +57,19 @@ func (mm *DatabaseManager) Save(s any) error {
 }
 
 func (mm *DatabaseManager) MissionQuery() *MissionQuery {
-	if mm == nil || mm.db == nil {
-		return nil
-	}
-
 	return NewMissionQuery(mm.db)
 }
 
 func (mm *DatabaseManager) ResourceQuery() *ResourceQuery {
-	if mm == nil || mm.db == nil {
-		return nil
-	}
-
 	return NewResourceQuery(mm.db)
+}
+
+func (mm *DatabaseManager) SubscriptionQuery() *SubscriptionQuery {
+	return NewSubscriptionQuery(mm.db)
+}
+
+func (mm *DatabaseManager) InvitationQuery() *InvitationQuery {
+	return NewInvitationQuery(mm.db)
 }
 
 func (mm *DatabaseManager) Migrate() error {
@@ -109,11 +109,11 @@ func (mm *DatabaseManager) GetPoint(uid string) *model.Point {
 }
 
 func (mm *DatabaseManager) UpdateMissionChanged(id uint) {
-	mm.db.Table("missions").Where("id = ?", id).Update("updated_at", time.Now())
+	mm.MissionQuery().Id(id).Update(map[string]any{"updated_at": time.Now()})
 }
 
 func (mm *DatabaseManager) UpdateContentTool(id uint, tool string) {
-	mm.db.Table("contents").Where("id = ?", id).Update("tool", tool)
+	mm.MissionQuery().Id(id).Update(map[string]any{"tool": tool})
 }
 
 func (mm *DatabaseManager) AddMissionPoint(mission *model.Mission, msg *cot.CotMessage) *model.Change {
@@ -311,16 +311,7 @@ func (mm *DatabaseManager) GetChanges(missionId uint, after time.Time, squashed 
 }
 
 func (mm *DatabaseManager) GetFiles() []*model.Resource {
-	var m []*model.Resource
-
-	err := mm.db.Order("created_at DESC").
-		Find(&m).Error
-
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return nil
-	}
-
-	return m
+	return mm.ResourceQuery().Order("created_at DESC").Get()
 }
 
 func (mm *DatabaseManager) GetPoints() []*model.Point {
@@ -334,8 +325,4 @@ func (mm *DatabaseManager) GetPoints() []*model.Point {
 	}
 
 	return m
-}
-
-func (mm *DatabaseManager) DeleteFile(id uint) {
-	mm.db.Where("id = ?", id).Delete(&model.Resource{})
 }

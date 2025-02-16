@@ -51,28 +51,6 @@ func (mm *DatabaseManager) CreateMission(m *model.Mission) error {
 	return err
 }
 
-func (mm *DatabaseManager) DeleteMission(id uint) error {
-	return mm.db.Transaction(func(tx *gorm.DB) error {
-		tables := []any{
-			&model.Subscription{},
-			&model.Invitation{},
-			&model.Change{},
-		}
-
-		if err := tx.Where("id = ?", id).Delete(&model.Mission{}).Error; err != nil {
-			return err
-		}
-
-		for _, n := range tables {
-			if err := tx.Where("mission_id = ?", id).Delete(n).Error; err != nil {
-				return err
-			}
-		}
-
-		return nil
-	})
-}
-
-func (mm *DatabaseManager) UpdateKw(name string, kw []string) error {
-	return mm.MissionQuery().Name(name).Update(map[string]any{"keywords": strings.Join(kw, ",")})
+func (mm *DatabaseManager) UpdateKw(name, scope string, kw []string) error {
+	return mm.MissionQuery().Name(name).Scope(scope).Update(map[string]any{"keywords": strings.Join(kw, ",")})
 }

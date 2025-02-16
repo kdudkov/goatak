@@ -402,7 +402,7 @@ func getApiFileDeleteHandler(app *App) fiber.Handler {
 			return ctx.SendStatus(fiber.StatusBadRequest)
 		}
 
-		app.dbm.DeleteFile(uint(id))
+		app.dbm.ResourceQuery().Id(uint(id)).Delete()
 
 		return ctx.RedirectToRoute("admin_files", nil)
 	}

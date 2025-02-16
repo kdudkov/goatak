@@ -137,7 +137,7 @@ func getMissionDeleteHandler(app *App) fiber.Handler {
 			return ctx.SendStatus(fiber.StatusNotFound)
 		}
 
-		app.dbm.DeleteMission(m.ID)
+		app.dbm.MissionQuery().Delete(m.ID)
 
 		return ctx.JSON(makeAnswer(missionType, []*model.MissionDTO{model.ToMissionDTO(m, false)}))
 	}
@@ -207,7 +207,7 @@ func getMissionKeywordsPutHandler(app *App) fiber.Handler {
 			return err
 		}
 
-		return app.dbm.UpdateKw(ctx.Params("missionname"), kw)
+		return app.dbm.UpdateKw(ctx.Params("missionname"), user.GetScope(), kw)
 	}
 }
 
@@ -233,7 +233,7 @@ func getMissionSubscriptionHandler(app *App) fiber.Handler {
 			return ctx.SendStatus(fiber.StatusNotFound)
 		}
 
-		s := app.dbm.GetSubscription(m.ID, ctx.Query("uid"))
+		s := app.dbm.SubscriptionQuery().Mission(m.ID).Client(ctx.Query("uid")).One()
 		if s == nil {
 			return ctx.SendStatus(fiber.StatusNotFound)
 		}
@@ -271,7 +271,7 @@ func getMissionSubscriptionDeleteHandler(app *App) fiber.Handler {
 			return ctx.SendStatus(fiber.StatusNotFound)
 		}
 
-		app.dbm.DeleteSubscription(m.ID, ctx.Query("uid"))
+		app.dbm.SubscriptionQuery().Mission(m.ID).Client(ctx.Query("uid")).Delete()
 
 		return nil
 	}
@@ -286,7 +286,7 @@ func getMissionSubscriptionRolesHandler(app *App) fiber.Handler {
 			return ctx.SendStatus(fiber.StatusNotFound)
 		}
 
-		s := app.dbm.GetSubscriptions(m.ID)
+		s := app.dbm.SubscriptionQuery().Mission(m.ID).Get()
 
 		return ctx.JSON(makeAnswer(missionSubscriptionType, model.ToMissionSubscriptionsDTO(s)))
 	}
@@ -522,7 +522,7 @@ func getInviteDeleteHandler(app *App) fiber.Handler {
 			return ctx.SendStatus(fiber.StatusNotFound)
 		}
 
-		app.dbm.DeleteInvitation(mission.ID, ctx.Params("uid"), ctx.Params("type"))
+		app.dbm.InvitationQuery().Mission(mission.ID).Invitee(ctx.Params("uid")).Type(ctx.Params("type")).Delete()
 
 		return nil
 	}

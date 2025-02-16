@@ -1,7 +1,6 @@
 package database
 
 import (
-	"errors"
 	"fmt"
 
 	"gorm.io/gorm"
@@ -34,10 +33,8 @@ func (mm *DatabaseManager) subscribe(missionID uint, clientUID string, username 
 	}
 
 	err := mm.db.Transaction(func(tx *gorm.DB) error {
-		err := tx.Where("mission_id = ? AND client_uid = ?", missionID, clientUID).Find(&s).Error
-
-		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
-			return err
+		if ss := NewSubscriptionQuery(tx).Mission(missionID).Client(clientUID).One(); ss != nil {
+			s = ss
 		}
 
 		s.MissionID = missionID
@@ -51,20 +48,8 @@ func (mm *DatabaseManager) subscribe(missionID uint, clientUID string, username 
 	return s, err
 }
 
-func (mm *DatabaseManager) GetSubscriptions(missionId uint) []*model.Subscription {
-	var s []*model.Subscription
-
-	result := mm.db.Where("mission_id = ?", missionId).Find(&s)
-
-	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-		return nil
-	}
-
-	return s
-}
-
 func (mm *DatabaseManager) GetSubscribers(missionId uint) []string {
-	subscriptions := mm.GetSubscriptions(missionId)
+	subscriptions := mm.SubscriptionQuery().Mission(missionId).Get()
 
 	res := make([]string, len(subscriptions))
 
@@ -75,29 +60,11 @@ func (mm *DatabaseManager) GetSubscribers(missionId uint) []string {
 	return res
 }
 
-func (mm *DatabaseManager) GetSubscription(missionId uint, uid string) *model.Subscription {
-	var s *model.Subscription
-
-	result := mm.db.Where("mission_id = ? AND client_uid = ?", missionId, uid).Take(&s)
-
-	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-		return nil
-	}
-
-	return s
-}
-
-func (mm *DatabaseManager) DeleteSubscription(missionID uint, uid string) {
-	mm.db.Where("mission_id = ? AND client_uid = ?", missionID, uid).Delete(&model.Subscription{})
-}
-
 func (mm *DatabaseManager) Invite(s *model.Invitation) (*model.Invitation, error) {
 	var old *model.Invitation
 
-	result := mm.db.Where("mission_id = ? AND invitee = ? AND typ = ?", s.MissionID, s.Invitee, s.Typ).Take(&old)
-
-	if !errors.Is(result.Error, gorm.ErrRecordNotFound) {
-		return nil, result.Error
+	if i := mm.InvitationQuery().Mission(s.MissionID).Invitee(s.Invitee).Type(s.Typ).One(); i != nil {
+		old = i
 	}
 
 	old.MissionID = s.MissionID
@@ -109,22 +76,11 @@ func (mm *DatabaseManager) Invite(s *model.Invitation) (*model.Invitation, error
 	return old, mm.db.Save(old).Error
 }
 
-func (mm *DatabaseManager) DeleteInvitation(missionId uint, uid string, typ string) {
-	mm.db.Where("mission_id = ? AND invitee = ? AND typ = ?", missionId, uid, typ).Delete(&model.Invitation{})
-}
-
 func (mm *DatabaseManager) GetInvitations(uid string) []string {
-	var m []*model.Invitation
-
-	result := mm.db.Where("invitee = ?", uid).Joins("Mission").Find(&m)
-
-	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-		return nil
-	}
-
+	m := mm.InvitationQuery().Invitee(uid).Full().Get()
 	res := make([]string, len(m))
 
-	for i, s := range m {
+	for i, s := range mm.InvitationQuery().Invitee(uid).Full().Get() {
 		res[i] = s.Mission.Name
 	}
 

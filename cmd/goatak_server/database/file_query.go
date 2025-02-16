@@ -1,16 +1,13 @@
 package database
 
 import (
-	"errors"
-	"fmt"
-
 	"gorm.io/gorm"
 
 	"github.com/kdudkov/goatak/internal/model"
 )
 
 type ResourceQuery struct {
-	Query
+	Query[model.Resource]
 	id    uint
 	scope string
 	tool  string
@@ -21,7 +18,7 @@ type ResourceQuery struct {
 
 func NewResourceQuery(db *gorm.DB) *ResourceQuery {
 	return &ResourceQuery{
-		Query: Query{
+		Query: Query[model.Resource]{
 			db:     db,
 			limit:  100,
 			offset: 0,
@@ -111,7 +108,9 @@ func (q *ResourceQuery) Name(name string) *ResourceQuery {
 	return q
 }
 
-func (q *ResourceQuery) where(tx *gorm.DB) *gorm.DB {
+func (q *ResourceQuery) where() *gorm.DB {
+	tx := q.db
+
 	if q.id != 0 {
 		tx = tx.Where("id = ?", q.id)
 	}
@@ -140,68 +139,17 @@ func (q *ResourceQuery) where(tx *gorm.DB) *gorm.DB {
 }
 
 func (q *ResourceQuery) Get() []*model.Resource {
-	if q == nil {
-		return nil
-	}
-
-	var res []*model.Resource
-
-	tx := q.where(q.db.Table("resources"))
-
-	if q.order != "" {
-		tx = tx.Order(q.order)
-	}
-
-	if q.limit > 0 {
-		tx = tx.Limit(q.limit)
-	}
-
-	if q.offset > 0 {
-		tx = tx.Offset(q.offset)
-	}
-
-	err := tx.Find(&res).Error
-
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return nil
-	}
-
-	return res
+	return q.get(q.where().Model(&model.Resource{}))
 }
 
 func (q *ResourceQuery) One() *model.Resource {
-	if q == nil {
-		return nil
-	}
-
-	res := new(model.Resource)
-
-	tx := q.where(q.db.Table("resources"))
-
-	err := tx.Take(&res).Error
-
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return nil
-	}
-
-	return res
+	return q.one(q.where().Model(&model.Resource{}))
 }
 
 func (q *ResourceQuery) Update(updates map[string]any) error {
-	if q == nil {
-		return nil
-	}
+	return q.updateOrError(q.where().Model(&model.Resource{}), updates)
+}
 
-	res := q.where(q.db.Table("resources"))
-	res.Updates(updates)
-
-	if res.Error != nil {
-		return res.Error
-	}
-
-	if res.RowsAffected == 0 {
-		return fmt.Errorf("Resource is not found")
-	}
-
-	return nil
+func (q *ResourceQuery) Delete() error {
+	return q.where().Delete(&model.Resource{}).Error
 }

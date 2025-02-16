@@ -1,23 +1,13 @@
 package database
 
 import (
-	"errors"
-	"fmt"
-
 	"gorm.io/gorm"
 
 	"github.com/kdudkov/goatak/internal/model"
 )
 
-type Query struct {
-	db     *gorm.DB
-	limit  int
-	offset int
-	order  string
-}
-
 type MissionQuery struct {
-	Query
+	Query[model.Mission]
 	id    uint
 	name  string
 	scope string
@@ -26,7 +16,7 @@ type MissionQuery struct {
 
 func NewMissionQuery(db *gorm.DB) *MissionQuery {
 	return &MissionQuery{
-		Query: Query{
+		Query: Query[model.Mission]{
 			db:     db,
 			limit:  100,
 			offset: 0,
@@ -98,7 +88,9 @@ func (q *MissionQuery) Full() *MissionQuery {
 	return q
 }
 
-func (q *MissionQuery) where(tx *gorm.DB) *gorm.DB {
+func (q *MissionQuery) where() *gorm.DB {
+	tx := q.db
+
 	if q.id != 0 {
 		tx = tx.Where("missions.id = ?", q.id)
 	}
@@ -111,80 +103,44 @@ func (q *MissionQuery) where(tx *gorm.DB) *gorm.DB {
 		tx = tx.Where("missions.scope = ?", q.scope)
 	}
 
+	if q.full {
+		tx = tx.Preload("Points").Preload("Resources")
+	}
+
 	return tx
 }
 
 func (q *MissionQuery) Get() []*model.Mission {
-	if q == nil {
-		return nil
-	}
-
-	var res []*model.Mission
-
-	tx := q.where(q.db.Table("Missions"))
-
-	if q.full {
-		tx = tx.Preload("Points").Preload("Resources")
-	}
-
-	if q.order != "" {
-		tx = tx.Order(q.order)
-	}
-
-	if q.limit > 0 {
-		tx = tx.Limit(q.limit)
-	}
-
-	if q.offset > 0 {
-		tx = tx.Offset(q.offset)
-	}
-
-	err := tx.Find(&res).Error
-
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return nil
-	}
-
-	return res
+	return q.get(q.where().Model(&model.Mission{}))
 }
 
 func (q *MissionQuery) One() *model.Mission {
-	if q == nil {
-		return nil
-	}
-
-	res := new(model.Mission)
-
-	tx := q.where(q.db.Table("missions"))
-
-	if q.full {
-		tx = tx.Preload("Points").Preload("Resources")
-	}
-
-	err := tx.Take(&res).Error
-
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return nil
-	}
-
-	return res
+	return q.one(q.where().Model(&model.Mission{}))
 }
 
 func (q *MissionQuery) Update(updates map[string]any) error {
-	if q == nil {
+	return q.updateOrError(q.where().Model(&model.Mission{}), updates)
+}
+
+func (q *MissionQuery) Delete(id uint) error {
+	return q.db.Transaction(func(tx *gorm.DB) error {
+		tables := []any{
+			&model.Subscription{},
+			&model.Invitation{},
+			&model.Change{},
+		}
+
+		if err := tx.Where("id = ?", id).Delete(&model.Mission{}).Error; err != nil {
+			return err
+		}
+
+		for _, n := range tables {
+			if err := tx.Where("mission_id = ?", id).Delete(n).Error; err != nil {
+				return err
+			}
+		}
+
 		return nil
-	}
+	})
 
-	res := q.where(q.db.Table("missions"))
-	res.Updates(updates)
-
-	if res.Error != nil {
-		return res.Error
-	}
-
-	if res.RowsAffected == 0 {
-		return fmt.Errorf("Mission is not found")
-	}
-
-	return nil
 }
