@@ -18,7 +18,7 @@ import (
 	"github.com/kdudkov/goatak/internal/pm"
 	"github.com/kdudkov/goatak/pkg/cot"
 	"github.com/kdudkov/goatak/pkg/log"
-	"github.com/kdudkov/goatak/pkg/tools"
+	"github.com/kdudkov/goatak/pkg/util"
 
 	"github.com/kdudkov/goatak/pkg/cotproto"
 	"github.com/kdudkov/goatak/pkg/model"
@@ -293,7 +293,7 @@ func (app *App) uploadMultipart(ctx *fiber.Ctx, uid, hash, filename string, pack
 		SubmissionUser: user.GetLogin(),
 		CreatorUID:     queryIgnoreCase(ctx, "creatorUid"),
 		Tool:           "",
-		Kw:             tools.NewStringSet(),
+		Kw:             util.NewStringSet(),
 	}
 
 	if pack {
@@ -574,7 +574,7 @@ func getXmlHandler(app *App) fiber.Handler {
 		if item := app.items.Get(uid); item != nil {
 			evt = item.GetMsg().GetTakMessage().GetCotEvent()
 		} else {
-			di := app.dbm.GetPoint(uid)
+			di := app.dbm.PointQuery().UID(uid).One()
 			if di != nil {
 				evt = di.GetEvent()
 			}

@@ -11,7 +11,7 @@ import (
 
 	"github.com/kdudkov/goatak/internal/model"
 	"github.com/kdudkov/goatak/pkg/cot"
-	"github.com/kdudkov/goatak/pkg/tools"
+	"github.com/kdudkov/goatak/pkg/util"
 )
 
 type DatabaseManager struct {
@@ -72,6 +72,10 @@ func (mm *DatabaseManager) InvitationQuery() *InvitationQuery {
 	return NewInvitationQuery(mm.db)
 }
 
+func (mm *DatabaseManager) PointQuery() *PointQuery {
+	return NewPointQuery(mm.db)
+}
+
 func (mm *DatabaseManager) Migrate() error {
 	if mm == nil || mm.db == nil {
 		return fmt.Errorf("no database")
@@ -92,22 +96,6 @@ func (mm *DatabaseManager) Migrate() error {
 	return nil
 }
 
-func (mm *DatabaseManager) GetPoint(uid string) *model.Point {
-	if mm == nil || mm.db == nil {
-		return nil
-	}
-
-	var d *model.Point
-
-	err := mm.db.Where("uid = ?", uid).Take(&d).Error
-
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return nil
-	}
-
-	return d
-}
-
 func (mm *DatabaseManager) UpdateMissionChanged(id uint) {
 	mm.MissionQuery().Id(id).Update(map[string]any{"updated_at": time.Now()})
 }
@@ -121,22 +109,16 @@ func (mm *DatabaseManager) AddMissionPoint(mission *model.Mission, msg *cot.CotM
 		return nil
 	}
 
-	var point *model.Point
-
+	// just update point if it is already in mission
 	for _, p := range mission.Points {
 		if p.UID == msg.GetUID() {
-			point = p
-			break
+			p.UpdateFromMsg(msg)
+			mm.Save(p)
+			return nil
 		}
 	}
 
-	if point != nil {
-		point.UpdateFromMsg(msg)
-		mm.Save(point)
-		return nil
-	}
-
-	point = mm.GetPoint(msg.GetUID())
+	point := mm.PointQuery().UID(msg.GetUID()).One()
 
 	if point == nil {
 		point = &model.Point{UID: msg.GetUID()}
@@ -285,16 +267,13 @@ func (mm *DatabaseManager) GetChanges(missionId uint, after time.Time, squashed 
 		return ch
 	}
 
-	uids := tools.NewStringSet()
+	uids := util.NewStringSet()
 
 	n := 0
 	ch1 := make([]*model.Change, 0)
 
 	for _, c := range ch {
-		key := c.ContentUID
-		if key == "" {
-			key = c.ContentHash
-		}
+		key := util.FirstString(c.ContentUID, c.ContentHash)
 
 		if uids.Has(key) {
 			continue
@@ -308,21 +287,4 @@ func (mm *DatabaseManager) GetChanges(missionId uint, after time.Time, squashed 
 	}
 
 	return ch1
-}
-
-func (mm *DatabaseManager) GetFiles() []*model.Resource {
-	return mm.ResourceQuery().Order("created_at DESC").Get()
-}
-
-func (mm *DatabaseManager) GetPoints() []*model.Point {
-	var m []*model.Point
-
-	err := mm.db.Order("created_at DESC").
-		Find(&m).Error
-
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return nil
-	}
-
-	return m
 }

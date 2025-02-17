@@ -35,6 +35,8 @@ func (mm *DatabaseManager) subscribe(missionID uint, clientUID string, username 
 	err := mm.db.Transaction(func(tx *gorm.DB) error {
 		if ss := NewSubscriptionQuery(tx).Mission(missionID).Client(clientUID).One(); ss != nil {
 			s = ss
+		} else {
+			s = new(model.Subscription)
 		}
 
 		s.MissionID = missionID
@@ -65,6 +67,8 @@ func (mm *DatabaseManager) Invite(s *model.Invitation) (*model.Invitation, error
 
 	if i := mm.InvitationQuery().Mission(s.MissionID).Invitee(s.Invitee).Type(s.Typ).One(); i != nil {
 		old = i
+	} else {
+		old = new(model.Invitation)
 	}
 
 	old.MissionID = s.MissionID

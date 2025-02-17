@@ -7,7 +7,7 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
-	"github.com/kdudkov/goatak/pkg/tools"
+	"github.com/kdudkov/goatak/pkg/util"
 )
 
 type Resource struct {
@@ -25,7 +25,7 @@ type Resource struct {
 	Keywords       string
 	Groups         string
 	Expiration     int64
-	Kw             tools.StringSet `gorm:"-"`
+	Kw             util.StringSet `gorm:"-"`
 }
 
 func (c *Resource) String() string {
@@ -49,6 +49,6 @@ func (c *Resource) BeforeSave(_ *gorm.DB) error {
 }
 
 func (c *Resource) AfterFind(_ *gorm.DB) error {
-	c.Kw = tools.StringToSet(c.Keywords)
+	c.Kw = util.StringToSet(c.Keywords)
 	return nil
 }

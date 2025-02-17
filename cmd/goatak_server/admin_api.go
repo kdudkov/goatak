@@ -338,7 +338,7 @@ func getApiAllMissionChangesHandler(app *App) fiber.Handler {
 
 func getApiFilesHandler(app *App) fiber.Handler {
 	return func(ctx *fiber.Ctx) error {
-		data := app.dbm.GetFiles()
+		data := app.dbm.ResourceQuery().Order("created_at DESC").Get()
 
 		return ctx.JSON(data)
 	}
@@ -410,7 +410,7 @@ func getApiFileDeleteHandler(app *App) fiber.Handler {
 
 func getApiPointsHandler(app *App) fiber.Handler {
 	return func(ctx *fiber.Ctx) error {
-		data := app.dbm.GetPoints()
+		data := app.dbm.PointQuery().Order("created_at DESC").Get()
 
 		return ctx.JSON(data)
 	}

@@ -10,7 +10,7 @@ import (
 	"path/filepath"
 	"sync"
 
-	"github.com/kdudkov/goatak/pkg/tools"
+	"github.com/kdudkov/goatak/pkg/util"
 )
 
 var NotFound = fmt.Errorf("blob is not found")
@@ -45,7 +45,7 @@ func (m *BlobManager) GetFile(scope, hash string) (io.ReadSeekCloser, error) {
 	m.mx.RLock()
 	defer m.mx.RUnlock()
 
-	if hash == "" || !tools.FileExists(m.fileName(scope, hash)) {
+	if hash == "" || !util.FileExists(m.fileName(scope, hash)) {
 		return nil, NotFound
 	}
 
@@ -71,7 +71,7 @@ func (m *BlobManager) PutFile(scope, hash string, r io.Reader) (string, int64, e
 	m.mx.Lock()
 	defer m.mx.Unlock()
 
-	if hash != "" && tools.FileExists(m.fileName(scope, hash)) {
+	if hash != "" && util.FileExists(m.fileName(scope, hash)) {
 		return hash, 0, nil
 	}
 
