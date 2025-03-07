@@ -1,11 +1,11 @@
 let app = Vue.createApp({
-    el: '#app',
-    data: {
-        connections: [],
-        alert: null,
-        ts: 0,
+    data: function () {
+        return {
+            connections: [],
+            alert: null,
+            ts: 0,
+        }
     },
-
     mounted() {
         this.getData();
         setInterval(this.getData, 1000);

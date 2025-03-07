@@ -1,10 +1,11 @@
 let app = Vue.createApp({
-    el: '#app',
-    data: {
-        units: [],
-        connections: [],
-        alert: null,
-        ts: 0,
+    data: function () {
+        return {
+            units: [],
+            connections: [],
+            alert: null,
+            ts: 0,
+        }
     },
 
     mounted() {

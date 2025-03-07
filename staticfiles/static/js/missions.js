@@ -1,12 +1,12 @@
 let app = Vue.createApp({
-    el: '#app',
-    data: {
-        missions: [],
-        current: null,
-        alert: null,
-        ts: 0,
+    data: function () {
+        return {
+            missions: [],
+            current: null,
+            alert: null,
+            ts: 0,
+        }
     },
-
     mounted() {
         this.renew();
         setInterval(this.renew, 60000);
