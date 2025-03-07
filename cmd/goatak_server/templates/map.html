@@ -1,5 +1,5 @@
-<div id="app">
-    <nav class="navbar navbar-expand-md navbar-dark fixed-top bg-dark">
+<div id="app" class="vh-100 mh-100 d-flex flex-column">
+    <nav class="navbar navbar-expand-md navbar-dark bg-dark">
         <div class="container-fluid">
             <a class="navbar-brand" href="#">GoATAK server <span v-if="config">{{ config.version }}</span></a>
             <span class="badge rounded-pill"
@@ -59,12 +59,10 @@
             </div>
         </div>
     </nav>
-
-    <div class="container-fluid vh-100 mh-100" style="padding-top: 4rem;">
+    <div class="container-fluid flex-grow-1">
         <div class="row h-100">
-            <div id="map" class="col-9 h-100" style="cursor:crosshair;">
-            </div>
-            <div class="col-3">
+            <div id="map" class="col-9 h-100" style="cursor:crosshair;"></div>
+            <div class="col-3 my-2 h-100 overflow-auto">
                 <div class="card mb-1" v-if="config && config.callsign">
                     <div class="card-header">Me ({{ config.callsign }})</div>
                     <div class="card-body">
@@ -150,8 +148,8 @@
                             <span v-if="current_unit.unit.parent_callsign">({{ current_unit.unit.parent_callsign }})</span>
                         </div>
                         <div>
-                            <b>time:</b> {{ dt(current_unit.unit.start_time) }} <b>stale:</b>
-                            {{ dt(current_unit.unit.stale_time) }}<br/>
+                            <b>time:</b> {{ dt(current_unit.unit.start_time) }}
+                            <b>stale:</b>{{ dt(current_unit.unit.stale_time) }}<br/>
                             <b>last seen</b>: {{ dt(current_unit.unit.last_seen) }}
                         </div>
                         {{ current_unit.unit.text }}
@@ -164,7 +162,7 @@
     <!-- Modal -->
     <div class="modal fade" id="messages" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1"
          aria-labelledby="staticBackdropLabel" aria-hidden="true">
-        <div class="modal-dialog modal-lg">
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title" id="staticBackdropLabel">Chat messages</h5>

@@ -1,5 +1,9 @@
 @import url('https://fonts.googleapis.com/css2?family=Roboto&display=swap');
 
+.leaflet-control-attribution {
+    display: none;
+}
+
 table.units {
     font-family: 'Roboto', sans-serif;
     font-size: 10pt;

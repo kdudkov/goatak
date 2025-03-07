@@ -108,20 +108,19 @@ class Unit {
         return v;
     }
 
-    send() {
+    post(app) {
         const requestOptions = {
             method: "POST",
             headers: {"Content-Type": "application/json"},
             body: JSON.stringify(this.unit)
         };
-        fetch("/unit", requestOptions)
+        fetch("/api/unit", requestOptions)
             .then(resp => resp.json())
             .then(d => app.processUnit(d));
     }
 }
 
-let app = new Vue({
-    el: '#app',
+let app = Vue.createApp({
     data: function () {
         return {
             map: null,
@@ -456,7 +455,7 @@ let app = new Vue({
                 }
 
                 let unit = new Unit(null, u);
-                unit.send();
+                unit.post(this);
 
                 this.setCurrentUnitUid(u.uid, true);
             }
@@ -525,7 +524,7 @@ let app = new Vue({
 
             u.redraw = true;
             u.updateMarker(this.map);
-            u.send();
+            u.post(this);
         },
 
         getRootSidc: function (s) {
@@ -801,4 +800,4 @@ let app = new Vue({
     },
 });
 
-
+app.mount('#app');

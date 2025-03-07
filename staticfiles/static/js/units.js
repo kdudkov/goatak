@@ -1,4 +1,4 @@
-let app = new Vue({
+let app = Vue.createApp({
     el: '#app',
     data: {
         units: [],
@@ -72,3 +72,5 @@ let app = new Vue({
         },
     },
 });
+
+app.mount('#app');

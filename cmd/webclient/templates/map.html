@@ -1,5 +1,5 @@
-<div id="app">
-    <nav class="navbar navbar-expand-md navbar-dark fixed-top bg-dark">
+<div id="app" class="vh-100 mh-100 d-flex flex-column">
+    <nav class="navbar navbar-expand-md navbar-dark bg-dark">
         <div class="container-fluid">
             <a class="navbar-brand" href="#">GoATAK client <span v-if="config">{{ config.version }}</span></a>
             <span class="badge rounded-pill"
@@ -67,12 +67,10 @@
             </div>
         </div>
     </nav>
-
-    <div class="container-fluid vh-100 mh-100" style="padding-top: 4rem;">
+    <div class="container-fluid flex-grow-1">
         <div class="row h-100">
-            <div id="map" class="col-9 h-100" style="cursor:crosshair;">
-            </div>
-            <div class="col-3">
+            <div id="map" class="col-9 h-100" style="cursor:crosshair;"></div>
+            <div class="col-3 my-2 h-100 overflow-auto">
                 <div class="card mb-1" v-if="config && config.callsign">
                     <div class="card-header">Me ({{ config.callsign }})</div>
                     <div class="card-body">
@@ -180,14 +178,13 @@
                         <b>hae:</b> {{ current_unit.unit.hae.toFixed(1) }}<br/>
                         <div v-if="current_unit.unit.tak_version">
                             <b>ver:</b> {{ current_unit.unit.tak_version }}<br/>{{ current_unit.unit.device }}</div>
+                        <div v-if="current_unit.unit.battery"><b>battery:</b> {{ current_unit.unit.battery }}</div>
                         <div v-if="current_unit.unit.parent_uid"><b>parent:</b> {{ current_unit.unit.parent_uid }}
                             <span v-if="current_unit.unit.parent_callsign">({{ current_unit.unit.parent_callsign }})</span>
                         </div>
                         <div>
                             <b>time:</b> {{ dt(current_unit.unit.start_time) }}
-                            <b>send:</b> {{ dt(current_unit.unit.send_time) }}
-                            <b>stale:</b>
-                            {{ dt(current_unit.unit.stale_time) }}<br/>
+                            <b>stale:</b>{{ dt(current_unit.unit.stale_time) }}<br/>
                             <b>last seen</b>: {{ dt(current_unit.unit.last_seen) }}
                         </div>
                         {{ current_unit.unit.text }}
