@@ -1,126 +1,6 @@
-class Unit {
-    constructor(map, u) {
-        this.unit = u;
-        this.uid = u.uid;
+var map = null;
 
-        if (map) this.updateMarker(map);
-    }
-
-    update(map, u) {
-        if (this.unit.uid !== u.uid) {
-            throw "wrong uid";
-        }
-
-        this.redraw = this.needsRedraw(u);
-
-        for (const k of Object.keys(u)) {
-            this.unit[k] = u[k];
-        }
-
-        this.updateMarker(map);
-
-        return this;
-    }
-
-    needsRedraw(u) {
-        if (this.unit.type !== u.type || this.unit.sidc !== u.sidc || this.unit.status !== u.status) return true;
-        if (this.unit.speed !== u.speed || this.unit.direction !== u.direction) return true;
-        if (this.unit.team !== u.team || this.unit.role !== u.role) return true;
-
-        if (this.unit.sidc.charAt(2) === 'A' && this.unit.hae !== u.hae) return true;
-        return false;
-    }
-
-    isContact() {
-        return this.unit.category === "contact"
-    }
-
-    isOnline() {
-        return this.unit.status === "Online";
-    }
-
-    removeMarker(map) {
-        if (this.marker) {
-            map.removeLayer(this.marker);
-            this.marker.remove();
-            this.marker = null;
-        }
-    }
-
-    updateMarker(map) {
-        if (!this.hasCoords()) {
-            this.removeMarker(map);
-            return;
-        }
-
-        if (this.marker) {
-            if (this.redraw) {
-                this.marker.setIcon(getIcon(this.unit, true));
-            }
-        } else {
-            this.marker = L.marker(this.coords(), {draggable: this.local});
-            this.marker.setIcon(getIcon(this.unit, true));
-
-            let vm = this;
-            this.marker.on('click', function (e) {
-                app.setCurrentUnitUid(vm.uid, false);
-            });
-
-            if (this.local) {
-                this.marker.on('dragend', function (e) {
-                    vm.unit.lat = marker.getLatLng().lat;
-                    vm.unit.lon = marker.getLatLng().lng;
-                });
-            }
-
-            this.marker.addTo(map);
-        }
-
-        this.marker.setLatLng(this.coords());
-        this.marker.bindTooltip(this.popup());
-        this.redraw = false;
-    }
-
-    hasCoords() {
-        return this.unit.lat && this.unit.lon;
-    }
-
-    coords() {
-        return [this.unit.lat, this.unit.lon];
-    }
-
-    latlng() {
-        return L.latLng(this.unit.lat, this.unit.lon)
-    }
-
-    compare(u2) {
-        return this.unit.callsign.toLowerCase().localeCompare(u2.unit.callsign.toLowerCase());
-    }
-
-    popup() {
-        let v = '<b>' + this.unit.callsign + '</b><br/>';
-        if (this.unit.team) v += this.unit.team + ' ' + this.unit.role + '<br/>';
-        if (this.unit.speed) v += 'Speed: ' + this.unit.speed.toFixed(0) + ' m/s<br/>';
-        if (this.unit.sidc.charAt(2) === 'A') {
-            v += "hae: " + this.unit.hae.toFixed(0) + " m<br/>";
-        }
-        v += this.unit.text.replaceAll('\n', '<br/>').replaceAll('; ', '<br/>');
-        return v;
-    }
-
-    post(app) {
-        const requestOptions = {
-            method: "POST",
-            headers: {"Content-Type": "application/json"},
-            body: JSON.stringify(this.unit)
-        };
-        fetch("/api/unit", requestOptions)
-            .then(resp => resp.json())
-            .then(d => app.processUnit(d));
-    }
-}
-
-let app = Vue.createApp({
+var app = Vue.createApp({
     data: function () {
         return {
             map: null,
@@ -148,10 +28,10 @@ let app = Vue.createApp({
     },
 
     mounted() {
-        this.map = L.map('map');
-        this.map.setView([60, 30], 11);
+        map = L.map('map');
+        map.setView([60, 30], 11);
 
-        L.control.scale({metric: true}).addTo(this.map);
+        L.control.scale({metric: true}).addTo(map);
 
         this.getConfig();
 
@@ -166,8 +46,8 @@ let app = Vue.createApp({
         setInterval(this.renew, 5000);
         setInterval(this.sender, 1000);
 
-        this.map.on('click', this.mapClick);
-        this.map.on('mousemove', this.mouseMove);
+        map.on('click', this.mapClick);
+        map.on('mousemove', this.mouseMove);
 
         this.formFromUnit(null);
     },
@@ -187,7 +67,7 @@ let app = Vue.createApp({
                 .then(data => {
                     vm.config = data;
 
-                    vm.map.setView([data.lat, data.lon], data.zoom);
+                    map.setView([data.lat, data.lon], data.zoom);
 
                     if (vm.config.callsign) {
                         vm.me = L.marker([data.lat, data.lon]);
@@ -195,7 +75,7 @@ let app = Vue.createApp({
                             iconUrl: "/static/icons/self.png",
                             iconAnchor: new L.Point(16, 16),
                         }));
-                        vm.me.addTo(vm.map);
+                        vm.me.addTo(map);
 
                         fetch('/api/types')
                             .then(resp => resp.json())
@@ -203,7 +83,7 @@ let app = Vue.createApp({
                     }
 
                     layers = L.control.layers({}, null, {hideSingleBase: true});
-                    layers.addTo(vm.map);
+                    layers.addTo(map);
 
                     let first = true;
                     data.layers.forEach(function (i) {
@@ -222,7 +102,7 @@ let app = Vue.createApp({
 
                         if (first) {
                             first = false;
-                            l.addTo(vm.map);
+                            l.addTo(map);
                         }
                     });
                 });
@@ -315,14 +195,14 @@ let app = Vue.createApp({
             let unit = this.units.get(u.uid);
 
             if (!unit) {
-                unit = new Unit(this.map, u);
+                unit = new Unit(this, u);
                 this.units.set(u.uid, unit);
             } else {
-                unit.update(this.map, u)
+                unit.update(u)
             }
 
             if (this.locked_unit_uid === unit.uid) {
-                this.map.setView(unit.coords());
+                map.setView(unit.coords());
             }
 
             return unit;
@@ -346,7 +226,7 @@ let app = Vue.createApp({
             if (!this.units.has(uid)) return;
 
             let item = this.units.get(uid);
-            item.removeMarker(this.map)
+            item.removeMarker()
             this.units.delete(uid);
 
             if (this.current_unit_uid === uid) {
@@ -383,7 +263,7 @@ let app = Vue.createApp({
 
         mapToUnit: function (u) {
             if (u && u.hasCoords()) {
-                this.map.setView(u.coords());
+                map.setView(u.coords());
             }
         },
 
@@ -523,7 +403,7 @@ let app = Vue.createApp({
             }
 
             u.redraw = true;
-            u.updateMarker(this.map);
+            u.updateMarker(this);
             u.post(this);
         },
 
@@ -592,7 +472,7 @@ let app = Vue.createApp({
         removeTool: function (name) {
             if (this.tools.has(name)) {
                 let p = this.tools.get(name);
-                this.map.removeLayer(p);
+                map.removeLayer(p);
                 p.remove();
                 this.tools.delete(name);
                 this.ts++;
@@ -607,7 +487,7 @@ let app = Vue.createApp({
             if (this.tools.has(name)) {
                 this.tools.get(name).setLatLng(coord);
             } else {
-                let p = new L.marker(coord).addTo(this.map);
+                let p = new L.marker(coord).addTo(map);
                 if (icon) {
                     p.setIcon(L.icon({
                         iconUrl: icon,
@@ -801,3 +681,126 @@ let app = Vue.createApp({
 });
 
 app.mount('#app');
+
+class Unit {
+    constructor(app, u) {
+        this.app = app;
+        this.unit = u;
+        this.uid = u.uid;
+
+        this.updateMarker();
+    }
+
+    update(u) {
+        if (this.unit.uid !== u.uid) {
+            throw "wrong uid";
+        }
+
+        this.redraw = this.needsRedraw(u);
+
+        for (const k of Object.keys(u)) {
+            this.unit[k] = u[k];
+        }
+
+        this.updateMarker();
+
+        return this;
+    }
+
+    needsRedraw(u) {
+        if (this.unit.type !== u.type || this.unit.sidc !== u.sidc || this.unit.status !== u.status) return true;
+        if (this.unit.speed !== u.speed || this.unit.direction !== u.direction) return true;
+        if (this.unit.team !== u.team || this.unit.role !== u.role) return true;
+
+        if (this.unit.sidc.charAt(2) === 'A' && this.unit.hae !== u.hae) return true;
+        return false;
+    }
+
+    isContact() {
+        return this.unit.category === "contact"
+    }
+
+    isOnline() {
+        return this.unit.status === "Online";
+    }
+
+    removeMarker() {
+        if (this.marker) {
+            map.removeLayer(this.marker);
+            this.marker.remove();
+            this.marker = null;
+        }
+    }
+
+    updateMarker() {
+        if (!this.hasCoords()) {
+            this.removeMarker();
+            return;
+        }
+
+        if (this.marker) {
+            if (this.redraw) {
+                this.marker.setIcon(getIcon(this.unit, true));
+            }
+        } else {
+            this.marker = L.marker(this.coords(), {draggable: this.local});
+            this.marker.setIcon(getIcon(this.unit, true));
+
+            let vm = this;
+            this.marker.on('click', function (e) {
+                vm.app.setCurrentUnitUid(vm.uid, false);
+            });
+
+            if (this.local) {
+                this.marker.on('dragend', function (e) {
+                    vm.unit.lat = marker.getLatLng().lat;
+                    vm.unit.lon = marker.getLatLng().lng;
+                });
+            }
+
+            this.marker.addTo(map);
+        }
+
+        this.marker.setLatLng(this.coords());
+        this.marker.bindTooltip(this.popup());
+        this.redraw = false;
+    }
+
+    hasCoords() {
+        return this.unit.lat && this.unit.lon;
+    }
+
+    coords() {
+        return [this.unit.lat, this.unit.lon];
+    }
+
+    latlng() {
+        return L.latLng(this.unit.lat, this.unit.lon)
+    }
+
+    compare(u2) {
+        return this.unit.callsign.toLowerCase().localeCompare(u2.unit.callsign.toLowerCase());
+    }
+
+    popup() {
+        let v = '<b>' + this.unit.callsign + '</b><br/>';
+        if (this.unit.team) v += this.unit.team + ' ' + this.unit.role + '<br/>';
+        if (this.unit.speed) v += 'Speed: ' + this.unit.speed.toFixed(0) + ' m/s<br/>';
+        if (this.unit.sidc.charAt(2) === 'A') {
+            v += "hae: " + this.unit.hae.toFixed(0) + " m<br/>";
+        }
+        v += this.unit.text.replaceAll('\n', '<br/>').replaceAll('; ', '<br/>');
+        return v;
+    }
+
+    post(app) {
+        const requestOptions = {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify(this.unit)
+        };
+        fetch("/api/unit", requestOptions)
+            .then(resp => resp.json())
+            .then(d => app.processUnit(d));
+    }
+}
