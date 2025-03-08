@@ -1,4 +1,4 @@
-let app = Vue.createApp({
+const app = Vue.createApp({
     data: function () {
         return {
             missions: [],

@@ -1,6 +1,6 @@
 var map = null;
 
-var app = Vue.createApp({
+const app = Vue.createApp({
     data: function () {
         return {
             layers: null,
