@@ -450,8 +450,9 @@ func getDefaultLayers() []map[string]any {
 	return []map[string]any{
 		{
 			"name":    "OSM",
-			"url":     "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+			"url":     "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
 			"maxzoom": 19,
+			"parts":   []string{"a", "b", "c"},
 		},
 		{
 			"name":    "Opentopo.cz",
