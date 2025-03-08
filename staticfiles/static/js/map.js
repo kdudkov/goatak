@@ -406,6 +406,7 @@ const app = Vue.createApp({
             }
 
             u.redraw = true;
+            u.updateMarker();
             u.post();
         },
 
