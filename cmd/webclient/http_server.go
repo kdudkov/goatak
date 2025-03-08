@@ -153,7 +153,7 @@ func addItemHandler(app *App) fiber.Handler {
 				app.items.Store(u)
 			} else {
 				u = model.FromMsg(msg)
-				u.SetLocal(true)
+				u.SetLocal(wu.Local)
 				u.SetSend(wu.Send)
 				app.items.Store(u)
 			}

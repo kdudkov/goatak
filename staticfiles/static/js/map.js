@@ -328,16 +328,17 @@ const app = Vue.createApp({
                     parent_uid: "",
                     parent_callsign: "",
                     color: "#ff0000",
-                    local: true,
                     send: false,
+                    local: true,
                 }
                 if (this.config && this.config.uid) {
                     u.parent_uid = this.config.uid;
                     u.parent_callsign = this.config.callsign;
                 }
 
-                let unit = new Unit(null, u);
-                unit.post(this);
+                let unit = new Unit(this, u);
+                this.units.set(unit.uid, unit);
+                unit.post();
 
                 this.setCurrentUnitUid(u.uid, true);
             }
@@ -405,8 +406,7 @@ const app = Vue.createApp({
             }
 
             u.redraw = true;
-            u.updateMarker(this);
-            u.post(this);
+            u.post();
         },
 
         getRootSidc: function (s) {
@@ -689,7 +689,6 @@ class Unit {
         this.app = app;
         this.unit = u;
         this.uid = u.uid;
-
         this.updateMarker();
     }
 
@@ -745,7 +744,7 @@ class Unit {
                 this.marker.setIcon(getIcon(this.unit, true));
             }
         } else {
-            this.marker = L.marker(this.coords(), {draggable: this.local});
+            this.marker = L.marker(this.coords(), {draggable: this.unit.local ? 'true' : 'false'});
             this.marker.setIcon(getIcon(this.unit, true));
 
             let vm = this;
@@ -753,10 +752,10 @@ class Unit {
                 vm.app.setCurrentUnitUid(vm.uid, false);
             });
 
-            if (this.local) {
+            if (this.unit.local) {
                 this.marker.on('dragend', function (e) {
-                    vm.unit.lat = marker.getLatLng().lat;
-                    vm.unit.lon = marker.getLatLng().lng;
+                    vm.unit.lat = e.target.getLatLng().lat;
+                    vm.unit.lon = e.target.getLatLng().lng;
                 });
             }
 
@@ -795,14 +794,15 @@ class Unit {
         return v;
     }
 
-    post(app) {
+    post() {
         const requestOptions = {
             method: "POST",
             headers: {"Content-Type": "application/json"},
             body: JSON.stringify(this.unit)
         };
+        let vm = this;
         fetch("/api/unit", requestOptions)
             .then(resp => resp.json())
-            .then(d => app.processUnit(d));
+            .then(d => vm.app.processUnit(d));
     }
 }
