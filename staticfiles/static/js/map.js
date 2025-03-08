@@ -3,11 +3,10 @@ var map = null;
 var app = Vue.createApp({
     data: function () {
         return {
-            map: null,
             layers: null,
             conn: null,
             status: "",
-            units: new Map(),
+            unitsMap: Vue.shallowRef(new Map()),
             messages: [],
             seenMessages: new Set(),
             ts: 0,
@@ -55,6 +54,9 @@ var app = Vue.createApp({
     computed: {
         current_unit: function () {
             return this.current_unit_uid ? this.current_unit_uid && this.getCurrentUnit() : null;
+        },
+        units: function () {
+            return this.unitsMap?.value || new Map();
         }
     },
 
