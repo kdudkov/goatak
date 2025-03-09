@@ -1,4 +1,4 @@
-<div id="app" class="vh-100 mh-100 d-flex flex-column">
+<div id="app" class="vh-100 d-flex flex-column">
     <nav class="navbar navbar-expand-md navbar-dark bg-dark">
         <div class="container-fluid">
             <a class="navbar-brand" href="#">GoATAK client <span v-if="config">{{ config.version }}</span></a>
@@ -14,7 +14,7 @@
                         <ul class="dropdown-menu dropdown-menu-dark" aria-labelledby="navbarDarkDropdownMenuLink">
                             <li v-for="u in byCategory('contact')">
                                 <a class="dropdown-item" href="#" @click="setCurrentUnitUid(u.uid, true)">
-                                    <img :src="getImg(u.unit, 20)"/>
+                                    <img :src="getImg(u.unit, 20)"/>&nbsp;
                                     <span v-if="u.unit.lat === 0 && u.unit.lon === 0">* </span>{{ u.unit.callsign }}<span
                                         v-if="u.unit.status && u.unit.status !=='Online'"> ({{ u.unit.status }})</span>
                                 </a>
@@ -29,8 +29,8 @@
                         <ul class="dropdown-menu dropdown-menu-dark" aria-labelledby="navbarDarkDropdownMenuLink2">
                             <li v-for="u in byCategory('unit')">
                                 <a class="dropdown-item" href="#" @click="setCurrentUnitUid(u.uid, true)">
-                                    <img :src="getImg(u.unit, 14)"/>
-                                    {{ getUnitName(u) }}
+                                    <img :src="getImg(u.unit, 14)"/>&nbsp;
+                                    {{ u.name() }}
                                 </a>
                             </li>
                         </ul>
@@ -43,7 +43,7 @@
                         <ul class="dropdown-menu dropdown-menu-dark" aria-labelledby="navbarDarkDropdownMenuLink3">
                             <li v-for="u in byCategory('point')">
                                 <a class="dropdown-item" href="#" @click="setCurrentUnitUid(u.uid, true)">
-                                    {{ getUnitName(u) }}
+                                    {{ u.name() }}
                                 </a>
                             </li>
                         </ul>
@@ -69,8 +69,8 @@
     </nav>
     <div class="container-fluid flex-grow-1">
         <div class="row h-100">
-            <div id="map" class="col-9 h-100" style="cursor:crosshair;"></div>
-            <div class="col-3 my-2 h-100 overflow-auto">
+            <div id="map" class="col h-100" style="cursor:crosshair;"></div>
+            <div class="col-3 my-2 h-100">
                 <div class="card mb-1" v-if="config && config.callsign">
                     <div class="card-header">Me ({{ config.callsign }})</div>
                     <div class="card-body">
@@ -131,32 +131,34 @@
                     </div>
                 </div>
                 <div class="card" v-if="current_unit">
-                    <div class="card-header">
-                            <span class="pull-left fw-bold" @click="mapToUnit(current_unit)">
-                                <img :src="milImg(current_unit.unit)"/> {{ getUnitName(current_unit) }} <span
-                                    v-if="current_unit.unit.status"> ({{ current_unit.unit.status }})</span>
-                                <img height="24" src="/static/icons/coord_unlock.png"
-                                     v-if="current_unit.unit.category !== 'point' && locked_unit_uid != current_unit.uid"
-                                     @click="locked_unit_uid=current_unit.uid"/>
-                                <img height="24" src="/static/icons/coord_lock.png"
-                                     v-if="locked_unit_uid == current_unit.uid"
-                                     @click="locked_unit_uid=''"/>
-                            </span>
-                        <span class="pull-right" v-if="current_unit.unit.category === 'contact'">
-                                <button type="button" class="btn btn-sm btn-primary"
-                                        v-if="current_unit.unit.category === 'contact'"
-                                        @click="openChat(current_unit.uid, current_unit.unit.callsign);"><i
-                                        class="bi bi-chat-text-fill"></i></button>
-                            </span>
-                        <span class="pull-right" v-if="current_unit.unit.category !== 'contact'">
-                                <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal"
-                                        data-bs-target="#edit">
-                                    <i class="bi bi-pencil-square"></i>
-                                </button>
-                                <button type="button" class="btn btn-sm btn-danger" @click="deleteCurrentUnit">
-                                    <i class="bi bi-trash3-fill"></i>
-                                </button>
-                            </span>
+                    <div class="card-header d-flex" @click="mapToUnit(current_unit)">
+                        <div class="fs-5">
+                            <img :src="milImg(current_unit.unit)"/> {{ current_unit.name() }}
+                            <span v-if="current_unit.unit.status"> ({{ current_unit.unit.status }})</span>
+                        </div>
+                        <div class="ms-auto">
+                            <img class="ms-1" height="24" src="/static/icons/coord_unlock.png"
+                                 v-if="current_unit.unit.category !== 'point' && locked_unit_uid != current_unit.uid"
+                                 @click="locked_unit_uid=current_unit.uid"/>
+                            <img class="ms-1" height="24" src="/static/icons/coord_lock.png"
+                                 v-if="locked_unit_uid == current_unit.uid"
+                                 @click="locked_unit_uid=''"/>
+                        </div>
+                        <div v-if="current_unit.unit.category === 'contact'">
+                            <button class="btn btn-sm btn-outline-primary ms-1"
+                                    @click="openChat(current_unit.uid, current_unit.unit.callsign);"><i
+                                    class="bi bi-chat-text-fill"></i></button>
+                        </div>
+                        <div v-else>
+                            <button class="btn btn-sm btn-outline-primary ms-1" data-bs-toggle="modal"
+                                    data-bs-target="#edit">
+                                <i class="bi bi-pencil-square"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-danger ms-1" @click="deleteCurrentUnit">
+                                <i class="bi bi-trash3-fill"></i>
+                            </button>
+                        </div>
+
                     </div>
                     <div class="card-body">
                         <b>UID:</b> {{ current_unit.uid }}<br/>
@@ -210,7 +212,7 @@
                 <div class="modal-body">
                     <div v-for="m in getMessages()" class="alert alert-secondary">
                         <span class="badge text-bg-secondary">{{ dt(m.time) }}</span>
-                        <span class="badge"
+                        <span class="badge mx-1"
                               :class="m.from_uid == config.uid ? 'text-bg-success':'text-bg-info'">{{ m.from || m.from_uid }}</span>
                         {{ m.text }}
                     </div>
@@ -236,10 +238,11 @@
                 </div>
                 <div class="modal-body">
                     <form>
-                        <div class="form-group row my-2 mx-2">
-                            <div class="col-6">
-                                <label for="ed-callsign">Callsign</label>
-                                <input v-model="form_unit.callsign" id="ed-callsign" placeholder="callsign">
+                        <div class="row m-2">
+                            <label for="ed-callsign" class="col-auto col-form-label">Callsign</label>
+                            <div class="col-auto">
+                                <input class="form-control" v-model="form_unit.callsign" id="ed-callsign"
+                                       placeholder="callsign">
                             </div>
 
                             <div class="btn-group col-4" role="group" aria-label="Type">
@@ -252,24 +255,24 @@
                                 <label class="btn btn-outline-primary btn-sm" for="ed-unit">Unit</label>
                             </div>
 
-                            <div class="form-check col-2">
-                                <input type="checkbox" id="ed-send" v-model="form_unit.send"/>
-                                <label for="ed-send">Send</label>
+                            <div class="form-check col-auto">
+                                <input class="form-check-input" type="checkbox" id="ed-send" v-model="form_unit.send"/>
+                                <label class="form-check-label" for="ed-send">Send</label>
                             </div>
                         </div>
-                        <div class="form-group row my-2 mx-2" v-if="form_unit.category == 'point'">
-                            <div class="col-12">
-                                <label class="my-1 mr-2 col-6" for="ed-type">Type</label>
-                                <select class="form-select my-1 mr-sm-2" id="ed-type" v-model="form_unit.type">
+                        <div class="row m-2" v-if="form_unit.category == 'point'">
+                            <div class="col">
+                                <label class="form-label col-auto" for="ed-type">Type</label>
+                                <select class="form-select" id="ed-type" v-model="form_unit.type">
                                     <option value="b-m-p-s-m">Spot</option>
-                                    <option value="b-m-p-w-GOTO">WayPt</option>
+                                    <option value="b-m-p-w-GOTO">Waypoint</option>
                                     <option value="b-m-p-s-p-op">OP</option>
                                     <option value="b-m-p-a">Aim</option>
                                 </select>
                             </div>
                         </div>
-                        <div class="form-group row my-2 mx-2" v-if="form_unit.category == 'unit'">
-                            <div class="col-12">
+                        <div class="row m-2" v-if="form_unit.category == 'unit'">
+                            <div class="col">
                                 <label class="my-1 mr-2 col-6" for="ed-aff">Affilation</label>
                                 <select class="form-select my-1 mr-sm-2" id="ed-aff" v-model="form_unit.aff">
                                     <option value="h">Hostile</option>
@@ -279,31 +282,29 @@
                                     <option value="s">Suspect</option>
                                 </select>
                             </div>
-                            <div class="col-12 row my-1 mr-sm-2" v-if="form_unit.root_sidc">
-                                <label class="my-1 mr-2" for="ed-subtype">Type</label>
-                                <div class="col-1">
-                                    <button type="button" class="btn btn-secondary"
-                                            v-if="form_unit.root_sidc.code !== ''"
-                                            @click="setFormRootSidc(getRootSidc(form_unit.root_sidc.code).code)">
-                                        &lt;
-                                    </button>
-                                </div>
-                                <div class="col-10">
-                                    <select class="form-select" id="ed-subtype"
-                                            v-model="form_unit.subtype">
-                                        <option v-for="t in form_unit.root_sidc.next" :value="t.code">{{ t.name }}
-                                        </option>
-                                    </select>
-                                </div>
-                                <div class="col-1">
-                                    <button type="button" class="btn btn-secondary"
-                                            v-if="getSidc(form_unit.subtype).next"
-                                            @click="setFormRootSidc(form_unit.subtype)">&gt;
-                                    </button>
+                            <div class="col row my-1 mr-sm-2" v-if="form_unit.root_sidc">
+                                <label class="form-label" for="ed-subtype">Type</label>
+                                <div class="col">
+                                    <div class="input-group">
+                                        <button type="button" class="btn btn-sm btn-secondary"
+                                                :disabled="form_unit.root_sidc.code === ''"
+                                                @click="setFormRootSidc(getRootSidc(form_unit.root_sidc.code).code)">
+                                            &lt;
+                                        </button>
+                                        <select class="form-select" id="ed-subtype"
+                                                v-model="form_unit.subtype">
+                                            <option v-for="t in form_unit.root_sidc.next" :value="t.code">{{ t.name }}
+                                            </option>
+                                        </select>
+                                        <button type="button" class="btn btn-sm btn-secondary"
+                                                :disabled="! getSidc(form_unit.subtype).next"
+                                                @click="setFormRootSidc(form_unit.subtype)">&gt;
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                        <div class="form-group row my-2 mx-2">
+                        <div class="row m-2">
                             <div class="col-12">
                                 <label for="ed-remarks">Remarks</label>
                                 <textarea id="ed-remarks" class="form-control" id="exampleFormControlTextarea1" rows="3"

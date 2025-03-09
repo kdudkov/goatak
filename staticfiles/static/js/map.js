@@ -188,8 +188,6 @@ const app = Vue.createApp({
                     this.removeUnit(k);
                 }
             }
-
-            this.ts += 1;
         },
 
         processUnit: function (u) {
@@ -206,6 +204,8 @@ const app = Vue.createApp({
             if (this.locked_unit_uid === unit.uid) {
                 map.setView(unit.coords());
             }
+
+            this.ts++;
 
             return unit;
         },
@@ -609,18 +609,6 @@ const app = Vue.createApp({
             return msgs;
         },
 
-        getUnitName: function (u) {
-            let res = u?.unit?.callsign || "no name";
-            if (this.config && u.unit.parent_uid === this.config.uid) {
-                if (u.unit.send === true) {
-                    res = "+ " + res;
-                } else {
-                    res = "* " + res;
-                }
-            }
-            return res;
-        },
-
         cancelEditForm: function () {
             this.formFromUnit(this.getCurrentUnit());
         },
@@ -724,6 +712,18 @@ class Unit {
 
     isOnline() {
         return this.unit.status === "Online";
+    }
+
+    name() {
+        let res = this.unit?.callsign || "no name";
+        if (this.unit.parent_uid === this.app.config?.uid) {
+            if (this.unit.send) {
+                res = "+ " + res;
+            } else {
+                res = "* " + res;
+            }
+        }
+        return res;
     }
 
     removeMarker() {

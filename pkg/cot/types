@@ -1,8 +1,10 @@
-A;Air/Air Track;Air Track
-A-C-F;Air/Civ/fixed;FIXED WING
-A-C-F-q;Air/Civ/fixed/rpv, drone, uav;FIXED WING RPV/Drone
-A-C-H;Air/Civ/rotary;ROTARY WING
+A;Air;Air
+A-C;Air/Civ;Civilian Aircraft
+A-C-F;Air/Civ/Fixed;FIXED WING
+A-C-F-q;Air/Civ/Fixed/RPV, drone, uav;FIXED WING RPV/Drone
+A-C-H;Air/Civ/Rotary;ROTARY WING
 A-C-L;Air/Civ/Blimp;LIGHTER THAN AIR
+A-M;Air/Mil;Military Aircraft
 A-M-F;Air/Mil/Fixed;FIXED WING
 A-M-F-g;Air/Mil/Fixed/Gunship;FIXED WING GUNSHIP
 A-M-F-A;Air/Mil/Fixed/Attack/Strike;ATTACK/STRIKE
@@ -183,8 +185,8 @@ G-E-X-M;Gnd/Equip/Land Mines;LAND MINES
 G-E-X-M-C;Gnd/Equip/Claymore;CLAYMORE
 G-E-X-M-L;Gnd/Equip/Less Than Lethal;LESS THAN LETHAL
 G-E-X-N;Gnd/Equip/Nbc Equipment;NBC EQUIPMENT
-G-I;Gnd/Building;Building
-G-I-B;Gnd/Structure/Base/Military;MILITARY BASE/FACILITY
+G-I;Gnd/Structure;Building
+G-I-B;Gnd/Structure/Base;MILITARY BASE/FACILITY
 G-I-B-A;Gnd/Structure/Base/Airbase;AIRPORT/AIRBASE
 G-I-B-N;Gnd/Structure/Base/Naval Base;SEAPORT/NAVAL BASE
 G-I-c;Gnd/Structure/Civilian;Civilian
@@ -853,7 +855,7 @@ G-U-i-s-uis;Gnd/USAR Incident Support Team;USAR Incident Support Team
 G-U-i-s-utf;Gnd/USAR Task Force;USAR Task Force
 G-U-i-s-wi;Gnd/Wilderness SAR Team;Wilderness SAR Team
 G-U-i-o;Gnd/IM Resources/Other;Other
-S;Surface/SEA SURFACE TRACK;SEA SURFACE TRACK
+S;Surface;SEA SURFACE TRACK
 S-C;Surface/COMBATANT;COMBATANT
 S-C-A;Surface/AMPHIBIOUS WARFARE SHIP;AMPHIBIOUS WARFARE SHIP
 S-C-A-L-A;Surface/ASSAULT VESSEL;ASSAULT VESSEL
@@ -893,7 +895,7 @@ S-O;Surface/OWN TRACK;OWN TRACK
 S-S;Surface/STATION;STATION
 S-S-A;Surface/ASW SHIP;ASW SHIP
 S-S-P;Surface/PICKET;PICKET
-S-X;Surface/NON MILITARY;NON MILITARY
+S-X;Surface/non military;NON MILITARY
 S-X-F;Surface/FISHING;FISHING
 S-X-F-D-F;Surface/DRIFTER;DRIFTER
 S-X-F-D-R;Surface/DREDGE;DREDGE
@@ -910,9 +912,9 @@ S-X-M-R;Surface/ROLL ON/ROLL OFF;ROLL ON/ROLL OFF
 S-X-M-T-O;Surface/TOWING VESSEL;TOWING VESSEL
 S-X-M-T-U;Surface/TUG;TUG
 S-X-R;Surface/LEISURE CRAFT;LEISURE CRAFT
-U;SubSurf/SUBSURFACE TRACK;SUBSURFACE TRACK
-U-N;SubSurf/NON SUBMARINE;NON SUBMARINE
-U-N-D;SubSurf/DIVER;DIVER
+U;SubSurface;SUBSURFACE TRACK
+U-N;SubSurf/non submarine;NON SUBMARINE
+U-N-D;SubSurf/diver;DIVER
 U-S;SubSurf/SUBMARINE;SUBMARINE
 U-S-C;SubSurf/SUBMARINE CONVENTIONAL PROPULSION;SUBMARINE CONVENTIONAL PROPULSION
 U-S-N;SubSurf/SUBMARINE NUCLEAR PROPULSION;SUBMARINE NUCLEAR PROPULSION
@@ -933,4 +935,4 @@ U-W-M-M;SubSurf/SEA MINE (MOORED);SEA MINE (MOORED)
 U-W-M-M-D;SubSurf/SEA MINE (MOORED) DEALT;SEA MINE (MOORED) DEALT
 U-W-M-O;SubSurf/SEA MINE (IN OTHER POSITION);SEA MINE (IN OTHER POSITION)
 U-W-M-O-D;SubSurf/SEA MINE (IN OTHER POSITION) DEALT;SEA MINE (IN OTHER POSITION) DEALT
-U-W-T;SubSurf/TORPEDO;TORPEDO
+U-W-T;SubSurf/Torpedo;TORPEDO
