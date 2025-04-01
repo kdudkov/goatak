@@ -38,7 +38,7 @@ type PackageInfo struct {
 	SubmissionDateTime time.Time `json:"SubmissionDateTime"`
 	Keywords           []string  `json:"Keywords"`
 	MIMEType           string    `json:"MIMEType"`
-	Size               any       `json:"Size"`
+	Size               int       `json:"Size"`
 	SubmissionUser     string    `json:"SubmissionUser"`
 	PrimaryKey         int       `json:"PrimaryKey"`
 	Hash               string    `json:"Hash"`
@@ -46,6 +46,7 @@ type PackageInfo struct {
 	Scope              string    `json:"Scope"`
 	Name               string    `json:"FileName"`
 	Tool               string    `json:"Tool"`
+	Expiration         int64     `json:"Expiration"`
 }
 
 func NewRemoteAPI(host string) *RemoteAPI {

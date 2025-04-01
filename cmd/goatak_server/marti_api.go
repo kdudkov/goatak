@@ -286,13 +286,15 @@ func (app *App) uploadMultipart(ctx *fiber.Ctx, uid, hash, filename string, pack
 		Scope:          user.GetScope(),
 		Hash:           hash1,
 		UID:            uid,
-		FileName:       filename,
+		Name:           filename,
+		FileName:       fh.Filename,
 		MIMEType:       fh.Header.Get(fiber.HeaderContentType),
 		Size:           int(fh.Size),
 		SubmissionUser: user.GetLogin(),
 		CreatorUID:     queryIgnoreCase(ctx, "creatorUid"),
 		Tool:           "",
 		Kw:             util.NewStringSet(),
+		Expiration:     -1,
 	}
 
 	if pack {
@@ -320,6 +322,7 @@ func (app *App) uploadFile(ctx *fiber.Ctx, uid, filename string) (*model.Resourc
 		Scope:          user.GetScope(),
 		Hash:           hash,
 		UID:            uid,
+		Name:           filename,
 		FileName:       filename,
 		MIMEType:       ctx.Get(fiber.HeaderContentType),
 		Size:           int(n),
@@ -327,6 +330,7 @@ func (app *App) uploadFile(ctx *fiber.Ctx, uid, filename string) (*model.Resourc
 		CreatorUID:     queryIgnoreCase(ctx, "creatorUid"),
 		Tool:           "",
 		Keywords:       "",
+		Expiration:     -1,
 	}
 
 	err = app.dbm.Create(c)
@@ -421,23 +425,20 @@ func getMetadataPutHandler(app *App) fiber.Handler {
 
 func getSearchHandler(app *App) fiber.Handler {
 	return func(ctx *fiber.Ctx) error {
-		//kw := ctx.Query("keywords")
-
 		user := app.users.Get(Username(ctx))
-
-		result := make(map[string]any)
+		kw := ctx.Query("keywords")
 
 		files := app.dbm.ResourceQuery().Scope(user.GetScope()).Tool(ctx.Query("tool")).Get()
-		res := make([]*model.ResourceDTO, len(files))
+		res := make([]*model.ResourceDTO, 0, len(files))
 
-		for i, f := range files {
-			res[i] = model.ToResourceDTO(f)
+		for _, f := range files {
+			if f.Kw.Has(kw) {
+				res = append(res, model.ToResourceDTO(f))
+			}
 		}
 
-		result["results"] = res
-		result["resultCount"] = len(res)
-
-		return ctx.JSON(result)
+		app.logger.Info(fmt.Sprintf("found %d dp", len(res)))
+		return ctx.JSON(fiber.Map{"resultCount": len(res), "results": res})
 	}
 }
 

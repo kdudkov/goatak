@@ -102,7 +102,7 @@ func (app *App) listFiles() {
 	}
 
 	for _, p := range res {
-		fmt.Printf("%s %s % -30s % -12s % -20s %s\n", p.UID, p.Hash, p.Name, p.Size, p.SubmissionUser, p.MIMEType)
+		fmt.Printf("%s %s % -30s %d %s %s %d\n", p.UID, p.Hash, p.Name, p.Size, p.SubmissionUser, p.MIMEType, p.Expiration)
 	}
 }
 

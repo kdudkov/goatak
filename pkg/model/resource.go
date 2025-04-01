@@ -16,6 +16,7 @@ type Resource struct {
 	Scope          string `gorm:"index;not null"`
 	Hash           string `gorm:"index"`
 	UID            string `gorm:"uniqueIndex"`
+	Name           string
 	FileName       string
 	MIMEType       string
 	Size           int

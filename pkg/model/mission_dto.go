@@ -1,6 +1,7 @@
 package model
 
 import (
+	"strconv"
 	"strings"
 	"time"
 )
@@ -230,7 +231,7 @@ func ToMissionInvitationDTO(m *Invitation, name string) *MissionInvitationDTO {
 }
 
 type ResourceDTO struct {
-	ID                 uint      `json:"PrimaryKey"`
+	ID                 string    `json:"PrimaryKey"`
 	UID                string    `json:"UID"`
 	SubmissionDateTime time.Time `json:"SubmissionDateTime"`
 	Keywords           []string  `json:"Keywords"`
@@ -239,7 +240,8 @@ type ResourceDTO struct {
 	SubmissionUser     string    `json:"SubmissionUser"`
 	Hash               string    `json:"Hash"`
 	CreatorUID         string    `json:"CreatorUid"`
-	Name               string    `json:"FileName"`
+	FileName           string    `json:"FileName"`
+	Name               string    `json:"Name"`
 	Tool               string    `json:"Tool"`
 	Expiration         int64     `json:"Expiration"`
 }
@@ -318,7 +320,7 @@ func ToResourceDTO(r *Resource) *ResourceDTO {
 	}
 
 	return &ResourceDTO{
-		ID:                 r.ID,
+		ID:                 strconv.Itoa(int(r.ID)),
 		UID:                r.UID,
 		SubmissionDateTime: r.CreatedAt,
 		Keywords:           r.Kw.List(),
@@ -327,7 +329,8 @@ func ToResourceDTO(r *Resource) *ResourceDTO {
 		SubmissionUser:     r.SubmissionUser,
 		Hash:               r.Hash,
 		CreatorUID:         r.CreatorUID,
-		Name:               r.FileName,
+		FileName:           r.FileName,
+		Name:               r.Name,
 		Tool:               r.Tool,
 		Expiration:         r.Expiration,
 	}
