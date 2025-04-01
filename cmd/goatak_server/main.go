@@ -57,7 +57,6 @@ func NewApp(config *config.AppConfig) *App {
 		logger:          slog.Default(),
 		config:          config,
 		files:           pm.NewBlobManages(filepath.Join(config.DataDir(), "blob")),
-		users:           repository.NewFileUserRepo(config.UsersFile()),
 		ch:              make(chan *cot.CotMessage, 100),
 		handlers:        sync.Map{},
 		items:           repository.NewItemsMemoryRepo(),
@@ -76,6 +75,8 @@ func NewApp(config *config.AppConfig) *App {
 	if err := app.dbm.Migrate(); err != nil {
 		panic(err)
 	}
+
+	app.users = repository.NewUserDbRepository(config.UsersFile(), app.dbm)
 
 	return app
 }

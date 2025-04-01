@@ -74,6 +74,9 @@ func (mm *DatabaseManager) InvitationQuery() *InvitationQuery {
 func (mm *DatabaseManager) PointQuery() *PointQuery {
 	return NewPointQuery(mm.db)
 }
+func (mm *DatabaseManager) UserQuery() *DeviceQuery {
+	return NewDeviceQuery(mm.db)
+}
 
 func (mm *DatabaseManager) Migrate() error {
 	if mm == nil || mm.db == nil {
@@ -88,6 +91,7 @@ func (mm *DatabaseManager) Migrate() error {
 		&model.Subscription{},
 		&model.Invitation{},
 		&model.Resource{},
+		&model.Device{},
 	); err != nil {
 		return err
 	}

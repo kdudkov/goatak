@@ -53,6 +53,7 @@ func NewAdminAPI(app *App, addr string, webtakRoot string) *AdminAPI {
 	api.f.Get("/missions", getMissionsPageHandler())
 	api.f.Get("/files", getFilesPage()).Name("admin_files")
 	api.f.Get("/points", getPointsPage())
+	api.f.Get("/devices", getDevicesPage())
 
 	api.f.Get("/api/config", getConfigHandler(app))
 	api.f.Get("/api/connections", getApiConnHandler(app))
@@ -71,6 +72,7 @@ func NewAdminAPI(app *App, addr string, webtakRoot string) *AdminAPI {
 	api.f.Get("/api/file/:id", GetApiFileHandler(app))
 	api.f.Get("/api/file/delete/:id", getApiFileDeleteHandler(app))
 	api.f.Get("/api/point", getApiPointsHandler(app))
+	api.f.Get("/api/device", getApiDevicesHandler(app))
 
 	api.f.Get("/api/mission", getApiAllMissionHandler(app))
 	api.f.Get("/api/mission/:id/changes", getApiAllMissionChangesHandler(app))
@@ -163,6 +165,18 @@ func getPointsPage() fiber.Handler {
 		}
 
 		return ctx.Render("templates/points", data, "templates/menu", "templates/header")
+	}
+}
+
+func getDevicesPage() fiber.Handler {
+	return func(ctx *fiber.Ctx) error {
+		data := map[string]any{
+			"theme": "auto",
+			"page":  " devices",
+			"js":    []string{"devices.js"},
+		}
+
+		return ctx.Render("templates/devices", data, "templates/menu", "templates/header")
 	}
 }
 
@@ -413,6 +427,20 @@ func getApiPointsHandler(app *App) fiber.Handler {
 		data := app.dbm.PointQuery().Order("created_at DESC").Get()
 
 		return ctx.JSON(data)
+	}
+}
+
+func getApiDevicesHandler(app *App) fiber.Handler {
+	return func(ctx *fiber.Ctx) error {
+		data := app.dbm.UserQuery().Get()
+
+		devices := make([]*model.DeviceDTO, len(data))
+
+		for i, d := range data {
+			devices[i] = d.DTO()
+		}
+
+		return ctx.JSON(devices)
 	}
 }
 

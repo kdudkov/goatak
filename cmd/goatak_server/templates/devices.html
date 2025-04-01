@@ -1,0 +1,54 @@
+<div class="row">
+    <div class="col">
+        <h4>Devices</h4>
+        <table class="table table-hover table-sm">
+            <tr v-for="c in all" @click="current = c">
+                <td>{{ c.login }}</td>
+                <td>{{ c.scope }}</td>
+                <td>{{ c.callsign }}</td>
+                <td>{{ c.team }}</td>
+                <td>{{ c.role }}</td>
+                <td>{{ dt(c.last_connect) }}</td>
+            </tr>
+        </table>
+    </div>
+    <div class="col">
+        <div v-if="current != null" class="overflow-auto">
+            <h3>{{ current.login }}</h3>
+            <table class="table table-hover table-sm">
+                <tr>
+                    <th>Scope</th>
+                    <td>{{ current.scope }}</td>
+                </tr>
+                <tr>
+                    <th>Callsign</th>
+                    <td>{{ current.callsign }}</td>
+                </tr>
+                <tr>
+                    <th>Team</th>
+                    <td>{{ current.team }}</td>
+                </tr>
+                <tr>
+                    <th>Role</th>
+                    <td>{{ current.role }}</td>
+                </tr>
+                <tr>
+                    <th>UID</th>
+                    <td>{{ current.uid }}</td>
+                </tr>
+                <tr>
+                    <th>Last connect</th>
+                    <td>{{ dt(current.last_connect) }}</td>
+                </tr>
+                <tr>
+                    <th>Last cert sign</th>
+                    <td>{{ dt(current.last_sign) }}</td>
+                </tr>
+                <tr>
+                    <th>Cert serial</th>
+                    <td>{{ current.serial }}</td>
+                </tr>
+            </table>
+        </div>
+    </div>
+</div>
