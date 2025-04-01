@@ -21,7 +21,7 @@ func NewInvitationQuery(db *gorm.DB) *InvitationQuery {
 			db:     db,
 			limit:  100,
 			offset: 0,
-			order:  "invitation.created_at",
+			order:  "invitations.created_at",
 		},
 	}
 }
