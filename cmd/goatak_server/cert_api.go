@@ -114,7 +114,7 @@ func (app *App) processSignRequest(ctx *fiber.Ctx) (*x509.Certificate, error) {
 
 	app.logger.Info(fmt.Sprintf("cert sign req from %s %s ver %s", username, uid, ver))
 
-	if !app.users.UserIsValid(username, "") {
+	if !app.users.IsValid(username, "") {
 		return nil, fmt.Errorf("bad user")
 	}
 
@@ -133,7 +133,9 @@ func (app *App) processSignRequest(ctx *fiber.Ctx) (*x509.Certificate, error) {
 		return nil, err
 	}
 
-	app.onNewCertCreated(username, uid, ver, signedCert.SerialNumber.String())
+	serial := signedCert.SerialNumber.String()
+	app.users.SaveSignInfo(username, uid, serial)
+	app.logger.Info(fmt.Sprintf("new cert signed for user %s uid %s ver %s serial %s", username, uid, ver, serial))
 
 	return signedCert, nil
 }
@@ -259,8 +261,4 @@ func getProfileEnrollmentHandler(app *App) fiber.Handler {
 
 		return ctx.Send(dat)
 	}
-}
-
-func (app *App) onNewCertCreated(user, uid, version, serial string) {
-	app.logger.Info(fmt.Sprintf("new cert signed for user %s uid %s ver %s serial %s", user, uid, version, serial))
 }

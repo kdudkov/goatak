@@ -12,8 +12,8 @@ import (
 	"gorm.io/gorm/logger"
 
 	"github.com/kdudkov/goatak/cmd/goatak_server/database"
-	"github.com/kdudkov/goatak/internal/model"
 	"github.com/kdudkov/goatak/pkg/cot"
+	"github.com/kdudkov/goatak/pkg/model"
 )
 
 func TestMissionSubscriptions(t *testing.T) {
@@ -32,7 +32,7 @@ func TestMissionSubscriptions(t *testing.T) {
 	require.NotEmpty(t, m1.ID)
 	require.NotEmpty(t, m2.ID)
 
-	user := &model.User{Login: "login"}
+	user := &model.Device{Login: "login"}
 
 	m.Subscribe(user, m1, "uid1", "")
 	m.Subscribe(user, m1, "uid1", "")
@@ -71,7 +71,7 @@ func TestMissionCRUD(t *testing.T) {
 	assert.Len(t, m.MissionQuery().Scope("scope2").Get(), 1)
 	assert.Empty(t, m.MissionQuery().Scope("no_scope").Full().Get())
 
-	user := &model.User{Login: "login"}
+	user := &model.Device{Login: "login"}
 
 	m.Subscribe(user, m1, "uid1", "")
 	m.Subscribe(user, m1, "uid1", "")

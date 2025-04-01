@@ -5,10 +5,10 @@ import (
 
 	"gorm.io/gorm"
 
-	"github.com/kdudkov/goatak/internal/model"
+	"github.com/kdudkov/goatak/pkg/model"
 )
 
-func (mm *DatabaseManager) Subscribe(user *model.User, mission *model.Mission, uid, password string) (*model.Subscription, error) {
+func (mm *DatabaseManager) Subscribe(user *model.Device, mission *model.Mission, uid, password string) (*model.Subscription, error) {
 	if mission.InviteOnly {
 		return nil, fmt.Errorf("Illegal attempt to subscribe to invite only mission!")
 	}

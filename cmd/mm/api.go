@@ -12,8 +12,8 @@ import (
 
 	"github.com/kdudkov/goutils/request"
 
-	mp "github.com/kdudkov/goatak/internal/model"
 	"github.com/kdudkov/goatak/pkg/model"
+	mp "github.com/kdudkov/goatak/pkg/model"
 )
 
 const (

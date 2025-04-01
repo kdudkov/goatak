@@ -10,7 +10,7 @@ type Change struct {
 	ID             uint      `gorm:"primaryKey"`
 	CreatedAt      time.Time `gorm:"index"`
 	Type           string
-	MissionID      uint `gorm:"index"`
+	MissionID      uint `gorm:"index;not null"`
 	CreatorUID     string
 	ContentUID     string
 	MissionPointID sql.NullInt32

@@ -11,15 +11,15 @@ import (
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/proto"
 
-	"github.com/kdudkov/goatak/internal/model"
 	"github.com/kdudkov/goatak/pkg/cot"
 	"github.com/kdudkov/goatak/pkg/cotproto"
+	"github.com/kdudkov/goatak/pkg/model"
 )
 
 func TestRoute(t *testing.T) {
 	h := NewConnClientHandler("test", nil, &HandlerConfig{UID: "111", IsClient: true})
 	h.ver = 1
-	h.user = &model.User{Scope: "aaa", ReadScope: []string{"ccc", "ddd"}}
+	h.device = &model.Device{Scope: "aaa", ReadScope: []string{"ccc", "ddd"}}
 
 	var msg *cot.CotMessage
 
@@ -48,7 +48,7 @@ func TestRoute(t *testing.T) {
 func TestRouteChat(t *testing.T) {
 	h := NewConnClientHandler("test", nil, &HandlerConfig{UID: "111", IsClient: true})
 	h.ver = 1
-	h.user = &model.User{Scope: "aaa"}
+	h.device = &model.Device{Scope: "aaa"}
 
 	var msg *cot.CotMessage
 

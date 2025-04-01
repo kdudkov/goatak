@@ -17,28 +17,16 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/glebarez/sqlite"
 	"github.com/google/uuid"
 	"github.com/prometheus/client_golang/prometheus"
-	"gorm.io/gorm"
-	"gorm.io/gorm/logger"
 	"software.sslmate.com/src/go-pkcs12"
 
 	"github.com/kdudkov/goatak/cmd/goatak_server/database"
 	"github.com/kdudkov/goatak/internal/client"
-	im "github.com/kdudkov/goatak/internal/model"
 	"github.com/kdudkov/goatak/internal/pm"
 	"github.com/kdudkov/goatak/internal/repository"
 	"github.com/kdudkov/goatak/pkg/cot"
 	"github.com/kdudkov/goatak/pkg/model"
-)
-
-const (
-	dbName = "db.sqlite"
-)
-
-var (
-	lastSeenOfflineTimeout = time.Minute * 5
 )
 
 type App struct {
@@ -77,7 +65,7 @@ func NewApp(config *AppConfig) *App {
 		eventProcessors: make([]*EventProcessor, 0),
 	}
 
-	db, err := getDatabase()
+	db, err := database.GetDatabase(config.String("db"), false)
 
 	if err != nil {
 		panic(err)
@@ -98,10 +86,8 @@ func (app *App) Run() {
 		log.Fatal(err)
 	}
 
-	if app.users != nil {
-		if err := app.users.Start(); err != nil {
-			log.Fatal(err)
-		}
+	if err := app.users.Start(); err != nil {
+		log.Fatal(err)
 	}
 
 	if app.feeds != nil {
@@ -172,14 +158,14 @@ func (app *App) NewCotMessage(msg *cot.CotMessage) {
 
 func (app *App) AddClientHandler(ch client.ClientHandler) {
 	app.handlers.Store(ch.GetName(), ch)
-	connectionsMetric.With(prometheus.Labels{"scope": ch.GetUser().GetScope()}).Inc()
+	connectionsMetric.With(prometheus.Labels{"scope": ch.GetDevice().GetScope()}).Inc()
 }
 
 func (app *App) RemoveClientHandler(name string) {
 	if v, ok := app.handlers.LoadAndDelete(name); ok {
 		app.logger.Info("remove handler: " + name)
 		ch := v.(client.ClientHandler)
-		connectionsMetric.With(prometheus.Labels{"scope": ch.GetUser().GetScope()}).Dec()
+		connectionsMetric.With(prometheus.Labels{"scope": ch.GetDevice().GetScope()}).Dec()
 	}
 }
 
@@ -201,7 +187,7 @@ func (app *App) RemoveHandlerCb(cl client.ClientHandler) {
 
 		msg := &cot.CotMessage{
 			From:       cl.GetName(),
-			Scope:      cl.GetUser().GetScope(),
+			Scope:      cl.GetDevice().GetScope(),
 			TakMessage: cot.MakeOfflineMsg(uid, ""),
 		}
 		app.NewCotMessage(msg)
@@ -360,7 +346,7 @@ func (app *App) processMissionPoint(missionName string, msg *cot.CotMessage) {
 		return
 	}
 
-	var change *im.Change
+	var change *model.Change
 
 	if msg.GetType() == "t-x-d-d" {
 		if uid := msg.GetFirstLink("p-p").GetAttr("uid"); uid != "" {
@@ -375,12 +361,12 @@ func (app *App) processMissionPoint(missionName string, msg *cot.CotMessage) {
 	}
 }
 
-func (app *App) notifyMissionSubscribers(mission *im.Mission, c *im.Change) {
+func (app *App) notifyMissionSubscribers(mission *model.Mission, c *model.Change) {
 	if mission == nil || c == nil {
 		return
 	}
 
-	msg := im.MissionChangeNotificationMsg(mission.Name, mission.Scope, c)
+	msg := model.MissionChangeNotificationMsg(mission.Name, mission.Scope, c)
 	for _, uid := range app.dbm.GetSubscribers(mission.ID) {
 		app.sendToUID(uid, msg)
 	}
@@ -433,15 +419,6 @@ func (app *App) checkUID(uid string) bool {
 	}
 
 	return true
-}
-
-func getDatabase() (*gorm.DB, error) {
-	db, err := gorm.Open(sqlite.Open(dbName), &gorm.Config{Logger: logger.Default.LogMode(logger.Silent)})
-	if err != nil {
-		return nil, err
-	}
-
-	return db, nil
 }
 
 func main() {

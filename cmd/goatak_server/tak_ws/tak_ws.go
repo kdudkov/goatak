@@ -12,9 +12,9 @@ import (
 
 	"github.com/gofiber/contrib/websocket"
 
-	"github.com/kdudkov/goatak/internal/model"
 	"github.com/kdudkov/goatak/pkg/cot"
 	"github.com/kdudkov/goatak/pkg/cotproto"
+	"github.com/kdudkov/goatak/pkg/model"
 )
 
 type MessageCb func(msg *cot.CotMessage)
@@ -22,7 +22,7 @@ type MessageCb func(msg *cot.CotMessage)
 type WsClientHandler struct {
 	log       *slog.Logger
 	name      string
-	user      *model.User
+	user      *model.Device
 	ws        *websocket.Conn
 	ch        chan []byte
 	uids      sync.Map
@@ -34,7 +34,7 @@ func (w *WsClientHandler) GetName() string {
 	return w.name
 }
 
-func (w *WsClientHandler) GetUser() *model.User {
+func (w *WsClientHandler) GetDevice() *model.Device {
 	return w.user
 }
 
@@ -72,7 +72,7 @@ func (w *WsClientHandler) GetLastSeen() *time.Time {
 	return nil
 }
 
-func New(name string, user *model.User, ws *websocket.Conn, mc MessageCb) *WsClientHandler {
+func New(name string, user *model.Device, ws *websocket.Conn, mc MessageCb) *WsClientHandler {
 	return &WsClientHandler{
 		log:       slog.Default().With("logger", "tak_ws", "name", name, "user", user),
 		name:      name,
@@ -169,7 +169,7 @@ func (w *WsClientHandler) parse(b []byte) error {
 		return fmt.Errorf("read error %w", err)
 	}
 
-	cotmsg, err := cot.CotFromProto(msg, w.name, w.GetUser().GetScope())
+	cotmsg, err := cot.CotFromProto(msg, w.name, w.GetDevice().GetScope())
 	if err != nil {
 		return fmt.Errorf("convert error %w", err)
 	}

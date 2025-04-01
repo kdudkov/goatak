@@ -15,9 +15,9 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus"
 
-	"github.com/kdudkov/goatak/internal/model"
 	"github.com/kdudkov/goatak/pkg/cot"
 	"github.com/kdudkov/goatak/pkg/cotproto"
+	"github.com/kdudkov/goatak/pkg/model"
 )
 
 const (
@@ -26,7 +26,7 @@ const (
 )
 
 type HandlerConfig struct {
-	User         *model.User
+	Device       *model.Device
 	Serial       string
 	UID          string
 	IsClient     bool
@@ -42,7 +42,7 @@ type ClientHandler interface {
 	GetName() string
 	HasUID(uid string) bool
 	GetUids() map[string]string
-	GetUser() *model.User
+	GetDevice() *model.Device
 	GetSerial() string
 	GetVersion() int32
 	SendMsg(msg *cot.CotMessage) error
@@ -63,7 +63,7 @@ type ConnClientHandler struct {
 	closeTimer   *time.Timer
 	sendChan     chan []byte
 	active       int32
-	user         *model.User
+	device       *model.Device
 	serial       string
 	messageCb    func(msg *cot.CotMessage)
 	removeCb     func(ch ClientHandler)
@@ -85,7 +85,7 @@ func NewConnClientHandler(name string, conn net.Conn, config *HandlerConfig) *Co
 	}
 
 	if config != nil {
-		c.user = config.User
+		c.device = config.Device
 		c.serial = config.Serial
 		c.localUID = config.UID
 		c.isClient = config.IsClient
@@ -97,7 +97,7 @@ func NewConnClientHandler(name string, conn net.Conn, config *HandlerConfig) *Co
 
 		params := []any{"client", name}
 
-		if u := config.User; u != nil {
+		if u := config.Device; u != nil {
 			params = append(params, "login", u.GetLogin(), "scope", u.GetScope())
 		}
 
@@ -122,11 +122,11 @@ func (h *ConnClientHandler) GetName() string {
 }
 
 func (h *ConnClientHandler) CanSeeScope(scope string) bool {
-	return h.user.CanSeeScope(scope)
+	return h.device.CanSeeScope(scope)
 }
 
-func (h *ConnClientHandler) GetUser() *model.User {
-	return h.user
+func (h *ConnClientHandler) GetDevice() *model.Device {
+	return h.device
 }
 
 func (h *ConnClientHandler) GetSerial() string {
@@ -234,12 +234,11 @@ func (h *ConnClientHandler) handleRead(ctx context.Context) {
 		}
 
 		msg.From = h.addr
-		msg.Scope = h.GetUser().GetScope()
+		msg.Scope = h.GetDevice().GetScope()
 
 		// add new contact uid
 		if msg.IsContact() {
-			uid := msg.GetUID()
-			uid = strings.TrimSuffix(uid, "-ping")
+			uid := strings.TrimSuffix(msg.GetUID(), "-ping")
 
 			if h.uidChecker != nil && !h.uidChecker(uid) {
 				h.logger.Warn(fmt.Sprintf("blacklisted uid %s - dropped", uid))

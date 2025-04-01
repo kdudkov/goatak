@@ -8,7 +8,7 @@ import (
 
 	"github.com/jroimartin/gocui"
 
-	"github.com/kdudkov/goatak/internal/model"
+	"github.com/kdudkov/goatak/pkg/model"
 )
 
 const (

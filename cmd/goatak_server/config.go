@@ -164,6 +164,8 @@ func setDefaults(k *koanf.Koanf) {
 	k.Set("api_addr", ":8080")
 	k.Set("data_dir", "data")
 
+	k.Set("db", "db.sqlite")
+
 	k.Set("me.lat", 59.8396)
 	k.Set("me.lon", 31.0213)
 	k.Set("users_file", "users.yml")

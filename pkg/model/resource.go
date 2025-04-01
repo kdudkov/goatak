@@ -13,7 +13,7 @@ import (
 type Resource struct {
 	ID             uint `gorm:"primaryKey"`
 	CreatedAt      time.Time
-	Scope          string `gorm:"index"`
+	Scope          string `gorm:"index;not null"`
 	Hash           string `gorm:"index"`
 	UID            string `gorm:"uniqueIndex"`
 	FileName       string

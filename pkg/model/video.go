@@ -9,7 +9,7 @@ import (
 	"strings"
 )
 
-var defports = map[string]int{
+var defPorts = map[string]int{
 	"http":  80,
 	"https": 443,
 	"rtsp":  554,
@@ -28,31 +28,28 @@ type VideoConnections2 struct {
 }
 
 type Feed struct {
-	UID    string `xml:"uid"    yaml:"uid"`
-	Active bool   `xml:"active" yaml:"active,omitempty"`
-	Alias  string `xml:"alias"  yaml:"alias"`
-	Typ    string `xml:"type"   yaml:"type,omitempty"`
-
-	Address             string  `xml:"address"             yaml:"address,omitempty"`
-	Path                string  `xml:"path"                yaml:"path,omitempty"`
-	PreferredMacAddress string  `xml:"preferredMacAddress" yaml:"preferredMacAddress,omitempty"`
-	Port                int     `xml:"port"                yaml:"port,omitempty"`
-	RoverPort           int     `xml:"roverPort"           yaml:"roverPort,omitempty"`
-	IgnoreEmbeddedKLV   bool    `xml:"ignoreEmbeddedKLV"   yaml:"ignoreEmbeddedKLV,omitempty"`
-	Protocol            string  `xml:"protocol"            yaml:"protocol,omitempty"`
-	Source              string  `xml:"source"              yaml:"source,omitempty"`
-	Timeout             int     `xml:"timeout"             yaml:"timeout,omitempty"`
-	Buffer              int     `xml:"buffer"              yaml:"buffer,omitempty"`
-	RtspReliable        string  `xml:"rtspReliable"        yaml:"rtspReliable,omitempty"`
-	Thumbnail           string  `xml:"thumbnail"           yaml:"thumbnail,omitempty"`
-	Classification      string  `xml:"classification"      yaml:"classification,omitempty"`
-	Latitude            float64 `xml:"latitude"            yaml:"latitude,omitempty"`
-	Longitude           float64 `xml:"longitude"           yaml:"longitude,omitempty"`
-	Fov                 string  `xml:"fov"                 yaml:"fov,omitempty"`
-	Heading             string  `xml:"heading"             yaml:"heading,omitempty"`
-	Range               string  `xml:"range"               yaml:"range,omitempty"`
-	User                string  `yaml:"user"`
-	Scope               string  `yaml:"scope"`
+	UID                 string  `xml:"uid"`
+	Active              bool    `xml:"active"`
+	Alias               string  `xml:"alias"`
+	Typ                 string  `xml:"type"`
+	Address             string  `xml:"address"`
+	Path                string  `xml:"path"`
+	PreferredMacAddress string  `xml:"preferredMacAddress"`
+	Port                int     `xml:"port"`
+	RoverPort           int     `xml:"roverPort"`
+	IgnoreEmbeddedKLV   bool    `xml:"ignoreEmbeddedKLV"`
+	Protocol            string  `xml:"protocol"`
+	Source              string  `xml:"source"`
+	Timeout             int     `xml:"timeout"`
+	Buffer              int     `xml:"buffer"`
+	RtspReliable        string  `xml:"rtspReliable"`
+	Thumbnail           string  `xml:"thumbnail"`
+	Classification      string  `xml:"classification"`
+	Latitude            float64 `xml:"latitude"`
+	Longitude           float64 `xml:"longitude"`
+	Fov                 string  `xml:"fov"`
+	Heading             string  `xml:"heading"`
+	Range               string  `xml:"range"`
 }
 
 type Feed2 struct {
@@ -78,7 +75,7 @@ func (f *Feed2) ToFeed() *Feed {
 
 	return &Feed{
 		UID:                 f.UID,
-		Active:              true,
+		Active:              f.Active,
 		Alias:               f.Alias,
 		Typ:                 "",
 		Address:             addr,
@@ -99,8 +96,6 @@ func (f *Feed2) ToFeed() *Feed {
 		Fov:                 f.Fov,
 		Heading:             f.Heading,
 		Range:               f.Range,
-		User:                f.User,
-		Scope:               "",
 	}
 }
 
@@ -131,7 +126,6 @@ func (f *Feed) ToFeed2() *Feed2 {
 		Fov:       f.Fov,
 		Heading:   f.Heading,
 		Range:     f.Range,
-		User:      f.User,
 	}
 }
 
@@ -154,14 +148,14 @@ func parseURL(url string) (proto, addr string, port int, path string) {
 		addr = u.Host[:i]
 		port, _ = strconv.Atoi(u.Host[i+1:])
 	} else {
-		port = defports[proto]
+		port = defPorts[proto]
 	}
 
 	return
 }
 
 func toURL(proto, addr string, port int, path string) string {
-	if p, ok := defports[proto]; (ok && p == port) || port == 0 {
+	if p, ok := defPorts[proto]; (ok && p == port) || port == 0 {
 		return fmt.Sprintf("%s://%s%s", proto, addr, path)
 	}
 

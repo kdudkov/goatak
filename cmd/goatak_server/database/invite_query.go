@@ -3,7 +3,7 @@ package database
 import (
 	"gorm.io/gorm"
 
-	"github.com/kdudkov/goatak/internal/model"
+	"github.com/kdudkov/goatak/pkg/model"
 )
 
 type InvitationQuery struct {

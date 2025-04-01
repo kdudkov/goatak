@@ -17,7 +17,7 @@ const (
 
 func UserAuthHandler(r repository.UserRepository) fiber.Handler {
 	return basicauth.New(basicauth.Config{
-		Authorizer:      r.CheckUserAuth,
+		Authorizer:      r.CheckAuth,
 		ContextUsername: UsernameKey,
 	})
 }
@@ -26,15 +26,15 @@ func SSLCheckHandler(app *App) fiber.Handler {
 	return func(ctx *fiber.Ctx) error {
 		if c := ctx.Context(); c != nil {
 			if tlsConnectionState := c.TLSConnectionState(); tlsConnectionState != nil {
-				user, serial := getCertUser(tlsConnectionState)
-				if app.users.UserIsValid(user, serial) {
-					ctx.Locals(UsernameKey, user)
+				username, serial := getCertUser(tlsConnectionState)
+				if app.users.IsValid(username, serial) {
+					ctx.Locals(UsernameKey, username)
 					ctx.Locals(SerialKey, serial)
 
 					return ctx.Next()
 				}
 
-				app.logger.Warn(fmt.Sprintf("invalid user %s serial %s", user, serial))
+				app.logger.Warn(fmt.Sprintf("invalid user %s serial %s", username, serial))
 			}
 		}
 

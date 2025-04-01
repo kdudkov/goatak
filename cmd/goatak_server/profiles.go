@@ -8,10 +8,10 @@ import (
 	"strings"
 
 	"github.com/kdudkov/goatak/cmd/goatak_server/mp"
-	"github.com/kdudkov/goatak/internal/model"
+	"github.com/kdudkov/goatak/pkg/model"
 )
 
-func NewUserPrefsFile(prefix string, user *model.User) *mp.PrefFile {
+func NewUserPrefsFile(prefix string, user *model.Device) *mp.PrefFile {
 	conf := mp.NewUserProfilePrefFile(prefix)
 	if user.Callsign != "" {
 		conf.AddParam("locationCallsign", user.Callsign)
@@ -25,8 +25,8 @@ func NewUserPrefsFile(prefix string, user *model.User) *mp.PrefFile {
 		conf.AddParam("atakRoleType", user.Role)
 	}
 
-	if user.Typ != "" {
-		conf.AddParam("locationUnitType", user.Typ)
+	if user.CotType != "" {
+		conf.AddParam("locationUnitType", user.CotType)
 	}
 
 	return conf
@@ -37,7 +37,7 @@ func (app *App) GetProfileFiles(username, uid string) []mp.FileContent {
 	prefix := fmt.Sprintf("%x", md5.Sum([]byte(username)))
 
 	if app.users != nil && username != "" {
-		if userInfo := app.users.GetUser(username); userInfo != nil {
+		if userInfo := app.users.Get(username); userInfo != nil {
 			if userInfo.HasProfile() {
 				app.logger.Debug("add user prefs")
 

@@ -105,10 +105,11 @@ func (app *App) processTLSConn(ctx context.Context, conn *tls.Conn) {
 
 	st := conn.ConnectionState()
 	username, serial := getCertUser(&st)
+	app.users.SaveConnectInfo(username, serial)
 
 	name := "ssl:" + conn.RemoteAddr().String()
 	h := client.NewConnClientHandler(name, conn, &client.HandlerConfig{
-		User:         app.users.GetUser(username),
+		Device:       app.users.Get(username),
 		Serial:       serial,
 		MessageCb:    app.NewCotMessage,
 		RemoveCb:     app.RemoveHandlerCb,
@@ -127,7 +128,7 @@ func (app *App) verifyConnection(st tls.ConnectionState) error {
 	user, sn := getCertUser(&st)
 	tlsutil.LogCerts(app.logger, st.PeerCertificates...)
 
-	if !app.users.UserIsValid(user, sn) {
+	if !app.users.IsValid(user, sn) {
 		app.logger.Warn("bad user " + user)
 
 		return fmt.Errorf("bad user")

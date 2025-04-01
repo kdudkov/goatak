@@ -27,12 +27,12 @@ func TestParse(t *testing.T) {
 		t.Run("parse_"+td.url, func(t *testing.T) {
 			proto, addr, port, path := parseURL(td.url)
 
-			if proto != td.proto || addr != td.addr || port != td.port || path != td.path {
-				t.Errorf("%s -> %s %s %d %s", td.url, proto, addr, port, path)
-			}
+			assert.Equal(t, proto, td.proto)
+			assert.Equal(t, addr, td.addr)
+			assert.Equal(t, port, td.port)
+			assert.Equal(t, path, td.path)
 
 			newURL := toURL(proto, addr, port, path)
-
 			assert.Equal(t, td.url, newURL)
 		})
 	}

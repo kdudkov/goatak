@@ -8,8 +8,8 @@ type Mission struct {
 	ID             uint `gorm:"primaryKey"`
 	CreatedAt      time.Time
 	UpdatedAt      time.Time
-	Scope          string `gorm:"index"`
-	Name           string `gorm:"index"`
+	Scope          string `gorm:"index;not null"`
+	Name           string `gorm:"index;not null"`
 	Creator        string
 	CreatorUID     string
 	BaseLayer      string

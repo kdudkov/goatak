@@ -3,16 +3,18 @@ package repository
 import (
 	"github.com/kdudkov/goutils/callback"
 
-	internal "github.com/kdudkov/goatak/internal/model"
 	"github.com/kdudkov/goatak/pkg/model"
+	internal "github.com/kdudkov/goatak/pkg/model"
 )
 
 type UserRepository interface {
 	Start() error
 	Stop()
-	CheckUserAuth(user, password string) bool
-	UserIsValid(user, sn string) bool
-	GetUser(username string) *internal.User
+	CheckAuth(username, password string) bool
+	IsValid(username, sn string) bool
+	Get(username string) *internal.Device
+	SaveSignInfo(username string, uid, sn string)
+	SaveConnectInfo(username string, sn string)
 }
 
 type ItemsRepository interface {

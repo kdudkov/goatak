@@ -10,16 +10,16 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	"gopkg.in/yaml.v3"
 
-	"github.com/kdudkov/goatak/internal/model"
+	"github.com/kdudkov/goatak/pkg/model"
 )
 
-func read(fn string) []*model.User {
+func read(fn string) []*model.Device {
 	dat, err := os.ReadFile(fn)
 	if err != nil {
 		return nil
 	}
 
-	users := make([]*model.User, 0)
+	users := make([]*model.Device, 0)
 	if err := yaml.Unmarshal(dat, &users); err != nil {
 		panic(err.Error())
 	}
@@ -27,7 +27,7 @@ func read(fn string) []*model.User {
 	return users
 }
 
-func write(fn string, users []*model.User) error {
+func write(fn string, users []*model.Device) error {
 	f, err := os.Create(fn)
 	if err != nil {
 		return err
@@ -110,7 +110,7 @@ func main() {
 			sc = "test"
 		}
 
-		users = append(users, &model.User{Login: *user, Password: string(bpass), Scope: sc})
+		users = append(users, &model.Device{Login: *user, Password: string(bpass), Scope: sc})
 	}
 
 	if err := write(*file, users); err != nil {

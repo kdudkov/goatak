@@ -14,14 +14,13 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/kdudkov/goatak/cmd/goatak_server/mp"
-	im "github.com/kdudkov/goatak/internal/model"
 	"github.com/kdudkov/goatak/internal/pm"
 	"github.com/kdudkov/goatak/pkg/cot"
 	"github.com/kdudkov/goatak/pkg/log"
+	"github.com/kdudkov/goatak/pkg/model"
 	"github.com/kdudkov/goatak/pkg/util"
 
 	"github.com/kdudkov/goatak/pkg/cotproto"
-	"github.com/kdudkov/goatak/pkg/model"
 )
 
 const (
@@ -124,7 +123,7 @@ func getVersionConfigHandler(app *App) fiber.Handler {
 func getEndpointsHandler(app *App) fiber.Handler {
 	return func(ctx *fiber.Ctx) error {
 		username := Username(ctx)
-		user := app.users.GetUser(username)
+		user := app.users.Get(username)
 		// secAgo := getIntParam(req, "secAgo", 0)
 		data := make([]map[string]any, 0)
 
@@ -153,7 +152,7 @@ func getEndpointsHandler(app *App) fiber.Handler {
 
 func getContactsHandler(app *App) fiber.Handler {
 	return func(ctx *fiber.Ctx) error {
-		user := app.users.GetUser(Username(ctx))
+		user := app.users.Get(Username(ctx))
 		result := make([]*model.Contact, 0)
 
 		app.items.ForEach(func(item *model.Item) bool {
@@ -177,7 +176,7 @@ func getContactsHandler(app *App) fiber.Handler {
 func getMissionQueryHandler(app *App) fiber.Handler {
 	return func(ctx *fiber.Ctx) error {
 		username := Username(ctx)
-		user := app.users.GetUser(username)
+		user := app.users.Get(username)
 
 		hash := ctx.Query("hash")
 		if hash == "" {
@@ -253,9 +252,9 @@ func getUploadHandler(app *App) fiber.Handler {
 	}
 }
 
-func (app *App) uploadMultipart(ctx *fiber.Ctx, uid, hash, filename string, pack bool) (*im.Resource, error) {
+func (app *App) uploadMultipart(ctx *fiber.Ctx, uid, hash, filename string, pack bool) (*model.Resource, error) {
 	username := Username(ctx)
-	user := app.users.GetUser(username)
+	user := app.users.Get(username)
 
 	fh, err := ctx.FormFile("assetfile")
 
@@ -283,7 +282,7 @@ func (app *App) uploadMultipart(ctx *fiber.Ctx, uid, hash, filename string, pack
 		return nil, err
 	}
 
-	c := &im.Resource{
+	c := &model.Resource{
 		Scope:          user.GetScope(),
 		Hash:           hash1,
 		UID:            uid,
@@ -306,9 +305,9 @@ func (app *App) uploadMultipart(ctx *fiber.Ctx, uid, hash, filename string, pack
 	return c, err
 }
 
-func (app *App) uploadFile(ctx *fiber.Ctx, uid, filename string) (*im.Resource, error) {
+func (app *App) uploadFile(ctx *fiber.Ctx, uid, filename string) (*model.Resource, error) {
 	username := Username(ctx)
-	user := app.users.GetUser(username)
+	user := app.users.Get(username)
 
 	hash, n, err := app.files.PutFile(user.GetScope(), "", ctx.Context().RequestBodyStream())
 
@@ -317,7 +316,7 @@ func (app *App) uploadFile(ctx *fiber.Ctx, uid, filename string) (*im.Resource, 
 		return nil, err
 	}
 
-	c := &im.Resource{
+	c := &model.Resource{
 		Scope:          user.GetScope(),
 		Hash:           hash,
 		UID:            uid,
@@ -338,7 +337,7 @@ func (app *App) uploadFile(ctx *fiber.Ctx, uid, filename string) (*im.Resource, 
 func getContentGetHandler(app *App) fiber.Handler {
 	return func(ctx *fiber.Ctx) error {
 		username := Username(ctx)
-		user := app.users.GetUser(username)
+		user := app.users.Get(username)
 
 		hash := ctx.Query("hash")
 		uid := ctx.Query("uid")
@@ -383,7 +382,7 @@ func getMetadataGetHandler(app *App) fiber.Handler {
 	return func(ctx *fiber.Ctx) error {
 		hash := ctx.Params("hash")
 		username := Username(ctx)
-		user := app.users.GetUser(username)
+		user := app.users.Get(username)
 
 		if hash == "" {
 			return ctx.Status(fiber.StatusNotAcceptable).SendString("no hash")
@@ -401,7 +400,7 @@ func getMetadataGetHandler(app *App) fiber.Handler {
 
 func getMetadataPutHandler(app *App) fiber.Handler {
 	return func(ctx *fiber.Ctx) error {
-		user := app.users.GetUser(Username(ctx))
+		user := app.users.Get(Username(ctx))
 		hash := ctx.Params("hash")
 
 		if hash == "" {
@@ -424,15 +423,15 @@ func getSearchHandler(app *App) fiber.Handler {
 	return func(ctx *fiber.Ctx) error {
 		//kw := ctx.Query("keywords")
 
-		user := app.users.GetUser(Username(ctx))
+		user := app.users.Get(Username(ctx))
 
 		result := make(map[string]any)
 
 		files := app.dbm.ResourceQuery().Scope(user.GetScope()).Tool(ctx.Query("tool")).Get()
-		res := make([]*im.ResourceDTO, len(files))
+		res := make([]*model.ResourceDTO, len(files))
 
 		for i, f := range files {
-			res[i] = im.ToResourceDTO(f)
+			res[i] = model.ToResourceDTO(f)
 		}
 
 		result["results"] = res
@@ -509,7 +508,7 @@ func getProfileConnectionHandler(app *App) fiber.Handler {
 func getVideoListHandler(app *App) fiber.Handler {
 	return func(ctx *fiber.Ctx) error {
 		r := new(model.VideoConnections)
-		user := app.users.GetUser(Username(ctx))
+		user := app.users.Get(Username(ctx))
 
 		app.feeds.ForEach(func(f *model.Feed2) bool {
 			if user.CanSeeScope(f.Scope) {
@@ -526,7 +525,7 @@ func getVideoListHandler(app *App) fiber.Handler {
 func getVideo2ListHandler(app *App) fiber.Handler {
 	return func(ctx *fiber.Ctx) error {
 		conn := make([]*model.VideoConnections2, 0)
-		user := app.users.GetUser(Username(ctx))
+		user := app.users.Get(Username(ctx))
 
 		app.feeds.ForEach(func(f *model.Feed2) bool {
 			if user.CanSeeScope(f.Scope) {
@@ -546,7 +545,7 @@ func getVideo2ListHandler(app *App) fiber.Handler {
 func getVideoPostHandler(app *App) fiber.Handler {
 	return func(ctx *fiber.Ctx) error {
 		username := Username(ctx)
-		user := app.users.GetUser(username)
+		user := app.users.Get(username)
 
 		r := new(model.VideoConnections)
 
@@ -588,7 +587,7 @@ func getXmlHandler(app *App) fiber.Handler {
 	}
 }
 
-func resourceUrl(c *im.Resource) string {
+func resourceUrl(c *model.Resource) string {
 	return fmt.Sprintf("/Marti/sync/content?hash=%s", c.Hash)
 }
 

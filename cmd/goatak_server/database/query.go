@@ -2,6 +2,7 @@ package database
 
 import (
 	"errors"
+	"log/slog"
 
 	"gorm.io/gorm"
 )
@@ -13,13 +14,6 @@ type Query[T any] struct {
 	limit  int
 	offset int
 	order  string
-}
-
-func (q *Query[T]) setDefaults(db *gorm.DB, order string) {
-	q.db = db
-	q.offset = 0
-	q.limit = 100
-	q.order = order
 }
 
 func (q *Query[T]) get(tx *gorm.DB) []*T {
@@ -41,6 +35,10 @@ func (q *Query[T]) get(tx *gorm.DB) []*T {
 
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil
+	} else {
+		if err != nil {
+			slog.Error("db get error", slog.Any("error", err))
+		}
 	}
 
 	return res
@@ -53,16 +51,33 @@ func (q *Query[T]) one(tx *gorm.DB) *T {
 
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil
+	} else {
+		if err != nil {
+			slog.Error("db get one error", slog.Any("error", err))
+		}
 	}
 
 	return res
 }
 
+func (q *Query[T]) count(tx *gorm.DB) int64 {
+	var count int64
+
+	err := tx.Count(&count).Error
+
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		slog.Error("count error", slog.Any("error", err))
+	}
+
+	return count
+}
+
 func (q *Query[T]) update(tx *gorm.DB, updates map[string]any) (int64, error) {
 	tx.Updates(updates)
 
-	if tx.Error != nil {
-		return 0, tx.Error
+	if err := tx.Error; err != nil {
+		slog.Error("update error", slog.Any("error", err))
+		return 0, err
 	}
 
 	return tx.RowsAffected, nil
@@ -71,8 +86,9 @@ func (q *Query[T]) update(tx *gorm.DB, updates map[string]any) (int64, error) {
 func (q *Query[T]) updateOrError(tx *gorm.DB, updates map[string]any) error {
 	tx.Updates(updates)
 
-	if tx.Error != nil {
-		return tx.Error
+	if err := tx.Error; err != nil {
+		slog.Error("update error", slog.Any("error", err))
+		return err
 	}
 
 	if tx.RowsAffected == 0 {

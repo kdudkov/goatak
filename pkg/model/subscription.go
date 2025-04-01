@@ -5,8 +5,8 @@ import "time"
 type Subscription struct {
 	ID        uint `gorm:"primaryKey"`
 	CreatedAt time.Time
-	MissionID uint   `gorm:"index"`
-	ClientUID string `gorm:"index"`
+	MissionID uint   `gorm:"index;not null"`
+	ClientUID string `gorm:"index;not null"`
 	Username  string
 	Role      string
 }

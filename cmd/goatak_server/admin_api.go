@@ -22,10 +22,10 @@ import (
 
 	"github.com/kdudkov/goatak/cmd/goatak_server/tak_ws"
 	"github.com/kdudkov/goatak/internal/client"
-	"github.com/kdudkov/goatak/internal/model"
 	"github.com/kdudkov/goatak/internal/wshandler"
 	"github.com/kdudkov/goatak/pkg/cot"
 	"github.com/kdudkov/goatak/pkg/log"
+	"github.com/kdudkov/goatak/pkg/model"
 	"github.com/kdudkov/goatak/staticfiles"
 )
 
@@ -237,10 +237,10 @@ func getApiConnHandler(app *App) fiber.Handler {
 		app.ForAllClients(func(ch client.ClientHandler) bool {
 			c := &Connection{
 				Uids:     ch.GetUids(),
-				User:     ch.GetUser().GetLogin(),
+				User:     ch.GetDevice().GetLogin(),
 				Ver:      ch.GetVersion(),
 				Addr:     ch.GetName(),
-				Scope:    ch.GetUser().GetScope(),
+				Scope:    ch.GetDevice().GetScope(),
 				LastSeen: ch.GetLastSeen(),
 			}
 			conn = append(conn, c)

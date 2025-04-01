@@ -1,0 +1,126 @@
+package model
+
+import (
+	"log/slog"
+	"time"
+
+	"golang.org/x/crypto/bcrypt"
+)
+
+const bcryptCost = 14
+
+type Device struct {
+	Login       string   `gorm:"primaryKey" yaml:"user"`
+	Callsign    string   `gorm:"not null" yaml:"callsign,omitempty"`
+	Team        string   `gorm:"not null" yaml:"team,omitempty"`
+	Role        string   `gorm:"not null" yaml:"role,omitempty"`
+	CotType     string   `gorm:"not null" yaml:"type,omitempty"`
+	Password    string   `gorm:"not null" yaml:"password"`
+	Scope       string   `gorm:"not null" yaml:"scope"`
+	ReadScope   []string `gorm:"serializer:json" yaml:"read_scope,omitempty"`
+	LastSign    *time.Time
+	LastConnect *time.Time
+	Serial      string `gorm:"not null"`
+	UID         string `gorm:"not null;default:''"`
+}
+
+type DeviceDTO struct {
+	Login       string     `json:"login"`
+	Callsign    string     `json:"callsign,omitempty"`
+	Team        string     `json:"team,omitempty"`
+	Role        string     `json:"role,omitempty"`
+	CotType     string     `json:"cot_type,omitempty"`
+	Scope       string     `json:"scope,omitempty"`
+	ReadScope   []string   `json:"read_scope,omitempty"`
+	LastSign    *time.Time `json:"last_sign,omitempty"`
+	LastConnect *time.Time `json:"last_connect,omitempty"`
+	Serial      string     `json:"serial,omitempty"`
+	UID         string     `json:"uid,omitempty"`
+}
+
+func (u *Device) GetLogin() string {
+	if u == nil {
+		return ""
+	}
+
+	return u.Login
+}
+
+func (u *Device) GetScope() string {
+	if u == nil {
+		return ""
+	}
+
+	return u.Scope
+}
+
+func (u *Device) CanSeeScope(scope string) bool {
+	// nil user can see empty scope (no auth mode)
+	if u == nil {
+		return scope == ""
+	}
+
+	if u.GetScope() == scope {
+		return true
+	}
+
+	for _, s := range u.ReadScope {
+		if s == "*" || s == scope {
+			return true
+		}
+	}
+
+	return false
+}
+
+func (u *Device) HasProfile() bool {
+	if u == nil {
+		return false
+	}
+
+	return u.Callsign != "" || u.Team != "" || u.Role != "" || u.CotType != ""
+}
+
+func (u *Device) CheckPassword(password string) bool {
+	if u == nil {
+		return false
+	}
+
+	err := bcrypt.CompareHashAndPassword([]byte(u.Password), []byte(password))
+	if err != nil {
+		slog.Debug("password check failed", slog.Any("error", err))
+		return false
+	}
+
+	return true
+}
+
+func (u *Device) SetPassword(password string) error {
+	b, err := bcrypt.GenerateFromPassword([]byte(password), bcryptCost)
+	if err != nil {
+		return err
+	}
+
+	u.Password = string(b)
+	return nil
+}
+
+func (u *Device) DTO() *DeviceDTO {
+	if u == nil {
+		return nil
+	}
+
+	return &DeviceDTO{
+		Login:       u.Login,
+		Callsign:    u.Callsign,
+		Team:        u.Team,
+		Role:        u.Role,
+		CotType:     u.CotType,
+		Scope:       u.Scope,
+		ReadScope:   u.ReadScope,
+		LastSign:    u.LastSign,
+		LastConnect: u.LastConnect,
+		Serial:      u.Serial,
+		UID:         u.UID,
+	}
+}

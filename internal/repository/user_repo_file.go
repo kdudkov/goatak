@@ -7,16 +7,17 @@ import (
 	"sync"
 
 	"github.com/fsnotify/fsnotify"
-	"golang.org/x/crypto/bcrypt"
 	"gopkg.in/yaml.v3"
 
-	"github.com/kdudkov/goatak/internal/model"
+	"github.com/kdudkov/goatak/pkg/model"
 )
+
+var _ UserRepository = &UserFileRepository{}
 
 type UserFileRepository struct {
 	userFile string
 	logger   *slog.Logger
-	users    map[string]*model.User
+	users    map[string]*model.Device
 
 	watcher *fsnotify.Watcher
 
@@ -27,7 +28,7 @@ func NewFileUserRepo(userFile string) *UserFileRepository {
 	um := &UserFileRepository{
 		logger:   slog.Default().With("logger", "UserManager"),
 		userFile: userFile,
-		users:    make(map[string]*model.User),
+		users:    make(map[string]*model.Device),
 		mx:       sync.RWMutex{},
 	}
 
@@ -38,13 +39,12 @@ func NewFileUserRepo(userFile string) *UserFileRepository {
 	if len(um.users) == 0 {
 		um.logger.Info("no valid users found -  create one")
 
-		const bcryptCost = 14
-		bytes, _ := bcrypt.GenerateFromPassword([]byte("11111"), bcryptCost)
-
-		um.users["user"] = &model.User{
-			Login:    "user",
-			Password: string(bytes),
+		user := &model.Device{
+			Login: "user",
 		}
+
+		_ = user.SetPassword("11111")
+		um.users["user"] = user
 	}
 
 	return um
@@ -69,13 +69,13 @@ func (r *UserFileRepository) loadUsersFile() error {
 		return err
 	}
 
-	users := make([]*model.User, 0)
+	users := make([]*model.Device, 0)
 
 	if err := yaml.Unmarshal(dat, &users); err != nil {
 		return err
 	}
 
-	r.users = make(map[string]*model.User)
+	r.users = make(map[string]*model.Device)
 
 	for _, user := range users {
 		if user.Login != "" {
@@ -134,33 +134,36 @@ func (r *UserFileRepository) Stop() {
 	}
 }
 
-func (r *UserFileRepository) CheckUserAuth(user, password string) bool {
+func (r *UserFileRepository) CheckAuth(username, password string) bool {
 	r.mx.RLock()
 	defer r.mx.RUnlock()
 
-	if user, ok := r.users[user]; ok {
-		err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))
-		if err != nil {
-			r.logger.Debug("password check failed", slog.Any("error", err))
-			return false
-		}
-		return true
+	if user, ok := r.users[username]; ok {
+		return user.CheckPassword(password)
 	}
 
 	return false
 }
 
-func (r *UserFileRepository) UserIsValid(user, sn string) bool {
+func (r *UserFileRepository) IsValid(username, sn string) bool {
 	r.mx.RLock()
 	defer r.mx.RUnlock()
-	_, ok := r.users[user]
+	_, ok := r.users[username]
 
 	return ok
 }
 
-func (r *UserFileRepository) GetUser(username string) *model.User {
+func (r *UserFileRepository) Get(username string) *model.Device {
 	r.mx.RLock()
 	defer r.mx.RUnlock()
 
 	return r.users[username]
+}
+
+func (r *UserFileRepository) SaveSignInfo(username string, uid, sn string) {
+	// no-op
+}
+
+func (r *UserFileRepository) SaveConnectInfo(username string, sn string) {
+	// no-op
 }
