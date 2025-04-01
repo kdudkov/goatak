@@ -293,12 +293,12 @@ func (app *App) uploadMultipart(ctx *fiber.Ctx, uid, hash, filename string, pack
 		SubmissionUser: user.GetLogin(),
 		CreatorUID:     queryIgnoreCase(ctx, "creatorUid"),
 		Tool:           "",
-		Kw:             util.NewStringSet(),
+		KwSet:          util.NewStringSet(),
 		Expiration:     -1,
 	}
 
 	if pack {
-		c.Kw.Add("missionpackage")
+		c.KwSet.Add("missionpackage")
 		c.Tool = "public"
 	}
 
@@ -432,7 +432,7 @@ func getSearchHandler(app *App) fiber.Handler {
 		res := make([]*model.ResourceDTO, 0, len(files))
 
 		for _, f := range files {
-			if f.Kw.Has(kw) {
+			if f.KwSet.Has(kw) {
 				res = append(res, model.ToResourceDTO(f))
 			}
 		}

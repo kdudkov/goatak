@@ -26,7 +26,7 @@ type Resource struct {
 	Keywords       string
 	Groups         string
 	Expiration     int64
-	Kw             util.StringSet `gorm:"-"`
+	KwSet          util.StringSet `gorm:"-"`
 }
 
 func (c *Resource) String() string {
@@ -42,14 +42,14 @@ func (c *Resource) BeforeSave(_ *gorm.DB) error {
 		c.UID = uuid.NewString()
 	}
 
-	if c.Kw != nil {
-		c.Keywords = c.Kw.String()
+	if c.KwSet != nil {
+		c.Keywords = c.KwSet.String()
 	}
 
 	return nil
 }
 
 func (c *Resource) AfterFind(_ *gorm.DB) error {
-	c.Kw = util.StringToSet(c.Keywords)
+	c.KwSet = util.StringToSet(c.Keywords)
 	return nil
 }

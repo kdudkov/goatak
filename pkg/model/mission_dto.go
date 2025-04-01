@@ -302,7 +302,7 @@ func ToContentItemDTO(r *Resource) *ContentItemDTO {
 		Timestamp:  CotTime(r.CreatedAt),
 		Data: DataDTO{
 			UID:            r.UID,
-			Keywords:       r.Kw.List(),
+			Keywords:       r.KwSet.List(),
 			MimeType:       r.MIMEType,
 			Name:           r.FileName,
 			SubmissionTime: CotTime(r.CreatedAt),
@@ -323,7 +323,7 @@ func ToResourceDTO(r *Resource) *ResourceDTO {
 		ID:                 strconv.Itoa(int(r.ID)),
 		UID:                r.UID,
 		SubmissionDateTime: r.CreatedAt,
-		Keywords:           r.Kw.List(),
+		Keywords:           r.KwSet.List(),
 		MIMEType:           r.MIMEType,
 		Size:               r.Size,
 		SubmissionUser:     r.SubmissionUser,
