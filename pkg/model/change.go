@@ -1,9 +1,13 @@
 package model
 
 import (
-	"database/sql"
 	"fmt"
 	"time"
+)
+
+const (
+	CHANGE_TYPE_ADD    = "ADD_CONTENT"
+	CHANGE_TYPE_REMOVE = "REMOVE_CONTENT"
 )
 
 type Change struct {
@@ -13,10 +17,10 @@ type Change struct {
 	MissionID      uint `gorm:"index;not null"`
 	CreatorUID     string
 	ContentUID     string
-	MissionPointID sql.NullInt32
+	MissionPointID *uint
 	MissionPoint   *Point `gorm:"foreignKey:MissionPointID"`
 	ContentHash    string
-	ResourceID     sql.NullInt32
+	ResourceID     *uint
 	Resource       *Resource `gorm:"foreignKey:ResourceID"`
 }
 
@@ -25,12 +29,12 @@ func (c *Change) String() string {
 		return "nil"
 	}
 
-	if c.MissionPointID.Valid {
-		return fmt.Sprintf("POINT %s, mid: %d, uid: %s, %d", c.Type, c.MissionID, c.ContentUID, c.MissionPointID.Int32)
+	if c.MissionPointID != nil {
+		return fmt.Sprintf("POINT %s, mid: %d, uid: %s, %d", c.Type, c.MissionID, c.ContentUID, c.MissionPointID)
 	}
 
-	if c.ResourceID.Valid {
-		return fmt.Sprintf("RESOURCE %s, mid: %d, uid: %s, %d", c.Type, c.MissionID, c.ContentUID, c.ResourceID.Int32)
+	if c.ResourceID != nil {
+		return fmt.Sprintf("RESOURCE %s, mid: %d, uid: %s, %d", c.Type, c.MissionID, c.ContentUID, c.ResourceID)
 	}
 
 	return fmt.Sprintf("INVALID %s, mid: %d, uid: %s", c.Type, c.MissionID, c.ContentUID)

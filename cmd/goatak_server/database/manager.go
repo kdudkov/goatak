@@ -1,7 +1,6 @@
 package database
 
 import (
-	"database/sql"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -133,11 +132,11 @@ func (mm *DatabaseManager) AddMissionPoint(mission *model.Mission, msg *cot.CotM
 	parent, _ := msg.GetParent()
 
 	c := &model.Change{
-		Type:           "ADD_CONTENT",
+		Type:           model.CHANGE_TYPE_ADD,
 		MissionID:      mission.ID,
 		CreatorUID:     parent,
 		ContentUID:     msg.GetUID(),
-		MissionPointID: sql.NullInt32{int32(point.ID), true},
+		MissionPointID: &point.ID,
 	}
 
 	_ = mm.Create(c)
@@ -166,11 +165,11 @@ func (mm *DatabaseManager) DeleteMissionPoint(mission *model.Mission, uid string
 	mm.db.Model(mission).Association("Points").Delete(point)
 
 	c := &model.Change{
-		Type:           "REMOVE_CONTENT",
+		Type:           model.CHANGE_TYPE_REMOVE,
 		MissionID:      mission.ID,
 		CreatorUID:     authorUID,
 		ContentUID:     uid,
-		MissionPointID: sql.NullInt32{int32(point.ID), true},
+		MissionPointID: &point.ID,
 	}
 
 	_ = mm.Create(c)
@@ -205,11 +204,11 @@ func (mm *DatabaseManager) AddMissionResource(mission *model.Mission, hash strin
 	mm.db.Model(mission).Association("Resources").Append(res)
 
 	c := &model.Change{
-		Type:        "ADD_CONTENT",
+		Type:        model.CHANGE_TYPE_ADD,
 		MissionID:   mission.ID,
 		CreatorUID:  authorUID,
 		ContentHash: hash,
-		ResourceID:  sql.NullInt32{int32(res.ID), true},
+		ResourceID:  &res.ID,
 	}
 
 	_ = mm.Create(c)
@@ -238,11 +237,11 @@ func (mm *DatabaseManager) DeleteMissionContent(mission *model.Mission, hash str
 	mm.db.Model(mission).Association("Resources").Delete(res)
 
 	c := &model.Change{
-		Type:        "REMOVE_CONTENT",
+		Type:        model.CHANGE_TYPE_REMOVE,
 		MissionID:   mission.ID,
 		CreatorUID:  authorUID,
 		ContentHash: hash,
-		ResourceID:  sql.NullInt32{int32(res.ID), true},
+		ResourceID:  &res.ID,
 	}
 
 	_ = mm.Create(c)
@@ -280,7 +279,7 @@ func (mm *DatabaseManager) GetChanges(missionId uint, after time.Time, squashed 
 		}
 		uids.Add(key)
 
-		if c.Type != "REMOVE_CONTENT" {
+		if c.Type != model.CHANGE_TYPE_REMOVE {
 			ch1 = append(ch1, c)
 		}
 		n++
