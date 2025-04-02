@@ -269,7 +269,7 @@ func (mm *DatabaseManager) GetChanges(missionId uint, after time.Time, squashed 
 	uids := util.NewStringSet()
 
 	n := 0
-	ch1 := make([]*model.Change, 0)
+	ch1 := make([]*model.Change, 0, len(ch))
 
 	for _, c := range ch {
 		key := util.FirstString(c.ContentUID, c.ContentHash)

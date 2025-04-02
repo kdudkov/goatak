@@ -85,6 +85,7 @@ func addMartiRoutes(app *App, f fiber.Router) {
 	f.Get("/Marti/api/groups/groupCacheEnabled", getAllGroupsCacheHandler(app))
 
 	f.Get("/Marti/api/device/profile/connection", getProfileConnectionHandler(app))
+	f.Get("/Marti/api/device/profile/tool/:name", getProfileToolHandler(app))
 
 	f.Get("/Marti/sync/search", getSearchHandler(app))
 	f.Get("/Marti/sync/missionquery", getMissionQueryHandler(app))
@@ -92,8 +93,8 @@ func addMartiRoutes(app *App, f fiber.Router) {
 	f.Get("/Marti/sync/content", getContentGetHandler(app))
 	f.Post("/Marti/sync/upload", getUploadHandler(app))
 	f.Get("/Marti/api/cot/xml/:uid", getXmlHandler(app))
-	f.Get("/Marti/api/sync/metadata/:hash/tool", getMetadataGetHandler(app))
-	f.Put("/Marti/api/sync/metadata/:hash/tool", getMetadataPutHandler(app))
+	f.Get("/Marti/api/sync/metadata/:hash/:name", getMetadataGetHandler(app))
+	f.Put("/Marti/api/sync/metadata/:hash/:name", getMetadataPutHandler(app))
 
 	f.Get("/Marti/vcm", getVideoListHandler(app))
 	f.Post("/Marti/vcm", getVideoPostHandler(app))
@@ -385,6 +386,7 @@ func getContentGetHandler(app *App) fiber.Handler {
 func getMetadataGetHandler(app *App) fiber.Handler {
 	return func(ctx *fiber.Ctx) error {
 		hash := ctx.Params("hash")
+		name := ctx.Params("name")
 		username := Username(ctx)
 		user := app.users.Get(username)
 
@@ -398,7 +400,12 @@ func getMetadataGetHandler(app *App) fiber.Handler {
 			return ctx.SendStatus(fiber.StatusNotFound)
 		}
 
-		return ctx.SendString(cn.Tool)
+		switch name {
+		case "tool":
+			return ctx.SendString(cn.Tool)
+		default:
+			return ctx.SendString("")
+		}
 	}
 }
 
@@ -406,6 +413,7 @@ func getMetadataPutHandler(app *App) fiber.Handler {
 	return func(ctx *fiber.Ctx) error {
 		user := app.users.Get(Username(ctx))
 		hash := ctx.Params("hash")
+		name := ctx.Params("name")
 
 		if hash == "" {
 			return ctx.Status(fiber.StatusNotAcceptable).SendString("no hash")
@@ -417,7 +425,9 @@ func getMetadataPutHandler(app *App) fiber.Handler {
 			return ctx.SendStatus(fiber.StatusNotFound)
 		}
 
-		app.dbm.UpdateContentTool(cn.ID, string(ctx.Body()))
+		val := string(ctx.Body())
+
+		_ = app.dbm.MissionQuery().Id(cn.ID).Update(map[string]any{name: val})
 
 		return nil
 	}
@@ -503,6 +513,20 @@ func getProfileConnectionHandler(app *App) fiber.Handler {
 		}
 
 		return ctx.Send(dat)
+	}
+}
+
+func getProfileToolHandler(app *App) fiber.Handler {
+	return func(ctx *fiber.Ctx) error {
+		//username := Username(ctx)
+		uid := queryIgnoreCase(ctx, "clientUid")
+		//name := ctx.Params("name")
+
+		if !app.checkUID(uid) {
+			return ctx.SendStatus(fiber.StatusForbidden)
+		}
+
+		return ctx.SendStatus(fiber.StatusNoContent)
 	}
 }
 
