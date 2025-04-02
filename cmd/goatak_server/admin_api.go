@@ -73,6 +73,7 @@ func NewAdminAPI(app *App, addr string, webtakRoot string) *AdminAPI {
 	api.f.Get("/api/file/delete/:id", getApiFileDeleteHandler(app))
 	api.f.Get("/api/point", getApiPointsHandler(app))
 	api.f.Get("/api/device", getApiDevicesHandler(app))
+	api.f.Put("/api/device/:id", getApiDevicePutHandler(app))
 
 	api.f.Get("/api/mission", getApiAllMissionHandler(app))
 	api.f.Get("/api/mission/:id/changes", getApiAllMissionChangesHandler(app))
@@ -432,7 +433,7 @@ func getApiPointsHandler(app *App) fiber.Handler {
 
 func getApiDevicesHandler(app *App) fiber.Handler {
 	return func(ctx *fiber.Ctx) error {
-		data := app.dbm.UserQuery().Get()
+		data := app.dbm.DeviceQuery().Get()
 
 		devices := make([]*model.DeviceDTO, len(data))
 
@@ -441,6 +442,42 @@ func getApiDevicesHandler(app *App) fiber.Handler {
 		}
 
 		return ctx.JSON(devices)
+	}
+}
+
+func getApiDevicePutHandler(app *App) fiber.Handler {
+	return func(ctx *fiber.Ctx) error {
+		login := ctx.Params("id")
+
+		d := app.dbm.DeviceQuery().Login(login).One()
+
+		if d == nil {
+			return ctx.SendStatus(fiber.StatusNotFound)
+		}
+
+		var m *model.DevicePutDTO
+
+		if err := ctx.BodyParser(&m); err != nil {
+			return err
+		}
+
+		if m.Password != "" {
+			if err := d.SetPassword(m.Password); err != nil {
+				return err
+			}
+		}
+
+		if m.Scope != "" {
+			d.Scope = m.Scope
+		}
+
+		d.Callsign = m.Callsign
+		d.Team = m.Team
+		d.Role = m.Role
+
+		app.dbm.Save(d)
+
+		return ctx.JSON(fiber.Map{"status": "ok"})
 	}
 }
 

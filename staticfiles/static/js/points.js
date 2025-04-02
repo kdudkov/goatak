@@ -1,7 +1,7 @@
 const app = Vue.createApp({
     data: function () {
         return {
-            mp: [],
+            data: [],
             current: null,
             alert: null,
             ts: 0,
@@ -14,7 +14,7 @@ const app = Vue.createApp({
     },
     computed: {
         all: function () {
-            return this.ts && this.mp;
+            return this.ts && this.data;
         },
     },
     methods: {
@@ -24,7 +24,7 @@ const app = Vue.createApp({
             fetch('/api/point')
                 .then(resp => resp.json())
                 .then(function (data) {
-                    vm.mp = data.sort((a, b) => a.Scope.localeCompare(b.Scope) || a.Callsign.toLowerCase().localeCompare(b.Callsign.toLowerCase()));
+                    vm.data = data.sort((a, b) => a.Scope.localeCompare(b.Scope) || a.Callsign.toLowerCase().localeCompare(b.Callsign.toLowerCase()));
                     vm.ts += 1;
                 });
         },

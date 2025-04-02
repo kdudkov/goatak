@@ -21,15 +21,43 @@
         <div v-if="current != null">
             <h3>{{ current.Name }}</h3>
             <a class="btn btn-outline-primary" :href="'/api/file/' + current.ID">download</a><br/>
-            Scope: {{ current.Scope }}<br/>
-            UID: {{ current.UID }}<br/>
-            Hash: {{ current.Hash }}<br/>
-            MimeType: {{ current.MIMEType }}<br/>
-            Keywords: {{ current.Keywords }}<br/>
-            Author: {{ current.SubmissionUser }} {{ current.CreatorUID }}<br/>
-            Tool: {{ current.Tool }}<br/>
-            <a class="btn btn-outline-danger" :href="'/api/file/delete/' + current.ID">delete</a><br/>
-            <img class="w-100" v-if="current.MIMEType.startsWith('image/')" :src="'/api/file/' + current.ID"/>
+            <div class="my-2">
+                <table class="table table-sm table-bordered">
+                    <tr>
+                        <th>Scope:</th>
+                        <td>{{ current.Scope }}</td>
+                    </tr>
+                    <tr>
+                        <th>UID:</th>
+                        <td>{{ current.UID }}</td>
+                    </tr>
+                    <tr>
+                        <th>Hash:</th>
+                        <td>{{ current.Hash }}</td>
+                    </tr>
+                    <tr>
+                        <th>MimeType:</th>
+                        <td>{{ current.MIMEType }}</td>
+                    </tr>
+                    <tr>
+                        <th>Keywords:</th>
+                        <td>{{ current.Keywords }}</td>
+                    </tr>
+                    <tr>
+                        <th>Author:</th>
+                        <td>{{ current.SubmissionUser }} {{ current.CreatorUID }}</td>
+                    </tr>
+                    <tr>
+                        <th>Tool:</th>
+                        <td>{{ current.Tool }}</td>
+                    </tr>
+                </table>
+            </div>
+
+            <div class="my-2">
+                <a class="btn btn-outline-danger" :href="'/api/file/delete/' + current.ID">delete</a><br/>
+                <img class="w-100" v-if="current.MIMEType.startsWith('image/')" :src="'/api/file/' + current.ID"/>
+            </div>
         </div>
     </div>
 </div>

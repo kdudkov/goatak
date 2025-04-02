@@ -3,7 +3,8 @@ const app = Vue.createApp({
         return {
             data: [],
             current: null,
-            alert: null,
+            form: {},
+            error: null,
             ts: 0,
         }
     },
@@ -22,9 +23,51 @@ const app = Vue.createApp({
 
             fetch('/api/device')
                 .then(resp => resp.json())
-                .then(function (data) {
+                .then(data => {
                     vm.data = data.sort((a, b) => a.scope.localeCompare(b.scope) || a.login.toLowerCase().localeCompare(b.login.toLowerCase()));
                     vm.ts += 1;
+                });
+        },
+        setCurrent: function (d) {
+            this.current = d;
+            this.form = {
+                callsign: d.callsign,
+                role: d.role,
+                team: d.team,
+                scope: d.scope,
+                read_scope: d.read_scope,
+                password: '',
+            };
+        },
+        send: function () {
+            const requestOptions = {
+                method: "PUT",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify(this.form)
+            };
+            let vm = this;
+            fetch('/api/device/' + this.current.login, requestOptions)
+                .then(resp => {
+                    if (resp.status > 299) {
+                        vm.error = 'error ' + resp.status;
+                        return null;
+                    }
+                    return resp.json();
+                })
+                .then(data => {
+                    if (!data) return;
+
+                    if (data.error) {
+                        vm.error = data.error;
+                        return;
+                    }
+
+                    vm.error = "";
+                    vm.renew();
+                })
+                .catch(err => {
+                    console.log(err);
+                    this.error = err;
                 });
         },
         printCoords: function (lat, lng) {

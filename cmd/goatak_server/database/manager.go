@@ -74,7 +74,7 @@ func (mm *DatabaseManager) InvitationQuery() *InvitationQuery {
 func (mm *DatabaseManager) PointQuery() *PointQuery {
 	return NewPointQuery(mm.db)
 }
-func (mm *DatabaseManager) UserQuery() *DeviceQuery {
+func (mm *DatabaseManager) DeviceQuery() *DeviceQuery {
 	return NewDeviceQuery(mm.db)
 }
 

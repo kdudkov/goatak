@@ -2,7 +2,7 @@
     <div class="col">
         <h4>Devices</h4>
         <table class="table table-hover table-sm">
-            <tr v-for="c in all" @click="current = c">
+            <tr v-for="c in all" @click="setCurrent(c)">
                 <td>{{ c.login }}</td>
                 <td>{{ c.scope }}</td>
                 <td>{{ c.callsign }}</td>
@@ -15,27 +15,7 @@
     <div class="col">
         <div v-if="current != null" class="overflow-auto">
             <h3>{{ current.login }}</h3>
-            <table class="table table-hover table-sm">
-                <tr>
-                    <th>Scope</th>
-                    <td>{{ current.scope }}</td>
-                </tr>
-                <tr>
-                    <th>Callsign</th>
-                    <td>{{ current.callsign }}</td>
-                </tr>
-                <tr>
-                    <th>Team</th>
-                    <td>{{ current.team }}</td>
-                </tr>
-                <tr>
-                    <th>Role</th>
-                    <td>{{ current.role }}</td>
-                </tr>
-                <tr>
-                    <th>UID</th>
-                    <td>{{ current.uid }}</td>
-                </tr>
+            <table>
                 <tr>
                     <th>Last connect</th>
                     <td>{{ dt(current.last_connect) }}</td>
@@ -49,6 +29,58 @@
                     <td>{{ current.serial }}</td>
                 </tr>
             </table>
+            <div class="m-3">
+                <form @submit.prevent="send">
+                    <div class="mb-3">
+                        <label for="scope" class="form-label">Scope</label>
+                        <input class="form-control" id="scope" v-model="form.scope">
+                    </div>
+                    <div class="mb-3">
+                        <label for="callsign" class="form-label">Callsign</label>
+                        <input class="form-control" id="callsign" v-model="form.callsign">
+                    </div>
+                    <div class="mb-3">
+                        <label for="team" class="form-label">Team</label>
+                        <select id="team" class="form-select" aria-label="Team" v-model="form.team">
+                            <option></option>
+                            <option>Clear</option>
+                            <option>White</option>
+                            <option>Yellow</option>
+                            <option>Orange</option>
+                            <option>Magenta</option>
+                            <option>Red</option>
+                            <option>Maroon</option>
+                            <option>Purple</option>
+                            <option>Dark Blue</option>
+                            <option>Blue</option>
+                            <option>Cyan</option>
+                            <option>Teal</option>
+                            <option>Green</option>
+                            <option>Dark Green</option>
+                            <option>Brown</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="role" class="form-label">Role</label>
+                        <select id="role" class="form-select" aria-label="Team" v-model="form.role">
+                            <option></option>
+                            <option>Team Member</option>
+                            <option>HQ</option>
+                            <option>Team Lead</option>
+                            <option>K9</option>
+                            <option>Forward Observer</option>
+                            <option>Sniper</option>
+                            <option>Medic</option>
+                            <option>RTO</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="password" class="form-label">Password</label>
+                        <input type="password" class="form-control" id="callsign" v-model="form.password">
+                    </div>
+                    <button type="submit" class="btn btn-primary">Submit</button>
+                </form>
+            </div>
         </div>
     </div>
 </div>

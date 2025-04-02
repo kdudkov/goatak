@@ -42,6 +42,16 @@ type DeviceDTO struct {
 	UID         string         `json:"uid,omitempty"`
 }
 
+type DevicePutDTO struct {
+	Callsign  string   `json:"callsign,omitempty"`
+	Password  string   `json:"password,omitempty"`
+	Team      string   `json:"team,omitempty"`
+	Role      string   `json:"role,omitempty"`
+	CotType   string   `json:"cot_type,omitempty"`
+	Scope     string   `json:"scope,omitempty"`
+	ReadScope []string `json:"read_scope,omitempty"`
+}
+
 func (u *Device) GetLogin() string {
 	if u == nil {
 		return ""

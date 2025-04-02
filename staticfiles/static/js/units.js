@@ -3,7 +3,6 @@ const app = Vue.createApp({
         return {
             units: [],
             connections: [],
-            alert: null,
             ts: 0,
         }
     },

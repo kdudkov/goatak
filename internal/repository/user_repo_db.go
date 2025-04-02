@@ -34,11 +34,11 @@ func NewUserDbRepository(userFile string, dbm *database.DatabaseManager) *UserDb
 }
 
 func (u UserDbRepository) loadUser(username string) *model.Device {
-	return u.dbm.UserQuery().Login(username).One()
+	return u.dbm.DeviceQuery().Login(username).One()
 }
 
 func (u UserDbRepository) Start() error {
-	if u.dbm.UserQuery().Count() == 0 {
+	if u.dbm.DeviceQuery().Count() == 0 {
 		if err := u.loadUsersFile(); err != nil {
 			return err
 		}
@@ -95,9 +95,9 @@ func (u UserDbRepository) loadUsersFile() error {
 }
 
 func (u UserDbRepository) SaveSignInfo(username string, uid, sn string) {
-	_ = u.dbm.UserQuery().Login(username).Update(map[string]any{"last_sign": time.Now(), "serial": sn, "uid": uid})
+	_ = u.dbm.DeviceQuery().Login(username).Update(map[string]any{"last_sign": time.Now(), "serial": sn, "uid": uid})
 }
 
 func (u UserDbRepository) SaveConnectInfo(username string, sn string) {
-	_ = u.dbm.UserQuery().Login(username).Update(map[string]any{"last_connect": time.Now()})
+	_ = u.dbm.DeviceQuery().Login(username).Update(map[string]any{"last_connect": time.Now()})
 }
