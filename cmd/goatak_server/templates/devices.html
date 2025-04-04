@@ -1,36 +1,50 @@
-<div class="row">
-    <div class="col">
-        <h4>Devices</h4>
-        <table class="table table-hover table-sm">
-            <tr v-for="c in all" @click="setCurrent(c)">
-                <td>{{ c.login }}</td>
-                <td>{{ c.scope }}</td>
-                <td>{{ c.callsign }}</td>
-                <td>{{ c.team }}</td>
-                <td>{{ c.role }}</td>
-                <td>{{ dt(c.last_connect) }}</td>
-            </tr>
-        </table>
-    </div>
-    <div class="col">
-        <div v-if="current != null" class="overflow-auto">
-            <h3>{{ current.login }}</h3>
-            <table>
-                <tr>
-                    <th>Last connect</th>
-                    <td>{{ dt(current.last_connect) }}</td>
-                </tr>
-                <tr>
-                    <th>Last cert sign</th>
-                    <td>{{ dt(current.last_sign) }}</td>
-                </tr>
-                <tr>
-                    <th>Cert serial</th>
-                    <td>{{ current.serial }}</td>
-                </tr>
-            </table>
-            <div class="m-3">
+<h4>Devices</h4>
+<div class="my-2">
+    <button class="btn btn-outline-primary" @click="create()">Create</button>
+</div>
+<table class="table table-hover table-sm">
+    <tr>
+        <th>Login</th>
+        <th>Scope</th>
+        <th>Callsign</th>
+        <th>Team</th>
+        <th>Role</th>
+        <th>Last connect</th>
+        <th>Last sign</th>
+        <th>SN</th>
+        <th></th>
+    </tr>
+    <tr v-for="c in all">
+        <td>{{ c.login }}</td>
+        <td>{{ c.scope }}</td>
+        <td>{{ c.callsign }}</td>
+        <td>{{ c.team }}</td>
+        <td>{{ c.role }}</td>
+        <td>{{ dt(c.last_connect) }}</td>
+        <td>{{ dt(c.last_sign) }}</td>
+        <td>{{ c.serial }}</td>
+        <td>
+            <button class="btn btn-outline-primary btn-sm" @click="edit(c)"><i class="bi bi-pencil-square"></i></button>
+        </td>
+    </tr>
+</table>
+
+<!-- Modal -->
+<div class="modal fade" id="device_w" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1"
+     aria-labelledby="staticBackdropLabel2" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="staticBackdropLabel2"><span v-if="current">{{ current.login }}</span></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div v-if="error" class="alert alert-danger">{{ error }}</div>
                 <form @submit.prevent="send">
+                    <div class="mb-3" v-if="!current">
+                        <label for="login" class="form-label">Login</label>
+                        <input class="form-control" id="login" v-model="form.login">
+                    </div>
                     <div class="mb-3">
                         <label for="scope" class="form-label">Scope</label>
                         <input class="form-control" id="scope" v-model="form.scope">
@@ -78,8 +92,12 @@
                         <label for="password" class="form-label">Password</label>
                         <input type="password" class="form-control" id="callsign" v-model="form.password">
                     </div>
-                    <button type="submit" class="btn btn-primary">Submit</button>
                 </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn min-width-179 btn-warning" @click="send()">Сохранить</button>
+                <button type="button" class="btn min-width-179 btn-outline-secondary" data-bs-dismiss="modal">Закрыть
+                </button>
             </div>
         </div>
     </div>

@@ -28,7 +28,18 @@ const app = Vue.createApp({
                     vm.ts += 1;
                 });
         },
-        setCurrent: function (d) {
+        create: function () {
+            this.form = {
+                callsign: '',
+                role: '',
+                team: '',
+                scope: '',
+                read_scope: [],
+                password: '',
+            };
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('device_w')).show();
+        },
+        edit: function (d) {
             this.current = d;
             this.form = {
                 callsign: d.callsign,
@@ -38,15 +49,30 @@ const app = Vue.createApp({
                 read_scope: d.read_scope,
                 password: '',
             };
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('device_w')).show();
         },
         send: function () {
-            const requestOptions = {
-                method: "PUT",
-                headers: {"Content-Type": "application/json"},
-                body: JSON.stringify(this.form)
-            };
             let vm = this;
-            fetch('/api/device/' + this.current.login, requestOptions)
+            let requestOptions = {};
+            let url = '';
+
+            if (this.current) {
+                requestOptions = {
+                    method: "PUT",
+                    headers: {"Content-Type": "application/json"},
+                    body: JSON.stringify(this.form)
+                };
+                url = '/api/device/' + this.current.login;
+            } else {
+                requestOptions = {
+                    method: "POST",
+                    headers: {"Content-Type": "application/json"},
+                    body: JSON.stringify(this.form)
+                };
+                url = '/api/device';
+            }
+
+            fetch(url, requestOptions)
                 .then(resp => {
                     if (resp.status > 299) {
                         vm.error = 'error ' + resp.status;
@@ -63,6 +89,7 @@ const app = Vue.createApp({
                     }
 
                     vm.error = "";
+                    bootstrap.Modal.getOrCreateInstance(document.getElementById('device_w')).hide();
                     vm.renew();
                 })
                 .catch(err => {

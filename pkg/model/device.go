@@ -52,6 +52,11 @@ type DevicePutDTO struct {
 	ReadScope []string `json:"read_scope,omitempty"`
 }
 
+type DevicePostDTO struct {
+	Login string `json:"login,omitempty"`
+	DevicePutDTO
+}
+
 func (u *Device) GetLogin() string {
 	if u == nil {
 		return ""

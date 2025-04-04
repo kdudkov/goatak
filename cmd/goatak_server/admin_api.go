@@ -73,6 +73,7 @@ func NewAdminAPI(app *App, addr string, webtakRoot string) *AdminAPI {
 	api.f.Get("/api/file/delete/:id", getApiFileDeleteHandler(app))
 	api.f.Get("/api/point", getApiPointsHandler(app))
 	api.f.Get("/api/device", getApiDevicesHandler(app))
+	api.f.Post("/api/device", getApiDevicePostHandler(app))
 	api.f.Put("/api/device/:id", getApiDevicePutHandler(app))
 
 	api.f.Get("/api/mission", getApiAllMissionHandler(app))
@@ -442,6 +443,50 @@ func getApiDevicesHandler(app *App) fiber.Handler {
 		}
 
 		return ctx.JSON(devices)
+	}
+}
+
+func getApiDevicePostHandler(app *App) fiber.Handler {
+	return func(ctx *fiber.Ctx) error {
+		var m *model.DevicePostDTO
+
+		if err := ctx.BodyParser(&m); err != nil {
+			return err
+		}
+
+		if m.Login == "" {
+			return ctx.JSON(fiber.Map{"error": "пустой логин"})
+		}
+
+		if m.Password == "" {
+			return ctx.JSON(fiber.Map{"error": "пустой пароль"})
+		}
+
+		if m.Scope == "" {
+			return ctx.JSON(fiber.Map{"error": "пустой scope"})
+		}
+
+		d := &model.Device{
+			Login:     m.Login,
+			Callsign:  m.Callsign,
+			Team:      m.Team,
+			Role:      m.Role,
+			CotType:   m.CotType,
+			Scope:     m.Scope,
+			ReadScope: m.ReadScope,
+			Serial:    "",
+			UID:       "",
+		}
+
+		if err := d.SetPassword(m.Password); err != nil {
+			return err
+		}
+
+		if err := app.dbm.Create(d); err != nil {
+			return err
+		}
+
+		return ctx.JSON(fiber.Map{"status": "ok"})
 	}
 }
 
