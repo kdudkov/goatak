@@ -11,11 +11,6 @@ const app = Vue.createApp({
         this.renew();
         setInterval(this.renew, 60000);
     },
-    computed: {
-        all_missions: function () {
-            return this.ts && this.missions;
-        },
-    },
     methods: {
         renew: function () {
             let vm = this;

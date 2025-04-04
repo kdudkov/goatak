@@ -11,16 +11,16 @@ const bcryptCost = 14
 
 type Device struct {
 	Login       string   `gorm:"primaryKey" yaml:"user"`
-	Callsign    string   `gorm:"not null" yaml:"callsign,omitempty"`
-	Team        string   `gorm:"not null" yaml:"team,omitempty"`
-	Role        string   `gorm:"not null" yaml:"role,omitempty"`
-	CotType     string   `gorm:"not null" yaml:"type,omitempty"`
+	Callsign    string   `gorm:"not null;default:''" yaml:"callsign,omitempty"`
+	Team        string   `gorm:"not null;default:''" yaml:"team,omitempty"`
+	Role        string   `gorm:"not null;default:''" yaml:"role,omitempty"`
+	CotType     string   `gorm:"not null;default:''" yaml:"type,omitempty"`
 	Password    string   `gorm:"not null" yaml:"password"`
 	Scope       string   `gorm:"not null" yaml:"scope"`
 	ReadScope   []string `gorm:"serializer:json" yaml:"read_scope,omitempty"`
 	LastSign    *time.Time
 	LastConnect *time.Time
-	Serial      string `gorm:"not null"`
+	Serial      string `gorm:"not null;default:''"`
 	UID         string `gorm:"not null;default:''"`
 }
 
