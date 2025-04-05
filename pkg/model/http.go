@@ -18,6 +18,7 @@ type WebUnit struct {
 	Scope          string    `json:"scope"`
 	Team           string    `json:"team"`
 	Role           string    `json:"role"`
+	ExRole         string    `json:"exrole"`
 	Time           time.Time `json:"time"`
 	LastSeen       time.Time `json:"last_seen"`
 	StaleTime      time.Time `json:"stale_time"`
@@ -90,8 +91,9 @@ func (i *Item) ToWeb() *WebUnit {
 		Hae:            evt.GetHae(),
 		Speed:          evt.GetDetail().GetTrack().GetSpeed(),
 		Course:         evt.GetDetail().GetTrack().GetCourse(),
-		Team:           evt.GetDetail().GetGroup().GetName(),
-		Role:           evt.GetDetail().GetGroup().GetRole(),
+		Team:           msg.GetTeam(),
+		Role:           msg.GetRole(),
+		ExRole:         msg.GetExRole(),
 		Sidc:           getSIDC(msg.GetType()),
 		ParentUID:      parentUID,
 		ParentCallsign: parentCallsign,

@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/kdudkov/goatak/pkg/cotproto"
+	"github.com/kdudkov/goatak/pkg/util"
 )
 
 const (
@@ -109,12 +110,10 @@ func (m *CotMessage) GetCallsign() string {
 		return ""
 	}
 
-	if s := m.GetTakMessage().GetCotEvent().GetDetail().GetContact().GetCallsign(); s != "" {
-		return s
-	}
-
-	// if phonenumber is in contact - contact is in xmldetails
-	return m.GetDetail().GetFirst("contact").GetAttr("callsign")
+	return util.FirstString(
+		m.GetTakMessage().GetCotEvent().GetDetail().GetContact().GetCallsign(),
+		m.GetDetail().GetFirst("contact").GetAttr("callsign"),
+	)
 }
 
 func (m *CotMessage) GetEndpoint() string {
@@ -122,11 +121,10 @@ func (m *CotMessage) GetEndpoint() string {
 		return ""
 	}
 
-	if s := m.GetTakMessage().GetCotEvent().GetDetail().GetContact().GetEndpoint(); s != "" {
-		return s
-	}
-
-	return m.GetDetail().GetFirst("contact").GetAttr("endpoint")
+	return util.FirstString(
+		m.GetTakMessage().GetCotEvent().GetDetail().GetContact().GetEndpoint(),
+		m.GetDetail().GetFirst("contact").GetAttr("endpoint"),
+	)
 }
 
 func (m *CotMessage) GetTakv() *cotproto.Takv {
@@ -155,7 +153,10 @@ func (m *CotMessage) GetTeam() string {
 		return ""
 	}
 
-	return m.GetTakMessage().GetCotEvent().GetDetail().GetGroup().GetName()
+	return util.FirstString(
+		m.GetTakMessage().GetCotEvent().GetDetail().GetGroup().GetName(),
+		m.GetDetail().GetFirst("__group").GetAttr("name"),
+	)
 }
 
 func (m *CotMessage) GetRole() string {
@@ -163,7 +164,18 @@ func (m *CotMessage) GetRole() string {
 		return ""
 	}
 
-	return m.GetTakMessage().GetCotEvent().GetDetail().GetGroup().GetRole()
+	return util.FirstString(
+		m.GetTakMessage().GetCotEvent().GetDetail().GetGroup().GetRole(),
+		m.GetDetail().GetFirst("__group").GetAttr("role"),
+	)
+}
+
+func (m *CotMessage) GetExRole() string {
+	if m == nil {
+		return ""
+	}
+
+	return m.GetDetail().GetFirst("__group").GetAttr("exrole")
 }
 
 func (m *CotMessage) GetStale() time.Time {
