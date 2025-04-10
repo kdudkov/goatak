@@ -14,9 +14,9 @@ func TestMissionPackage_Create(t *testing.T) {
 	mp.Param("onReceiveDelete", "true")
 
 	conf := NewUserProfilePrefFile("aaa")
-	conf.AddParam("locationCallsign", "TestUser")
-	conf.AddParam("locationTeam", "Cyan")
-	conf.AddParam("atakRoleType", "Medic")
+	conf.AddParam(CIV_PREF, "locationCallsign", "TestUser")
+	conf.AddParam(CIV_PREF, "locationTeam", "Cyan")
+	conf.AddParam(CIV_PREF, "atakRoleType", "Medic")
 
 	mp.AddFile(conf)
 

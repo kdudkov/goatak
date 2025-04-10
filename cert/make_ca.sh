@@ -1,6 +1,6 @@
 #!/bin/bash
 
-ca_name=my_ca
+CA_NAME=${CA_NAME:-root_ca}
 storepass=atakatak
 
 if [[ -e cacert.key ]]; then
@@ -9,8 +9,11 @@ if [[ -e cacert.key ]]; then
 fi
 
 openssl req -x509 -sha256 -extensions v3_ca -nodes -newkey rsa:4096 -days 3650 -out cacert.pem -keyout cacert.key \
-  -subj "/C=RU/O=${ca_name}/CN=${ca_name}" \
-  -addext "keyUsage = critical,cRLSign,keyCertSign"
+  -subj "/C=RU/ST=RU/L=XX/OU=Goatak/CN=${CA_NAME}" \
+  -addext "keyUsage = critical,cRLSign,keyCertSign" \
+  -addext "basicConstraints = critical,CA:TRUE"
+
+#openssl x509 -in cacert.pem -addtrust clientAuth -addtrust serverAuth -setalias ${CA_NAME} -out ca-trusted.pem
 
 [[ -e truststore.p12 ]] && rm truststore.p12
-openssl pkcs12 -export -nokeys -name ca -in cacert.pem -out truststore.p12 -passout pass:${storepass}
+openssl pkcs12 -export -nokeys -name ${CA_NAME} -in cacert.pem -out truststore.p12 -passout pass:${storepass}

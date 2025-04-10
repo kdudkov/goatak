@@ -1,4 +1,4 @@
-package main
+package config
 
 import (
 	"crypto/tls"
@@ -19,10 +19,10 @@ import (
 type AppConfig struct {
 	k *koanf.Koanf
 
-	tlsCert    *tls.Certificate
-	certPool   *x509.CertPool
-	serverCert *x509.Certificate
-	ca         []*x509.Certificate
+	TlsCert    *tls.Certificate
+	CertPool   *x509.CertPool
+	ServerCert *x509.Certificate
+	CA         []*x509.Certificate
 }
 
 func NewAppConfig() *AppConfig {
@@ -49,8 +49,14 @@ func (c *AppConfig) Load(filename ...string) bool {
 
 func (c *AppConfig) LoadEnv(prefix string) error {
 	return c.k.Load(env.Provider(prefix, ".", func(s string) string {
-		return strings.Replace(strings.ToLower(
-			strings.TrimPrefix(s, prefix)), "_", ".", -1)
+		s = strings.ToLower(strings.TrimPrefix(s, prefix))
+		for _, pr := range []string{"me_", "ssl_"} {
+			if strings.HasPrefix(s, pr) {
+				return strings.Replace(s, "_", ".", 1)
+			}
+		}
+
+		return s
 	}), nil)
 }
 
@@ -86,8 +92,12 @@ func (c *AppConfig) LogAll() bool {
 	return c.k.Bool("log")
 }
 
-func (c *AppConfig) UseSSL() bool {
-	return c.k.Bool("ssl.use_ssl")
+func (c *AppConfig) MartiSSL() bool {
+	return c.k.Bool("ssl.use_ssl") || c.k.Bool("ssl.marti")
+}
+
+func (c *AppConfig) EnrollSSL() bool {
+	return c.k.Bool("ssl.enroll")
 }
 
 func (c *AppConfig) CertTTLDays() int {
@@ -106,7 +116,7 @@ func (c *AppConfig) BlacklistedUID() []string {
 	return c.k.Strings("blacklist")
 }
 
-func (c *AppConfig) processCerts() error {
+func (c *AppConfig) ProcessCerts() error {
 	for _, name := range []string{"ssl.ca", "ssl.cert", "ssl.key"} {
 		if c.k.String(name) == "" {
 			return nil
@@ -118,8 +128,8 @@ func (c *AppConfig) processCerts() error {
 		return err
 	}
 
-	c.certPool = tlsutil.MakeCertPool(ca...)
-	c.ca = ca
+	c.CertPool = tlsutil.MakeCertPool(ca...)
+	c.CA = ca
 
 	cert, err := loadPem(c.k.String("ssl.cert"))
 	if err != nil {
@@ -127,11 +137,11 @@ func (c *AppConfig) processCerts() error {
 	}
 
 	if len(cert) > 0 {
-		c.serverCert = cert[0]
+		c.ServerCert = cert[0]
 	}
 
 	for _, crt := range cert {
-		c.certPool.AddCert(crt)
+		c.CertPool.AddCert(crt)
 	}
 
 	tlsCert, err := tls.LoadX509KeyPair(c.k.String("ssl.cert"), c.k.String("ssl.key"))
@@ -139,7 +149,7 @@ func (c *AppConfig) processCerts() error {
 		return err
 	}
 
-	c.tlsCert = &tlsCert
+	c.TlsCert = &tlsCert
 
 	return nil
 }

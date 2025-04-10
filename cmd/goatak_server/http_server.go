@@ -38,15 +38,15 @@ func NewHttp(app *App) *HttpServer {
 		listeners: make(map[string]Listener),
 	}
 
-	if addr := app.config.k.String("admin_addr"); addr != "" {
-		srv.listeners["admin api calls"] = NewAdminAPI(app, addr, app.config.k.String("webtak_root"))
+	if addr := app.config.String("admin_addr"); addr != "" {
+		srv.listeners["admin api calls"] = NewAdminAPI(app, addr, app.config.String("webtak_root"))
 	}
 
-	if addr := app.config.k.String("cert_addr"); addr != "" {
+	if addr := app.config.String("cert_addr"); addr != "" {
 		srv.listeners["cert api calls"] = NewCertAPI(app, addr)
 	}
 
-	srv.listeners["marti api calls"] = NewMartiApi(app, app.config.k.String("api_addr"))
+	srv.listeners["marti api calls"] = NewMartiApi(app, app.config.String("api_addr"))
 
 	return srv
 }

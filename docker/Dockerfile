@@ -16,8 +16,10 @@ EXPOSE 8999/tcp
 EXPOSE 8999/udp
 
 WORKDIR /app
+RUN apk add --no-cache bash openssl
 COPY --from=builder /build/dist/goatak_server /app/goatak_server
+COPY ./cert/*.sh /app/
 COPY ./data /app/data
+COPY ./docker/run.sh /app/
 COPY ./goatak_server.yml /app/
-COPY ./users.yml /app/
-CMD ["./goatak_server"]
+CMD ["./run.sh"]

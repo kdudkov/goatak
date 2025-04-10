@@ -112,6 +112,10 @@ func (e *Enroller) GetOrEnrollCert(ctx context.Context, uid, version string) (*t
 			switch c.Name {
 			case "C":
 				subj.Country = append(subj.Country, c.Value)
+			case "ST":
+				subj.Province = append(subj.Province, c.Value)
+			case "L":
+				subj.Locality = append(subj.Locality, c.Value)
 			case "O":
 				subj.Organization = append(subj.Organization, c.Value)
 			case "OU":

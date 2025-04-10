@@ -49,10 +49,10 @@ func NewMartiApi(app *App, addr string) *MartiAPI {
 	api.f.Use(NewMetricHandler("marti_api"))
 	api.f.Use(log.NewFiberLogger(&log.LoggerConfig{Name: "marti_api", UserGetter: Username}))
 
-	if app.config.UseSSL() {
+	if app.config.MartiSSL() {
 		api.tls = true
-		api.cert = *app.config.tlsCert
-		api.certPool = app.config.certPool
+		api.cert = *app.config.TlsCert
+		api.certPool = app.config.CertPool
 		api.f.Use(SSLCheckHandler(app))
 	}
 

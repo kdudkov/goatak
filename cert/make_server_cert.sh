@@ -17,12 +17,12 @@ fi
 
 # make server cert
 openssl req -sha256 -nodes -newkey rsa:2048 -out ${cert_name}.csr -keyout ${cert_name}.key \
-  -subj "/C=RU/O=${server_name}/CN=${server_name}"
+  -subj "/C=RU/ST=RU/L=XX/OU=${server_name}/CN=${server_name}"
 
 cat >ext.cfg <<-EOT
-basicConstraints=critical,CA:TRUE
-keyUsage = critical,digitalSignature,keyEncipherment,cRLSign,keyCertSign
-extendedKeyUsage = critical,clientAuth,serverAuth
+basicConstraints=CA:FALSE
+keyUsage = digitalSignature, keyEncipherment
+extendedKeyUsage = serverAuth
 EOT
 
 if [[ -n "$names" ]]; then

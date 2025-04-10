@@ -26,7 +26,7 @@ func GetDatabase(dsn string, debug bool) (*gorm.DB, error) {
 		slog.Info("open mysql database")
 		db, err = gorm.Open(mysql.Open(strings.TrimPrefix(dsn, "mysql:")), conf)
 	} else {
-		slog.Info("open mysql database " + dsn)
+		slog.Info("open database " + dsn)
 		db, err = gorm.Open(sqlite.Open(dsn), conf)
 	}
 

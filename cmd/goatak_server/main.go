@@ -23,6 +23,7 @@ import (
 
 	"github.com/kdudkov/goatak/cmd/goatak_server/database"
 	"github.com/kdudkov/goatak/internal/client"
+	"github.com/kdudkov/goatak/internal/config"
 	"github.com/kdudkov/goatak/internal/pm"
 	"github.com/kdudkov/goatak/internal/repository"
 	"github.com/kdudkov/goatak/pkg/cot"
@@ -32,7 +33,7 @@ import (
 type App struct {
 	logger *slog.Logger
 	files  *pm.BlobManager
-	config *AppConfig
+	config *config.AppConfig
 	lat    float64
 	lon    float64
 	zoom   int8
@@ -51,7 +52,7 @@ type App struct {
 	eventProcessors []*EventProcessor
 }
 
-func NewApp(config *AppConfig) *App {
+func NewApp(config *config.AppConfig) *App {
 	app := &App{
 		logger:          slog.Default(),
 		config:          config,
@@ -98,7 +99,7 @@ func (app *App) Run() {
 
 	ctx, cancel := context.WithCancel(context.Background())
 
-	if addr := app.config.k.String("udp_addr"); addr != "" {
+	if addr := app.config.String("udp_addr"); addr != "" {
 		go func() {
 			if err := app.ListenUDP(ctx, addr); err != nil {
 				panic(err)
@@ -106,7 +107,7 @@ func (app *App) Run() {
 		}()
 	}
 
-	if addr := app.config.k.String("tcp_addr"); addr != "" {
+	if addr := app.config.String("tcp_addr"); addr != "" {
 		go func() {
 			if err := app.ListenTCP(ctx, addr); err != nil {
 				panic(err)
@@ -114,7 +115,7 @@ func (app *App) Run() {
 		}()
 	}
 
-	if addr := app.config.k.String("ssl_addr"); addr != "" && app.config.tlsCert != nil {
+	if addr := app.config.String("ssl_addr"); addr != "" && app.config.TlsCert != nil {
 		go func() {
 			if err := app.listenTLS(ctx, addr); err != nil {
 				panic(err)
@@ -287,13 +288,13 @@ func (app *App) connect(connectStr string) (net.Conn, error) {
 }
 
 func (app *App) getTLSConfig() *tls.Config {
-	p12Data, err := os.ReadFile(app.config.k.String("ssl.cert"))
+	p12Data, err := os.ReadFile(app.config.String("ssl.cert"))
 	if err != nil {
 		app.logger.Error(err.Error())
 		panic(err)
 	}
 
-	key, cert, _, err := pkcs12.DecodeChain(p12Data, app.config.k.String("ssl.password"))
+	key, cert, _, err := pkcs12.DecodeChain(p12Data, app.config.String("ssl.password"))
 	if err != nil {
 		app.logger.Error(err.Error())
 		panic(err)
@@ -427,12 +428,12 @@ func main() {
 	configName := flag.String("config", "goatak_server.yml", "name of config file")
 	flag.Parse()
 
-	config := NewAppConfig()
-	config.Load(*configName)
-	_ = config.LoadEnv("GOATAK_")
+	conf := config.NewAppConfig()
+	conf.Load(*configName)
+	_ = conf.LoadEnv("GOATAK_")
 
 	var h slog.Handler
-	if config.Bool("debug") {
+	if conf.Bool("debug") {
 		h = slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug})
 	} else {
 		h = slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo})
@@ -440,14 +441,14 @@ func main() {
 
 	slog.SetDefault(slog.New(h))
 
-	if err := config.processCerts(); err != nil {
+	if err := conf.ProcessCerts(); err != nil {
 		slog.Default().Error(err.Error())
 	}
 
-	app := NewApp(config)
+	app := NewApp(conf)
 
-	app.lat = config.Float64("me.lat")
-	app.lon = config.Float64("me.lon")
-	app.zoom = int8(config.Int("me.zoom"))
+	app.lat = conf.Float64("me.lat")
+	app.lon = conf.Float64("me.lon")
+	app.zoom = int8(conf.Int("me.zoom"))
 	app.Run()
 }

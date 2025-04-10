@@ -138,7 +138,7 @@ func (r *UserFileRepository) CheckAuth(username, password string) bool {
 	r.mx.RLock()
 	defer r.mx.RUnlock()
 
-	if user, ok := r.users[username]; ok {
+	if user, ok := r.users[username]; ok && !user.Disabled {
 		return user.CheckPassword(password)
 	}
 
@@ -148,9 +148,11 @@ func (r *UserFileRepository) CheckAuth(username, password string) bool {
 func (r *UserFileRepository) IsValid(username, sn string) bool {
 	r.mx.RLock()
 	defer r.mx.RUnlock()
-	_, ok := r.users[username]
+	if u, ok := r.users[username]; ok {
+		return !u.Disabled
+	}
 
-	return ok
+	return false
 }
 
 func (r *UserFileRepository) Get(username string) *model.Device {

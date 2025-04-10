@@ -35,11 +35,21 @@ func ParseCsr(b []byte) (*x509.CertificateRequest, error) {
 	return x509.ParseCertificateRequest(csrBlock.Bytes)
 }
 
-func MakeP12TrustStore(certs map[string]*x509.Certificate, passwd string) ([]byte, error) {
+func MakeP12TrustStoreNamed(passwd string, certs map[string]*x509.Certificate) ([]byte, error) {
 	entries := make([]pkcs12.TrustStoreEntry, 0, len(certs))
 
 	for k, v := range certs {
 		entries = append(entries, pkcs12.TrustStoreEntry{Cert: v, FriendlyName: k})
+	}
+
+	return pkcs12.LegacyRC2.EncodeTrustStoreEntries(entries, passwd)
+}
+
+func MakeP12TrustStore(passwd string, certs ...*x509.Certificate) ([]byte, error) {
+	entries := make([]pkcs12.TrustStoreEntry, 0, len(certs))
+
+	for _, v := range certs {
+		entries = append(entries, pkcs12.TrustStoreEntry{Cert: v})
 	}
 
 	return pkcs12.LegacyRC2.EncodeTrustStoreEntries(entries, passwd)

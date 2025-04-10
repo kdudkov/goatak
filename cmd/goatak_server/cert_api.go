@@ -3,6 +3,7 @@ package main
 import (
 	"crypto"
 	"crypto/rand"
+	"crypto/tls"
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"fmt"
@@ -27,6 +28,8 @@ const (
 type CertAPI struct {
 	f    *fiber.App
 	addr string
+	tls  bool
+	cert tls.Certificate
 }
 
 func NewCertAPI(app *App, addr string) *CertAPI {
@@ -39,6 +42,11 @@ func NewCertAPI(app *App, addr string) *CertAPI {
 	api.f.Use(log.NewFiberLogger(&log.LoggerConfig{Name: "cert_api", UserGetter: Username}))
 
 	api.f.Use(UserAuthHandler(app.users))
+
+	if app.config.EnrollSSL() {
+		api.tls = true
+		api.cert = *app.config.TlsCert
+	}
 
 	api.f.Get("/Marti/api/tls/config", getTLSConfigHandler(app))
 	api.f.Post("/Marti/api/tls/signClient", getSignHandler(app))
@@ -53,11 +61,15 @@ func (api *CertAPI) Address() string {
 }
 
 func (api *CertAPI) Listen() error {
-	return api.f.Listen(api.addr)
+	if api.tls {
+		return api.f.ListenTLSWithCertificate(api.addr, api.cert)
+	} else {
+		return api.f.Listen(api.addr)
+	}
 }
 
 func getTLSConfigHandler(app *App) fiber.Handler {
-	names := map[string]string{"C": "RU", "O": "goatak", "OU": "goatak"}
+	names := map[string]string{"C": "RU", "ST": "RU", "L": "SPB", "O": "goatak", "OU": "goatak"}
 	buf := strings.Builder{}
 	buf.WriteString("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n")
 	buf.WriteString(fmt.Sprintf("<certificateConfig validityDays=\"%d\"><nameEntries>", app.config.CertTTLDays()))
@@ -128,7 +140,7 @@ func (app *App) processSignRequest(ctx *fiber.Ctx) (*x509.Certificate, error) {
 	}
 
 	signedCert, err := signClientCert(uid, clientCSR,
-		app.config.serverCert, app.config.tlsCert.PrivateKey, app.config.CertTTLDays())
+		app.config.ServerCert, app.config.TlsCert.PrivateKey, app.config.CertTTLDays())
 	if err != nil {
 		return nil, err
 	}
@@ -157,12 +169,12 @@ func getSignHandler(app *App) fiber.Handler {
 		}
 
 		certs := map[string]*x509.Certificate{"signedCert": signedCert}
-		certs["ca0"] = app.config.serverCert
-		for i, c := range app.config.ca {
+		certs["ca0"] = app.config.ServerCert
+		for i, c := range app.config.CA {
 			certs[fmt.Sprintf("ca%d", i+1)] = c
 		}
 
-		p12Bytes, err := tlsutil.MakeP12TrustStore(certs, p12Password)
+		p12Bytes, err := tlsutil.MakeP12TrustStoreNamed(p12Password, certs)
 		if err != nil {
 			app.logger.Error("error making p12", slog.Any("error", err))
 
@@ -195,8 +207,8 @@ func getSignHandlerV2(app *App) fiber.Handler {
 		case accept == "", strings.Contains(accept, "*/*"), strings.Contains(accept, "application/json"):
 			certs := map[string]string{"signedCert": tlsutil.CertToStr(signedCert, false)}
 			// iTAK needs server cert in answer
-			certs["ca0"] = tlsutil.CertToStr(app.config.serverCert, false)
-			for i, c := range app.config.ca {
+			certs["ca0"] = tlsutil.CertToStr(app.config.ServerCert, false)
+			for i, c := range app.config.CA {
 				certs[fmt.Sprintf("ca%d", i+1)] = tlsutil.CertToStr(c, false)
 			}
 
@@ -209,10 +221,10 @@ func getSignHandlerV2(app *App) fiber.Handler {
 			buf.WriteString(tlsutil.CertToStr(signedCert, false))
 			buf.WriteString("</signedCert>")
 			buf.WriteString("<ca>")
-			buf.WriteString(tlsutil.CertToStr(app.config.serverCert, false))
+			buf.WriteString(tlsutil.CertToStr(app.config.ServerCert, false))
 			buf.WriteString("</ca>")
 
-			for _, c := range app.config.ca {
+			for _, c := range app.config.CA {
 				buf.WriteString("<ca>")
 				buf.WriteString(tlsutil.CertToStr(c, false))
 				buf.WriteString("</ca>")

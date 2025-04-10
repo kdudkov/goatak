@@ -5,7 +5,7 @@ image="ghcr.io/kdudkov/goatak_server"
 ver=$(git describe --always --tags --dirty)
 branch=$(git branch --show-current)
 
-docker build . --build-arg branch=$branch --build-arg commit=${ver} -t ${image}:${ver} -t ${image}:latest
+docker build . -f docker/Dockerfile --build-arg branch=$branch --build-arg commit=${ver} -t ${image}:${ver} -t ${image}:latest
 
 echo "${ver}"
 

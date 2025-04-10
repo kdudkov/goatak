@@ -1,0 +1,18 @@
+services:
+  goatak:
+    build:
+      dockerfile: docker/Dockerfile
+      context: ../
+    restart: always
+    environment:
+      - GOATAK_DEBUG=true
+      - SERVER_ADDR
+    ports:
+      - 8080:8080
+      - 8443:8443
+      - 8088:8088
+      - 8446:8446
+      - 8999:8999
+    volumes:
+      - ./cert:/app/cert
+      - ./data:/app/data

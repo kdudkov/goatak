@@ -14,19 +14,19 @@ import (
 func NewUserPrefsFile(prefix string, user *model.Device) *mp.PrefFile {
 	conf := mp.NewUserProfilePrefFile(prefix)
 	if user.Callsign != "" {
-		conf.AddParam("locationCallsign", user.Callsign)
+		conf.AddParam(mp.CIV_PREF, "locationCallsign", user.Callsign)
 	}
 
 	if user.Team != "" {
-		conf.AddParam("locationTeam", user.Team)
+		conf.AddParam(mp.CIV_PREF, "locationTeam", user.Team)
 	}
 
 	if user.Role != "" {
-		conf.AddParam("atakRoleType", user.Role)
+		conf.AddParam(mp.CIV_PREF, "atakRoleType", user.Role)
 	}
 
 	if user.CotType != "" {
-		conf.AddParam("locationUnitType", user.CotType)
+		conf.AddParam(mp.CIV_PREF, "locationUnitType", user.CotType)
 	}
 
 	return conf

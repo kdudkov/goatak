@@ -1,7 +1,7 @@
 ---
 # admin api listener
 admin_addr: ":8088"
-# Marti api listener. Port should be 8080 for no ssl and 8443 for ssl. If ssl is configured (ssl.use_ssl=true)
+# Marti api listener. Port should be 8080 for no ssl and 8443 for ssl. If ssl is configured (ssl.marti=true)
 # cerver certificate is used
 api_addr: ":8080"
 # Certificate enrollment listener. You must provide external certificate validation, not server cert!
@@ -16,8 +16,6 @@ ssl_addr: ":8089"
 log: false
 # directory for all server data (default is "data")
 data_dir: data
-# file with user creds and settings (default is "users.yml")
-users_file: users.yml
 # Webtak files root folder
 webtak_root: ""
 
@@ -27,9 +25,10 @@ me:
   zoom: 5
 
 ssl:
-  use_ssl: false
+  marti: false
+  enroll: false
   ca: cert/cacert.pem
-  cert: cert/cert.pem
-  key: cert/cert.key
+  cert: cert/server.pem
+  key: cert/server.key
   # enrolled cert ttl in days (default is 365)
   cert_ttl_days: 365

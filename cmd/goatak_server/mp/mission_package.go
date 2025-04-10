@@ -8,6 +8,12 @@ import (
 	"strings"
 )
 
+const (
+	APP_PREF = "com.atakmap.app_preferences"
+	CIV_PREF = "com.atakmap.app.civ_preferences"
+	STREAMS  = "cot_streams"
+)
+
 type MissionPackage struct {
 	params map[string]string
 	files  []FileContent
@@ -98,6 +104,10 @@ func NewFsFile(name, path string) (*FsFile, error) {
 	return &FsFile{name: name, data: dat}, nil
 }
 
+func NewBlobFile(name string, data []byte) *FsFile {
+	return &FsFile{name: name, data: data}
+}
+
 func (f *FsFile) Name() string {
 	return f.name
 }
@@ -112,28 +122,31 @@ func (f *FsFile) Content() []byte {
 
 type PrefFile struct {
 	name string
-	cls  string
-	data map[string]any
+	data map[string]map[string]any
 }
 
 func NewUserProfilePrefFile(prefix string) *PrefFile {
-	return NewPrefFile(strings.TrimRight(prefix, "/")+"/user-profile.pref", "com.atakmap.app.civ_preferences")
+	return NewPrefFile(strings.TrimRight(prefix, "/") + "/user-profile.pref")
 }
 
-func NewAppPrefFile() *PrefFile {
-	return NewPrefFile("atak.pref", "com.atakmap.app_preferences")
+func NewPrefFile(name string) *PrefFile {
+	return &PrefFile{name: name, data: make(map[string]map[string]any)}
 }
 
-func NewPrefFile(name, cls string) *PrefFile {
-	return &PrefFile{name: name, cls: cls, data: make(map[string]any)}
+func (p *PrefFile) AddParam(pref, k, v string) {
+	if _, ok := p.data[pref]; !ok {
+		p.data[pref] = make(map[string]any)
+	}
+
+	p.data[pref][k] = v
 }
 
-func (p *PrefFile) AddParam(k, v string) {
-	p.data[k] = v
-}
+func (p *PrefFile) AddBoolParam(pref, k string, v bool) {
+	if _, ok := p.data[pref]; !ok {
+		p.data[pref] = make(map[string]any)
+	}
 
-func (p *PrefFile) AddBoolParam(k string, v bool) {
-	p.data[k] = v
+	p.data[pref][k] = v
 }
 
 func (p *PrefFile) Name() string {
@@ -149,20 +162,22 @@ func (p *PrefFile) Content() []byte {
 
 	sb.WriteString("<?xml version='1.0' standalone='yes'?>\n")
 	sb.WriteString("<preferences>")
-	sb.WriteString(fmt.Sprintf("<preference version=\"1\" name=\"%s\">\n", p.cls))
 
-	for k, v := range p.data {
-		var cl string
-		switch v.(type) {
-		case bool:
-			cl = "class java.lang.Boolean"
-		default:
-			cl = "class java.lang.String"
+	for name, data := range p.data {
+		sb.WriteString(fmt.Sprintf("<preference version=\"1\" name=\"%s\">\n", name))
+		for k, v := range data {
+			var cl string
+			switch v.(type) {
+			case bool:
+				cl = "class java.lang.Boolean"
+			default:
+				cl = "class java.lang.String"
+			}
+			sb.WriteString(fmt.Sprintf("<entry key=\"%s\" class=\"%s\">%v</entry>\n", k, cl, v))
 		}
-		sb.WriteString(fmt.Sprintf("<entry key=\"%s\" class=\"%s\">%v</entry>\n", k, cl, v))
+		sb.WriteString("</preference>")
 	}
-
-	sb.WriteString("</preference></preferences>")
+	sb.WriteString("</preferences>")
 
 	return sb.Bytes()
 }

@@ -63,8 +63,8 @@ func (app *App) listenTLS(ctx context.Context, addr string) error {
 	}()
 
 	tlsCfg := &tls.Config{
-		Certificates:     []tls.Certificate{*app.config.tlsCert},
-		ClientCAs:        app.config.certPool,
+		Certificates:     []tls.Certificate{*app.config.TlsCert},
+		ClientCAs:        app.config.CertPool,
 		ClientAuth:       tls.RequireAndVerifyClientCert,
 		VerifyConnection: app.verifyConnection,
 	}
