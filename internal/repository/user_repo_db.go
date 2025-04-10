@@ -54,13 +54,17 @@ func (u UserDbRepository) Stop() {
 func (u UserDbRepository) CheckAuth(username, password string) bool {
 	user := u.cache.Load(username)
 
+	if user.Disabled {
+		return false
+	}
+
 	return user.CheckPassword(password)
 }
 
 func (u UserDbRepository) IsValid(username, sn string) bool {
 	user := u.cache.Load(username)
 
-	return user != nil
+	return user != nil && !user.Disabled
 }
 
 func (u UserDbRepository) Get(username string) *model.Device {
