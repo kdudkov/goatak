@@ -27,17 +27,19 @@ type Device struct {
 }
 
 type DeviceDTO struct {
-	Login       string     `json:"login"`
-	Callsign    string     `json:"callsign,omitempty"`
-	Team        string     `json:"team,omitempty"`
-	Role        string     `json:"role,omitempty"`
-	CotType     string     `json:"cot_type,omitempty"`
-	Scope       string     `json:"scope,omitempty"`
-	ReadScope   []string   `json:"read_scope,omitempty"`
-	LastSign    *time.Time `json:"last_sign,omitempty"`
-	LastConnect *time.Time `json:"last_connect,omitempty"`
-	Serial      string     `json:"serial,omitempty"`
-	UID         string     `json:"uid,omitempty"`
+	Login       string         `json:"login"`
+	Callsign    string         `json:"callsign,omitempty"`
+	Team        string         `json:"team,omitempty"`
+	Role        string         `json:"role,omitempty"`
+	CotType     string         `json:"cot_type,omitempty"`
+	Scope       string         `json:"scope,omitempty"`
+	Disabled    bool           `json:"disabled"`
+	ReadScope   []string       `json:"read_scope,omitempty"`
+	Options     map[string]any `json:"options,omitempty"`
+	LastSign    *time.Time     `json:"last_sign,omitempty"`
+	LastConnect *time.Time     `json:"last_connect,omitempty"`
+	Serial      string         `json:"serial,omitempty"`
+	UID         string         `json:"uid,omitempty"`
 }
 
 func (u *Device) GetLogin() string {
@@ -119,7 +121,9 @@ func (u *Device) DTO() *DeviceDTO {
 		Role:        u.Role,
 		CotType:     u.CotType,
 		Scope:       u.Scope,
+		Disabled:    u.Disabled,
 		ReadScope:   u.ReadScope,
+		Options:     u.Options,
 		LastSign:    u.LastSign,
 		LastConnect: u.LastConnect,
 		Serial:      u.Serial,
