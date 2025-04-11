@@ -1,5 +1,20 @@
 # GoATAK changelog
 
+## v0.20.0: 2025-04-11
+### Added
+* Points page in admin interface
+* extended roles for atak 5.4
+### Changed
+* MissionPackage information is now stored in database
+* database schema
+* vue3 & leaflet 1.9.4
+### Deprecated
+* `datasync` option in config
+### Fixed
+* disable colored logs pn windows
+* MissioChange for resources
+* dp file upload
+
 ## v0.19.1: 2024-10-24
 ### Added
 * Block user by UID (drops connection and prevent cert enrollment)
