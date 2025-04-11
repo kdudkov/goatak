@@ -17,7 +17,7 @@ type Device struct {
 	CotType     string         `gorm:"not null;default:''" yaml:"type,omitempty"`
 	Password    string         `gorm:"not null" yaml:"password"`
 	Scope       string         `gorm:"not null" yaml:"scope"`
-	Disabled    bool           `gorm:"not null"`
+	Disabled    bool           `gorm:"not null;default:false"`
 	ReadScope   []string       `gorm:"serializer:json" yaml:"read_scope,omitempty"`
 	Options     map[string]any `gorm:"serializer:json" yaml:"options,omitempty"`
 	LastSign    *time.Time
