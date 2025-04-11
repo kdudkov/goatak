@@ -115,7 +115,7 @@ func (app *App) Run() {
 		}()
 	}
 
-	if addr := app.config.String("ssl_addr"); addr != "" && app.config.TlsCert != nil {
+	if addr := app.config.String("tls_addr"); addr != "" && app.config.TlsCert != nil {
 		go func() {
 			if err := app.listenTLS(ctx, addr); err != nil {
 				panic(err)
@@ -430,7 +430,9 @@ func main() {
 
 	conf := config.NewAppConfig()
 	conf.Load(*configName)
-	_ = conf.LoadEnv("GOATAK_")
+	if err := conf.LoadEnv("GOATAK_"); err != nil {
+		panic(err)
+	}
 
 	var h slog.Handler
 	if conf.Bool("debug") {

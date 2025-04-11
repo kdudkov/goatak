@@ -1,28 +1,30 @@
 #!/bin/bash
 
-cert_name=server
-server_name=$1
-shift
+. "$(dirname "$(realpath "${BASH_SOURCE[0]}")")/params.sh"
+
+SERVER_NAME=$1
+CERT_NAME=${SERVER_NAME}
+#shift
 names=$*
 
-if [[ -z "$cert_name" || -z "$server_name" ]]; then
-  echo "usage: make_server_cert.sh CERT_NAME SERVER_NAME [ALT_NAME...]"
+if [[ -z "${CERT_NAME}" || -z "${SERVER_NAME}" ]]; then
+  echo "usage: $0 SERVER_NAME [ALT_NAME...]"
   exit 1
 fi
 
-if [[ ! -e cacert.key ]]; then
+if [[ ! -e ca.key ]]; then
   echo "No ca cert found!"
   exit 1
 fi
 
 # make server cert
-openssl req -sha256 -nodes -newkey rsa:2048 -out ${cert_name}.csr -keyout ${cert_name}.key \
-  -subj "/C=RU/ST=RU/L=XX/OU=${server_name}/CN=${server_name}"
+openssl req -sha256 -nodes -newkey rsa:2048 -out ${CERT_NAME}.csr -keyout ${CERT_NAME}.key \
+  -subj "${SUBJ}/CN=${SERVER_NAME}"
 
 cat >ext.cfg <<-EOT
-basicConstraints=CA:FALSE
-keyUsage = digitalSignature, keyEncipherment
-extendedKeyUsage = serverAuth
+basicConstraints=critical,CA:TRUE
+keyUsage = critical,digitalSignature,keyEncipherment,cRLSign,keyCertSign
+extendedKeyUsage = critical,clientAuth,serverAuth
 EOT
 
 if [[ -n "$names" ]]; then
@@ -40,6 +42,7 @@ fi
 
 cat ext.cfg
 
-openssl x509 -req -in ${cert_name}.csr -CA cacert.pem -CAkey cacert.key -CAcreateserial -out ${cert_name}.pem -days 3650 \
-  -extfile ext.cfg
-rm ${cert_name}.csr ext.cfg
+openssl x509 -req -in ${CERT_NAME}.csr -CA ca.pem -CAkey ca.key -CAcreateserial \
+  -out ${CERT_NAME}.pem -days 3650 -extfile ext.cfg
+
+rm ext.cfg ${CERT_NAME}.csr

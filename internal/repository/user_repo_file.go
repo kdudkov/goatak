@@ -37,13 +37,13 @@ func NewFileUserRepo(userFile string) *UserFileRepository {
 	}
 
 	if len(um.users) == 0 {
-		um.logger.Info("no valid users found -  create one")
+		um.logger.Info("no valid users found - create one")
 
 		user := &model.Device{
 			Login: "user",
 		}
 
-		_ = user.SetPassword("11111")
+		_ = user.SetPassword("test")
 		um.users["user"] = user
 	}
 

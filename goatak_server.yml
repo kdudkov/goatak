@@ -11,7 +11,7 @@ tcp_addr: ":8999"
 # UDP stream listener
 udp_addr: ":8999"
 # TCP TLS listener for ATAK clients. Port should be 8089
-ssl_addr: ":8089"
+tls_addr: ":8089"
 # if true server will save all messages to files in data/log folder
 log: false
 # directory for all server data (default is "data")
@@ -27,8 +27,8 @@ me:
 ssl:
   marti: false
   enroll: false
-  ca: cert/cacert.pem
-  cert: cert/server.pem
-  key: cert/server.key
+  ca: cert/files/ca.pem
+  cert: cert/files/server.pem
+  key: cert/files/server.key
   # enrolled cert ttl in days (default is 365)
   cert_ttl_days: 365

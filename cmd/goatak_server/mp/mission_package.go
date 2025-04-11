@@ -56,7 +56,7 @@ func (m *MissionPackage) Create() ([]byte, error) {
 	buff := new(bytes.Buffer)
 	zipW := zip.NewWriter(buff)
 
-	f, err := zipW.Create("MANIFEST/manifest.xml")
+	f, err := zipW.Create("MANIFEST/MANIFEST.xml")
 	if err != nil {
 		return nil, err
 	}
@@ -133,15 +133,7 @@ func NewPrefFile(name string) *PrefFile {
 	return &PrefFile{name: name, data: make(map[string]map[string]any)}
 }
 
-func (p *PrefFile) AddParam(pref, k, v string) {
-	if _, ok := p.data[pref]; !ok {
-		p.data[pref] = make(map[string]any)
-	}
-
-	p.data[pref][k] = v
-}
-
-func (p *PrefFile) AddBoolParam(pref, k string, v bool) {
+func (p *PrefFile) AddParam(pref, k string, v any) {
 	if _, ok := p.data[pref]; !ok {
 		p.data[pref] = make(map[string]any)
 	}

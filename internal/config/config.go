@@ -49,14 +49,15 @@ func (c *AppConfig) Load(filename ...string) bool {
 
 func (c *AppConfig) LoadEnv(prefix string) error {
 	return c.k.Load(env.Provider(prefix, ".", func(s string) string {
-		s = strings.ToLower(strings.TrimPrefix(s, prefix))
+		s1 := strings.ToLower(strings.TrimPrefix(s, prefix))
 		for _, pr := range []string{"me_", "ssl_"} {
-			if strings.HasPrefix(s, pr) {
-				return strings.Replace(s, "_", ".", 1)
+			if strings.HasPrefix(s1, pr) {
+				slog.Info("ENV param: " + strings.Replace(s1, "_", ".", 1))
+				return strings.Replace(s1, "_", ".", 1)
 			}
 		}
-
-		return s
+		slog.Info("ENV param: " + s1)
+		return s1
 	}), nil)
 }
 
@@ -66,6 +67,16 @@ func (c *AppConfig) Bool(key string) bool {
 
 func (c *AppConfig) String(key string) string {
 	return c.k.String(key)
+}
+
+func (c *AppConfig) FirstString(key ...string) string {
+	for _, k := range key {
+		if s := c.k.String(k); s != "" {
+			return s
+		}
+	}
+
+	return ""
 }
 
 func (c *AppConfig) Float64(key string) float64 {
@@ -119,6 +130,7 @@ func (c *AppConfig) BlacklistedUID() []string {
 func (c *AppConfig) ProcessCerts() error {
 	for _, name := range []string{"ssl.ca", "ssl.cert", "ssl.key"} {
 		if c.k.String(name) == "" {
+			slog.Info("no ssl config found (no value for " + name + ")")
 			return nil
 		}
 	}
@@ -170,7 +182,7 @@ func loadPem(name string) ([]*x509.Certificate, error) {
 func setDefaults(k *koanf.Koanf) {
 	k.Set("udp_addr", ":8999")
 	k.Set("tcp_addr", ":8999")
-	k.Set("ssl_addr", ":8089")
+	k.Set("tls_addr", ":8089")
 	k.Set("api_addr", ":8080")
 	k.Set("data_dir", "data")
 

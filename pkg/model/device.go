@@ -82,7 +82,7 @@ func (u *Device) HasProfile() bool {
 		return false
 	}
 
-	return u.Callsign != "" || u.Team != "" || u.Role != "" || u.CotType != ""
+	return u.Callsign != "" || u.Team != "" || u.Role != "" || u.CotType != "" || len(u.Options) > 0
 }
 
 func (u *Device) CheckPassword(password string) bool {

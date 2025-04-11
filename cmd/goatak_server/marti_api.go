@@ -11,7 +11,6 @@ import (
 	"strconv"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/google/uuid"
 
 	"github.com/kdudkov/goatak/cmd/goatak_server/mp"
 	"github.com/kdudkov/goatak/internal/pm"
@@ -496,7 +495,7 @@ func getProfileConnectionHandler(app *App) fiber.Handler {
 			return ctx.SendStatus(fiber.StatusNoContent)
 		}
 
-		missionPackage := mp.NewMissionPackage("ProfileMissionPackage-"+uuid.New().String(), "Connection")
+		missionPackage := mp.NewMissionPackage("ConnectionProfileMissionPackage-"+uid, "Connection")
 		missionPackage.Param("onReceiveImport", "true")
 		missionPackage.Param("onReceiveDelete", "true")
 

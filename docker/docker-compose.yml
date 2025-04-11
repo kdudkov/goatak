@@ -5,14 +5,17 @@ services:
       context: ../
     restart: always
     environment:
-      - GOATAK_DEBUG=true
-      - SERVER_ADDR
+      - SRV_HOST
     ports:
       - 8080:8080
       - 8443:8443
       - 8088:8088
+      - 8089:8089
       - 8446:8446
       - 8999:8999
     volumes:
-      - ./cert:/app/cert
+      - ./cert:/app/cert/files
       - ./data:/app/data
+      - type: bind
+        source: ./users.yml
+        target: /app/users.yml

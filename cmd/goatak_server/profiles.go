@@ -1,8 +1,6 @@
 package main
 
 import (
-	"crypto/md5"
-	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -29,21 +27,23 @@ func NewUserPrefsFile(prefix string, user *model.Device) *mp.PrefFile {
 		conf.AddParam(mp.CIV_PREF, "locationUnitType", user.CotType)
 	}
 
+	for k, v := range user.Options {
+		conf.AddParam(mp.CIV_PREF, k, v)
+	}
+
 	return conf
 }
 
 func (app *App) GetProfileFiles(username, uid string) []mp.FileContent {
 	res := make([]mp.FileContent, 0)
-	prefix := fmt.Sprintf("%x", md5.Sum([]byte(username)))
+	prefix := uid + "-prefs"
 
-	if app.users != nil && username != "" {
-		if userInfo := app.users.Get(username); userInfo != nil {
-			if userInfo.HasProfile() {
-				app.logger.Debug("add user prefs")
+	if userInfo := app.users.Get(username); userInfo != nil {
+		if userInfo.HasProfile() {
+			app.logger.Debug("add user prefs")
 
-				f := NewUserPrefsFile(prefix, userInfo)
-				res = append(res, f)
-			}
+			f := NewUserPrefsFile(prefix, userInfo)
+			res = append(res, f)
 		}
 	}
 

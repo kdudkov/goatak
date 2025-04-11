@@ -3,12 +3,10 @@ package mp
 import (
 	"os"
 	"testing"
-
-	"github.com/google/uuid"
 )
 
 func TestMissionPackage_Create(t *testing.T) {
-	mp := NewMissionPackage("ProfileMissionPackage-"+uuid.New().String(), "Enrollment")
+	mp := NewMissionPackage("ProfileMissionPackage-123", "Enrollment")
 
 	mp.Param("onReceiveImport", "true")
 	mp.Param("onReceiveDelete", "true")
