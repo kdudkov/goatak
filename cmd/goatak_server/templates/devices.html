@@ -12,6 +12,7 @@
         <th>Last connect</th>
         <th>Last sign</th>
         <th>SN</th>
+        <th>UID</th>
         <th></th>
     </tr>
     <tr v-for="c in all">
@@ -23,6 +24,7 @@
         <td>{{ dt(c.last_connect) }}</td>
         <td>{{ dt(c.last_sign) }}</td>
         <td>{{ c.serial }}</td>
+        <td>{{ c.uid }}</td>
         <td>
             <button class="btn btn-outline-primary btn-sm" @click="edit(c)"><i class="bi bi-pencil-square"></i></button>
         </td>
