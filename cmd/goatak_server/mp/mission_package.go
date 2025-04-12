@@ -47,6 +47,7 @@ func (m *MissionPackage) Manifest() []byte {
 	}
 
 	buf.WriteString("</Contents>")
+	buf.WriteString("</MissionPackageManifest>")
 
 	return buf.Bytes()
 }

@@ -10,7 +10,7 @@ import (
 )
 
 func NewUserPrefsFile(user *model.Device) *mp.PrefFile {
-	conf := mp.NewPrefFile("prefs/user-profile.pref")
+	conf := mp.NewPrefFile("user-profile.pref")
 	if user.Callsign != "" {
 		conf.AddParam(mp.CIV_PREF, "locationCallsign", user.Callsign)
 	}
@@ -26,6 +26,9 @@ func NewUserPrefsFile(user *model.Device) *mp.PrefFile {
 	if user.CotType != "" {
 		conf.AddParam(mp.CIV_PREF, "locationUnitType", user.CotType)
 	}
+
+	conf.AddParam(mp.CIV_PREF, "deviceProfileEnableOnConnect", true)
+	conf.AddParam(mp.CIV_PREF, "coord_display_pref", "DD")
 
 	for k, v := range user.Options {
 		conf.AddParam(mp.CIV_PREF, k, v)
@@ -44,7 +47,7 @@ func (app *App) GetProfileFiles(username, uid string) []mp.FileContent {
 		}
 	}
 
-	if f, err := mp.NewFsFile("prefs/defaults.pref", filepath.Join(app.config.DataDir(), "defaults.pref")); err == nil {
+	if f, err := mp.NewFsFile("defaults.pref", filepath.Join(app.config.DataDir(), "defaults.pref")); err == nil {
 		app.logger.Debug("add default.prefs")
 		res = append(res, f)
 	}

@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/google/uuid"
 
 	"github.com/kdudkov/goatak/pkg/log"
 
@@ -254,7 +255,7 @@ func getProfileEnrollmentHandler(app *App) fiber.Handler {
 			return ctx.SendStatus(fiber.StatusNoContent)
 		}
 
-		pkg := mp.NewMissionPackage("ProfileMissionPackage-"+uid, "Enrollment")
+		pkg := mp.NewMissionPackage(uuid.NewString(), "Enrollment")
 		pkg.Param("onReceiveImport", "true")
 		pkg.Param("onReceiveDelete", "true")
 
