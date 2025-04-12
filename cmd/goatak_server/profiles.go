@@ -9,8 +9,8 @@ import (
 	"github.com/kdudkov/goatak/pkg/model"
 )
 
-func NewUserPrefsFile(dir string, user *model.Device) *mp.PrefFile {
-	conf := mp.NewPrefFile(strings.TrimRight(dir, "/") + "/user-profile.pref")
+func NewUserPrefsFile(user *model.Device) *mp.PrefFile {
+	conf := mp.NewPrefFile("prefs/user-profile.pref")
 	if user.Callsign != "" {
 		conf.AddParam(mp.CIV_PREF, "locationCallsign", user.Callsign)
 	}
@@ -36,20 +36,16 @@ func NewUserPrefsFile(dir string, user *model.Device) *mp.PrefFile {
 
 func (app *App) GetProfileFiles(username, uid string) []mp.FileContent {
 	res := make([]mp.FileContent, 0)
-	dir := "prefs"
 
 	if userInfo := app.users.Get(username); userInfo != nil {
 		if userInfo.HasProfile() {
 			app.logger.Debug("add user prefs")
-
-			f := NewUserPrefsFile(dir, userInfo)
-			res = append(res, f)
+			res = append(res, NewUserPrefsFile(userInfo))
 		}
 	}
 
-	if f, err := mp.NewFsFile(dir+"/defaults.pref", filepath.Join(app.config.DataDir(), "defaults.pref")); err == nil {
+	if f, err := mp.NewFsFile("prefs/defaults.pref", filepath.Join(app.config.DataDir(), "defaults.pref")); err == nil {
 		app.logger.Debug("add default.prefs")
-
 		res = append(res, f)
 	}
 
