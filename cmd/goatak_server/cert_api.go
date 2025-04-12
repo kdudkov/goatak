@@ -262,14 +262,13 @@ func getProfileEnrollmentHandler(app *App) fiber.Handler {
 			pkg.AddFile(f)
 		}
 
-		ctx.Set(fiber.HeaderContentType, "application/zip")
-		ctx.Set(fiber.HeaderContentDisposition, "attachment; filename=profile.zip")
-
 		dat, err := pkg.Create()
 		if err != nil {
 			return err
 		}
 
+		ctx.Set(fiber.HeaderContentType, "application/zip")
+		ctx.Set(fiber.HeaderContentDisposition, "attachment; filename=profile.zip")
 		return ctx.Send(dat)
 	}
 }

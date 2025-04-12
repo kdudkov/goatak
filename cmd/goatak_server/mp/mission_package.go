@@ -5,7 +5,6 @@ import (
 	"bytes"
 	"fmt"
 	"os"
-	"strings"
 )
 
 const (
@@ -19,8 +18,8 @@ type MissionPackage struct {
 	files  []FileContent
 }
 
-func NewMissionPackage(uuid, name string) *MissionPackage {
-	return &MissionPackage{params: map[string]string{"uid": uuid, "name": name}}
+func NewMissionPackage(uid, name string) *MissionPackage {
+	return &MissionPackage{params: map[string]string{"uid": uid, "name": name}}
 }
 
 func (m *MissionPackage) Param(k, v string) {
@@ -123,10 +122,6 @@ func (f *FsFile) Content() []byte {
 type PrefFile struct {
 	name string
 	data map[string]map[string]any
-}
-
-func NewUserProfilePrefFile(prefix string) *PrefFile {
-	return NewPrefFile(strings.TrimRight(prefix, "/") + "/user-profile.pref")
 }
 
 func NewPrefFile(name string) *PrefFile {

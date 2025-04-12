@@ -2,6 +2,7 @@ package mp
 
 import (
 	"os"
+	"strings"
 	"testing"
 )
 
@@ -11,7 +12,7 @@ func TestMissionPackage_Create(t *testing.T) {
 	mp.Param("onReceiveImport", "true")
 	mp.Param("onReceiveDelete", "true")
 
-	conf := NewUserProfilePrefFile("aaa")
+	conf := NewPrefFile(strings.TrimRight("aaa", "/") + "/user-profile.pref")
 	conf.AddParam(CIV_PREF, "locationCallsign", "TestUser")
 	conf.AddParam(CIV_PREF, "locationTeam", "Cyan")
 	conf.AddParam(CIV_PREF, "atakRoleType", "Medic")
