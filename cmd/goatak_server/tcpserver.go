@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"crypto/tls"
+	"encoding/hex"
 	"fmt"
 	"log/slog"
 	"net"
@@ -105,6 +106,11 @@ func (app *App) processTLSConn(ctx context.Context, conn *tls.Conn) {
 
 	st := conn.ConnectionState()
 	username, serial := getCertUser(&st)
+	if !app.users.IsValid(username, serial) {
+		app.logger.Info(fmt.Sprintf("bad user %s, sn %s", username, serial))
+		return
+	}
+
 	app.users.SaveConnectInfo(username, serial)
 
 	name := "ssl:" + conn.RemoteAddr().String()
@@ -119,7 +125,6 @@ func (app *App) processTLSConn(ctx context.Context, conn *tls.Conn) {
 	})
 	app.AddClientHandler(h)
 	h.Start()
-	app.onTLSClientConnect(username, serial)
 
 	return
 }
@@ -140,13 +145,9 @@ func (app *App) verifyConnection(st tls.ConnectionState) error {
 func getCertUser(st *tls.ConnectionState) (string, string) {
 	for _, cert := range st.PeerCertificates {
 		if cert.Subject.CommonName != "" {
-			return cert.Subject.CommonName, fmt.Sprintf("%x", cert.SerialNumber)
+			return cert.Subject.CommonName, hex.EncodeToString(cert.SerialNumber.Bytes())
 		}
 	}
 
 	return "", ""
-}
-
-func (app *App) onTLSClientConnect(username, sn string) {
-	//no-op
 }

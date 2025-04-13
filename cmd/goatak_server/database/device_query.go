@@ -10,6 +10,7 @@ type DeviceQuery struct {
 	Query[model.Device]
 	login string
 	scope string
+	full  bool
 }
 
 func NewDeviceQuery(db *gorm.DB) *DeviceQuery {
@@ -49,6 +50,11 @@ func (q *DeviceQuery) Scope(scope string) *DeviceQuery {
 	return q
 }
 
+func (q *DeviceQuery) Full() *DeviceQuery {
+	q.full = true
+	return q
+}
+
 func (q *DeviceQuery) where() *gorm.DB {
 	tx := q.db
 
@@ -58,6 +64,10 @@ func (q *DeviceQuery) where() *gorm.DB {
 
 	if q.scope != "" {
 		tx = tx.Where("scope = ?", q.scope)
+	}
+
+	if q.full {
+		tx = tx.Preload("Certs")
 	}
 
 	return tx

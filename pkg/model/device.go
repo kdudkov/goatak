@@ -20,26 +20,22 @@ type Device struct {
 	Disabled    bool           `gorm:"not null;default:false"`
 	ReadScope   []string       `gorm:"serializer:json" yaml:"read_scope,omitempty"`
 	Options     map[string]any `gorm:"serializer:json" yaml:"options,omitempty"`
-	LastSign    *time.Time
 	LastConnect *time.Time
-	Serial      string `gorm:"not null;default:''"`
-	UID         string `gorm:"not null;default:''"`
+	Certs       []*Certificate `gorm:"foreignKey:Login"`
 }
 
 type DeviceDTO struct {
-	Login       string         `json:"login"`
-	Callsign    string         `json:"callsign,omitempty"`
-	Team        string         `json:"team,omitempty"`
-	Role        string         `json:"role,omitempty"`
-	CotType     string         `json:"cot_type,omitempty"`
-	Scope       string         `json:"scope,omitempty"`
-	Disabled    bool           `json:"disabled"`
-	ReadScope   []string       `json:"read_scope,omitempty"`
-	Options     map[string]any `json:"options,omitempty"`
-	LastSign    *time.Time     `json:"last_sign,omitempty"`
-	LastConnect *time.Time     `json:"last_connect,omitempty"`
-	Serial      string         `json:"serial,omitempty"`
-	UID         string         `json:"uid,omitempty"`
+	Login       string            `json:"login"`
+	Callsign    string            `json:"callsign,omitempty"`
+	Team        string            `json:"team,omitempty"`
+	Role        string            `json:"role,omitempty"`
+	CotType     string            `json:"cot_type,omitempty"`
+	Scope       string            `json:"scope,omitempty"`
+	Disabled    bool              `json:"disabled"`
+	ReadScope   []string          `json:"read_scope,omitempty"`
+	Options     map[string]any    `json:"options,omitempty"`
+	LastConnect *time.Time        `json:"last_connect,omitempty"`
+	Certs       []*CertificateDTO `json:"certs,omitempty"`
 }
 
 type DevicePutDTO struct {
@@ -137,6 +133,12 @@ func (u *Device) DTO() *DeviceDTO {
 		return nil
 	}
 
+	certs := make([]*CertificateDTO, len(u.Certs))
+
+	for i, c := range u.Certs {
+		certs[i] = c.DTO()
+	}
+
 	return &DeviceDTO{
 		Login:       u.Login,
 		Callsign:    u.Callsign,
@@ -147,9 +149,7 @@ func (u *Device) DTO() *DeviceDTO {
 		Disabled:    u.Disabled,
 		ReadScope:   u.ReadScope,
 		Options:     u.Options,
-		LastSign:    u.LastSign,
 		LastConnect: u.LastConnect,
-		Serial:      u.Serial,
-		UID:         u.UID,
+		Certs:       certs,
 	}
 }

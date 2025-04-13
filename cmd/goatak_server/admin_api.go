@@ -74,6 +74,7 @@ func NewAdminAPI(app *App, addr string, webtakRoot string) *AdminAPI {
 	api.f.Get("/api/point", getApiPointsHandler(app))
 	api.f.Get("/api/device", getApiDevicesHandler(app))
 	api.f.Post("/api/device", getApiDevicePostHandler(app))
+	api.f.Get("/api/cert", getApiCertsHandler(app))
 	api.f.Put("/api/device/:id", getApiDevicePutHandler(app))
 
 	api.f.Get("/api/mission", getApiAllMissionHandler(app))
@@ -434,7 +435,7 @@ func getApiPointsHandler(app *App) fiber.Handler {
 
 func getApiDevicesHandler(app *App) fiber.Handler {
 	return func(ctx *fiber.Ctx) error {
-		data := app.dbm.DeviceQuery().Get()
+		data := app.dbm.DeviceQuery().Full().Get()
 
 		devices := make([]*model.DeviceDTO, len(data))
 
@@ -474,8 +475,6 @@ func getApiDevicePostHandler(app *App) fiber.Handler {
 			CotType:   m.CotType,
 			Scope:     m.Scope,
 			ReadScope: m.ReadScope,
-			Serial:    "",
-			UID:       "",
 		}
 
 		if err := d.SetPassword(m.Password); err != nil {
@@ -487,6 +486,20 @@ func getApiDevicePostHandler(app *App) fiber.Handler {
 		}
 
 		return ctx.JSON(fiber.Map{"status": "ok"})
+	}
+}
+
+func getApiCertsHandler(app *App) fiber.Handler {
+	return func(ctx *fiber.Ctx) error {
+		data := app.dbm.CertsQuery().Get()
+
+		certs := make([]*model.CertificateDTO, len(data))
+
+		for i, d := range data {
+			certs[i] = d.DTO()
+		}
+
+		return ctx.JSON(certs)
 	}
 }
 

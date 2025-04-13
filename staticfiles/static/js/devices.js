@@ -1,7 +1,8 @@
 const app = Vue.createApp({
     data: function () {
         return {
-            data: [],
+            devices: [],
+            login: "",
             current: null,
             form: {},
             error: null,
@@ -12,11 +13,6 @@ const app = Vue.createApp({
     mounted() {
         this.renew();
     },
-    computed: {
-        all: function () {
-            return this.ts && this.data;
-        },
-    },
     methods: {
         renew: function () {
             let vm = this;
@@ -24,7 +20,7 @@ const app = Vue.createApp({
             fetch('/api/device')
                 .then(resp => resp.json())
                 .then(data => {
-                    vm.data = data.sort((a, b) => a.scope.localeCompare(b.scope) || a.login.toLowerCase().localeCompare(b.login.toLowerCase()));
+                    vm.devices = data.sort((a, b) => a.scope.localeCompare(b.scope) || a.login.toLowerCase().localeCompare(b.login.toLowerCase()));
                     vm.ts += 1;
                 });
         },

@@ -74,8 +74,13 @@ func (mm *DatabaseManager) InvitationQuery() *InvitationQuery {
 func (mm *DatabaseManager) PointQuery() *PointQuery {
 	return NewPointQuery(mm.db)
 }
+
 func (mm *DatabaseManager) DeviceQuery() *DeviceQuery {
 	return NewDeviceQuery(mm.db)
+}
+
+func (mm *DatabaseManager) CertsQuery() *CertQuery {
+	return NewCertQuery(mm.db)
 }
 
 func (mm *DatabaseManager) Migrate() error {
@@ -92,6 +97,7 @@ func (mm *DatabaseManager) Migrate() error {
 		&model.Invitation{},
 		&model.Resource{},
 		&model.Device{},
+		&model.Certificate{},
 	); err != nil {
 		return err
 	}

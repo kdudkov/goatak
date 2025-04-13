@@ -98,10 +98,18 @@ func (u UserDbRepository) loadUsersFile() error {
 	return nil
 }
 
-func (u UserDbRepository) SaveSignInfo(username string, uid, sn string) {
-	_ = u.dbm.DeviceQuery().Login(username).Update(map[string]any{"last_sign": time.Now(), "serial": sn, "uid": uid})
+func (u UserDbRepository) SaveSignInfo(username string, uid, sn string, till time.Time) {
+	cert := &model.Certificate{
+		UID:       uid,
+		Login:     username,
+		Serial:    sn,
+		ValidTill: &till,
+	}
+
+	u.dbm.Save(cert)
 }
 
 func (u UserDbRepository) SaveConnectInfo(username string, sn string) {
 	_ = u.dbm.DeviceQuery().Login(username).Update(map[string]any{"last_connect": time.Now()})
+	_ = u.dbm.CertsQuery().SN(sn).Update(map[string]any{"last_connect": time.Now()})
 }

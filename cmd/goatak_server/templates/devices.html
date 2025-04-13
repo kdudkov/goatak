@@ -1,36 +1,55 @@
-<h4>Devices</h4>
-<div class="my-2">
-    <button class="btn btn-outline-primary" @click="create()">Create</button>
+<div class="row">
+    <div class="col">
+        <h4>Devices</h4>
+        <div class="my-2">
+            <button class="btn btn-outline-primary" @click="create()">Create</button>
+        </div>
+        <table class="table table-hover table-sm">
+            <tr>
+                <th>Login</th>
+                <th>Scope</th>
+                <th>Callsign</th>
+                <th>Team</th>
+                <th>Role</th>
+                <th>Connect</th>
+                <th>Certs</th>
+                <th></th>
+            </tr>
+            <tr v-for="c in devices">
+                <td @click="current = c">{{ c.login }}</td>
+                <td>{{ c.scope }}</td>
+                <td>{{ c.callsign }}</td>
+                <td>{{ c.team }}</td>
+                <td>{{ c.role }}</td>
+                <td>{{ dt(c.last_connect) }}</td>
+                <td>{{ c.certs && c.certs.length }}</td>
+                <td>
+                    <button class="btn btn-outline-primary btn-sm" @click="edit(c)"><i class="bi bi-pencil-square"></i>
+                    </button>
+                </td>
+            </tr>
+        </table>
+    </div>
+    <div class="col">
+        <div v-if="current">
+            <h4>Certificates</h4>
+            <table class="table table-hover table-sm">
+                <tr>
+                    <th>uid</th>
+                    <th>sign</th>
+                    <th>connect</th>
+                    <th>serial</th>
+                </tr>
+                <tr v-for="c in current.certs">
+                    <td>{{ c.uid }}</td>
+                    <td>{{ dt(c.created_at) }}</td>
+                    <td>{{ dt(c.last_connect) }}</td>
+                    <td>{{ c.serial }}</td>
+                </tr>
+            </table>
+        </div>
+    </div>
 </div>
-<table class="table table-hover table-sm">
-    <tr>
-        <th>Login</th>
-        <th>Scope</th>
-        <th>Callsign</th>
-        <th>Team</th>
-        <th>Role</th>
-        <th>Last connect</th>
-        <th>Last sign</th>
-        <th>SN</th>
-        <th>UID</th>
-        <th></th>
-    </tr>
-    <tr v-for="c in all">
-        <td>{{ c.login }}</td>
-        <td>{{ c.scope }}</td>
-        <td>{{ c.callsign }}</td>
-        <td>{{ c.team }}</td>
-        <td>{{ c.role }}</td>
-        <td>{{ dt(c.last_connect) }}</td>
-        <td>{{ dt(c.last_sign) }}</td>
-        <td>{{ c.serial }}</td>
-        <td>{{ c.uid }}</td>
-        <td>
-            <button class="btn btn-outline-primary btn-sm" @click="edit(c)"><i class="bi bi-pencil-square"></i></button>
-        </td>
-    </tr>
-</table>
-
 <!-- Modal -->
 <div class="modal fade" id="device_w" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1"
      aria-labelledby="staticBackdropLabel2" aria-hidden="true">
