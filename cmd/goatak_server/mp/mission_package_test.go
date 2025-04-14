@@ -16,7 +16,7 @@ func TestMissionPackage_Create(t *testing.T) {
 	conf.AddParam(CIV_PREF, "locationTeam", "Cyan")
 	conf.AddParam(CIV_PREF, "atakRoleType", "Medic")
 
-	mp.AddFile(conf)
+	mp.AddFiles(conf)
 
 	dat, err := mp.Create()
 	if err != nil {

@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"os"
 	"sync"
+	"time"
 
 	"github.com/fsnotify/fsnotify"
 	"gopkg.in/yaml.v3"
@@ -162,7 +163,7 @@ func (r *UserFileRepository) Get(username string) *model.Device {
 	return r.users[username]
 }
 
-func (r *UserFileRepository) SaveSignInfo(username string, uid, sn string) {
+func (r *UserFileRepository) SaveSignInfo(username string, uid, sn string, till time.Time) {
 	// no-op
 }
 

@@ -497,12 +497,9 @@ func getProfileConnectionHandler(app *App) fiber.Handler {
 		}
 
 		missionPackage := mp.NewMissionPackage(uuid.NewSHA1(uuid.Nil, []byte(username)).String(), "Connection")
+		missionPackage.Param("onReceiveImport", "true")
 		missionPackage.Param("onReceiveDelete", "true")
-
-		for _, f := range files {
-			missionPackage.AddFile(f)
-		}
-
+		missionPackage.AddFiles(files...)
 		dat, err := missionPackage.Create()
 		if err != nil {
 			return err

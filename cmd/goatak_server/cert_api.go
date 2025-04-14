@@ -6,6 +6,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"crypto/x509/pkix"
+	"encoding/hex"
 	"fmt"
 	"log/slog"
 	"math/big"
@@ -87,8 +88,8 @@ func getTLSConfigHandler(app *App) fiber.Handler {
 	}
 }
 
-func signClientCert(uid string, clientCSR *x509.CertificateRequest, serverCert *x509.Certificate, privateKey crypto.PrivateKey, days int) (*x509.Certificate, error) {
-	tpl := getCertTemplate(&serverCert.Subject, clientCSR, uid, days)
+func signClientCert(uid string, clientCSR *x509.CertificateRequest, serverCert *x509.Certificate, privateKey crypto.PrivateKey, till time.Time) (*x509.Certificate, error) {
+	tpl := getCertTemplate(&serverCert.Subject, clientCSR, uid, till)
 
 	certBytes, err := x509.CreateCertificate(rand.Reader, tpl, serverCert, clientCSR.PublicKey, privateKey)
 	if err != nil {
@@ -98,7 +99,7 @@ func signClientCert(uid string, clientCSR *x509.CertificateRequest, serverCert *
 	return x509.ParseCertificate(certBytes)
 }
 
-func getCertTemplate(issuer *pkix.Name, csr *x509.CertificateRequest, uid string, days int) *x509.Certificate {
+func getCertTemplate(issuer *pkix.Name, csr *x509.CertificateRequest, uid string, till time.Time) *x509.Certificate {
 	serialNumber, _ := rand.Int(rand.Reader, new(big.Int).Lsh(big.NewInt(1), 128))
 
 	return &x509.Certificate{
@@ -112,7 +113,7 @@ func getCertTemplate(issuer *pkix.Name, csr *x509.CertificateRequest, uid string
 		Issuer:         *issuer,
 		Subject:        csr.Subject,
 		NotBefore:      time.Now(),
-		NotAfter:       time.Now().Add(time.Duration(days*24) * time.Hour),
+		NotAfter:       till,
 		KeyUsage:       x509.KeyUsageDigitalSignature,
 		ExtKeyUsage:    []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth},
 		EmailAddresses: []string{uid},
@@ -139,14 +140,15 @@ func (app *App) processSignRequest(ctx *fiber.Ctx) (*x509.Certificate, error) {
 		return nil, fmt.Errorf("bad user in csr")
 	}
 
+	till := time.Now().Add(time.Duration(app.config.CertTTLDays()*24) * time.Hour)
 	signedCert, err := signClientCert(uid, clientCSR,
-		app.config.ServerCert, app.config.TlsCert.PrivateKey, app.config.CertTTLDays())
+		app.config.ServerCert, app.config.TlsCert.PrivateKey, till)
 	if err != nil {
 		return nil, err
 	}
 
-	serial := signedCert.SerialNumber.String()
-	app.users.SaveSignInfo(username, uid, serial)
+	serial := hex.EncodeToString(signedCert.SerialNumber.Bytes())
+	app.users.SaveSignInfo(username, uid, serial, till)
 	app.logger.Info(fmt.Sprintf("new cert signed for user %s uid %s ver %s serial %s", username, uid, ver, serial))
 
 	return signedCert, nil
@@ -256,11 +258,9 @@ func getProfileEnrollmentHandler(app *App) fiber.Handler {
 		}
 
 		pkg := mp.NewMissionPackage(uuid.NewSHA1(uuid.Nil, []byte(username)).String(), "Enrollment")
+		pkg.Param("onReceiveImport", "true")
 		pkg.Param("onReceiveDelete", "true")
-
-		for _, f := range files {
-			pkg.AddFile(f)
-		}
+		pkg.AddFiles(files...)
 
 		dat, err := pkg.Create()
 		if err != nil {

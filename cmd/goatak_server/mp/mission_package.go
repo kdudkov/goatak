@@ -14,39 +14,40 @@ const (
 )
 
 type MissionPackage struct {
-	params map[string]string
-	files  []FileContent
+	version uint
+	params  map[string]string
+	files   []FileContent
 }
 
 func NewMissionPackage(uid, name string) *MissionPackage {
-	return &MissionPackage{params: map[string]string{"uid": uid, "name": name}}
+	return &MissionPackage{version: 2, params: map[string]string{"uid": uid, "name": name}}
 }
 
 func (m *MissionPackage) Param(k, v string) {
 	m.params[k] = v
 }
 
-func (m *MissionPackage) AddFile(f FileContent) {
-	m.files = append(m.files, f)
+func (m *MissionPackage) AddFiles(f ...FileContent) {
+	m.files = append(m.files, f...)
 }
 
 func (m *MissionPackage) Manifest() []byte {
 	buf := bytes.Buffer{}
-	buf.WriteString("<MissionPackageManifest version=\"2\">\n")
-	buf.WriteString("<Configuration>")
+	buf.WriteString(fmt.Sprintf("<MissionPackageManifest version=\"%d\">\n", m.version))
+	buf.WriteString("<Configuration>\n")
 
 	for k, v := range m.params {
-		buf.WriteString(fmt.Sprintf("<Parameter name=\"%s\" value=\"%s\"/>", k, v))
+		buf.WriteString(fmt.Sprintf("  <Parameter name=\"%s\" value=\"%s\"/>\n", k, v))
 	}
 
-	buf.WriteString("</Configuration>")
-	buf.WriteString("<Contents>")
+	buf.WriteString("</Configuration>\n")
+	buf.WriteString("<Contents>\n")
 
 	for _, v := range m.files {
-		buf.WriteString(fmt.Sprintf("<Content ignore=\"false\" zipEntry=\"%s\"/>", v.Name()))
+		buf.WriteString(fmt.Sprintf("  <Content ignore=\"false\" zipEntry=\"%s\"/>\n", v.Name()))
 	}
 
-	buf.WriteString("</Contents>")
+	buf.WriteString("</Contents>\n")
 	buf.WriteString("</MissionPackageManifest>")
 
 	return buf.Bytes()
@@ -56,7 +57,7 @@ func (m *MissionPackage) Create() ([]byte, error) {
 	buff := new(bytes.Buffer)
 	zipW := zip.NewWriter(buff)
 
-	f, err := zipW.Create("MANIFEST/MANIFEST.xml")
+	f, err := zipW.Create("MANIFEST/manifest.xml")
 	if err != nil {
 		return nil, err
 	}

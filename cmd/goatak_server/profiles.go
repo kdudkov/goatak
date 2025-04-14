@@ -28,7 +28,6 @@ func NewUserPrefsFile(user *model.Device) *mp.PrefFile {
 	}
 
 	conf.AddParam(mp.CIV_PREF, "deviceProfileEnableOnConnect", true)
-	conf.AddParam(mp.CIV_PREF, "coord_display_pref", "DD")
 
 	for k, v := range user.Options {
 		conf.AddParam(mp.CIV_PREF, k, v)
