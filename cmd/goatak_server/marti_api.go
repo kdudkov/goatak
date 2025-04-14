@@ -496,8 +496,7 @@ func getProfileConnectionHandler(app *App) fiber.Handler {
 			return ctx.SendStatus(fiber.StatusNoContent)
 		}
 
-		missionPackage := mp.NewMissionPackage(uuid.NewString(), "Connection")
-		missionPackage.Param("onReceiveImport", "true")
+		missionPackage := mp.NewMissionPackage(uuid.NewSHA1(uuid.Nil, []byte(username)).String(), "Connection")
 		missionPackage.Param("onReceiveDelete", "true")
 
 		for _, f := range files {

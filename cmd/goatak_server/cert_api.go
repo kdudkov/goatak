@@ -121,7 +121,7 @@ func getCertTemplate(issuer *pkix.Name, csr *x509.CertificateRequest, uid string
 
 func (app *App) processSignRequest(ctx *fiber.Ctx) (*x509.Certificate, error) {
 	username := Username(ctx)
-	uid := ctx.Query("clientUid")
+	uid := queryIgnoreCase(ctx, "clientUid")
 	ver := ctx.Query("version")
 
 	app.logger.Info(fmt.Sprintf("cert sign req from %s %s ver %s", username, uid, ver))
@@ -154,7 +154,7 @@ func (app *App) processSignRequest(ctx *fiber.Ctx) (*x509.Certificate, error) {
 
 func getSignHandler(app *App) fiber.Handler {
 	return func(ctx *fiber.Ctx) error {
-		uid := ctx.Query("clientUid")
+		uid := queryIgnoreCase(ctx, "clientUid")
 
 		if !app.checkUID(uid) {
 			app.logger.Warn("blacklisted uid - " + uid)
@@ -187,7 +187,7 @@ func getSignHandler(app *App) fiber.Handler {
 
 func getSignHandlerV2(app *App) fiber.Handler {
 	return func(ctx *fiber.Ctx) error {
-		uid := ctx.Query("clientUid")
+		uid := queryIgnoreCase(ctx, "clientUid")
 
 		if !app.checkUID(uid) {
 			app.logger.Warn("blacklisted uid - " + uid)
@@ -243,7 +243,7 @@ func getSignHandlerV2(app *App) fiber.Handler {
 func getProfileEnrollmentHandler(app *App) fiber.Handler {
 	return func(ctx *fiber.Ctx) error {
 		username := Username(ctx)
-		uid := ctx.Query("clientUid")
+		uid := queryIgnoreCase(ctx, "clientUid")
 
 		if !app.checkUID(uid) {
 			app.logger.Warn("blacklisted uid - " + uid)
@@ -255,8 +255,7 @@ func getProfileEnrollmentHandler(app *App) fiber.Handler {
 			return ctx.SendStatus(fiber.StatusNoContent)
 		}
 
-		pkg := mp.NewMissionPackage(uuid.NewString(), "Enrollment")
-		pkg.Param("onReceiveImport", "true")
+		pkg := mp.NewMissionPackage(uuid.NewSHA1(uuid.Nil, []byte(username)).String(), "Enrollment")
 		pkg.Param("onReceiveDelete", "true")
 
 		for _, f := range files {
