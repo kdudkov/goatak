@@ -167,6 +167,6 @@ func (r *UserFileRepository) SaveSignInfo(username string, uid, sn string, till 
 	// no-op
 }
 
-func (r *UserFileRepository) SaveConnectInfo(username string, sn string) {
+func (r *UserFileRepository) SaveConnectInfo(username string, uid, sn string) {
 	// no-op
 }

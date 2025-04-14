@@ -5,11 +5,11 @@ import (
 )
 
 type Certificate struct {
-	UID         string `gorm:"primaryKey"`
+	Serial      string `gorm:"primaryKey"`
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
 	Login       string `gorm:"not null;index"`
-	Serial      string `gorm:"not null;index"`
+	UID         string `gorm:"index"`
 	LastConnect *time.Time
 	ValidTill   *time.Time
 }

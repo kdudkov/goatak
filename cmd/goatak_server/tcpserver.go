@@ -105,18 +105,19 @@ func (app *App) processTLSConn(ctx context.Context, conn *tls.Conn) {
 	}
 
 	st := conn.ConnectionState()
-	username, serial := getCertUser(&st)
-	if !app.users.IsValid(username, serial) {
-		app.logger.Info(fmt.Sprintf("bad user %s, sn %s", username, serial))
+	username, sn := getCertUser(&st)
+	uid := getCertUID(&st)
+	if !app.users.IsValid(username, sn) {
+		app.logger.Info(fmt.Sprintf("bad user %s, sn %s", username, sn))
 		return
 	}
 
-	app.users.SaveConnectInfo(username, serial)
+	app.users.SaveConnectInfo(username, uid, sn)
 
 	name := "ssl:" + conn.RemoteAddr().String()
 	h := client.NewConnClientHandler(name, conn, &client.HandlerConfig{
 		Device:       app.users.Get(username),
-		Serial:       serial,
+		Serial:       sn,
 		MessageCb:    app.NewCotMessage,
 		RemoveCb:     app.RemoveHandlerCb,
 		NewContactCb: app.NewContactCb,
@@ -150,4 +151,14 @@ func getCertUser(st *tls.ConnectionState) (string, string) {
 	}
 
 	return "", ""
+}
+
+func getCertUID(st *tls.ConnectionState) string {
+	for _, cert := range st.PeerCertificates {
+		if cert.Subject.CommonName != "" && len(cert.EmailAddresses) > 0 {
+			return cert.EmailAddresses[0]
+		}
+	}
+
+	return ""
 }

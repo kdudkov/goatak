@@ -15,8 +15,8 @@ type UserRepository interface {
 	CheckAuth(username, password string) bool
 	IsValid(username, sn string) bool
 	Get(username string) *internal.Device
-	SaveSignInfo(username string, uid, sn string, till time.Time)
-	SaveConnectInfo(username string, sn string)
+	SaveSignInfo(username, uid, sn string, till time.Time)
+	SaveConnectInfo(username, uid, sn string)
 }
 
 type ItemsRepository interface {
