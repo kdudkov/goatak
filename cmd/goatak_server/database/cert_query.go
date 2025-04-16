@@ -1,6 +1,9 @@
 package database
 
 import (
+	"errors"
+	"log/slog"
+
 	"gorm.io/gorm"
 
 	"github.com/kdudkov/goatak/pkg/model"
@@ -87,4 +90,14 @@ func (q *CertQuery) Count() int64 {
 
 func (q *CertQuery) Update(updates map[string]any) error {
 	return q.updateOrError(q.where().Model(&model.Certificate{}), updates)
+}
+
+func (q *CertQuery) Delete() error {
+	err := q.where().Delete(&model.Certificate{}).Error
+
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		slog.Error("delete error", slog.Any("error", err))
+	}
+
+	return err
 }

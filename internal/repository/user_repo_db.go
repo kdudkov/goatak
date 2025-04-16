@@ -99,6 +99,10 @@ func (u UserDbRepository) loadUsersFile() error {
 }
 
 func (u UserDbRepository) SaveSignInfo(username, uid, sn string, till time.Time) {
+	if uid != "" && uid != "taktracker" {
+		_ = u.dbm.CertsQuery().Login(username).UID(uid).Delete()
+	}
+
 	cert := &model.Certificate{
 		Serial:    sn,
 		UID:       uid,
