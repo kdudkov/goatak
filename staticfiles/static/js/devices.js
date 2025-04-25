@@ -36,14 +36,13 @@ const app = Vue.createApp({
             };
             bootstrap.Modal.getOrCreateInstance(document.getElementById('device_w')).show();
         },
-        edit: function (d) {
-            this.current = d;
+        edit: function () {
             this.form = {
-                callsign: d.callsign,
-                role: d.role,
-                team: d.team,
-                scope: d.scope,
-                read_scope: d.read_scope,
+                callsign: this.current.callsign,
+                role: this.current.role,
+                team: this.current.team,
+                scope: this.current.scope,
+                read_scope: this.current.read_scope,
                 password: '',
             };
             bootstrap.Modal.getOrCreateInstance(document.getElementById('device_w')).show();
