@@ -25,6 +25,7 @@ const app = Vue.createApp({
                 });
         },
         create: function () {
+            this.current = null;
             this.form = {
                 callsign: '',
                 role: '',
