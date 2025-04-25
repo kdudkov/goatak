@@ -1,5 +1,5 @@
-<div class="row">
-    <div class="col">
+<div class="row h-100">
+    <div class="col-6 h-100 overflow-auto">
         <table class="table table-hover table-sm units">
             <tr>
                 <th>Name</th>
@@ -13,7 +13,7 @@
             </tr>
         </table>
     </div>
-    <div class="col">
+    <div class="col-6 h-100 overflow-auto">
         <div v-if="current != null" class="overflow-auto">
             <h3>{{ current.name }}</h3>
             creator: {{ current.creatorUid }}<br/>
