@@ -532,6 +532,7 @@ func getApiDevicePutHandler(app *App) fiber.Handler {
 		d.Callsign = m.Callsign
 		d.Team = m.Team
 		d.Role = m.Role
+		d.ReadScope = m.ReadScope
 
 		app.dbm.Save(d)
 

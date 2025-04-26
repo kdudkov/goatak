@@ -18,7 +18,7 @@ type Device struct {
 	Password    string         `gorm:"not null" yaml:"password"`
 	Scope       string         `gorm:"not null" yaml:"scope"`
 	Disabled    bool           `gorm:"not null;default:false"`
-	ReadScope   []string       `gorm:"serializer:json" yaml:"read_scope,omitempty"`
+	ReadScope   []string       `gorm:"serializer:json" yaml:"read_scope"`
 	Options     map[string]any `gorm:"serializer:json" yaml:"options,omitempty"`
 	LastConnect *time.Time
 	Certs       []*Certificate `gorm:"foreignKey:Login"`
