@@ -148,12 +148,14 @@ func (c *AppConfig) ProcessCerts() error {
 		return err
 	}
 
-	if len(cert) > 0 {
-		c.ServerCert = cert[0]
-	}
-
-	for _, crt := range cert {
+	for i, crt := range cert {
 		c.CertPool.AddCert(crt)
+
+		if i == 0 {
+			c.ServerCert = crt
+		} else {
+			c.CA = append(c.CA, crt)
+		}
 	}
 
 	tlsCert, err := tls.LoadX509KeyPair(c.k.String("ssl.cert"), c.k.String("ssl.key"))
