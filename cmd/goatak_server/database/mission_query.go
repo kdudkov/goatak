@@ -4,13 +4,14 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/kdudkov/goatak/pkg/model"
+	"github.com/kdudkov/goatak/pkg/util"
 )
 
 type MissionQuery struct {
 	Query[model.Mission]
 	id    uint
 	name  string
-	scope string
+	scope util.StringSet
 	full  bool
 }
 
@@ -22,6 +23,7 @@ func NewMissionQuery(db *gorm.DB) *MissionQuery {
 			offset: 0,
 			order:  "missions.created_at",
 		},
+		scope: util.NewStringSet(),
 	}
 }
 
@@ -75,7 +77,18 @@ func (q *MissionQuery) Scope(scope string) *MissionQuery {
 		return nil
 	}
 
-	q.scope = scope
+	q.scope.Add(scope)
+
+	return q
+}
+
+func (q *MissionQuery) ReadScope(scope []string) *MissionQuery {
+	if q == nil {
+		return nil
+	}
+
+	q.scope.Add(scope...)
+
 	return q
 }
 
@@ -99,8 +112,8 @@ func (q *MissionQuery) where() *gorm.DB {
 		tx = tx.Where("missions.name = ?", q.name)
 	}
 
-	if q.scope != "" {
-		tx = tx.Where("missions.scope = ?", q.scope)
+	if len(q.scope) > 0 && !q.scope.Has("*") {
+		tx = tx.Where("missions.scope in (?)", q.scope.List())
 	}
 
 	if q.full {
@@ -143,4 +156,14 @@ func (q *MissionQuery) Delete(id uint) error {
 		return nil
 	})
 
+}
+
+func has(arr []string, s string) bool {
+	for _, s1 := range arr {
+		if s1 == s {
+			return true
+		}
+	}
+
+	return false
 }

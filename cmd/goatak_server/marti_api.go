@@ -184,7 +184,7 @@ func getMissionQueryHandler(app *App) fiber.Handler {
 			return ctx.Status(fiber.StatusNotAcceptable).SendString("no hash")
 		}
 
-		c := app.dbm.ResourceQuery().Hash(hash).Scope(user.GetScope()).One()
+		c := app.dbm.ResourceQuery().Hash(hash).Scope(user.GetScope()).ReadScope(user.GetReadScope()).One()
 		if c == nil {
 			return ctx.SendStatus(fiber.StatusNotFound)
 		}
@@ -351,7 +351,7 @@ func getContentGetHandler(app *App) fiber.Handler {
 			return ctx.Status(fiber.StatusNotAcceptable).SendString("no hash or uid")
 		}
 
-		fi := app.dbm.ResourceQuery().Scope(user.GetScope()).Hash(hash).UID(uid).One()
+		fi := app.dbm.ResourceQuery().Scope(user.GetScope()).ReadScope(user.GetReadScope()).Hash(hash).UID(uid).One()
 
 		if fi == nil {
 			return ctx.Status(fiber.StatusNotFound).SendString("not found")
@@ -394,7 +394,7 @@ func getMetadataGetHandler(app *App) fiber.Handler {
 			return ctx.Status(fiber.StatusNotAcceptable).SendString("no hash")
 		}
 
-		cn := app.dbm.ResourceQuery().Scope(user.GetScope()).Hash(hash).One()
+		cn := app.dbm.ResourceQuery().Scope(user.GetScope()).ReadScope(user.GetReadScope()).Hash(hash).One()
 
 		if cn == nil {
 			return ctx.SendStatus(fiber.StatusNotFound)
@@ -419,7 +419,7 @@ func getMetadataPutHandler(app *App) fiber.Handler {
 			return ctx.Status(fiber.StatusNotAcceptable).SendString("no hash")
 		}
 
-		cn := app.dbm.ResourceQuery().Scope(user.GetScope()).Hash(hash).One()
+		cn := app.dbm.ResourceQuery().Scope(user.GetScope()).ReadScope(user.GetReadScope()).Hash(hash).One()
 
 		if cn == nil {
 			return ctx.SendStatus(fiber.StatusNotFound)
@@ -438,7 +438,8 @@ func getSearchHandler(app *App) fiber.Handler {
 		user := app.users.Get(Username(ctx))
 		kw := ctx.Query("keywords")
 
-		files := app.dbm.ResourceQuery().Scope(user.GetScope()).Tool(ctx.Query("tool")).Get()
+		files := app.dbm.ResourceQuery().Scope(user.GetScope()).ReadScope(user.GetReadScope()).
+			Tool(ctx.Query("tool")).Get()
 		res := make([]*model.ResourceDTO, 0, len(files))
 
 		for _, f := range files {

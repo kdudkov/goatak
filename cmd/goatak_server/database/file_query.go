@@ -4,12 +4,13 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/kdudkov/goatak/pkg/model"
+	"github.com/kdudkov/goatak/pkg/util"
 )
 
 type ResourceQuery struct {
 	Query[model.Resource]
 	id    uint
-	scope string
+	scope util.StringSet
 	tool  string
 	hash  string
 	uid   string
@@ -24,6 +25,7 @@ func NewResourceQuery(db *gorm.DB) *ResourceQuery {
 			offset: 0,
 			order:  "resources.created_at",
 		},
+		scope: util.NewStringSet(),
 	}
 }
 
@@ -68,7 +70,17 @@ func (q *ResourceQuery) Scope(scope string) *ResourceQuery {
 		return nil
 	}
 
-	q.scope = scope
+	q.scope.Add(scope)
+	return q
+}
+
+func (q *ResourceQuery) ReadScope(scope []string) *ResourceQuery {
+	if q == nil {
+		return nil
+	}
+
+	q.scope.Add(scope...)
+
 	return q
 }
 
@@ -115,8 +127,8 @@ func (q *ResourceQuery) where() *gorm.DB {
 		tx = tx.Where("id = ?", q.id)
 	}
 
-	if q.scope != "" {
-		tx = tx.Where("scope = ?", q.scope)
+	if len(q.scope) > 0 && !q.scope.Has("*") {
+		tx = tx.Where("scope in (?)", q.scope.List())
 	}
 
 	if q.hash != "" {

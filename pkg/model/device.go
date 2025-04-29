@@ -58,6 +58,14 @@ func (u *Device) GetScope() string {
 	return u.Scope
 }
 
+func (u *Device) GetReadScope() []string {
+	if u == nil {
+		return nil
+	}
+
+	return u.ReadScope
+}
+
 func (u *Device) CanSeeScope(scope string) bool {
 	// nil user can see empty scope (no auth mode)
 	if u == nil {

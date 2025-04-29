@@ -20,8 +20,10 @@ func StringToSet(s string) StringSet {
 	return ss
 }
 
-func (s StringSet) Add(key string) {
-	s[key] = struct{}{}
+func (s StringSet) Add(keys ...string) {
+	for _, key := range keys {
+		s[key] = struct{}{}
+	}
 }
 
 func (s StringSet) Remove(key string) {
