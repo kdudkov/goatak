@@ -46,3 +46,6 @@ openssl x509 -req -in ${CERT_NAME}.csr -CA ca.pem -CAkey ca.key -CAcreateserial 
   -out ${CERT_NAME}.pem -days 3650 -extfile ext.cfg
 
 rm ext.cfg ${CERT_NAME}.csr
+
+rm ${CERT_NAME}-chain.pem
+cp ${CERT_NAME}.pem ca.pem >> ${CERT_NAME}-chain.pem

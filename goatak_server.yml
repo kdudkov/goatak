@@ -29,6 +29,6 @@ ssl:
   enroll: false
   ca: cert/files/ca.pem
   cert: cert/files/server.pem
-  key: cert/files/server.key
+  key: cert/files/server-chain.key
   # enrolled cert ttl in days (default is 365)
   cert_ttl_days: 365

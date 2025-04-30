@@ -20,7 +20,7 @@ if [[ -n "${SRV_HOST}" ]]; then
   export GOATAK_SSL_ENROLL=true
   export GOATAK_SSL_CA=cert/files/ca.pem
   export GOATAK_SSL_CERT=cert/files/${SRV_HOST}.pem
-  export GOATAK_SSL_KEY=cert/files/${SRV_HOST}.key
+  export GOATAK_SSL_KEY=cert/files/${SRV_HOST}-chain.key
   export GOATAK_API_ADDR=":8443"
   export GOATAK_TLS_ADDR=":8089"
 else
