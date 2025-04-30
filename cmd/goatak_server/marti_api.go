@@ -443,13 +443,15 @@ func getSearchHandler(app *App) fiber.Handler {
 		res := make([]*model.ResourceDTO, 0, len(files))
 
 		for _, f := range files {
-			if f.KwSet.Has(kw) {
-				res = append(res, model.ToResourceDTO(f))
+			if !f.KwSet.Has(kw) {
+				continue
 			}
 
 			if f.Scope != user.Scope {
 				f.Name += fmt.Sprintf(" [%s]", f.Scope)
 			}
+
+			res = append(res, model.ToResourceDTO(f))
 		}
 
 		app.logger.Info(fmt.Sprintf("found %d dp", len(res)))
