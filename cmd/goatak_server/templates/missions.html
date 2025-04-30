@@ -1,5 +1,6 @@
 <div class="row h-100">
     <div class="col-6 h-100 overflow-auto">
+        <h4>Missions</h4>
         <table class="table table-hover table-sm table-xs">
             <tr>
                 <th>Name</th>
@@ -15,7 +16,7 @@
     </div>
     <div class="col-6 h-100 overflow-auto">
         <div v-if="current != null" class="overflow-auto">
-            <h3>{{ current.name }}</h3>
+            <h4>{{ current.name }}</h4>
             creator: {{ current.creatorUid }}<br/>
             description: {{ current.description }}
 

@@ -1,12 +1,14 @@
 <div class="row h-100">
     <div class="col h-100 overflow-auto">
-        <table class="table table-hover table-sm">
+        <h4>Missions</h4>
+        <table class="table table-hover table-sm table-xs">
             <tr>
                 <th>Scope</th>
                 <th>UID</th>
                 <th>Callsign</th>
                 <th>Type</th>
                 <th>Coords</th>
+                <th>Created</th>
             </tr>
             <tr v-for="p in all" @click="current = p">
                 <td>{{ p.Scope }}</td>
@@ -14,6 +16,7 @@
                 <td>{{ p.Callsign }}</td>
                 <td>{{ p.Type }}</td>
                 <td>{{ p.Lat }},{{ p.Lon }}</td>
+                <td>{{ dt(p.CreatedAt) }}</td>
             </tr>
         </table>
     </div>
