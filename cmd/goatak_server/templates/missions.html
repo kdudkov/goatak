@@ -1,6 +1,6 @@
 <div class="row h-100">
     <div class="col-6 h-100 overflow-auto">
-        <table class="table table-hover table-sm units">
+        <table class="table table-hover table-sm table-xs">
             <tr>
                 <th>Name</th>
                 <th>Scope</th>
@@ -21,7 +21,7 @@
 
             <div v-if="current.uids && current.uids.length > 0">
                 <h5>Points</h5>
-                <table class="table table-hover table-sm units">
+                <table class="table table-hover table-sm table-xs">
                     <tr v-for="c in current.uids">
                         <td>{{ c.details?.type }}</td>
                         <td>{{ c.details?.callsign }}</td>
@@ -32,7 +32,7 @@
 
             <div v-if="current.contents && current.contents.length > 0">
                 <h5>Files</h5>
-                <table class="table table-hover table-sm units">
+                <table class="table table-hover table-sm table-xs">
                     <tr v-for="c in current.contents">
                         <td><a :href="'/api/file/' + c.data?.uid">{{ c.data?.name }}</a></td>
                         <td>{{ c.data?.mimeType }}</td>

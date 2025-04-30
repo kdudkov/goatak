@@ -4,9 +4,8 @@
     display: none;
 }
 
-table.units {
-    font-family: 'Roboto', sans-serif;
-    font-size: 10pt;
+table.table-xs {
+    font-size: 9pt;
 }
 
 div.info {
