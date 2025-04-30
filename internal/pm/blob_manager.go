@@ -41,7 +41,7 @@ func (m *BlobManager) fileName(scope, hash string) string {
 	return filepath.Join(m.basedir, scope, hash)
 }
 
-func (m *BlobManager) GetFile(scope, hash string) (io.ReadSeekCloser, error) {
+func (m *BlobManager) GetFile(hash string, scope string) (io.ReadSeekCloser, error) {
 	m.mx.RLock()
 	defer m.mx.RUnlock()
 

@@ -139,16 +139,15 @@ func (c *AppConfig) ProcessCerts() error {
 	if err != nil {
 		return err
 	}
-
-	c.CertPool = tlsutil.MakeCertPool(ca...)
 	c.CA = ca
 
-	cert, err := loadPem(c.k.String("ssl.cert"))
+	certs, err := loadPem(c.k.String("ssl.cert"))
 	if err != nil {
 		return err
 	}
 
-	for i, crt := range cert {
+	c.CertPool = tlsutil.MakeCertPool(ca...)
+	for i, crt := range certs {
 		c.CertPool.AddCert(crt)
 
 		if i == 0 {

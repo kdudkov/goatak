@@ -362,7 +362,7 @@ func GetApiFileHandler(app *App) fiber.Handler {
 			return ctx.SendStatus(fiber.StatusNotFound)
 		}
 
-		f, err := app.files.GetFile(pi.Scope, pi.Hash)
+		f, err := app.files.GetFile(pi.Hash, pi.Scope)
 
 		if err != nil {
 			app.logger.Error("get file error", slog.Any("error", err))

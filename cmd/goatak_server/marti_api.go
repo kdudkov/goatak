@@ -357,7 +357,7 @@ func getContentGetHandler(app *App) fiber.Handler {
 			return ctx.Status(fiber.StatusNotFound).SendString("not found")
 		}
 
-		f, err := app.files.GetFile(user.GetScope(), hash)
+		f, err := app.files.GetFile(hash, fi.Scope)
 
 		if err != nil {
 			if errors.Is(err, pm.NotFound) {
