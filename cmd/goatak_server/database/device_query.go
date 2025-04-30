@@ -67,7 +67,9 @@ func (q *DeviceQuery) where() *gorm.DB {
 	}
 
 	if q.full {
-		tx = tx.Preload("Certs")
+		tx = tx.Preload("Certs", func(db *gorm.DB) *gorm.DB {
+			return db.Order("certificates.last_connect desc")
+		})
 	}
 
 	return tx
