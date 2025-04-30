@@ -64,7 +64,13 @@ func getMissionsHandler(app *App) fiber.Handler {
 
 		app.logger.Info(fmt.Sprintf("got %d missions for scope %s", len(data), user.GetScope()))
 		for i, m := range data {
-			result[i] = model.ToMissionDTO(m, false)
+			dto := model.ToMissionDTO(m, false)
+
+			if m.Scope != user.Scope {
+				dto.Name += fmt.Sprintf(" [%s]", m.Scope)
+			}
+
+			result[i] = dto
 		}
 
 		return ctx.JSON(makeAnswer(missionType, result))

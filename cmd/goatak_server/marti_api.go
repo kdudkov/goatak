@@ -446,6 +446,10 @@ func getSearchHandler(app *App) fiber.Handler {
 			if f.KwSet.Has(kw) {
 				res = append(res, model.ToResourceDTO(f))
 			}
+
+			if f.Scope != user.Scope {
+				f.Name += fmt.Sprintf(" [%s]", f.Scope)
+			}
 		}
 
 		app.logger.Info(fmt.Sprintf("found %d dp", len(res)))
