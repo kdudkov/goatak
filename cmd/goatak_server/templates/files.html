@@ -1,6 +1,6 @@
 <div class="row h-100">
     <div class="col-6 h-100 overflow-auto">
-        <h4>Missions</h4>
+        <h4>Resources</h4>
         <table class="table table-hover table-sm table-xs">
             <tr>
                 <th>Scope</th>
@@ -8,6 +8,7 @@
                 <th>Size</th>
                 <th>MIME type</th>
                 <th>Created</th>
+                <th>Tool</th>
             </tr>
             <tr v-for="p in all" @click="current = p">
                 <td>{{ p.Scope }}</td>
@@ -15,6 +16,7 @@
                 <td>{{ p.Size }}</td>
                 <td>{{ p.MIMEType }}</td>
                 <td>{{ dt(p.CreatedAt) }}</td>
+                <td>{{ p.Tool }}</td>
             </tr>
         </table>
     </div>
