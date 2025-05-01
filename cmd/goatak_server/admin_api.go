@@ -105,7 +105,7 @@ func getIndexHandler() fiber.Handler {
 		data := map[string]any{
 			"theme": "auto",
 			"page":  " dash",
-			"js":    []string{"util.js", "main.js"},
+			"js":    []string{"main.js"},
 		}
 
 		return ctx.Render("templates/index", data, "templates/menu", "templates/header")
@@ -117,7 +117,7 @@ func getUnitsHandler() fiber.Handler {
 		data := map[string]any{
 			"theme": "auto",
 			"page":  " units",
-			"js":    []string{"util.js", "units.js"},
+			"js":    []string{"units.js"},
 		}
 
 		return ctx.Render("templates/units", data, "templates/menu", "templates/header")
@@ -128,7 +128,7 @@ func getMapHandler() fiber.Handler {
 	return func(ctx *fiber.Ctx) error {
 		data := map[string]any{
 			"theme": "auto",
-			"js":    []string{"util.js", "map.js"},
+			"js":    []string{"map.js"},
 		}
 
 		return ctx.Render("templates/map", data, "templates/header")
