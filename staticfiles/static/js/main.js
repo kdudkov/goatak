@@ -30,11 +30,7 @@ const app = Vue.createApp({
                     vm.ts += 1;
                 });
         },
-        dt: function (str) {
-            let d = new Date(Date.parse(str));
-            return ("0" + d.getDate()).slice(-2) + "-" + ("0" + (d.getMonth() + 1)).slice(-2) + "-" +
-                d.getFullYear() + " " + ("0" + d.getHours()).slice(-2) + ":" + ("0" + d.getMinutes()).slice(-2);
-        },
+        dt: dtShort,
     },
 });
 

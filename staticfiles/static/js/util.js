@@ -117,6 +117,16 @@ function dt(str) {
         d.getFullYear() + " " + ("0" + d.getHours()).slice(-2) + ":" + ("0" + d.getMinutes()).slice(-2);
 }
 
+function dtShort(str) {
+    let d = new Date(Date.parse(str));
+    return ("0" + d.getDate()).slice(-2) + "." + ("0" + (d.getMonth() + 1)).slice(-2) + "." +
+        ("0" + d.getFullYear()).slice(-2) + " " + ("0" + d.getHours()).slice(-2) + ":" + ("0" + d.getMinutes()).slice(-2);
+}
+
+function printCoords(lat, lng) {
+    return lat.toFixed(6) + "," + lng.toFixed(6);
+}
+
 function toUri(s) {
     return encodeURI("data:image/svg+xml," + s).replaceAll("#", "%23");
 }

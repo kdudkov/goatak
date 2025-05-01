@@ -116,15 +116,8 @@ const app = Vue.createApp({
                     this.error = err;
                 });
         },
-        printCoords: function (lat, lng) {
-            return lat.toFixed(6) + "," + lng.toFixed(6);
-        },
-        dt: function (str) {
-            if (!str) return "";
-            let d = new Date(Date.parse(str));
-            return ("0" + d.getDate()).slice(-2) + "-" + ("0" + (d.getMonth() + 1)).slice(-2) + "-" +
-                d.getFullYear() + " " + ("0" + d.getHours()).slice(-2) + ":" + ("0" + d.getMinutes()).slice(-2);
-        }
+        printCoords: printCoords,
+        dt: dtShort,
     },
 });
 

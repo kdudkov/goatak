@@ -53,14 +53,6 @@ const app = Vue.createApp({
         milImg: function (item) {
             return getMilIconUri(item, 24, false).uri;
         },
-        printCoords: function (lat, lng) {
-            return lat.toFixed(6) + "," + lng.toFixed(6);
-        },
-        dt: function (str) {
-            let d = new Date(Date.parse(str));
-            return ("0" + d.getDate()).slice(-2) + "-" + ("0" + (d.getMonth() + 1)).slice(-2) + "-" +
-                d.getFullYear() + " " + ("0" + d.getHours()).slice(-2) + ":" + ("0" + d.getMinutes()).slice(-2);
-        },
         sp: function (v) {
             return (v * 3.6).toFixed(1);
         },
@@ -70,6 +62,8 @@ const app = Vue.createApp({
 
             return online + "/" + total;
         },
+        dt: dtShort,
+        printCoords: printCoords,
     },
 });
 
