@@ -59,10 +59,12 @@ func getMissionsHandler(app *App) fiber.Handler {
 	return func(ctx *fiber.Ctx) error {
 		user := app.users.Get(Username(ctx))
 
-		data := app.dbm.MissionQuery().Scope(user.GetScope()).ReadScope(user.GetReadScope()).Full().Get()
+		data := app.dbm.MissionQuery().Scope(user.GetScope()).ReadScope(user.GetReadScope()).
+			Tool(ctx.Query("tool")).Full().Get()
 		result := make([]*model.MissionDTO, len(data))
 
 		app.logger.Info(fmt.Sprintf("got %d missions for scope %s", len(data), user.GetScope()))
+
 		for i, m := range data {
 			dto := model.ToMissionDTO(m, false)
 

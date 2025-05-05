@@ -12,6 +12,7 @@ type MissionQuery struct {
 	id    uint
 	name  string
 	scope util.StringSet
+	tool  string
 	full  bool
 }
 
@@ -72,6 +73,15 @@ func (q *MissionQuery) Name(name string) *MissionQuery {
 	return q
 }
 
+func (q *MissionQuery) Tool(tool string) *MissionQuery {
+	if q == nil {
+		return nil
+	}
+
+	q.tool = tool
+	return q
+}
+
 func (q *MissionQuery) Scope(scope string) *MissionQuery {
 	if q == nil {
 		return nil
@@ -110,6 +120,10 @@ func (q *MissionQuery) where() *gorm.DB {
 
 	if q.name != "" {
 		tx = tx.Where("missions.name = ?", q.name)
+	}
+
+	if q.tool != "" {
+		tx = tx.Where("missions.tool = ?", q.tool)
 	}
 
 	if len(q.scope) > 0 && !q.scope.Has("*") {
