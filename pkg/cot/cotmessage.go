@@ -218,6 +218,14 @@ func (m *CotMessage) IsChatReceipt() bool {
 	return m.GetType() == "b-t-f-r" || m.GetType() == "b-t-f-d"
 }
 
+func (m *CotMessage) IsFileTransfer() bool {
+	if m == nil {
+		return false
+	}
+
+	return m.GetType() == "b-f-t-r" || m.GetType() == "b-f-t-a"
+}
+
 func (m *CotMessage) IsPing() bool {
 	return m.GetType() == "t-x-c-t" || m.GetType() == "t-x-c-t-r"
 }
@@ -245,7 +253,7 @@ func (m *CotMessage) IsMapItem() bool {
 		return true
 	}
 
-	if m.IsChat() || m.IsChatReceipt() {
+	if m.IsChat() || m.IsChatReceipt() || m.IsFileTransfer() {
 		return false
 	}
 

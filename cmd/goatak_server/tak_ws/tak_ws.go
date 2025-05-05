@@ -68,6 +68,21 @@ func (w *WsClientHandler) HasUID(uid string) bool {
 	return ok
 }
 
+func (w *WsClientHandler) HasCallsign(callsign string) bool {
+	var found bool
+
+	w.uids.Range(func(_, value any) bool {
+		if value.(string) == callsign {
+			found = true
+			return false
+		}
+
+		return true
+	})
+
+	return found
+}
+
 func (w *WsClientHandler) GetLastSeen() *time.Time {
 	return nil
 }

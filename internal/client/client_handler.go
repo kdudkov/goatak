@@ -41,6 +41,7 @@ type HandlerConfig struct {
 type ClientHandler interface {
 	GetName() string
 	HasUID(uid string) bool
+	HasCallsign(callsign string) bool
 	GetUids() map[string]string
 	GetDevice() *model.Device
 	GetSerial() string
@@ -151,6 +152,21 @@ func (h *ConnClientHandler) HasUID(uid string) bool {
 	return ok
 }
 
+func (h *ConnClientHandler) HasCallsign(callsign string) bool {
+	var found bool
+
+	h.uids.Range(func(_, value any) bool {
+		if value.(string) == callsign {
+			found = true
+			return false
+		}
+
+		return true
+	})
+
+	return found
+}
+
 func (h *ConnClientHandler) IsActive() bool {
 	return atomic.LoadInt32(&h.active) == 1
 }
@@ -200,6 +216,11 @@ func (h *ConnClientHandler) pinger(ctx context.Context) {
 }
 
 func (h *ConnClientHandler) handleRead(ctx context.Context) {
+	defer func() {
+		if r := recover(); r != nil {
+			h.logger.Error("panic:", slog.Any("recovery", r))
+		}
+	}()
 	defer h.Stop()
 
 	er := cot.NewTagReader(h.conn)
@@ -403,6 +424,12 @@ func (h *ConnClientHandler) ForAllUID(fn func(string, string) bool) {
 }
 
 func (h *ConnClientHandler) handleWrite() {
+	defer func() {
+		if r := recover(); r != nil {
+			h.logger.Error("panic:", slog.Any("recovery", r))
+		}
+	}()
+
 	for msg := range h.sendChan {
 		if _, err := h.conn.Write(msg); err != nil {
 			h.logger.Debug(fmt.Sprintf("client %s write error %v", h.addr, err))

@@ -329,7 +329,7 @@ func (app *App) route(msg *cot.CotMessage) bool {
 
 	if dest := msg.GetDetail().GetDestCallsign(); len(dest) > 0 {
 		for _, s := range dest {
-			app.logger.Info(fmt.Sprintf("point %s %s -> callsign %s", msg.GetUID(), msg.GetCallsign(), s))
+			app.logger.Info(fmt.Sprintf("msg %s %s -> callsign %s", msg.GetUID(), msg.GetCallsign(), s))
 			app.sendToCallsign(s, msg)
 		}
 
@@ -387,17 +387,22 @@ func (app *App) sendBroadcast(msg *cot.CotMessage) {
 }
 
 func (app *App) sendToCallsign(callsign string, msg *cot.CotMessage) {
+	var found bool
+
 	app.ForAllClients(func(ch client.ClientHandler) bool {
-		for _, c := range ch.GetUids() {
-			if c == callsign {
-				if err := ch.SendMsg(msg); err != nil {
-					app.logger.Error("send error", slog.Any("error", err))
-				}
+		if ch.HasCallsign(callsign) {
+			found = true
+			if err := ch.SendMsg(msg); err != nil {
+				app.logger.Error("send error", slog.Any("error", err))
 			}
 		}
 
 		return true
 	})
+
+	if !found {
+		app.logger.Warn("callsign " + callsign + " is not found")
+	}
 }
 
 func (app *App) sendToUID(uid string, msg *cot.CotMessage) {

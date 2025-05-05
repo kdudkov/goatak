@@ -189,7 +189,7 @@ func getMissionQueryHandler(app *App) fiber.Handler {
 			return ctx.SendStatus(fiber.StatusNotFound)
 		}
 
-		return ctx.SendString(resourceUrl(c))
+		return ctx.SendString(resourceUrl(ctx.BaseURL(), c))
 	}
 }
 
@@ -216,7 +216,7 @@ func getMissionUploadHandler(app *App) fiber.Handler {
 
 		app.logger.Info(fmt.Sprintf("save packege %s %s %s", c.FileName, c.UID, c.Hash))
 
-		return ctx.SendString(resourceUrl(c))
+		return ctx.SendString(resourceUrl(ctx.BaseURL(), c))
 	}
 }
 
@@ -239,7 +239,7 @@ func getUploadHandler(app *App) fiber.Handler {
 				return ctx.SendStatus(fiber.StatusNotAcceptable)
 			}
 
-			return ctx.SendString(resourceUrl(c))
+			return ctx.SendString(resourceUrl(ctx.BaseURL(), c))
 
 		default:
 			c, err := app.uploadFile(ctx, uid, fname)
@@ -248,7 +248,7 @@ func getUploadHandler(app *App) fiber.Handler {
 				return ctx.SendStatus(fiber.StatusNotAcceptable)
 			}
 
-			return ctx.SendString(resourceUrl(c))
+			return ctx.SendString(resourceUrl(ctx.BaseURL(), c))
 		}
 	}
 }
@@ -614,8 +614,8 @@ func getXmlHandler(app *App) fiber.Handler {
 	}
 }
 
-func resourceUrl(c *model.Resource) string {
-	return fmt.Sprintf("/Marti/sync/content?hash=%s", c.Hash)
+func resourceUrl(root string, c *model.Resource) string {
+	return fmt.Sprintf("%s/Marti/sync/content?hash=%s", root, c.Hash)
 }
 
 func makeAnswer(typ string, data any) map[string]any {
