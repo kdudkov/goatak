@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e
 
 . "$(dirname "$(realpath "${BASH_SOURCE[0]}")")/params.sh"
 

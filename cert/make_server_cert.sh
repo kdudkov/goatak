@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e
 
 . "$(dirname "$(realpath "${BASH_SOURCE[0]}")")/params.sh"
 
@@ -47,5 +48,4 @@ openssl x509 -req -in ${CERT_NAME}.csr -CA ${CA_NAME}.pem -CAkey ${CA_NAME}.key 
 
 rm ext.cfg ${CERT_NAME}.csr
 
-rm ${CERT_NAME}-chain.pem
-cp ${CERT_NAME}.pem ${CA_NAME}.pem >> ${CERT_NAME}-chain.pem
+cat ${CERT_NAME}.pem ${CA_NAME}.pem > ${CERT_NAME}-chain.pem
