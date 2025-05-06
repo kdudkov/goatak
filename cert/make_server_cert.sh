@@ -49,3 +49,8 @@ openssl x509 -req -in ${CERT_NAME}.csr -CA ${CA_NAME}.pem -CAkey ${CA_NAME}.key 
 rm ext.cfg ${CERT_NAME}.csr
 
 cat ${CERT_NAME}.pem ${CA_NAME}.pem > ${CERT_NAME}-chain.pem
+
+p12name=truststore-srv.p12
+
+[[ -e ${p12name} ]] && rm ${p12name}
+openssl pkcs12 -export -nokeys -name ca -in ${CERT_NAME}-chain.pem -out ${p12name} -passout pass:${PASS}
