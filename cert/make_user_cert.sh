@@ -8,7 +8,7 @@ if [[ -z "$user" ]]; then
   echo "usage: $0 username"
   exit 1
 fi
-if [[ ! -e ca.key ]]; then
+if [[ ! -e ${CA_NAME}.key ]]; then
 	echo "No ca cert found!"
 	exit 1
 fi
@@ -22,11 +22,11 @@ EOT
 # make client cert
 openssl req -sha256 -nodes -newkey rsa:2048 -out ${user}.csr -keyout ${user}.key \
  -subj "/O=${user}/CN=${user}"
-openssl x509 -req -in ${user}.csr -CA ca.pem -CAkey ca.key -CAcreateserial -out ${user}.pem \
+openssl x509 -req -in ${user}.csr -CA ${CA_NAME}.pem -CAkey ${CA_NAME}.key -CAcreateserial -out ${user}.pem \
   -days 1024 -extfile ext.cfg
 
 # make client .p12
-openssl pkcs12 -export -name client-cert -in ${user}.pem -inkey ${user}.key -out ${user}.p12 -CAfile ca.pem \
+openssl pkcs12 -export -name client-cert -in ${user}.pem -inkey ${user}.key -out ${user}.p12 -CAfile ${CA_NAME}.pem \
   -passin pass:${PASS} -passout pass:${PASS}
 
 rm ${user}.csr ${user}.key ${user}.pem ext.cfg
