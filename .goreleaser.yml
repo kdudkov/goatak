@@ -64,7 +64,6 @@ archives:
     name_template: 'server_{{ .Version }}_{{ .Os }}_{{ .Arch }}{{ .Arm }}'
     files:
       - goatak_server.yml
-      - users.yml
       - cert/*
       - data/*
   - id: client

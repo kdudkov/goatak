@@ -16,6 +16,3 @@ services:
     volumes:
       - ./cert:/app/cert/files
       - ./data:/app/data
-      - type: bind
-        source: ./users.yml
-        target: /app/users.yml
