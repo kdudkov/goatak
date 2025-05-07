@@ -1,11 +1,14 @@
 package main
 
 import (
+	"crypto/hmac"
+	"crypto/sha512"
 	"embed"
 	"fmt"
 	"log/slog"
 	"time"
 
+	"github.com/kdudkov/goatak/internal/repository"
 	"github.com/kdudkov/goatak/pkg/model"
 )
 
@@ -28,25 +31,37 @@ type Listener interface {
 }
 
 type HttpServer struct {
-	log       *slog.Logger
-	listeners map[string]Listener
+	log         *slog.Logger
+	listeners   map[string]Listener
+	userManager repository.AuthRepository
+	tokenKey    []byte
+	tokenMaxAge time.Duration
+	loginUrl    string
+	noAuth      []string
 }
 
 func NewHttp(app *App) *HttpServer {
+	mac := hmac.New(sha512.New, []byte(randomString(25)))
+
 	srv := &HttpServer{
-		log:       app.logger.With("logger", "http"),
-		listeners: make(map[string]Listener),
+		log:         app.logger.With("logger", "http"),
+		listeners:   make(map[string]Listener),
+		userManager: app.users,
+		tokenKey:    mac.Sum(nil),
+		tokenMaxAge: time.Hour * 48,
+		loginUrl:    "/login",
+		noAuth:      nil,
 	}
 
 	if addr := app.config.String("admin_addr"); addr != "" {
-		srv.listeners["admin api calls"] = NewAdminAPI(app, addr, app.config.String("webtak_root"))
+		srv.NewAdminAPI(app, addr, app.config.String("webtak_root"))
 	}
 
 	if addr := app.config.String("cert_addr"); addr != "" {
-		srv.listeners["cert api calls"] = NewCertAPI(app, addr)
+		srv.NewCertAPI(app, addr)
 	}
 
-	srv.listeners["marti api calls"] = NewMartiApi(app, app.config.String("api_addr"))
+	srv.NewMartiApi(app, app.config.String("api_addr"))
 
 	return srv
 }

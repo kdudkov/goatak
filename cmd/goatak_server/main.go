@@ -44,8 +44,7 @@ type App struct {
 	messages []*model.ChatMessage
 	feeds    repository.FeedsRepository
 	dbm      *database.DatabaseManager
-
-	users repository.UserRepository
+	users    repository.DeviceRepository
 
 	uid             string
 	ch              chan *cot.CotMessage

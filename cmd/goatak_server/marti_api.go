@@ -36,7 +36,7 @@ type MartiAPI struct {
 	certPool *x509.CertPool
 }
 
-func NewMartiApi(app *App, addr string) *MartiAPI {
+func (h *HttpServer) NewMartiApi(app *App, addr string) *MartiAPI {
 	api := &MartiAPI{
 		f: fiber.New(fiber.Config{
 			EnablePrintRoutes:     false,
@@ -45,6 +45,8 @@ func NewMartiApi(app *App, addr string) *MartiAPI {
 			StreamRequestBody:     true}),
 		addr: addr,
 	}
+
+	h.listeners["marti api calls"] = api
 
 	api.f.Use(NewMetricHandler("marti_api"))
 	api.f.Use(log.NewFiberLogger(&log.LoggerConfig{Name: "marti_api", UserGetter: Username}))

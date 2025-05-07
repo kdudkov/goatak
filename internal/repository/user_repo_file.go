@@ -13,9 +13,9 @@ import (
 	"github.com/kdudkov/goatak/pkg/model"
 )
 
-var _ UserRepository = &UserFileRepository{}
+var _ AuthRepository = &AdminMemRepository{}
 
-type UserFileRepository struct {
+type AdminMemRepository struct {
 	userFile string
 	logger   *slog.Logger
 	users    map[string]*model.Device
@@ -25,12 +25,11 @@ type UserFileRepository struct {
 	mx sync.RWMutex
 }
 
-func NewFileUserRepo(userFile string) *UserFileRepository {
-	um := &UserFileRepository{
-		logger:   slog.Default().With("logger", "UserManager"),
-		userFile: userFile,
-		users:    make(map[string]*model.Device),
-		mx:       sync.RWMutex{},
+func NewAdminMemRepo() *AdminMemRepository {
+	um := &AdminMemRepository{
+		logger: slog.Default().With("logger", "AdmManager"),
+		users:  make(map[string]*model.Device),
+		mx:     sync.RWMutex{},
 	}
 
 	if err := um.loadUsersFile(); err != nil {
@@ -51,7 +50,7 @@ func NewFileUserRepo(userFile string) *UserFileRepository {
 	return um
 }
 
-func (r *UserFileRepository) loadUsersFile() error {
+func (r *AdminMemRepository) loadUsersFile() error {
 	r.mx.Lock()
 	defer r.mx.Unlock()
 
@@ -87,7 +86,7 @@ func (r *UserFileRepository) loadUsersFile() error {
 	return nil
 }
 
-func (r *UserFileRepository) Start() error {
+func (r *AdminMemRepository) Start() error {
 	var err error
 	r.watcher, err = fsnotify.NewWatcher()
 
@@ -129,13 +128,13 @@ func (r *UserFileRepository) Start() error {
 	return nil
 }
 
-func (r *UserFileRepository) Stop() {
+func (r *AdminMemRepository) Stop() {
 	if r.watcher != nil {
 		_ = r.watcher.Close()
 	}
 }
 
-func (r *UserFileRepository) CheckAuth(username, password string) bool {
+func (r *AdminMemRepository) CheckAuth(username, password string) bool {
 	r.mx.RLock()
 	defer r.mx.RUnlock()
 
@@ -146,7 +145,7 @@ func (r *UserFileRepository) CheckAuth(username, password string) bool {
 	return false
 }
 
-func (r *UserFileRepository) IsValid(username, sn string) bool {
+func (r *AdminMemRepository) IsValid(username, sn string) bool {
 	r.mx.RLock()
 	defer r.mx.RUnlock()
 	if u, ok := r.users[username]; ok {
@@ -156,17 +155,17 @@ func (r *UserFileRepository) IsValid(username, sn string) bool {
 	return false
 }
 
-func (r *UserFileRepository) Get(username string) *model.Device {
+func (r *AdminMemRepository) Get(username string) *model.Device {
 	r.mx.RLock()
 	defer r.mx.RUnlock()
 
 	return r.users[username]
 }
 
-func (r *UserFileRepository) SaveSignInfo(username string, uid, sn string, till time.Time) {
+func (r *AdminMemRepository) SaveSignInfo(username string, uid, sn string, till time.Time) {
 	// no-op
 }
 
-func (r *UserFileRepository) SaveConnectInfo(username string, uid, sn string) {
+func (r *AdminMemRepository) SaveConnectInfo(username string, uid, sn string) {
 	// no-op
 }

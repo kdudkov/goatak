@@ -125,7 +125,12 @@ func (u *Device) SetPassword(password string) error {
 	}
 
 	u.Password = string(b)
+
 	return nil
+}
+
+func (u *Device) CanLogIn() bool {
+	return u.Scope == "admin"
 }
 
 func (u *Device) DTO() *DeviceDTO {

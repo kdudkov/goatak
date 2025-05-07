@@ -69,7 +69,7 @@ func getMissionsHandler(app *App) fiber.Handler {
 			dto := model.ToMissionDTO(m, false)
 
 			if m.Scope != user.Scope {
-				dto.Name += fmt.Sprintf(" [%s]", m.Scope)
+				dto.Description += fmt.Sprintf(" [%s]", m.Scope)
 			}
 
 			result[i] = dto

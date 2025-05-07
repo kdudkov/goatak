@@ -10,6 +10,7 @@ require (
 	github.com/gofiber/contrib/websocket v1.3.4
 	github.com/gofiber/fiber/v2 v2.52.6
 	github.com/gofiber/template/html/v2 v2.1.3
+	github.com/golang-jwt/jwt/v5 v5.2.2
 	github.com/google/uuid v1.6.0
 	github.com/jroimartin/gocui v0.5.0
 	github.com/kdudkov/goutils v0.0.0-20240819112558-460e48aa75d7

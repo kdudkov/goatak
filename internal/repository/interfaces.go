@@ -9,7 +9,15 @@ import (
 	internal "github.com/kdudkov/goatak/pkg/model"
 )
 
-type UserRepository interface {
+type AuthRepository interface {
+	Start() error
+	Stop()
+	CheckAuth(username, password string) bool
+	IsValid(username, sn string) bool
+	Get(username string) *internal.Device
+}
+
+type DeviceRepository interface {
 	Start() error
 	Stop()
 	CheckAuth(username, password string) bool

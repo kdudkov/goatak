@@ -34,8 +34,9 @@ type AdminAPI struct {
 	addr string
 }
 
-func NewAdminAPI(app *App, addr string, webtakRoot string) *AdminAPI {
+func (h *HttpServer) NewAdminAPI(app *App, addr string, webtakRoot string) *AdminAPI {
 	api := &AdminAPI{addr: addr}
+	h.listeners["admin api calls"] = api
 
 	engine := html.NewFileSystem(http.FS(templates), ".html")
 
@@ -44,8 +45,13 @@ func NewAdminAPI(app *App, addr string, webtakRoot string) *AdminAPI {
 	api.f = fiber.New(fiber.Config{EnablePrintRoutes: false, DisableStartupMessage: true, Views: engine})
 
 	api.f.Use(log.NewFiberLogger(&log.LoggerConfig{Name: "admin_api", Level: slog.LevelDebug}))
+	api.f.Use(h.CookieAuth)
 
 	staticfiles.Embed(api.f)
+
+	api.f.Get("/login", h.getAdminLoginHandler())
+	api.f.Post("/login", h.getAdminLoginHandler())
+	api.f.Get("/logout", getLogoutHandler())
 
 	api.f.Get("/", getIndexHandler())
 	api.f.Get("/units", getUnitsHandler())
@@ -98,6 +104,41 @@ func (api *AdminAPI) Address() string {
 
 func (api *AdminAPI) Listen() error {
 	return api.f.Listen(api.addr)
+}
+
+func (h *HttpServer) getAdminLoginHandler() func(c *fiber.Ctx) error {
+	return func(c *fiber.Ctx) error {
+		login := c.FormValue("login")
+		var errText string
+
+		if login != "" {
+			if user := h.userManager.Get(login); user != nil {
+				if user.CheckPassword(c.FormValue("password")) && !user.Disabled && user.CanLogIn() {
+					token, err := generateToken(login, h.tokenKey, h.tokenMaxAge)
+
+					if err != nil {
+						return c.Status(fiber.StatusInternalServerError).SendString(err.Error())
+					}
+
+					c.Cookie(&fiber.Cookie{Name: cookieName, Value: token, Secure: false, HTTPOnly: true, Expires: time.Now().Add(h.tokenMaxAge)})
+
+					return c.Redirect("/")
+				}
+			}
+
+			h.log.Warn("invalid login", "user", login)
+			errText = "неправильный пароль"
+		}
+
+		return c.Render("templates/login", fiber.Map{"login": login, "error": errText})
+	}
+}
+
+func getLogoutHandler() func(c *fiber.Ctx) error {
+	return func(c *fiber.Ctx) error {
+		c.ClearCookie(cookieName)
+		return c.Redirect("/")
+	}
 }
 
 func getIndexHandler() fiber.Handler {
@@ -554,14 +595,14 @@ func getWsHandler(app *App) fiber.Handler {
 	})
 }
 
-// handler for WebTAK client - sends/receives protobuf COTs
+// handler for WebTAK client - sends/receives protobuf COTs.
 func getTakWsHandler(app *App) fiber.Handler {
 	return websocket.New(func(ws *websocket.Conn) {
 		defer ws.Close()
 
 		app.logger.Info("WS connection from " + ws.RemoteAddr().String())
 		name := "ws:" + ws.RemoteAddr().String()
-		w := tak_ws.New(name, nil, ws, app.NewCotMessage)
+		w := tak_ws.New(name, User(ws), ws, app.NewCotMessage)
 
 		app.AddClientHandler(w)
 		w.Listen()

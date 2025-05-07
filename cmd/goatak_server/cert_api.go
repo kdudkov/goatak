@@ -33,16 +33,18 @@ type CertAPI struct {
 	cert tls.Certificate
 }
 
-func NewCertAPI(app *App, addr string) *CertAPI {
+func (h *HttpServer) NewCertAPI(app *App, addr string) *CertAPI {
 	api := &CertAPI{
 		f:    fiber.New(fiber.Config{EnablePrintRoutes: false, DisableStartupMessage: true}),
 		addr: addr,
 	}
 
+	h.listeners["cert api calls"] = api
+
 	api.f.Use(NewMetricHandler("cert_api"))
 	api.f.Use(log.NewFiberLogger(&log.LoggerConfig{Name: "cert_api", UserGetter: Username}))
 
-	api.f.Use(UserAuthHandler(app.users))
+	api.f.Use(h.DeviceAuthHandler())
 
 	if app.config.EnrollSSL() {
 		api.tls = true

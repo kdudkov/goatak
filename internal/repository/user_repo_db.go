@@ -12,7 +12,7 @@ import (
 	"github.com/kdudkov/goatak/pkg/model"
 )
 
-var _ UserRepository = &UserDbRepository{}
+var _ DeviceRepository = &UserDbRepository{}
 
 type UserDbRepository struct {
 	logger   *slog.Logger
@@ -39,8 +39,26 @@ func (u UserDbRepository) loadUser(username string) *model.Device {
 
 func (u UserDbRepository) Start() error {
 	if u.dbm.DeviceQuery().Count() == 0 {
+		u.logger.Info("load devices from file")
 		if err := u.loadUsersFile(); err != nil {
 			return err
+		}
+
+		if u.dbm.DeviceQuery().Count() == 0 {
+			u.logger.Info("create default test & admin")
+			d := &model.Device{Login: "test", Scope: "test"}
+			_ = d.SetPassword("111111")
+
+			if err := u.dbm.Create(d); err != nil {
+				return err
+			}
+
+			d = &model.Device{Login: "admin", Scope: "admin"}
+			_ = d.SetPassword("admin")
+
+			if err := u.dbm.Create(d); err != nil {
+				return err
+			}
 		}
 	}
 
