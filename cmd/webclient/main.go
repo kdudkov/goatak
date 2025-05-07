@@ -78,34 +78,11 @@ type App struct {
 
 func NewApp(uid string, callsign string, connectStr string, webPort int) *App {
 	logger := slog.Default()
-	parts := strings.Split(connectStr, ":")
 
-	if len(parts) != 3 {
-		logger.Error("invalid connect string: " + connectStr)
-
-		return nil
-	}
-
-	var tlsConn bool
-
-	switch parts[2] {
-	case "tcp":
-		tlsConn = false
-	case "ssl":
-		tlsConn = true
-	default:
-		logger.Error("invalid connect string " + connectStr)
-
-		return nil
-	}
-
-	return &App{
+	app := &App{
 		logger:          logger,
 		callsign:        callsign,
 		uid:             uid,
-		host:            parts[0],
-		tcpPort:         parts[1],
-		tls:             tlsConn,
 		webPort:         webPort,
 		items:           repository.NewItemsMemoryRepo(time.Minute * 5),
 		dialTimeout:     time.Second * 5,
@@ -114,6 +91,30 @@ func NewApp(uid string, callsign string, connectStr string, webPort int) *App {
 		eventProcessors: make([]*EventProcessor, 0),
 		pos:             atomic.Pointer[model.Pos]{},
 	}
+
+	if connectStr != "" {
+		parts := strings.Split(connectStr, ":")
+
+		if len(parts) != 3 {
+			logger.Error("invalid connect string: " + connectStr)
+
+			return nil
+		}
+
+		app.host = parts[0]
+		app.tcpPort = parts[1]
+
+		switch parts[2] {
+		case "tcp":
+			app.tls = false
+		case "ssl":
+			app.tls = true
+		default:
+			panic("invalid connect string " + connectStr)
+		}
+	}
+
+	return app
 }
 
 func (app *App) Init() {
@@ -327,7 +328,6 @@ func main() {
 
 	k := koanf.New(".")
 
-	k.Set("server_address", "204.48.30.216:8087:tcp")
 	k.Set("web_port", 8080)
 	k.Set("me.callsign", RandString(10))
 	k.Set("me.lat", 0.0)
