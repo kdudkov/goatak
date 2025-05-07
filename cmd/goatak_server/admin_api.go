@@ -114,7 +114,9 @@ func (h *HttpServer) getAdminLoginHandler() func(c *fiber.Ctx) error {
 						return c.Status(fiber.StatusInternalServerError).SendString(err.Error())
 					}
 
-					c.Cookie(&fiber.Cookie{Name: cookieName, Value: token, Secure: false, HTTPOnly: true, Expires: time.Now().Add(h.tokenMaxAge)})
+					cookie := &fiber.Cookie{Name: cookieName,
+						Value: token, Secure: false, HTTPOnly: true, Expires: time.Now().Add(h.tokenMaxAge)}
+					c.Cookie(cookie)
 
 					return c.Redirect("/")
 				}
