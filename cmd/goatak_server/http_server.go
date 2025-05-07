@@ -61,7 +61,7 @@ func NewHttp(app *App) *HttpServer {
 	}
 
 	srv.NewMartiAPI(app, app.config.String("api_addr"))
-	srv.NewLocalAPI(app.config.String("local_addr"))
+	srv.NewLocalAPI(app, app.config.String("local_addr"))
 
 	return srv
 }

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"encoding/xml"
 	"io"
 	"log/slog"
@@ -296,22 +295,6 @@ func getApiConnHandler(app *App) fiber.Handler {
 		})
 
 		return ctx.JSON(conn)
-	}
-}
-
-func getCotPostHandler(app *App) fiber.Handler {
-	return func(ctx *fiber.Ctx) error {
-		c := new(cot.CotMessage)
-
-		if err := json.Unmarshal(ctx.Body(), c); err != nil {
-			app.logger.Error("cot decode error", slog.Any("error", err))
-
-			return err
-		}
-
-		app.NewCotMessage(c)
-
-		return nil
 	}
 }
 

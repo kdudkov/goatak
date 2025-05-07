@@ -1,6 +1,8 @@
 package main
 
 import (
+	"encoding/json"
+	"log/slog"
 	"net/http"
 	"runtime/pprof"
 
@@ -9,6 +11,8 @@ import (
 	"github.com/gofiber/template/html/v2"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+
+	"github.com/kdudkov/goatak/pkg/cot"
 )
 
 type LocalAPI struct {
@@ -24,7 +28,7 @@ func (api *LocalAPI) Listen() error {
 	return api.f.Listen(api.addr)
 }
 
-func (h *HttpServer) NewLocalAPI(addr string) *LocalAPI {
+func (h *HttpServer) NewLocalAPI(app *App, addr string) *LocalAPI {
 	api := &LocalAPI{addr: addr}
 	h.listeners["local api calls"] = api
 
@@ -34,10 +38,27 @@ func (h *HttpServer) NewLocalAPI(addr string) *LocalAPI {
 
 	api.f = fiber.New(fiber.Config{EnablePrintRoutes: false, DisableStartupMessage: true, Views: engine})
 
+	api.f.Post("/cot", getCotPostHandler(app))
 	api.f.Get("/stack", getStackHandler())
 	api.f.Get("/metrics", getMetricsHandler())
 
 	return api
+}
+
+func getCotPostHandler(app *App) fiber.Handler {
+	return func(ctx *fiber.Ctx) error {
+		c := new(cot.CotMessage)
+
+		if err := json.Unmarshal(ctx.Body(), c); err != nil {
+			app.logger.Error("cot decode error", slog.Any("error", err))
+
+			return err
+		}
+
+		app.NewCotMessage(c)
+
+		return nil
+	}
 }
 
 func getStackHandler() fiber.Handler {
