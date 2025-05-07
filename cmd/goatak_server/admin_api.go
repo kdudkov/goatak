@@ -31,7 +31,8 @@ type AdminAPI struct {
 }
 
 func (h *HttpServer) NewAdminAPI(app *App, addr string, webtakRoot string) *AdminAPI {
-	api := &AdminAPI{addr: addr}
+	api := new(AdminAPI)
+	api.addr = addr
 	h.listeners["admin api calls"] = api
 
 	engine := html.NewFileSystem(http.FS(templates), ".html")
