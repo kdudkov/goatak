@@ -1,3 +1,0 @@
-kind: Changed
-body: client now can work standalone if no connect string in config
-time: 2025-05-07T19:02:55.284055+03:00

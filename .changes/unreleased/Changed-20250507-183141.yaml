@@ -1,3 +1,0 @@
-kind: Changed
-body: local endpoint for prometheus metrics (local_addr in config)
-time: 2025-05-07T18:31:41.141731+03:00

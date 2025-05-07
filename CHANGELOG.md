@@ -1,5 +1,23 @@
 # GoATAK changelog
 
+## v0.21.0: 2025-05-07
+### Added
+* Now user can see DPs in read_scope scopes
+* MySQL support
+* Admin device management page
+* docker image auto certs generation
+* admin api auth
+* no more users.yml, now all information is stored in database
+### Changed
+* local endpoint for prometheus metrics (local_addr in config)
+* client now can work standalone if no connect string in config
+### Fixed
+* corrupted DataPackage XML
+* WinTak certs problem with marti api
+* DataPackage url
+* certs generation scripts
+* correct scope for WebTak ws handler
+
 ## v0.20.0: 2025-04-11
 ### Added
 * Points page in admin interface
@@ -12,7 +30,7 @@
 * `datasync` option in config
 ### Fixed
 * disable colored logs pn windows
-* MissioChange for resources
+* MissionChange for resources
 * dp file upload
 
 ## v0.19.1: 2024-10-24
