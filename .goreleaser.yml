@@ -17,20 +17,6 @@ builds:
     ignore:
       - goos: windows
         goarch: arm64
-
-  - id: ctl
-    main: ./cmd/userctl
-    binary: userctl
-    mod_timestamp: '{{ .CommitTimestamp }}'
-    flags:
-      - -trimpath
-    ldflags:
-      - '-s -w -X main.gitRevision={{.Version}} -X main.gitBranch={{.Branch}}'
-    goos: [ windows, linux, darwin ]
-    goarch: [ amd64, arm64 ]
-    ignore:
-      - goos: windows
-        goarch: arm64
   - id: takreplay
     main: ./cmd/takreplay
     binary: takreplay
@@ -59,7 +45,7 @@ builds:
         goarch: arm64
 archives:
   - id: server
-    builds: [ server, ctl, takreplay ]
+    builds: [ server, takreplay ]
     format: zip
     name_template: 'server_{{ .Version }}_{{ .Os }}_{{ .Arch }}{{ .Arm }}'
     files:
