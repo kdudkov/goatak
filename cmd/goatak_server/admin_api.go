@@ -6,7 +6,6 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
-	"runtime/pprof"
 	"sort"
 	"strconv"
 	"strings"
@@ -14,11 +13,8 @@ import (
 
 	"github.com/gofiber/contrib/websocket"
 	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/middleware/adaptor"
 	"github.com/gofiber/template/html/v2"
 	"github.com/google/uuid"
-	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	"github.com/kdudkov/goatak/cmd/goatak_server/tak_ws"
 	"github.com/kdudkov/goatak/internal/client"
@@ -91,9 +87,6 @@ func (h *HttpServer) NewAdminAPI(app *App, addr string, webtakRoot string) *Admi
 
 		addMartiRoutes(app, api.f)
 	}
-
-	api.f.Get("/stack", getStackHandler())
-	api.f.Get("/metrics", getMetricsHandler())
 
 	return api
 }
@@ -248,18 +241,6 @@ func getMessagesHandler(app *App) fiber.Handler {
 	return func(ctx *fiber.Ctx) error {
 		return ctx.JSON(app.messages)
 	}
-}
-
-func getStackHandler() fiber.Handler {
-	return func(ctx *fiber.Ctx) error {
-		return pprof.Lookup("goroutine").WriteTo(ctx.Response().BodyWriter(), 1)
-	}
-}
-
-func getMetricsHandler() fiber.Handler {
-	handler := promhttp.HandlerFor(prometheus.DefaultGatherer, promhttp.HandlerOpts{})
-
-	return adaptor.HTTPHandler(handler)
 }
 
 func getApiUnitTrackHandler(app *App) fiber.Handler {

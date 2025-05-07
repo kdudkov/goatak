@@ -185,6 +185,7 @@ func setDefaults(k *koanf.Koanf) {
 	k.Set("tcp_addr", ":8999")
 	k.Set("tls_addr", ":8089")
 	k.Set("api_addr", ":8080")
+	k.Set("local_addr", "localhost:8888")
 	k.Set("data_dir", "data")
 
 	k.Set("db", "db.sqlite")

@@ -36,7 +36,7 @@ type MartiAPI struct {
 	certPool *x509.CertPool
 }
 
-func (h *HttpServer) NewMartiApi(app *App, addr string) *MartiAPI {
+func (h *HttpServer) NewMartiAPI(app *App, addr string) *MartiAPI {
 	api := &MartiAPI{
 		f: fiber.New(fiber.Config{
 			EnablePrintRoutes:     false,

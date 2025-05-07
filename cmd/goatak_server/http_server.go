@@ -61,7 +61,8 @@ func NewHttp(app *App) *HttpServer {
 		srv.NewCertAPI(app, addr)
 	}
 
-	srv.NewMartiApi(app, app.config.String("api_addr"))
+	srv.NewMartiAPI(app, app.config.String("api_addr"))
+	srv.NewLocalAPI(app.config.String("local_addr"))
 
 	return srv
 }
