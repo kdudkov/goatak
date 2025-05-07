@@ -18,7 +18,6 @@ var templates embed.FS
 type Connection struct {
 	Addr     string            `json:"addr"`
 	User     string            `json:"user"`
-	Ssl      bool              `json:"ssl"`
 	Ver      int32             `json:"ver"`
 	Scope    string            `json:"scope"`
 	Uids     map[string]string `json:"uids"`

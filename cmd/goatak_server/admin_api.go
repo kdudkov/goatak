@@ -40,7 +40,7 @@ func (h *HttpServer) NewAdminAPI(app *App, addr string, webtakRoot string) *Admi
 
 	api.f = fiber.New(fiber.Config{EnablePrintRoutes: false, DisableStartupMessage: true, Views: engine})
 
-	api.f.Use(log.NewFiberLogger(&log.LoggerConfig{Name: "admin_api", Level: slog.LevelDebug}))
+	api.f.Use(log.NewFiberLogger(&log.LoggerConfig{Name: "admin_api", Level: slog.LevelDebug, UserGetter: Username}))
 	api.f.Use(h.CookieAuth)
 
 	staticfiles.Embed(api.f)
@@ -71,7 +71,7 @@ func (h *HttpServer) NewAdminAPI(app *App, addr string, webtakRoot string) *Admi
 	api.f.Post("/cot_xml", getCotXMLPostHandler(app))
 
 	api.f.Get("/api/file", getApiFilesHandler(app))
-	api.f.Get("/api/file/:id", GetApiFileHandler(app))
+	api.f.Get("/api/file/:id", getApiFileHandler(app))
 	api.f.Get("/api/file/delete/:id", getApiFileDeleteHandler(app))
 	api.f.Get("/api/point", getApiPointsHandler(app))
 	api.f.Get("/api/device", getApiDevicesHandler(app))
@@ -101,8 +101,8 @@ func (api *AdminAPI) Listen() error {
 
 func (h *HttpServer) getAdminLoginHandler() func(c *fiber.Ctx) error {
 	return func(c *fiber.Ctx) error {
-		login := c.FormValue("login")
 		var errText string
+		login := c.FormValue("login")
 
 		if login != "" {
 			if user := h.userManager.Get(login); user != nil {
@@ -130,6 +130,7 @@ func (h *HttpServer) getAdminLoginHandler() func(c *fiber.Ctx) error {
 func getLogoutHandler() func(c *fiber.Ctx) error {
 	return func(c *fiber.Ctx) error {
 		c.ClearCookie(cookieName)
+
 		return c.Redirect("/")
 	}
 }
@@ -313,10 +314,7 @@ func getCotPostHandler(app *App) fiber.Handler {
 
 func getCotXMLPostHandler(app *App) fiber.Handler {
 	return func(ctx *fiber.Ctx) error {
-		scope := ctx.Query("scope")
-		if scope == "" {
-			scope = "test"
-		}
+		scope := ctx.Query("scope", "test")
 
 		ev := new(cot.Event)
 
@@ -383,7 +381,7 @@ func getApiFilesHandler(app *App) fiber.Handler {
 	}
 }
 
-func GetApiFileHandler(app *App) fiber.Handler {
+func getApiFileHandler(app *App) fiber.Handler {
 	return func(ctx *fiber.Ctx) error {
 		id, err := ctx.ParamsInt("id")
 
