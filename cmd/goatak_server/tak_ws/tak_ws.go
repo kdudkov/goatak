@@ -30,6 +30,19 @@ type WsClientHandler struct {
 	messageCb MessageCb
 }
 
+func New(name string, user *model.Device, ws *websocket.Conn, mc MessageCb) *WsClientHandler {
+	return &WsClientHandler{
+		log:       slog.Default().With("logger", "tak_ws", "name", name, "user", user.GetLogin()),
+		name:      name,
+		user:      user,
+		ws:        ws,
+		uids:      sync.Map{},
+		ch:        make(chan []byte, 10),
+		active:    1,
+		messageCb: mc,
+	}
+}
+
 func (w *WsClientHandler) GetName() string {
 	return w.name
 }
@@ -42,12 +55,8 @@ func (w *WsClientHandler) GetSerial() string {
 	return ""
 }
 
-func (w *WsClientHandler) CanSeeScope(scope string) bool {
-	return true
-}
-
 func (w *WsClientHandler) GetVersion() int32 {
-	return 0
+	return 1
 }
 
 func (w *WsClientHandler) GetUids() map[string]string {
@@ -87,21 +96,12 @@ func (w *WsClientHandler) GetLastSeen() *time.Time {
 	return nil
 }
 
-func New(name string, user *model.Device, ws *websocket.Conn, mc MessageCb) *WsClientHandler {
-	return &WsClientHandler{
-		log:       slog.Default().With("logger", "tak_ws", "name", name, "user", user),
-		name:      name,
-		user:      user,
-		ws:        ws,
-		uids:      sync.Map{},
-		ch:        make(chan []byte, 10),
-		active:    1,
-		messageCb: mc,
-	}
-}
-
 func (w *WsClientHandler) SendMsg(msg *cot.CotMessage) error {
-	return w.SendCot(msg.GetTakMessage())
+	if msg.IsLocal() || w.user.CanSeeScope(msg.Scope) {
+		return w.SendCot(msg.GetTakMessage())
+	}
+
+	return nil
 }
 
 func (w *WsClientHandler) SendCot(msg *cotproto.TakMessage) error {
@@ -148,10 +148,12 @@ func (w *WsClientHandler) reader() {
 	defer w.Stop()
 
 	for {
+		_ = w.ws.SetReadDeadline(time.Now().Add(time.Minute))
 		mt, b, err := w.ws.ReadMessage()
 
 		if err != nil {
 			w.log.Error("read error", slog.Any("error", err))
+
 			return
 		}
 

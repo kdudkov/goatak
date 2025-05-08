@@ -48,7 +48,6 @@ type ClientHandler interface {
 	GetVersion() int32
 	SendMsg(msg *cot.CotMessage) error
 	GetLastSeen() *time.Time
-	CanSeeScope(scope string) bool
 	Stop()
 }
 
@@ -120,10 +119,6 @@ func NewConnClientHandler(name string, conn net.Conn, config *HandlerConfig) *Co
 
 func (h *ConnClientHandler) GetName() string {
 	return h.addr
-}
-
-func (h *ConnClientHandler) CanSeeScope(scope string) bool {
-	return h.device.CanSeeScope(scope)
 }
 
 func (h *ConnClientHandler) GetDevice() *model.Device {
@@ -507,7 +502,7 @@ func (h *ConnClientHandler) sendEvent(evt *cot.Event) error {
 }
 
 func (h *ConnClientHandler) SendMsg(msg *cot.CotMessage) error {
-	if msg.IsLocal() || h.CanSeeScope(msg.Scope) {
+	if msg.IsLocal() || h.device.CanSeeScope(msg.Scope) {
 		return h.SendCot(msg.GetTakMessage())
 	}
 

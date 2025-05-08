@@ -144,7 +144,12 @@ const app = Vue.createApp({
             let vm = this;
 
             fetch('/api/unit')
-                .then(resp => resp.json())
+                .then(resp => {
+                    if (resp.ok) {
+                        return resp.json();
+                    }
+                    window.location.reload();
+                })
                 .then(vm.processUnits);
         },
 
@@ -152,7 +157,12 @@ const app = Vue.createApp({
             let vm = this;
 
             fetch('/api/message')
-                .then(resp => resp.json())
+                .then(resp => {
+                    if (resp.ok) {
+                        return resp.json();
+                    }
+                    window.location.reload();
+                })
                 .then(d => vm.messages = d);
         },
 

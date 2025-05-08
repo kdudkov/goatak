@@ -16,7 +16,12 @@ const app = Vue.createApp({
             let vm = this;
 
             fetch('/api/mission')
-                .then(resp => resp.json())
+                .then(resp => {
+                    if (resp.ok) {
+                        return resp.json();
+                    }
+                    window.location.reload();
+                })
                 .then(data => {
                     vm.missions = data;
                     vm.ts += 1;

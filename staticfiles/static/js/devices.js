@@ -19,7 +19,12 @@ const app = Vue.createApp({
             let vm = this;
 
             fetch('/api/device')
-                .then(resp => resp.json())
+                .then(resp => {
+                    if (resp.ok) {
+                        return resp.json();
+                    }
+                    window.location.reload();
+                })
                 .then(data => {
                     vm.devices = data.sort((a, b) => a.scope.localeCompare(b.scope) || a.login.toLowerCase().localeCompare(b.login.toLowerCase()));
                     vm.ts += 1;
