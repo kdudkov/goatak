@@ -24,7 +24,7 @@ import (
 )
 
 const (
-	nodeID     = "1"
+	nodeID     = "main"
 	apiVersion = "3"
 )
 
@@ -85,6 +85,8 @@ func addMartiRoutes(app *App, f fiber.Router) {
 
 	f.Get("/Marti/api/groups/all", getAllGroupsHandler(app))
 	f.Get("/Marti/api/groups/groupCacheEnabled", getAllGroupsCacheHandler(app))
+
+	f.Get("/Marti/api/cops/hierarchy", getCopHierarchyHandler(app))
 
 	f.Get("/Marti/api/device/profile/connection", getProfileConnectionHandler(app))
 	f.Get("/Marti/api/device/profile/tool/:name", getProfileToolHandler(app))
@@ -485,6 +487,14 @@ func getAllGroupsHandler(app *App) fiber.Handler {
 
 func getAllGroupsCacheHandler(_ *App) fiber.Handler {
 	result := makeAnswer("java.lang.Boolean", true)
+
+	return func(ctx *fiber.Ctx) error {
+		return ctx.JSON(result)
+	}
+}
+
+func getCopHierarchyHandler(_ *App) fiber.Handler {
+	result := makeAnswer("CopHierarchyNode", []string{})
 
 	return func(ctx *fiber.Ctx) error {
 		return ctx.JSON(result)

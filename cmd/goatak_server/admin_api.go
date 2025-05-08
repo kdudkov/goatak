@@ -84,7 +84,7 @@ func (h *HttpServer) NewAdminAPI(app *App, addr string, webtakRoot string) *Admi
 
 	if webtakRoot != "" {
 		api.f.Static("/webtak", webtakRoot)
-
+		api.f.Get("/webtak-plugins/webtak-manifest.json", getPluginsManifestHandler(app))
 		addMartiRoutes(app, api.f)
 	}
 
@@ -543,6 +543,12 @@ func getApiDevicePutHandler(app *App) fiber.Handler {
 		app.dbm.Save(d)
 
 		return ctx.JSON(fiber.Map{"status": "ok"})
+	}
+}
+
+func getPluginsManifestHandler(_ *App) fiber.Handler {
+	return func(ctx *fiber.Ctx) error {
+		return ctx.JSON(fiber.Map{"plugins": []string{}, "iconSets": []string{}})
 	}
 }
 
