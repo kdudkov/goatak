@@ -20,3 +20,11 @@ ssl:
   enroll_user: ""
   # password for cert enrollment
   enroll_password: ""
+
+me:
+  callsign: "Echo01"
+  team: "Blue"
+  role: "HQ"
+  platform: "Echo"
+  os: "Linux"
+  version: "0.0.1"

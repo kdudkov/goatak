@@ -15,8 +15,10 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/kdudkov/goatak/internal/client"
 	"github.com/kdudkov/goatak/pkg/cot"
+	"github.com/kdudkov/goatak/pkg/cotproto"
 	"github.com/kdudkov/goatak/pkg/log"
 	"github.com/kdudkov/goatak/pkg/tlsutil"
 	"github.com/knadh/koanf/parsers/yaml"
@@ -24,7 +26,31 @@ import (
 	"github.com/knadh/koanf/v2"
 )
 
+const (
+	selfPosSendPeriod = time.Second * 10
+)
+
+type Myself struct {
+	UID      string
+	Type     string
+	Callsign string
+	Team     string
+	Role     string
+	Lat      float64
+	Lon      float64
+	Alt      float64
+	Ce       float64
+	Le       float64
+	Speed    float64
+	Track    float64
+	Device   string
+	Platform string
+	Os       string
+	Version  string
+}
+
 type App struct {
+	me           *Myself
 	webPort      int
 	webAddress   string
 	mcastPort    int
@@ -41,6 +67,8 @@ type App struct {
 	serverClient *client.ConnClientHandler
 	wsClients    map[string]client.ClientHandler
 	mcastHandler *UdpClientHandler
+	dumpServer   *os.File
+	dumpMCast    *os.File
 }
 
 func (app *App) SetConnected(connected bool) {
@@ -79,6 +107,12 @@ func (app *App) ProcessCotFromMcast(msg *cot.CotMessage) {
 	for _, ch := range app.wsClients {
 		ch.SendMsg(msg)
 	}
+
+	buf, err := cot.MakeProtoPacket(msg.GetTakMessage())
+	if err != nil {
+		app.logger.Info("processCotFromMcast", slog.Any("error", err))
+	}
+	app.dumpMCast.Write(buf)
 }
 
 // ProcessCotFromTAKServer processes COT messages from the TAK server and forwards them to the websocket connected clients
@@ -91,6 +125,12 @@ func (app *App) ProcessCotFromTAKServer(msg *cot.CotMessage) {
 	for _, ch := range app.wsClients {
 		ch.SendMsg(msg)
 	}
+
+	buf, err := cot.MakeProtoPacket(msg.GetTakMessage())
+	if err != nil {
+		app.logger.Info("processCotFromTAKServer", slog.Any("error", err))
+	}
+	app.dumpServer.Write(buf)
 }
 
 func (app *App) ProcessRemoveFromTAKServer(ch client.ClientHandler) {
@@ -187,8 +227,85 @@ func (app *App) Run(ctx context.Context) {
 		})
 
 		go app.serverClient.Start()
+		go app.myPosSender(ctx, wg)
 		wg.Wait()
 	}
+}
+
+func (app *App) myPosSender(ctx context.Context, wg *sync.WaitGroup) {
+	wg.Add(1)
+	defer wg.Done()
+	app.sendMsg(app.makeMe())
+
+	ticker := time.NewTicker(selfPosSendPeriod)
+	defer ticker.Stop()
+
+	for ctx.Err() == nil {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			app.logger.Debug("sending pos")
+			app.sendMsg(app.makeMe())
+		}
+	}
+}
+
+func (app *App) sendMsg(msg *cotproto.TakMessage) {
+	if app.serverClient != nil {
+		if app.serverClient.IsActive() {
+			if err := app.serverClient.SendCot(msg); err != nil {
+				app.logger.Error("error", slog.Any("error", err))
+			}
+		}
+	}
+	if app.mcastHandler != nil {
+		if app.mcastHandler.IsActive() {
+			if err := app.mcastHandler.SendCot(msg); err != nil {
+				app.logger.Error("error", slog.Any("error", err))
+			}
+		}
+	}
+}
+
+func (app *App) makeMe() *cotproto.TakMessage {
+	ev := cot.BasicMsg(app.me.Type, app.me.UID, time.Minute*2)
+
+	ev.CotEvent.Lat = app.me.Lat
+	ev.CotEvent.Lon = app.me.Lon
+	ev.CotEvent.Hae = app.me.Alt
+	ev.CotEvent.Ce = app.me.Ce
+	ev.CotEvent.Le = app.me.Le
+	ev.CotEvent.How = "m-g"
+
+	ev.CotEvent.Detail = &cotproto.Detail{
+		Contact: &cotproto.Contact{
+			Endpoint: "*:-1:stcp",
+			Callsign: app.me.Callsign,
+		},
+		Group: &cotproto.Group{
+			Name: app.me.Team,
+			Role: app.me.Role,
+		},
+		Takv: &cotproto.Takv{
+			Device:   app.me.Device,
+			Platform: app.me.Platform,
+			Os:       app.me.Os,
+			Version:  app.me.Version,
+		},
+		Track: &cotproto.Track{
+			Speed:  app.me.Speed,
+			Course: app.me.Track,
+		},
+		PrecisionLocation: &cotproto.PrecisionLocation{
+			Geopointsrc: "GPS",
+			Altsrc:      "GPS",
+		},
+		Status: &cotproto.Status{Battery: 39},
+	}
+
+	ev.CotEvent.Detail.XmlDetail = fmt.Sprintf("<uid Droid=\"%s\"></uid>", app.me.Callsign)
+	return ev
 }
 
 func NewApp(connectStr string) *App {
@@ -214,6 +331,15 @@ func NewApp(connectStr string) *App {
 		return nil
 	}
 
+	_dumpServer, err := os.Create("dump_server.bin")
+	if err != nil {
+		logger.Error("Can't opend file for dump")
+	}
+	_dumpMCast, err := os.Create("dump_mcast.bin")
+	if err != nil {
+		logger.Error("Can't opend file for dump")
+	}
+
 	return &App{
 		logger:      logger,
 		host:        parts[0],
@@ -221,6 +347,8 @@ func NewApp(connectStr string) *App {
 		tls:         tlsConn,
 		dialTimeout: time.Second * 5,
 		wsClients:   make(map[string]client.ClientHandler),
+		dumpServer:  _dumpServer,
+		dumpMCast:   _dumpMCast,
 	}
 }
 
@@ -237,6 +365,22 @@ func main() {
 	k.Set("mcast_port", 6969)
 	k.Set("ssl.password", "atakatak")
 	k.Set("ssl.strict", false)
+
+	k.Set("me.alt", 999999.0)
+	k.Set("me.callsign", "wsproxy")
+	k.Set("me.ce", 999999.0)
+	k.Set("me.device", "wsproxy")
+	k.Set("me.lat", 999999.0)
+	k.Set("me.le", 999999.0)
+	k.Set("me.lon", 999999.0)
+	k.Set("me.platform", "GoATAK_client")
+	k.Set("me.role", "HQ")
+	k.Set("me.speed", 0.0)
+	k.Set("me.team", "Blue")
+	k.Set("me.track", 0.0)
+	k.Set("me.type", "a-f-G-U-C")
+	k.Set("me.uid", uuid.New().String())
+	k.Set("me.version", "0.0.1")
 
 	if err := k.Load(file.Provider(*conf), yaml.Parser()); err != nil {
 		fmt.Printf("error loading config: %s", err.Error())
@@ -257,6 +401,24 @@ func main() {
 	app.webAddress = k.String("web_address")
 	app.mcastPort = k.Int("mcast_port")
 	app.mcastAddress = k.String("mcast_address")
+
+	app.me = &Myself{
+		Alt:      k.Float64("me.alt"),
+		Callsign: k.String("me.callsign"),
+		Ce:       k.Float64("me.ce"),
+		Device:   k.String("me.device"),
+		Lat:      k.Float64("me.lat"),
+		Le:       k.Float64("me.le"),
+		Lon:      k.Float64("me.lon"),
+		Platform: k.String("me.platform"),
+		Os:       k.String("me.os"),
+		Role:     k.String("me.role"),
+		Team:     k.String("me.team"),
+		Type:     k.String("me.type"),
+		UID:      k.String("me.uid"),
+		Version:  k.String("me.version"),
+	}
+
 	ctx, cancel := context.WithCancel(context.Background())
 
 	if app.tls {
@@ -278,6 +440,9 @@ func main() {
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, syscall.SIGINT, syscall.SIGTERM)
 	<-c
+
+	app.dumpServer.Close()
+	app.dumpMCast.Close()
 
 	cancel()
 }
