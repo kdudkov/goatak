@@ -31,7 +31,7 @@ const app = Vue.createApp({
                     }
                     window.location.reload();
                 })
-                .then(function (data) {
+                .then(data => {
                     vm.units = data;
                     vm.ts += 1;
                 });
@@ -43,7 +43,7 @@ const app = Vue.createApp({
                     }
                     window.location.reload();
                 })
-                .then(function (data) {
+                .then(data => {
                     vm.connections = data;
                     vm.ts += 1;
                 });

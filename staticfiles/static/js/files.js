@@ -27,7 +27,7 @@ const app = Vue.createApp({
                     }
                     window.location.reload();
                 })
-                .then(function (data) {
+                .then(data => {
                     vm.data = data.sort((a, b) => a.Scope.localeCompare(b.Scope) || a.FileName.toLowerCase().localeCompare(b.FileName.toLowerCase()));
                     vm.ts += 1;
                 });

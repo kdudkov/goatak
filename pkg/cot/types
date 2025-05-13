@@ -73,6 +73,19 @@ A-W-M-S-A-i;Air/Weapon/Missile/SAM/Manpad;SAM (Manpad)
 A-W-M-S-A-m;Air/Weapon/Missile/SAM/Mobile;SAM (Mobile)
 A-W-M-S-S;Air/Weapon/Missile/Surface To Surface (SSM);SURFACE TO SURFACE MISSILE (SSM)
 A-W-M-U;Air/Weapon/Missile/Subsurface To Surface (S/SSM);SUBSURFACE TO SURFACE MISSILE (S/SSM)
+F;SOF;SOF Unit
+F-A;SOF/Aviation;SOF Aviation
+F-B;SOF/Support;SOF Support
+F-N;SOF/Naval;SOF Naval Unit
+F-N-S;SOF/Naval/SEAL;SOF SEAL
+F-N-B;SOF/Naval/Special boat;SOF Special Boat
+F-N-N;SOF/Naval/Special SSNR;SOF Special SSNR
+F-N-U;SOF/Naval/Underwater demolition;SOF Underwater demolition
+F-G;SOF/Ground;SOF Ground Unit
+F-G-P;SOF/Ground/PsyOp;SOF PsyOp
+F-G-S;SOF/Ground/Special forces;SOF Special forces
+F-G-R;SOF/Ground/Ranger;SOF Ranger
+F-G-C;SOF/Ground/Civil Affairs;SOF Civil Affairs
 G;Ground;GROUND TRACK
 G-E;Gnd/Equipment;EQUIPMENT
 G-E-S;Gnd/Equip/Sensor;SENSOR
@@ -855,6 +868,10 @@ G-U-i-s-uis;Gnd/USAR Incident Support Team;USAR Incident Support Team
 G-U-i-s-utf;Gnd/USAR Task Force;USAR Task Force
 G-U-i-s-wi;Gnd/Wilderness SAR Team;Wilderness SAR Team
 G-U-i-o;Gnd/IM Resources/Other;Other
+P;Space;Space track
+P-V;Space/Crewed space vehicle;Crewed space vehicle
+P-S;Space/Satellite;Satellite
+P-T;Space/Station;Space station
 S;Surface;SEA SURFACE TRACK
 S-C;Surface/COMBATANT;COMBATANT
 S-C-A;Surface/AMPHIBIOUS WARFARE SHIP;AMPHIBIOUS WARFARE SHIP
