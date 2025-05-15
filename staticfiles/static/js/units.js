@@ -24,24 +24,24 @@ const app = Vue.createApp({
         getData: function () {
             let vm = this;
 
-            fetch('/api/unit')
+            fetch('/api/unit', {redirect: 'error'})
                 .then(resp => {
-                    if (resp.ok) {
-                        return resp.json();
+                    if (!resp.ok) {
+                        window.location.reload();
                     }
-                    window.location.reload();
+                    return resp.json();
                 })
                 .then(data => {
                     vm.units = data;
                     vm.ts += 1;
                 });
 
-            fetch('/api/connections')
+            fetch('/api/connections', {redirect: 'error'})
                 .then(resp => {
-                    if (resp.ok) {
-                        return resp.json();
+                    if (!resp.ok) {
+                        window.location.reload();
                     }
-                    window.location.reload();
+                    return resp.json();
                 })
                 .then(data => {
                     vm.connections = data;

@@ -143,12 +143,12 @@ const app = Vue.createApp({
         fetchAllUnits: function () {
             let vm = this;
 
-            fetch('/api/unit')
+            fetch('/api/unit', {redirect: 'error'})
                 .then(resp => {
-                    if (resp.ok) {
-                        return resp.json();
+                    if (!resp.ok) {
+                        window.location.reload();
                     }
-                    window.location.reload();
+                    return resp.json();
                 })
                 .then(vm.processUnits);
         },
@@ -156,12 +156,12 @@ const app = Vue.createApp({
         fetchMessages: function () {
             let vm = this;
 
-            fetch('/api/message')
+            fetch('/api/message', {redirect: 'error'})
                 .then(resp => {
-                    if (resp.ok) {
-                        return resp.json();
+                    if (!resp.ok) {
+                        window.location.reload();
                     }
-                    window.location.reload();
+                    return resp.json();
                 })
                 .then(d => vm.messages = d);
         },

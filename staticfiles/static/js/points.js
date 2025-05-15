@@ -21,12 +21,12 @@ const app = Vue.createApp({
         renew: function () {
             let vm = this;
 
-            fetch('/api/point')
+            fetch('/api/point', {redirect: 'error'})
                 .then(resp => {
-                    if (resp.ok) {
-                        return resp.json();
+                    if (!resp.ok) {
+                        window.location.reload();
                     }
-                    window.location.reload();
+                    return resp.json();
                 })
                 .then(data => {
                     vm.data = data.sort((a, b) => a.Scope.localeCompare(b.Scope) || a.Callsign.toLowerCase().localeCompare(b.Callsign.toLowerCase()));

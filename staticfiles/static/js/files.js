@@ -20,12 +20,12 @@ const app = Vue.createApp({
         renew: function () {
             let vm = this;
 
-            fetch('/api/file')
+            fetch('/api/file', {redirect: 'error'})
                 .then(resp => {
-                    if (resp.ok) {
-                        return resp.json();
+                    if (!resp.ok) {
+                        window.location.reload();
                     }
-                    window.location.reload();
+                    return resp.json();
                 })
                 .then(data => {
                     vm.data = data.sort((a, b) => a.Scope.localeCompare(b.Scope) || a.FileName.toLowerCase().localeCompare(b.FileName.toLowerCase()));

@@ -18,12 +18,12 @@ const app = Vue.createApp({
         renew: function () {
             let vm = this;
 
-            fetch('/api/device')
+            fetch('/api/device', {redirect: 'error'})
                 .then(resp => {
-                    if (resp.ok) {
-                        return resp.json();
+                    if (!resp.ok) {
+                        window.location.reload();
                     }
-                    window.location.reload();
+                    return resp.json();
                 })
                 .then(data => {
                     vm.devices = data.sort((a, b) => a.scope.localeCompare(b.scope) || a.login.toLowerCase().localeCompare(b.login.toLowerCase()));
