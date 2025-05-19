@@ -109,12 +109,14 @@ func addMartiRoutes(app *App, f fiber.Router) {
 }
 
 func getVersionHandler(app *App) fiber.Handler {
+	version := "GoATAK server " + getVersion()
+
 	return func(ctx *fiber.Ctx) error {
-		return ctx.SendString(fmt.Sprintf("GoATAK server %s", getVersion()))
+		return ctx.SendString(version)
 	}
 }
 
-func getVersionConfigHandler(app *App) fiber.Handler {
+func getVersionConfigHandler(_ *App) fiber.Handler {
 	data := make(map[string]any)
 	data["api"] = apiVersion
 	data["version"] = getVersion()
