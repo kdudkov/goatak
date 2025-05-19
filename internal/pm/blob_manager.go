@@ -81,8 +81,6 @@ func (m *BlobManager) PutFile(scope, hash string, r io.Reader) (string, int64, e
 		return "", 0, err
 	}
 
-	defer f.Close()
-
 	h := sha256.New()
 
 	rr := io.TeeReader(r, h)
@@ -97,6 +95,10 @@ func (m *BlobManager) PutFile(scope, hash string, r io.Reader) (string, int64, e
 
 	if hash != "" && hash != hash1 {
 		return "", 0, fmt.Errorf("invalid hash")
+	}
+
+	if err1 := f.Close(); err1 != nil {
+		return "", 0, err1
 	}
 
 	err = os.Rename(f.Name(), m.fileName(scope, hash1))
