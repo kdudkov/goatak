@@ -3,7 +3,7 @@ package pm
 import (
 	"crypto/sha256"
 	"encoding/hex"
-	"fmt"
+	"errors"
 	"io"
 	"log/slog"
 	"os"
@@ -13,7 +13,11 @@ import (
 	"github.com/kdudkov/goatak/pkg/util"
 )
 
-var NotFound = fmt.Errorf("blob is not found")
+var (
+	ErrNotFound = errors.New("blob is not found")
+	ErrNoHash   = errors.New("no hash")
+	ErrBadHash  = errors.New("bad hash")
+)
 
 type BlobManager struct {
 	logger  *slog.Logger
@@ -46,7 +50,7 @@ func (m *BlobManager) GetFile(hash string, scope string) (io.ReadSeekCloser, err
 	defer m.mx.RUnlock()
 
 	if hash == "" || !util.FileExists(m.fileName(scope, hash)) {
-		return nil, NotFound
+		return nil, ErrNotFound
 	}
 
 	return os.Open(m.fileName(scope, hash))
@@ -57,7 +61,7 @@ func (m *BlobManager) GetFileStat(scope, hash string) (os.FileInfo, error) {
 	defer m.mx.RUnlock()
 
 	if hash == "" {
-		return nil, fmt.Errorf("no hash")
+		return nil, ErrNoHash
 	}
 
 	return os.Stat(m.fileName(scope, hash))
@@ -65,7 +69,7 @@ func (m *BlobManager) GetFileStat(scope, hash string) (os.FileInfo, error) {
 
 func (m *BlobManager) PutFile(scope, hash string, r io.Reader) (string, int64, error) {
 	if r == nil {
-		return "", 0, fmt.Errorf("no reader")
+		return "", 0, errors.New("no reader")
 	}
 
 	m.mx.Lock()
@@ -94,7 +98,7 @@ func (m *BlobManager) PutFile(scope, hash string, r io.Reader) (string, int64, e
 	hash1 := hex.EncodeToString(h.Sum(nil))
 
 	if hash != "" && hash != hash1 {
-		return "", 0, fmt.Errorf("invalid hash")
+		return "", 0, ErrBadHash
 	}
 
 	if err1 := f.Close(); err1 != nil {
