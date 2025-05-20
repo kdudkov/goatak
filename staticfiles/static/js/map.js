@@ -143,7 +143,7 @@ const app = Vue.createApp({
         fetchAllUnits: function () {
             let vm = this;
 
-            fetch('/api/unit', {redirect: 'error'})
+            fetch('/api/unit', {redirect: 'manual'})
                 .then(resp => {
                     if (!resp.ok) {
                         window.location.reload();
@@ -156,7 +156,7 @@ const app = Vue.createApp({
         fetchMessages: function () {
             let vm = this;
 
-            fetch('/api/message', {redirect: 'error'})
+            fetch('/api/message', {redirect: 'manual'})
                 .then(resp => {
                     if (!resp.ok) {
                         window.location.reload();

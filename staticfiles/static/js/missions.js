@@ -15,7 +15,7 @@ const app = Vue.createApp({
         renew: function () {
             let vm = this;
 
-            fetch('/api/mission', {redirect: 'error'})
+            fetch('/api/mission', {redirect: 'manual'})
                 .then(resp => {
                     if (!resp.ok) {
                         window.location.reload();

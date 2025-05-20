@@ -23,7 +23,7 @@ const app = Vue.createApp({
         getData: function () {
             let vm = this;
 
-            fetch('/api/connections', {redirect: 'error'})
+            fetch('/api/connections', {redirect: 'manual'})
                 .then(resp => {
                     if (!resp.ok) {
                         window.location.reload();

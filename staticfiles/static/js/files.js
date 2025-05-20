@@ -20,7 +20,7 @@ const app = Vue.createApp({
         renew: function () {
             let vm = this;
 
-            fetch('/api/file', {redirect: 'error'})
+            fetch('/api/file', {redirect: 'manual'})
                 .then(resp => {
                     if (!resp.ok) {
                         window.location.reload();
