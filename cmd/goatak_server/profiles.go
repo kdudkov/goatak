@@ -5,50 +5,72 @@ import (
 	"path/filepath"
 	"strings"
 
+	"maps"
+
 	"github.com/kdudkov/goatak/cmd/goatak_server/mp"
 	"github.com/kdudkov/goatak/pkg/model"
 )
 
-func NewUserPrefsFile(user *model.Device) *mp.PrefFile {
-	conf := mp.NewPrefFile("user-profile.pref")
-	if user.Callsign != "" {
-		conf.AddParam(mp.CIV_PREF, "locationCallsign", user.Callsign)
+var defaultPrefs map[string]string = map[string]string{
+	"deviceProfileEnableOnConnect":  "true",
+	"speed_unit_pref":               "1",
+	"alt_unit_pref":                 "1",
+	"saHasPhoneNumber":              "false",
+	"alt_display_pref":              "MSL",
+	"coord_display_pref":            "DM",
+	"rab_north_ref_pref":            "1",
+	"rab_brg_units":                 "0",
+	"rab_nrg_units":                 "1",
+	"displayServerConnectionWidget": "true",
+}
+
+func profileOpts(profiles ...*model.Profile) map[string]string {
+	res := make(map[string]string)
+
+	maps.Copy(res, defaultPrefs)
+
+	for _, p := range profiles {
+		if p == nil {
+			continue
+		}
+
+		if p.Callsign != "" {
+			res["locationCallsign"] = p.Callsign
+		}
+
+		if p.Team != "" {
+			res["locationTeam"] = p.Team
+		}
+
+		if p.Role != "" {
+			res["atakRoleType"] = p.Role
+		}
+
+		if p.CotType != "" {
+			res["locationUnitType"] = p.CotType
+		}
+
+		maps.Copy(res, p.Options)
 	}
 
-	if user.Team != "" {
-		conf.AddParam(mp.CIV_PREF, "locationTeam", user.Team)
-	}
-
-	if user.Role != "" {
-		conf.AddParam(mp.CIV_PREF, "atakRoleType", user.Role)
-	}
-
-	if user.CotType != "" {
-		conf.AddParam(mp.CIV_PREF, "locationUnitType", user.CotType)
-	}
-
-	conf.AddParam(mp.CIV_PREF, "deviceProfileEnableOnConnect", true)
-
-	for k, v := range user.Options {
-		conf.AddParam(mp.CIV_PREF, k, v)
-	}
-
-	return conf
+	return res
 }
 
 func (app *App) GetProfileFiles(username, uid string) []mp.FileContent {
 	res := make([]mp.FileContent, 0)
 
-	if userInfo := app.users.Get(username); userInfo != nil {
-		if userInfo.HasProfile() {
-			app.logger.Debug("add user prefs")
-			res = append(res, NewUserPrefsFile(userInfo))
-		}
-	}
+	options := profileOpts(
+		app.dbm.ProfileQuery().Login(username).UID("").One(),
+		app.dbm.ProfileQuery().Login(username).UID(uid).One(),
+	)
 
-	if f, err := mp.NewFsFile("defaults.pref", filepath.Join(app.config.DataDir(), "defaults.pref")); err == nil {
-		app.logger.Debug("add default.prefs")
-		res = append(res, f)
+	if len(options) > 0 {
+		conf := mp.NewPrefFile("user-profile.pref")
+		for k, v := range options {
+			conf.AddParam(mp.CIV_PREF, k, v)
+		}
+
+		res = append(res, conf)
 	}
 
 	if paths, err := os.ReadDir(filepath.Join(app.config.DataDir(), "maps")); err == nil {

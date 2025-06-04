@@ -9,4 +9,5 @@ test-*.yml
 *.pem
 *.key
 *.p12
+*.sqlite
 report.xml

@@ -8,18 +8,12 @@
             <tr>
                 <th>Login</th>
                 <th>Scope</th>
-                <th>Callsign</th>
-                <th>Team</th>
-                <th>Role</th>
                 <th>Connect</th>
                 <th>Certs</th>
             </tr>
             <tr v-for="c in devices" @click="current = c">
                 <td>{{ c.login }}</td>
                 <td>{{ c.scope }}</td>
-                <td>{{ c.callsign }}</td>
-                <td>{{ c.team }}</td>
-                <td>{{ c.role }}</td>
                 <td>{{ dt(c.last_connect) }}</td>
                 <td>{{ c.certs && c.certs.length }}</td>
             </tr>
@@ -62,6 +56,7 @@
                     <td>{{ c.serial }}</td>
                 </tr>
             </table>
+
         </div>
     </div>
 </div>
@@ -85,45 +80,7 @@
                         <label for="scope" class="form-label">Scope</label>
                         <input class="form-control" id="scope" v-model="form.scope">
                     </div>
-                    <div class="mb-3">
-                        <label for="callsign" class="form-label">Callsign</label>
-                        <input class="form-control" id="callsign" v-model="form.callsign">
-                    </div>
-                    <div class="mb-3">
-                        <label for="team" class="form-label">Team</label>
-                        <select id="team" class="form-select" aria-label="Team" v-model="form.team">
-                            <option></option>
-                            <option>Clear</option>
-                            <option>White</option>
-                            <option>Yellow</option>
-                            <option>Orange</option>
-                            <option>Magenta</option>
-                            <option>Red</option>
-                            <option>Maroon</option>
-                            <option>Purple</option>
-                            <option>Dark Blue</option>
-                            <option>Blue</option>
-                            <option>Cyan</option>
-                            <option>Teal</option>
-                            <option>Green</option>
-                            <option>Dark Green</option>
-                            <option>Brown</option>
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label for="role" class="form-label">Role</label>
-                        <select id="role" class="form-select" aria-label="Team" v-model="form.role">
-                            <option></option>
-                            <option>Team Member</option>
-                            <option>HQ</option>
-                            <option>Team Lead</option>
-                            <option>K9</option>
-                            <option>Forward Observer</option>
-                            <option>Sniper</option>
-                            <option>Medic</option>
-                            <option>RTO</option>
-                        </select>
-                    </div>
+
                     <div class="mb-3">
                         <label for="password" class="form-label">Password</label>
                         <input type="password" class="form-control" id="callsign" v-model="form.password">

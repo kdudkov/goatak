@@ -1,11 +1,9 @@
 const app = Vue.createApp({
     data: function () {
         return {
-            devices: [],
-            login: "",
+            profiles: [],
             current: null,
             form: {},
-            scope1: "",
             error: null,
             ts: 0,
         }
@@ -18,7 +16,7 @@ const app = Vue.createApp({
         renew: function () {
             let vm = this;
 
-            fetch('/api/device', {redirect: 'manual'})
+            fetch('/api/profile', {redirect: 'manual'})
                 .then(resp => {
                     if (!resp.ok) {
                         window.location.reload();
@@ -26,48 +24,33 @@ const app = Vue.createApp({
                     return resp.json();
                 })
                 .then(data => {
-                    vm.devices = data.sort((a, b) => a.scope.localeCompare(b.scope) || a.login.toLowerCase().localeCompare(b.login.toLowerCase()));
+                    vm.profiles = data.sort((a, b) => a.login.toLowerCase().localeCompare(b.login.toLowerCase()));
                     vm.ts += 1;
                 });
         },
         create: function () {
             this.current = null;
-            this.scope1 = "";
             this.form = {
-                scope: '',
-                read_scope: ['admin', 'public'],
-                password: '',
+                login: '',
+                uid: '',
+                callsign: '',
+                team: '',
+                role: '',
+                cot_type: '',
+                options: {},
             };
-            bootstrap.Modal.getOrCreateInstance(document.getElementById('device_w')).show();
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('profile_w')).show();
         },
         edit: function () {
-            this.scope1 = "";
             this.form = {
-                scope: this.current.scope,
-                password: '',
+                callsign: this.current.callsign,
+                team: this.current.team,
+                role: this.current.role,
+                cot_type: this.current.cot_type,
+                options: this.current.options || {},
             };
 
-            if (this.current.read_scope) {
-                this.form.read_scope = [...this.current.read_scope];
-            } else {
-                this.form.read_scope = [];
-            }
-
-            bootstrap.Modal.getOrCreateInstance(document.getElementById('device_w')).show();
-        },
-        form_del: function (s) {
-            var idx = this.form.read_scope.indexOf(s);
-            if (idx !== -1) {
-                this.form.read_scope.splice(idx, 1);
-            }
-        },
-        form_add: function () {
-            if (!this.scope1) return;
-            var idx = this.form.read_scope.indexOf(this.scope1);
-            if (idx === -1) {
-                this.form.read_scope.push(this.scope1);
-            }
-            this.scope1 = "";
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('profile_w')).show();
         },
         send: function () {
             let vm = this;
@@ -80,14 +63,14 @@ const app = Vue.createApp({
                     headers: {"Content-Type": "application/json"},
                     body: JSON.stringify(this.form)
                 };
-                url = '/api/device/' + this.current.login;
+                url = '/api/profile/' + this.current.login + '/' + this.current.uid;
             } else {
                 requestOptions = {
                     method: "POST",
                     headers: {"Content-Type": "application/json"},
                     body: JSON.stringify(this.form)
                 };
-                url = '/api/device';
+                url = '/api/profile';
             }
 
             fetch(url, requestOptions)
@@ -107,7 +90,7 @@ const app = Vue.createApp({
                     }
 
                     vm.error = "";
-                    bootstrap.Modal.getOrCreateInstance(document.getElementById('device_w')).hide();
+                    bootstrap.Modal.getOrCreateInstance(document.getElementById('profile_w')).hide();
                     vm.renew();
                 })
                 .catch(err => {

@@ -83,6 +83,10 @@ func (mm *DatabaseManager) CertsQuery() *CertQuery {
 	return NewCertQuery(mm.db)
 }
 
+func (mm *DatabaseManager) ProfileQuery() *ProfileQuery {
+	return NewProfileQuery(mm.db)
+}
+
 func (mm *DatabaseManager) Migrate() error {
 	if mm == nil || mm.db == nil {
 		return fmt.Errorf("no database")
@@ -98,6 +102,7 @@ func (mm *DatabaseManager) Migrate() error {
 		&model.Resource{},
 		&model.Device{},
 		&model.Certificate{},
+		&model.Profile{},
 	); err != nil {
 		return err
 	}

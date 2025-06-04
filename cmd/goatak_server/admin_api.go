@@ -56,6 +56,7 @@ func (h *HttpServer) NewAdminAPI(app *App, addr string, webtakRoot string) *Admi
 	api.f.Get("/files", getFilesPage()).Name("admin_files")
 	api.f.Get("/points", getPointsPage())
 	api.f.Get("/devices", getDevicesPage())
+	api.f.Get("/profiles", getProfilesPage())
 
 	api.f.Get("/api/config", getConfigHandler(app))
 	api.f.Get("/api/connections", getApiConnHandler(app))
@@ -78,6 +79,9 @@ func (h *HttpServer) NewAdminAPI(app *App, addr string, webtakRoot string) *Admi
 	api.f.Post("/api/device", getApiDevicePostHandler(app))
 	api.f.Get("/api/cert", getApiCertsHandler(app))
 	api.f.Put("/api/device/:id", getApiDevicePutHandler(app))
+	api.f.Get("/api/profile", getApiProfilesHandler(app))
+	api.f.Post("/api/profile", getApiProfilePostHandler(app))
+	api.f.Put("/api/profile/:login/:uid", getApiProfilePutHandler(app))
 
 	api.f.Get("/api/mission", getApiAllMissionHandler(app))
 	api.f.Get("/api/mission/:id/changes", getApiAllMissionChangesHandler(app))
@@ -217,6 +221,18 @@ func getDevicesPage() fiber.Handler {
 		}
 
 		return ctx.Render("templates/devices", data, "templates/menu", "templates/header")
+	}
+}
+
+func getProfilesPage() fiber.Handler {
+	return func(ctx *fiber.Ctx) error {		
+		data := map[string]any{
+			"theme": "auto",
+			"page":  " profiles",
+			"js":    []string{"profiles.js"},
+		}
+
+		return ctx.Render("templates/profiles", data, "templates/menu", "templates/header")
 	}
 }
 
@@ -475,10 +491,6 @@ func getApiDevicePostHandler(app *App) fiber.Handler {
 
 		d := &model.Device{
 			Login:     m.Login,
-			Callsign:  m.Callsign,
-			Team:      m.Team,
-			Role:      m.Role,
-			CotType:   m.CotType,
 			Scope:     m.Scope,
 			ReadScope: m.ReadScope,
 		}
@@ -488,7 +500,7 @@ func getApiDevicePostHandler(app *App) fiber.Handler {
 		}
 
 		if err := app.dbm.Create(d); err != nil {
-			return err
+			return ctx.JSON(fiber.Map{"error": err.Error()})
 		}
 
 		return ctx.JSON(fiber.Map{"status": "ok"})
@@ -535,12 +547,82 @@ func getApiDevicePutHandler(app *App) fiber.Handler {
 			d.Scope = m.Scope
 		}
 
-		d.Callsign = m.Callsign
-		d.Team = m.Team
-		d.Role = m.Role
 		d.ReadScope = m.ReadScope
 
 		app.dbm.Save(d)
+
+		return ctx.JSON(fiber.Map{"status": "ok"})
+	}
+}
+
+func getApiProfilesHandler(app *App) fiber.Handler {
+	return func(ctx *fiber.Ctx) error {
+		data := app.dbm.ProfileQuery().Get()
+
+		profiles := make([]*model.ProfileDTO, len(data))
+
+		for i, p := range data {
+			profiles[i] = p.DTO()
+		}
+
+		return ctx.JSON(profiles)
+	}
+}
+
+func getApiProfilePostHandler(app *App) fiber.Handler {
+	return func(ctx *fiber.Ctx) error {
+		var m *model.ProfilePostDTO
+
+		if err := ctx.BodyParser(&m); err != nil {
+			return err
+		}
+
+		if m.Login == "" {
+			return ctx.JSON(fiber.Map{"error": "empty login"})
+		}
+
+		p := &model.Profile{
+			Login:    m.Login,
+			UID:      m.UID,
+			Callsign: m.Callsign,
+			Team:     m.Team,
+			Role:     m.Role,
+			CotType:  m.CotType,
+			Options:  m.Options,
+		}
+
+		if err := app.dbm.Create(p); err != nil {
+			return ctx.JSON(fiber.Map{"error": err.Error()})
+		}
+
+		return ctx.JSON(fiber.Map{"status": "ok"})
+	}
+}
+
+func getApiProfilePutHandler(app *App) fiber.Handler {
+	return func(ctx *fiber.Ctx) error {
+		login := ctx.Params("login")
+		uid := ctx.Params("uid")
+
+		p := app.dbm.ProfileQuery().Login(login).UID(uid).One()
+
+		if p == nil {
+			return ctx.SendStatus(fiber.StatusNotFound)
+		}
+
+		var m *model.ProfilePutDTO
+
+		if err := ctx.BodyParser(&m); err != nil {
+			return err
+		}
+
+		p.Callsign = m.Callsign
+		p.Team = m.Team
+		p.Role = m.Role
+		p.CotType = m.CotType
+		p.Options = m.Options
+
+		app.dbm.Save(p)
 
 		return ctx.JSON(fiber.Map{"status": "ok"})
 	}

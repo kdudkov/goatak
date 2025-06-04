@@ -123,16 +123,16 @@ func (f *FsFile) Content() []byte {
 
 type PrefFile struct {
 	name string
-	data map[string]map[string]any
+	data map[string]map[string]string
 }
 
 func NewPrefFile(name string) *PrefFile {
-	return &PrefFile{name: name, data: make(map[string]map[string]any)}
+	return &PrefFile{name: name, data: make(map[string]map[string]string)}
 }
 
-func (p *PrefFile) AddParam(pref, k string, v any) {
+func (p *PrefFile) AddParam(pref, k,v string) {
 	if _, ok := p.data[pref]; !ok {
-		p.data[pref] = make(map[string]any)
+		p.data[pref] = make(map[string]string)
 	}
 
 	p.data[pref][k] = v
@@ -154,18 +154,17 @@ func (p *PrefFile) Content() []byte {
 
 	for name, data := range p.data {
 		sb.WriteString(fmt.Sprintf("<preference version=\"1\" name=\"%s\">\n", name))
+		
 		for k, v := range data {
-			var cl string
-			switch v.(type) {
-			case bool:
-				cl = "class java.lang.Boolean"
-			default:
-				cl = "class java.lang.String"
+			e := GetEntry(k, v)
+			if e != "" {
+				sb.WriteString(e + "\n")				
 			}
-			sb.WriteString(fmt.Sprintf("<entry key=\"%s\" class=\"%s\">%v</entry>\n", k, cl, v))
 		}
+		
 		sb.WriteString("</preference>")
 	}
+	
 	sb.WriteString("</preferences>")
 
 	return sb.Bytes()

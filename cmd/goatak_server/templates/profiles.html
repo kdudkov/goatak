@@ -1,0 +1,146 @@
+<div class="row h-100">
+    <div class="col-6 h-100 overflow-auto">
+        <h4>Profiles</h4>
+        <div class="my-2">
+            <button class="btn btn-outline-primary" @click="create()">Create</button>
+        </div>
+        <table class="table table-hover table-sm">
+            <tr>
+                <th>Login</th>
+                <th>UID</th>
+                <th>Callsign</th>
+                <th>Team</th>
+                <th>Role</th>
+                <th>CotType</th>
+            </tr>
+            <tr v-for="p in profiles" @click="current = p">
+                <td>{{ p.login }}</td>
+                <td>{{ p.uid }}</td>
+                <td>{{ p.callsign }}</td>
+                <td>{{ p.team }}</td>
+                <td>{{ p.role }}</td>
+                <td>{{ p.cot_type }}</td>
+            </tr>
+        </table>
+    </div>
+    <div class="col-6 h-100 overflow-auto">
+        <div v-if="current">
+            <h4>Profile</h4>
+            <div class="my-1">
+                <table class="table table-sm">
+                    <tr>
+                        <th>Login</th>
+                        <td>{{ current.login }}</td>
+                    </tr>
+                    <tr>
+                        <th>UID</th>
+                        <td>{{ current.uid }}</td>
+                    </tr>
+                    <tr>
+                        <th>Callsign</th>
+                        <td>{{ current.callsign }}</td>
+                    </tr>
+                    <tr>
+                        <th>Team</th>
+                        <td>{{ current.team }}</td>
+                    </tr>
+                    <tr>
+                        <th>Role</th>
+                        <td>{{ current.role }}</td>
+                    </tr>
+                    <tr>
+                        <th>CotType</th>
+                        <td>{{ current.cot_type }}</td>
+                    </tr>
+                    <tr v-if="current.options">
+                        <th>Options</th>
+                        <td>
+                            <table class="table table-sm">
+                                <tr v-for="(value, key) in current.options">
+                                    <td>{{ key }}</td>
+                                    <td>{{ value }}</td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                </table>
+
+                <button class="btn btn-outline-primary" @click="edit()"><i class="bi bi-pencil-square"></i> edit
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- Modal -->
+<div class="modal fade" id="profile_w" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1"
+     aria-labelledby="staticBackdropLabel2" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="staticBackdropLabel2"><span v-if="current">{{ current.login }} - {{ current.uid }}</span></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div v-if="error" class="alert alert-danger">{{ error }}</div>
+                <form @submit.prevent="send">
+                    <div class="mb-3" v-if="!current">
+                        <label for="login" class="form-label">Login</label>
+                        <input class="form-control" id="login" v-model="form.login">
+                    </div>
+                    <div class="mb-3" v-if="!current">
+                        <label for="uid" class="form-label">UID</label>
+                        <input class="form-control" id="uid" v-model="form.uid">
+                    </div>
+                    <div class="mb-3">
+                        <label for="callsign" class="form-label">Callsign</label>
+                        <input class="form-control" id="callsign" v-model="form.callsign">
+                    </div>
+                    <div class="mb-3">
+                        <label for="team" class="form-label">Team</label>
+                        <select id="team" class="form-select" aria-label="Team" v-model="form.team">
+                            <option></option>
+                            <option>Clear</option>
+                            <option>White</option>
+                            <option>Yellow</option>
+                            <option>Orange</option>
+                            <option>Magenta</option>
+                            <option>Red</option>
+                            <option>Maroon</option>
+                            <option>Purple</option>
+                            <option>Dark Blue</option>
+                            <option>Blue</option>
+                            <option>Cyan</option>
+                            <option>Teal</option>
+                            <option>Green</option>
+                            <option>Dark Green</option>
+                            <option>Brown</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="role" class="form-label">Role</label>
+                        <select id="role" class="form-select" aria-label="Role" v-model="form.role">
+                            <option></option>
+                            <option>Team Member</option>
+                            <option>HQ</option>
+                            <option>Team Lead</option>
+                            <option>K9</option>
+                            <option>Forward Observer</option>
+                            <option>Sniper</option>
+                            <option>Medic</option>
+                            <option>RTO</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="cot_type" class="form-label">CotType</label>
+                        <input class="form-control" id="cot_type" v-model="form.cot_type">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn min-width-179 btn-warning" @click="send()">Save</button>
+                <button type="button" class="btn min-width-179 btn-outline-secondary" data-bs-dismiss="modal">Close
+                </button>
+            </div>
+        </div>
+    </div>
+</div>

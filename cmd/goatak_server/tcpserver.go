@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"crypto/tls"
+	"crypto/x509"
 	"encoding/hex"
 	"fmt"
 	"log/slog"
@@ -143,21 +144,27 @@ func (app *App) verifyConnection(st tls.ConnectionState) error {
 	return nil
 }
 
-func getCertUser(st *tls.ConnectionState) (string, string) {
+func getCert(st *tls.ConnectionState) *x509.Certificate {
 	for _, cert := range st.PeerCertificates {
 		if cert.Subject.CommonName != "" {
-			return cert.Subject.CommonName, hex.EncodeToString(cert.SerialNumber.Bytes())
+			return cert
 		}
+	}
+
+	return nil
+}
+
+func getCertUser(st *tls.ConnectionState) (string, string) {
+	if cert := getCert(st); cert != nil {
+			return cert.Subject.CommonName, hex.EncodeToString(cert.SerialNumber.Bytes())
 	}
 
 	return "", ""
 }
 
 func getCertUID(st *tls.ConnectionState) string {
-	for _, cert := range st.PeerCertificates {
-		if cert.Subject.CommonName != "" && len(cert.EmailAddresses) > 0 {
+	if cert := getCert(st); cert != nil && len(cert.EmailAddresses) > 0 {
 			return cert.EmailAddresses[0]
-		}
 	}
 
 	return ""

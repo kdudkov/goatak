@@ -3,20 +3,16 @@
         <h4>Resources</h4>
         <table class="table table-hover table-sm table-xs">
             <tr>
+                <th>Created</th>
                 <th>Scope</th>
                 <th>File</th>
                 <th>Size</th>
-                <th>MIME type</th>
-                <th>Created</th>
-                <th>Tool</th>
             </tr>
             <tr v-for="p in all" @click="current = p">
+                <td>{{ dt(p.CreatedAt) }}</td>
                 <td>{{ p.Scope }}</td>
                 <td>{{ p.FileName }}</td>
                 <td>{{ p.Size }}</td>
-                <td>{{ p.MIMEType }}</td>
-                <td>{{ dt(p.CreatedAt) }}</td>
-                <td>{{ p.Tool }}</td>
             </tr>
         </table>
     </div>

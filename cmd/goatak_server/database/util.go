@@ -11,7 +11,7 @@ import (
 )
 
 func GetDatabase(dsn string, debug bool) (*gorm.DB, error) {
-	conf := &gorm.Config{}
+	conf := &gorm.Config{DisableForeignKeyConstraintWhenMigrating: true}
 
 	if !debug {
 		conf.Logger = logger.Default.LogMode(logger.Silent)
