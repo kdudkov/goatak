@@ -22,6 +22,8 @@ var defaultPrefs map[string]string = map[string]string{
 	"rab_brg_units":                 "0",
 	"rab_nrg_units":                 "1",
 	"displayServerConnectionWidget": "true",
+	"frame_limit": "1",
+	"hidePreferenceItem_deviceProfileEnableOnConnect": "true",
 }
 
 func profileOpts(profiles ...*model.Profile) map[string]string {

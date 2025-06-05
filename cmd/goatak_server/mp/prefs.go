@@ -13,9 +13,6 @@ var prefKeys = []PrefKey{
   {"My Callsign", "locationCallsign", "String", "Alphanumeric"},
   {"My Team", "locationTeam", "String", "White; Yellow; Orange; Magenta; Red; Maroon; Purple; Dark Blue; Blue; Cyan; Teal; Green; Dark Green; Brown"},
   {"My Role", "atakRoleType", "String", "Team Member; Team Lead; HQ; Sniper; Medic; Forward Observer; RTO; K9"},
-  {"My Callsign", "locationCallsign", "String", "Alphanumeric"},
-  {"My Team", "locationTeam", "String", ""},
-  {"My Role", "atakRoleType", "String", ""},
   {"My Display Type", "locationUnitType", "String", "Ground Troop; Armored Vehicle; Civilian Vehicle; Generic Air Unit; Generic Ground Unit; Generic Sea Surface Unit"},
   {"GPS Option", "mockingOption", "String", "IgnoreInternalGPS = Ignore Internal GPS / Use External or Network GPS Only; LocalGPS = Internal GPS Only; WRGPS = External or Network GPS / Fallback Internal GPS"},
   {"Network GPS Port", "listenPort", "String", "0 - 65535 (Default 4349)"},
@@ -505,7 +502,6 @@ var prefKeys = []PrefKey{
   {"Hide Watercraft Checkpoint Navigation Bubble Radius","hidePreferenceItem_waypointBubble.Watercraft", "Boolean", ""},
   {"Hide Watercraft Off Route Bubble Radius","hidePreferenceItem_waypointOffRouteBubble.Watercraft", "Boolean", ""},
   {"Hide WMS Connect Timeout","hidePreferenceItem_wmsconnecttimeout", "Boolean", ""},
-  
   
 }
 
