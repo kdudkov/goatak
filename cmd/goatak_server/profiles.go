@@ -11,7 +11,7 @@ import (
 	"github.com/kdudkov/goatak/pkg/model"
 )
 
-var defaultPrefs map[string]string = map[string]string{
+var defaultPrefs = map[string]string{
 	"deviceProfileEnableOnConnect":  "true",
 	"speed_unit_pref":               "1",
 	"alt_unit_pref":                 "1",
@@ -22,7 +22,7 @@ var defaultPrefs map[string]string = map[string]string{
 	"rab_brg_units":                 "0",
 	"rab_nrg_units":                 "1",
 	"displayServerConnectionWidget": "true",
-	"frame_limit": "1",
+	"frame_limit":                   "1",
 	"hidePreferenceItem_deviceProfileEnableOnConnect": "true",
 }
 
@@ -62,6 +62,7 @@ func (app *App) GetProfileFiles(username, uid string) []mp.FileContent {
 	res := make([]mp.FileContent, 0)
 
 	options := profileOpts(
+		app.dbm.ProfileQuery().Login("*").UID("").One(),
 		app.dbm.ProfileQuery().Login(username).UID("").One(),
 		app.dbm.ProfileQuery().Login(username).UID(uid).One(),
 	)
