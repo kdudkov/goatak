@@ -3,7 +3,7 @@ package main
 import (
 	"testing"
 
-	"github.com/kdudkov/goatak/cmd/goatak_server/database"
+	"github.com/kdudkov/goatak/internal/database"
 	"github.com/kdudkov/goatak/pkg/model"
 	"github.com/stretchr/testify/require"
 )
@@ -31,6 +31,7 @@ func TestProfiles(t *testing.T) {
 	})
 	
 	options := profileOpts(
+		m.ProfileQuery().Login("").UID("").One(),
 		m.ProfileQuery().Login(username).UID("").One(),
 		m.ProfileQuery().Login(username).UID(uid).One(),
 	)

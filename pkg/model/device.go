@@ -10,9 +10,9 @@ import (
 const bcryptCost = 14
 
 type Device struct {
-	Login       string   `gorm:"primaryKey" yaml:"user"`
-	Password    string   `gorm:"not null" yaml:"password"`
-	Scope       string   `gorm:"not null" yaml:"scope"`
+	Login       string   `gorm:"primaryKey;size:255" yaml:"user"`
+	Password    string   `gorm:"not null;size:255" yaml:"password"`
+	Scope       string   `gorm:"not null;size:255" yaml:"scope"`
 	Disabled    bool     `gorm:"not null;default:false"`
 	ReadScope   []string `gorm:"serializer:json" yaml:"read_scope"`
 	LastConnect *time.Time

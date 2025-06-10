@@ -21,7 +21,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"software.sslmate.com/src/go-pkcs12"
 
-	"github.com/kdudkov/goatak/cmd/goatak_server/database"
+	"github.com/kdudkov/goatak/internal/database"
 	"github.com/kdudkov/goatak/internal/client"
 	"github.com/kdudkov/goatak/internal/config"
 	"github.com/kdudkov/goatak/internal/pm"

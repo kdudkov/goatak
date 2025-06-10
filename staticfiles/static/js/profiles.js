@@ -6,6 +6,8 @@ const app = Vue.createApp({
             form: {},
             error: null,
             ts: 0,
+            newOptionKey: '',
+            newOptionValue: '',
         }
     },
 
@@ -39,6 +41,8 @@ const app = Vue.createApp({
                 cot_type: '',
                 options: {},
             };
+            this.newOptionKey = '';
+            this.newOptionValue = '';
             bootstrap.Modal.getOrCreateInstance(document.getElementById('profile_w')).show();
         },
         edit: function () {
@@ -47,8 +51,10 @@ const app = Vue.createApp({
                 team: this.current.team,
                 role: this.current.role,
                 cot_type: this.current.cot_type,
-                options: this.current.options || {},
+                options: JSON.parse(JSON.stringify(this.current.options || {})), // Deep copy
             };
+            this.newOptionKey = '';
+            this.newOptionValue = '';
 
             bootstrap.Modal.getOrCreateInstance(document.getElementById('profile_w')).show();
         },
@@ -97,6 +103,21 @@ const app = Vue.createApp({
                     console.log(err);
                     this.error = err;
                 });
+        },
+        addOption: function () {
+            if (this.newOptionKey && this.newOptionValue) {
+                if (!this.form.options) {
+                    this.form.options = {};
+                }
+                this.form.options[this.newOptionKey] = this.newOptionValue;
+                this.newOptionKey = '';
+                this.newOptionValue = '';
+            }
+        },
+        removeOption: function (key) {
+            if (this.form.options && this.form.options.hasOwnProperty(key)) {
+                delete this.form.options[key];
+            }
         },
         printCoords: printCoords,
         dt: dtShort,

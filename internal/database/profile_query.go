@@ -20,6 +20,7 @@ func NewProfileQuery(db *gorm.DB) *ProfileQuery {
 			offset: 0,
 			order:  "login DESC",
 		},
+		uid: "*",
 	}
 }
 
@@ -55,7 +56,7 @@ func (q *ProfileQuery) where() *gorm.DB {
 		tx = tx.Where("login = ?", q.login)
 	}
 
-	if q.uid != "" {
+	if q.uid != "*" {
 		tx = tx.Where("uid = ?", q.uid)
 	}
 

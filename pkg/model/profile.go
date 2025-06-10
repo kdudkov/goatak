@@ -1,13 +1,13 @@
 package model
 
 type Profile struct {
-	Login    string            `gorm:"primaryKey"`
-	UID      string            `gorm:"primaryKey"`
-	Callsign string            `gorm:"not null;default:''"`
-	Team     string            `gorm:"not null;default:''"`
-	Role     string            `gorm:"not null;default:''"`
-	CotType  string            `gorm:"not null;default:''"`
-	Options  map[string]string `gorm:"serializer:json" yaml:"options,omitempty"`
+	Login    string            `gorm:"primaryKey;size:255"`
+	UID      string            `gorm:"primaryKey;size:255"`
+	Callsign string            `gorm:"size:255"`
+	Team     string            `gorm:"size:255"`
+	Role     string            `gorm:"size:255"`
+	CotType  string            `gorm:"size:255"`
+	Options  map[string]string `gorm:"serializer:json"`
 }
 
 type ProfileDTO struct {

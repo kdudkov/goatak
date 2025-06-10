@@ -81,6 +81,7 @@ func (h *HttpServer) NewAdminAPI(app *App, addr string, webtakRoot string) *Admi
 	api.f.Put("/api/device/:id", getApiDevicePutHandler(app))
 	api.f.Get("/api/profile", getApiProfilesHandler(app))
 	api.f.Post("/api/profile", getApiProfilePostHandler(app))
+	api.f.Put("/api/profile/:login", getApiProfilePutHandler(app))
 	api.f.Put("/api/profile/:login/:uid", getApiProfilePutHandler(app))
 
 	api.f.Get("/api/mission", getApiAllMissionHandler(app))
@@ -622,7 +623,9 @@ func getApiProfilePutHandler(app *App) fiber.Handler {
 		p.CotType = m.CotType
 		p.Options = m.Options
 
-		app.dbm.Save(p)
+		if err := app.dbm.ForceSave(p); err != nil {
+			return ctx.JSON(fiber.Map{"error": err.Error()})	
+		}
 
 		return ctx.JSON(fiber.Map{"status": "ok"})
 	}

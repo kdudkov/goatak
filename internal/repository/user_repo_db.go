@@ -7,7 +7,7 @@ import (
 
 	"gopkg.in/yaml.v3"
 
-	"github.com/kdudkov/goatak/cmd/goatak_server/database"
+	"github.com/kdudkov/goatak/internal/database"
 	"github.com/kdudkov/goatak/internal/cache"
 	"github.com/kdudkov/goatak/pkg/model"
 )
@@ -28,7 +28,7 @@ func NewUserDbRepository(userFile string, dbm *database.DatabaseManager) *UserDb
 		dbm:      dbm,
 	}
 
-	u.cache = cache.NewWithTTL[*model.Device](time.Second*10, u.loadUser)
+	u.cache = cache.NewWithTTL(time.Second*10, u.loadUser)
 
 	return u
 }

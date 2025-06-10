@@ -13,13 +13,13 @@ const (
 type Change struct {
 	ID             uint      `gorm:"primaryKey"`
 	CreatedAt      time.Time `gorm:"index"`
-	Type           string
-	MissionID      uint `gorm:"index;not null"`
-	CreatorUID     string
-	ContentUID     string
+	Type           string    `gorm:"size:255"`
+	MissionID      uint      `gorm:"index;not null"`
+	CreatorUID     string    `gorm:"size:255"`
+	ContentUID     string    `gorm:"size:255"`
 	MissionPointID *uint
 	MissionPoint   *Point `gorm:"foreignKey:MissionPointID"`
-	ContentHash    string
+	ContentHash    string `gorm:"size:255"`
 	ResourceID     *uint
 	Resource       *Resource `gorm:"foreignKey:ResourceID"`
 }

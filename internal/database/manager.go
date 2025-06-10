@@ -1,12 +1,12 @@
 package database
 
 import (
-	"errors"
 	"fmt"
 	"log/slog"
 	"time"
 
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 
 	"github.com/kdudkov/goatak/pkg/cot"
 	"github.com/kdudkov/goatak/pkg/model"
@@ -55,6 +55,20 @@ func (mm *DatabaseManager) Save(s any) error {
 	return err
 }
 
+func (mm *DatabaseManager) ForceSave(s any) error {
+	if mm == nil || mm.db == nil {
+		return nil
+	}
+
+	err := mm.db.Clauses(clause.OnConflict{UpdateAll: true}).Save(s).Error
+
+	if err != nil {
+		mm.logger.Error("error saving object", slog.Any("error", err))
+	}
+
+	return err
+}
+
 func (mm *DatabaseManager) MissionQuery() *MissionQuery {
 	return NewMissionQuery(mm.db)
 }
@@ -65,6 +79,10 @@ func (mm *DatabaseManager) ResourceQuery() *ResourceQuery {
 
 func (mm *DatabaseManager) SubscriptionQuery() *SubscriptionQuery {
 	return NewSubscriptionQuery(mm.db)
+}
+
+func (mm *DatabaseManager) ChangeQuery() *ChangeQuery {
+	return NewChangeQuery(mm.db)
 }
 
 func (mm *DatabaseManager) InvitationQuery() *InvitationQuery {
@@ -265,17 +283,7 @@ func (mm *DatabaseManager) DeleteMissionContent(mission *model.Mission, hash str
 }
 
 func (mm *DatabaseManager) GetChanges(missionId uint, after time.Time, squashed bool) []*model.Change {
-	var ch []*model.Change
-
-	err := mm.db.Where("changes.mission_id = ? and changes.created_at > ?", missionId, after).
-		Joins("MissionPoint").
-		Joins("Resource").
-		Order("changes.created_at DESC").
-		Find(&ch).Error
-
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return nil
-	}
+	ch := mm.ChangeQuery().Mission(missionId).After(after).Get()
 
 	if !squashed {
 		return ch

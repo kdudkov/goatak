@@ -7,8 +7,8 @@ type Invitation struct {
 	CreatedAt  time.Time
 	MissionID  uint `gorm:"index;not null"`
 	Mission    *Mission
-	Typ        string `gorm:"index;not null"`
-	Invitee    string `gorm:"index;not null"`
-	CreatorUID string
-	Role       string
+	Typ        string `gorm:"index;not null;size:255"`
+	Invitee    string `gorm:"index;not null;size:255"`
+	CreatorUID string `gorm:"size:255"`
+	Role       string `gorm:"size:255"`
 }

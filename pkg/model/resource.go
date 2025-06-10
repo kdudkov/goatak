@@ -13,15 +13,15 @@ import (
 type Resource struct {
 	ID             uint `gorm:"primaryKey"`
 	CreatedAt      time.Time
-	Scope          string `gorm:"index;not null"`
-	Hash           string `gorm:"index"`
-	UID            string `gorm:"uniqueIndex"`
-	Name           string
-	FileName       string
-	MIMEType       string
+	Scope          string `gorm:"index;not null;size:255"`
+	Hash           string `gorm:"index;size:255"`
+	UID            string `gorm:"uniqueIndex;size:255"`
+	Name           string `gorm:"size:255"`
+	FileName       string `gorm:"size:255"`
+	MIMEType       string `gorm:"size:255"`
 	Size           int
-	SubmissionUser string
-	CreatorUID     string
+	SubmissionUser string `gorm:"size:255"`
+	CreatorUID     string `gorm:"size:255"`
 	Tool           string `gorm:"index"`
 	Keywords       string
 	Groups         string
