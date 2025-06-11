@@ -45,8 +45,9 @@ func (app *App) GetProfileFiles(username, uid string, addMaps bool) []mp.FileCon
 	res := make([]mp.FileContent, 0)
 
 	options := profileOpts(
-		app.dbm.ProfileQuery().Login("*").UID("").One(),
-		app.dbm.ProfileQuery().Login(username).UID("").One(),
+		app.dbm.ProfileQuery().Login("*").UID("*").One(),
+		app.dbm.ProfileQuery().Login("*").UID(uid).One(),
+		app.dbm.ProfileQuery().Login(username).UID("*").One(),
 		app.dbm.ProfileQuery().Login(username).UID(uid).One(),
 	)
 

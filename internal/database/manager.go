@@ -46,7 +46,7 @@ func (mm *DatabaseManager) AddDefaults() {
 			"hidePreferenceItem_deviceProfileEnableOnConnect": "true",
 		}
 
-		if err := mm.Save(&model.Profile{Login: "*", UID: "", Options: defaultPrefs}); err != nil {
+		if err := mm.Save(&model.Profile{Login: "*", UID: "*", Options: defaultPrefs}); err != nil {
 			mm.logger.Error("error create profile", slog.Any("error", err))
 		}
 	}

@@ -21,6 +21,7 @@ func TestProfiles(t *testing.T) {
 
 	m.Create(&model.Profile{
 		Login: "*",
+		UID:   "*",
 		Options: map[string]string{
 			"team_color_gps_icon": "true",
 			"coord_display_pref":  "DD",
@@ -29,6 +30,7 @@ func TestProfiles(t *testing.T) {
 
 	m.Create(&model.Profile{
 		Login:    username,
+		UID:      "*",
 		Callsign: "aaa",
 		Team:     "Red",
 		Options:  map[string]string{"dexControls": "true"},
@@ -42,12 +44,12 @@ func TestProfiles(t *testing.T) {
 	})
 
 	options := profileOpts(
-		m.ProfileQuery().Login("*").UID("").One(),
-		m.ProfileQuery().Login(username).UID("").One(),
+		m.ProfileQuery().Login("*").UID("*").One(),
+		m.ProfileQuery().Login(username).UID("*").One(),
 		m.ProfileQuery().Login(username).UID(uid).One(),
 	)
 
-	require.Len(t, options, len(defaultPrefs)+4)
+	require.Len(t, options, 4)
 	require.Equal(t, "Red", options["locationTeam"])
 	require.Equal(t, "bbb", options["locationCallsign"])
 	require.Equal(t, "false", options["dexControls"])
