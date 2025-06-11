@@ -19,12 +19,37 @@ type DatabaseManager struct {
 }
 
 func New(db *gorm.DB) *DatabaseManager {
-	mn := &DatabaseManager{
+	m := &DatabaseManager{
 		db:     db,
 		logger: slog.With("logger", "dbm"),
 	}
 
-	return mn
+	m.AddDefaults()
+
+	return m
+}
+
+func (mm *DatabaseManager) AddDefaults() {
+	if mm.ProfileQuery().Count() == 0 {
+		defaultPrefs := map[string]string{
+			"deviceProfileEnableOnConnect":  "true",
+			"speed_unit_pref":               "1",
+			"alt_unit_pref":                 "1",
+			"saHasPhoneNumber":              "false",
+			"alt_display_pref":              "MSL",
+			"coord_display_pref":            "DD",
+			"rab_north_ref_pref":            "1",
+			"rab_brg_units":                 "0",
+			"rab_nrg_units":                 "1",
+			"displayServerConnectionWidget": "true",
+			"frame_limit":                   "1",
+			"hidePreferenceItem_deviceProfileEnableOnConnect": "true",
+		}
+
+		if err := mm.Save(&model.Profile{Login: "*", UID: "", Options: defaultPrefs}); err != nil {
+			mm.logger.Error("error create profile", slog.Any("error", err))
+		}
+	}
 }
 
 func (mm *DatabaseManager) Create(s any) error {

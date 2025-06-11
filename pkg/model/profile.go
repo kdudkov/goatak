@@ -1,13 +1,16 @@
 package model
 
+import "time"
+
 type Profile struct {
-	Login    string            `gorm:"primaryKey;size:255"`
-	UID      string            `gorm:"primaryKey;size:255"`
-	Callsign string            `gorm:"size:255"`
-	Team     string            `gorm:"size:255"`
-	Role     string            `gorm:"size:255"`
-	CotType  string            `gorm:"size:255"`
-	Options  map[string]string `gorm:"serializer:json"`
+	Login     string `gorm:"primaryKey;size:255"`
+	UID       string `gorm:"primaryKey;size:255"`
+	UpdatedAt time.Time
+	Callsign  string            `gorm:"size:255"`
+	Team      string            `gorm:"size:255"`
+	Role      string            `gorm:"size:255"`
+	CotType   string            `gorm:"size:255"`
+	Options   map[string]string `gorm:"serializer:json"`
 }
 
 type ProfileDTO struct {

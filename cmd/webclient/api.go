@@ -3,11 +3,15 @@ package main
 import (
 	"context"
 	"crypto/tls"
+	"errors"
 	"fmt"
+	"io"
 	"log/slog"
 	"net/http"
+	"os"
 	"time"
 
+	"github.com/gofiber/fiber/v2"
 	"github.com/kdudkov/goutils/request"
 
 	"github.com/kdudkov/goatak/pkg/model"
@@ -56,6 +60,45 @@ func (r *RemoteAPI) getContacts(ctx context.Context) ([]*model.Contact, error) {
 	err := r.request("/Marti/api/contacts/all").GetJSON(ctx, &dat)
 
 	return dat, err
+}
+
+func (r *RemoteAPI) getConfig(ctx context.Context, uid string) (string, error) {
+
+	resp, err := r.request("/Marti/api/device/profile/connection").Args(map[string]string{"clientUid": uid}).DoRes(ctx)
+
+	if err != nil {
+		return "", err
+	}
+
+	if resp.StatusCode != 200 {
+		return "", errors.New("bad status " + resp.Status)
+	}
+
+	if resp.Body == nil {
+		return "", errors.New("null body")
+	}
+
+	defer resp.Body.Close()
+
+	disp := resp.Header.Get(fiber.HeaderContentDisposition)
+
+	fname := fmt.Sprintf("config_%s.zip", uid)
+
+	if disp != "" {
+		r.logger.Info("Content: " + disp)
+	}
+
+	fd, err := os.Create(fname)
+
+	if err != nil {
+		return "", err
+	}
+
+	defer fd.Close()
+
+	_, err = io.Copy(fd, resp.Body)
+
+	return fname, err
 }
 
 func (app *App) periodicGetter(ctx context.Context) {

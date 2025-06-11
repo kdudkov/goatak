@@ -512,22 +512,26 @@ func getProfileConnectionHandler(app *App) fiber.Handler {
 			return ctx.SendStatus(fiber.StatusForbidden)
 		}
 
-		files := app.GetProfileFiles(username, uid)
+		files := app.GetProfileFiles(username, uid, false)
+
 		if len(files) == 0 {
 			return ctx.SendStatus(fiber.StatusNoContent)
 		}
 
-		missionPackage := mp.NewMissionPackage(uuid.NewSHA1(uuid.Nil, []byte(username)).String(), "Connection")
+		//missionPackage := mp.NewMissionPackage(uuid.NewString(), "Connection")
+		missionPackage := mp.NewMissionPackage(uuid.NewSHA1(uuid.Nil, []byte(uid)).String(), "Connection")
 		missionPackage.Param("onReceiveImport", "true")
 		missionPackage.Param("onReceiveDelete", "true")
 		missionPackage.AddFiles(files...)
 		dat, err := missionPackage.Create()
+
 		if err != nil {
 			return err
 		}
 
 		ctx.Set(fiber.HeaderContentType, "application/zip")
 		ctx.Set(fiber.HeaderContentDisposition, "attachment; filename=profile.zip")
+
 		return ctx.Send(dat)
 	}
 }

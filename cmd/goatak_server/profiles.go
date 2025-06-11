@@ -11,25 +11,8 @@ import (
 	"github.com/kdudkov/goatak/pkg/model"
 )
 
-var defaultPrefs = map[string]string{
-	"deviceProfileEnableOnConnect":  "true",
-	"speed_unit_pref":               "1",
-	"alt_unit_pref":                 "1",
-	"saHasPhoneNumber":              "false",
-	"alt_display_pref":              "MSL",
-	"coord_display_pref":            "DM",
-	"rab_north_ref_pref":            "1",
-	"rab_brg_units":                 "0",
-	"rab_nrg_units":                 "1",
-	"displayServerConnectionWidget": "true",
-	"frame_limit":                   "1",
-	"hidePreferenceItem_deviceProfileEnableOnConnect": "true",
-}
-
 func profileOpts(profiles ...*model.Profile) map[string]string {
 	res := make(map[string]string)
-
-	maps.Copy(res, defaultPrefs)
 
 	for _, p := range profiles {
 		if p == nil {
@@ -58,7 +41,7 @@ func profileOpts(profiles ...*model.Profile) map[string]string {
 	return res
 }
 
-func (app *App) GetProfileFiles(username, uid string) []mp.FileContent {
+func (app *App) GetProfileFiles(username, uid string, addMaps bool) []mp.FileContent {
 	res := make([]mp.FileContent, 0)
 
 	options := profileOpts(
@@ -74,6 +57,10 @@ func (app *App) GetProfileFiles(username, uid string) []mp.FileContent {
 		}
 
 		res = append(res, conf)
+	}
+
+	if !addMaps {
+		return res
 	}
 
 	if paths, err := os.ReadDir(filepath.Join(app.config.DataDir(), "maps")); err == nil {

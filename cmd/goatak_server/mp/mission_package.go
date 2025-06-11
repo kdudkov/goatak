@@ -20,7 +20,11 @@ type MissionPackage struct {
 }
 
 func NewMissionPackage(uid, name string) *MissionPackage {
-	return &MissionPackage{version: 2, params: map[string]string{"uid": uid, "name": name}}
+	return &MissionPackage{
+		version: 2,
+		params:  map[string]string{"uid": uid, "name": name},
+		files:   nil,
+	}
 }
 
 func (m *MissionPackage) Param(k, v string) {
@@ -130,7 +134,7 @@ func NewPrefFile(name string) *PrefFile {
 	return &PrefFile{name: name, data: make(map[string]map[string]string)}
 }
 
-func (p *PrefFile) AddParam(pref, k,v string) {
+func (p *PrefFile) AddParam(pref, k, v string) {
 	if _, ok := p.data[pref]; !ok {
 		p.data[pref] = make(map[string]string)
 	}
@@ -154,17 +158,17 @@ func (p *PrefFile) Content() []byte {
 
 	for name, data := range p.data {
 		sb.WriteString(fmt.Sprintf("<preference version=\"1\" name=\"%s\">\n", name))
-		
+
 		for k, v := range data {
 			e := GetEntry(k, v)
 			if e != "" {
-				sb.WriteString(e + "\n")				
+				sb.WriteString(e + "\n")
 			}
 		}
-		
+
 		sb.WriteString("</preference>")
 	}
-	
+
 	sb.WriteString("</preferences>")
 
 	return sb.Bytes()

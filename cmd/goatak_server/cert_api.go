@@ -254,11 +254,12 @@ func getProfileEnrollmentHandler(app *App) fiber.Handler {
 			return ctx.SendStatus(fiber.StatusForbidden)
 		}
 
-		files := app.GetProfileFiles(username, uid)
+		files := app.GetProfileFiles(username, uid, true)
 		if len(files) == 0 {
 			return ctx.SendStatus(fiber.StatusNoContent)
 		}
 
+		//pkg := mp.NewMissionPackage(uuid.NewString(), "Enrollment")
 		pkg := mp.NewMissionPackage(uuid.NewSHA1(uuid.Nil, []byte(username)).String(), "Enrollment")
 		pkg.Param("onReceiveImport", "true")
 		pkg.Param("onReceiveDelete", "true")

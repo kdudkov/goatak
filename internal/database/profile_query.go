@@ -1,6 +1,8 @@
 package database
 
 import (
+	"time"
+
 	"gorm.io/gorm"
 
 	"github.com/kdudkov/goatak/pkg/model"
@@ -10,6 +12,7 @@ type ProfileQuery struct {
 	Query[model.Profile]
 	login string
 	uid   string
+	after time.Time
 }
 
 func NewProfileQuery(db *gorm.DB) *ProfileQuery {
@@ -49,6 +52,11 @@ func (q *ProfileQuery) UID(uid string) *ProfileQuery {
 	return q
 }
 
+func (q *ProfileQuery) After(t time.Time) *ProfileQuery {
+	q.after = t
+	return q
+}
+
 func (q *ProfileQuery) where() *gorm.DB {
 	tx := q.db
 
@@ -58,6 +66,10 @@ func (q *ProfileQuery) where() *gorm.DB {
 
 	if q.uid != "*" {
 		tx = tx.Where("uid = ?", q.uid)
+	}
+
+	if !q.after.IsZero() {
+		tx = tx.Where("update_time >= ?", q.after)
 	}
 
 	return tx

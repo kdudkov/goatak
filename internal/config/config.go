@@ -57,6 +57,7 @@ func (c *AppConfig) LoadEnv(prefix string) error {
 			}
 		}
 		slog.Info("ENV param: " + s1)
+
 		return s1
 	}), nil)
 }

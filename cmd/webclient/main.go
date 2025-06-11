@@ -180,6 +180,8 @@ func (app *App) Run(ctx context.Context) {
 			})
 
 			go app.cl.Start()
+
+			app.remoteAPI.getConfig(ctx1, app.uid)
 			go app.periodicGetter(ctx1)
 			go app.myPosSender(ctx1, wg)
 
