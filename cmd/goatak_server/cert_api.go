@@ -259,6 +259,8 @@ func getProfileEnrollmentHandler(app *App) fiber.Handler {
 			return ctx.SendStatus(fiber.StatusNoContent)
 		}
 
+		app.logger.Info(fmt.Sprintf("prepare enrollment dp for uid %s, %d files", uid, len(files)))
+
 		//pkg := mp.NewMissionPackage(uuid.NewString(), "Enrollment")
 		pkg := mp.NewMissionPackage(uuid.NewSHA1(uuid.Nil, []byte(username)).String(), "Enrollment")
 		pkg.Param("onReceiveImport", "true")

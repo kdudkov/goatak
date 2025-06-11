@@ -153,12 +153,12 @@ func (mm *DatabaseManager) Migrate() error {
 	return nil
 }
 
-func (mm *DatabaseManager) UpdateMissionChanged(id uint) {
-	mm.MissionQuery().Id(id).Update(map[string]any{"updated_at": time.Now()})
+func (mm *DatabaseManager) UpdateMissionChanged(id uint) error {
+	return mm.MissionQuery().Id(id).Update(map[string]any{"updated_at": time.Now()})
 }
 
-func (mm *DatabaseManager) UpdateContentTool(id uint, tool string) {
-	mm.MissionQuery().Id(id).Update(map[string]any{"tool": tool})
+func (mm *DatabaseManager) UpdateContentTool(id uint, tool string) error {
+	return mm.MissionQuery().Id(id).Update(map[string]any{"tool": tool})
 }
 
 func (mm *DatabaseManager) AddMissionPoint(mission *model.Mission, msg *cot.CotMessage) *model.Change {

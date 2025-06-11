@@ -518,6 +518,8 @@ func getProfileConnectionHandler(app *App) fiber.Handler {
 			return ctx.SendStatus(fiber.StatusNoContent)
 		}
 
+		app.logger.Info(fmt.Sprintf("prepare connection dp for uid %s, %d files", uid, len(files)))
+
 		//missionPackage := mp.NewMissionPackage(uuid.NewString(), "Connection")
 		missionPackage := mp.NewMissionPackage(uuid.NewSHA1(uuid.Nil, []byte(uid)).String(), "Connection")
 		missionPackage.Param("onReceiveImport", "true")
