@@ -127,7 +127,7 @@ func (h *HttpServer) getAdminLoginHandler() func(c *fiber.Ctx) error {
 			}
 
 			h.log.Warn("invalid login", "user", login)
-			errText = "неправильный пароль"
+			errText = "bad login or password"
 		}
 
 		return c.Render("templates/login", fiber.Map{"login": login, "error": errText})
@@ -226,7 +226,7 @@ func getDevicesPage() fiber.Handler {
 }
 
 func getProfilesPage() fiber.Handler {
-	return func(ctx *fiber.Ctx) error {		
+	return func(ctx *fiber.Ctx) error {
 		data := map[string]any{
 			"theme": "auto",
 			"page":  " profiles",
@@ -624,7 +624,7 @@ func getApiProfilePutHandler(app *App) fiber.Handler {
 		p.Options = m.Options
 
 		if err := app.dbm.ForceSave(p); err != nil {
-			return ctx.JSON(fiber.Map{"error": err.Error()})	
+			return ctx.JSON(fiber.Map{"error": err.Error()})
 		}
 
 		return ctx.JSON(fiber.Map{"status": "ok"})
