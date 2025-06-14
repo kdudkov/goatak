@@ -21,7 +21,7 @@ func NewProfileQuery(db *gorm.DB) *ProfileQuery {
 			db:     db,
 			limit:  100,
 			offset: 0,
-			order:  "login DESC",
+			order:  "login,uid",
 		},
 	}
 }
