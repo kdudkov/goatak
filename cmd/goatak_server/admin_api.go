@@ -82,6 +82,7 @@ func (h *HttpServer) NewAdminAPI(app *App, addr string, webtakRoot string) *Admi
 	api.f.Get("/api/profile", getApiProfilesHandler(app))
 	api.f.Post("/api/profile", getApiProfilePostHandler(app))
 	api.f.Put("/api/profile/:login/:uid", getApiProfilePutHandler(app))
+	api.f.Delete("/api/profile/:login/:uid", getApiProfileDeleteHandler(app))
 
 	api.f.Get("/api/mission", getApiAllMissionHandler(app))
 	api.f.Get("/api/mission/:id/changes", getApiAllMissionChangesHandler(app))
@@ -627,6 +628,19 @@ func getApiProfilePutHandler(app *App) fiber.Handler {
 		p.Options = m.Options
 
 		if err := app.dbm.ForceSave(p); err != nil {
+			return ctx.JSON(fiber.Map{"error": err.Error()})
+		}
+
+		return ctx.JSON(fiber.Map{"status": "ok"})
+	}
+}
+
+func getApiProfileDeleteHandler(app *App) fiber.Handler {
+	return func(ctx *fiber.Ctx) error {
+		login := ctx.Params("login")
+		uid := ctx.Params("uid")
+
+		if err := app.dbm.ProfileQuery().Login(login).UID(uid).Delete(); err != nil {
 			return ctx.JSON(fiber.Map{"error": err.Error()})
 		}
 

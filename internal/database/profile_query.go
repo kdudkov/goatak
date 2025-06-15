@@ -89,3 +89,7 @@ func (q *ProfileQuery) Count() int64 {
 func (q *ProfileQuery) Update(updates map[string]any) error {
 	return q.updateOrError(q.where().Model(&model.Profile{}), updates)
 }
+
+func (q *ProfileQuery) Delete() error {
+	return q.where().Delete(&model.Profile{}).Error
+}

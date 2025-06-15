@@ -169,15 +169,4 @@ func (q *MissionQuery) Delete(id uint) error {
 
 		return nil
 	})
-
-}
-
-func has(arr []string, s string) bool {
-	for _, s1 := range arr {
-		if s1 == s {
-			return true
-		}
-	}
-
-	return false
 }

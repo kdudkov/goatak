@@ -12,6 +12,7 @@
                 <th>Team</th>
                 <th>Role</th>
                 <th>CotType</th>
+                <th>Options</th>
             </tr>
             <tr v-for="p in profiles" @click="current = p">
                 <td>{{ p.login }}</td>
@@ -20,96 +21,153 @@
                 <td>{{ p.team }}</td>
                 <td>{{ p.role }}</td>
                 <td>{{ p.cot_type }}</td>
+                <td>
+                    <span v-if="p.options">{{ Object.keys(p.options).length }}</span><span v-else>0</span>
+                </td>
             </tr>
         </table>
     </div>
     <div class="col-6 h-100 overflow-auto">
         <div v-if="current">
-            <h4>Profile</h4>
-            <div class="my-1">
-                <table class="table table-sm">
-                    <tr>
-                        <th>Login</th>
-                        <td>{{ current.login }}</td>
-                    </tr>
-                    <tr>
-                        <th>UID</th>
-                        <td>{{ current.uid }}</td>
-                    </tr>
-                    <tr>
-                        <th>Callsign</th>
-                        <td>{{ current.callsign }}</td>
-                    </tr>
-                    <tr>
-                        <th>Team</th>
-                        <td>{{ current.team }}</td>
-                    </tr>
-                    <tr>
-                        <th>Role</th>
-                        <td>{{ current.role }}</td>
-                    </tr>
-                    <tr>
-                        <th>CotType</th>
-                        <td>{{ current.cot_type }}</td>
-                    </tr>
-                    <tr v-if="current.options && Object.keys(current.options).length > 0">
-                        <th>Options</th>
-                        <td>
-                            <table class="table table-sm table-bordered">
-                                <thead>
-                                    <tr>
-                                        <th style="width: 40%">Key</th>
-                                        <th style="width: 60%">Value</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr v-for="(value, key) in current.options" :key="key">
-                                        <td><strong>{{ key }}</strong></td>
-                                        <td>{{ value }}</td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </td>
-                    </tr>
-                    <tr v-if="!current.options || Object.keys(current.options).length === 0">
-                        <th>Options</th>
-                        <td><em>No options configured</em></td>
-                    </tr>
-                </table>
+            <h4>Profile login: {{ current.login }} UID: {{ current.uid }}</h4>
+            <div v-if="error" class="alert alert-danger">{{ error }}</div>
+            <form @submit.prevent="send">
+                <div class="mb-3">
+                    <label for="callsign" class="form-label">Callsign</label>
+                    <input class="form-control form-control-sm" id="callsign" v-model="current.callsign">
+                </div>
+                <div class="mb-3">
+                    <label for="team" class="form-label">Team</label>
+                    <select id="team" class="form-select form-select-sm" aria-label="Team" v-model="current.team">
+                        <option></option>
+                        <option>Clear</option>
+                        <option>White</option>
+                        <option>Yellow</option>
+                        <option>Orange</option>
+                        <option>Magenta</option>
+                        <option>Red</option>
+                        <option>Maroon</option>
+                        <option>Purple</option>
+                        <option>Dark Blue</option>
+                        <option>Blue</option>
+                        <option>Cyan</option>
+                        <option>Teal</option>
+                        <option>Green</option>
+                        <option>Dark Green</option>
+                        <option>Brown</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label for="role" class="form-label">Role</label>
+                    <select id="role" class="form-select form-select-sm" aria-label="Role" v-model="current.role">
+                        <option></option>
+                        <option>Team Member</option>
+                        <option>HQ</option>
+                        <option>Team Lead</option>
+                        <option>K9</option>
+                        <option>Forward Observer</option>
+                        <option>Sniper</option>
+                        <option>Medic</option>
+                        <option>RTO</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label for="cot_type" class="form-label">CotType</label>
+                    <input class="form-control form-control-sm" id="cot_type" v-model="current.cot_type">
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label">Options</label>
+                    <div v-if="current.options && Object.keys(current.options).length > 0" class="mb-2">
+                        <div v-for="(value, key) in current.options" :key="key" class="mb-1">
+                            <div class="row align-items-center">
+                                <div class="col-5">
+                                    <input class="form-control form-control-sm" :value="key" readonly>
+                                </div>
+                                <div class="col-5">
+                                    <input class="form-control form-control-sm" v-model="current.options[key]">
+                                </div>
+                                <div class="col-2">
+                                    <button type="button" class="btn btn-sm btn-outline-danger" @click="removeOption(key)">×</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-2">
+                        <div class="row">
+                            <div class="col-5">
+                                <input class="form-control form-control-sm" placeholder="Key" v-model="newOptionKey">
+                            </div>
+                            <div class="col-5">
+                                <input class="form-control form-control-sm" placeholder="Value" v-model="newOptionValue">
+                            </div>
+                            <div class="col-2">
+                                <button type="button" class="btn btn-sm btn-outline-success" @click="addOption()">Add</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="d-flex gap-2">
+                    <button type="button" class="btn min-width-179 btn-warning" @click="send()">Save</button>
+                    <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#deleteModal">Delete</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 
-                <button class="btn btn-outline-primary" @click="edit()"><i class="bi bi-pencil-square"></i> edit
-                </button>
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1"
+     aria-labelledby="deleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteModalLabel">Confirm Delete</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div v-if="current">
+                    <p>Are you sure you want to delete this profile?</p>
+                    <p><strong>Login:</strong> {{ current.login }}</p>
+                    <p><strong>UID:</strong> {{ current.uid }}</p>
+                    <p class="text-danger">This action cannot be undone.</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-danger" @click="deleteProfile()" data-bs-dismiss="modal">Delete Profile</button>
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
             </div>
         </div>
     </div>
 </div>
-<!-- Modal -->
+
+<!-- Create Profile Modal -->
 <div class="modal fade" id="profile_w" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1"
      aria-labelledby="staticBackdropLabel2" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="staticBackdropLabel2"><span v-if="current">{{ current.login }} - {{ current.uid }}</span></h5>
+                <h5 class="modal-title" id="staticBackdropLabel2">Create profile</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <div v-if="error" class="alert alert-danger">{{ error }}</div>
                 <form @submit.prevent="send">
-                    <div class="mb-3" v-if="!current">
+                    <div class="mb-3">
                         <label for="login" class="form-label">Login</label>
-                        <input class="form-control" id="login" v-model="form.login">
+                        <input class="form-control form-control-sm" id="login" v-model="form.login">
                     </div>
-                    <div class="mb-3" v-if="!current">
+                    <div class="mb-3">
                         <label for="uid" class="form-label">UID</label>
-                        <input class="form-control" id="uid" v-model="form.uid">
+                        <input class="form-control form-control-sm" id="uid" v-model="form.uid">
                     </div>
                     <div class="mb-3">
                         <label for="callsign" class="form-label">Callsign</label>
-                        <input class="form-control" id="callsign" v-model="form.callsign">
+                        <input class="form-control form-control-sm" id="callsign" v-model="form.callsign">
                     </div>
                     <div class="mb-3">
                         <label for="team" class="form-label">Team</label>
-                        <select id="team" class="form-select" aria-label="Team" v-model="form.team">
+                        <select id="team" class="form-select form-select-sm" aria-label="Team" v-model="form.team">
                             <option></option>
                             <option>Clear</option>
                             <option>White</option>
@@ -130,7 +188,7 @@
                     </div>
                     <div class="mb-3">
                         <label for="role" class="form-label">Role</label>
-                        <select id="role" class="form-select" aria-label="Role" v-model="form.role">
+                        <select id="role" class="form-select form-select-sm" aria-label="Role" v-model="form.role">
                             <option></option>
                             <option>Team Member</option>
                             <option>HQ</option>
@@ -144,44 +202,12 @@
                     </div>
                     <div class="mb-3">
                         <label for="cot_type" class="form-label">CotType</label>
-                        <input class="form-control" id="cot_type" v-model="form.cot_type">
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label class="form-label">Options</label>
-                        <div v-if="form.options && Object.keys(form.options).length > 0" class="mb-2">
-                            <div v-for="(value, key) in form.options" :key="key" class="mb-1">
-                                <div class="row align-items-center">
-                                    <div class="col-5">
-                                        <input class="form-control form-control-sm" :value="key" readonly>
-                                    </div>
-                                    <div class="col-5">
-                                        <input class="form-control form-control-sm" v-model="form.options[key]">
-                                    </div>
-                                    <div class="col-2">
-                                        <button type="button" class="btn btn-outline-danger btn-sm" @click="removeOption(key)">×</button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="mb-2">
-                            <div class="row">
-                                <div class="col-5">
-                                    <input class="form-control" placeholder="Key" v-model="newOptionKey">
-                                </div>
-                                <div class="col-5">
-                                    <input class="form-control" placeholder="Value" v-model="newOptionValue">
-                                </div>
-                                <div class="col-2">
-                                    <button type="button" class="btn btn-outline-success" @click="addOption()">Add</button>
-                                </div>
-                            </div>
-                        </div>
+                        <input class="form-control form-control-sm" id="cot_type" v-model="form.cot_type">
                     </div>
                 </form>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn min-width-179 btn-warning" @click="send()">Save</button>
+                <button type="button" class="btn min-width-179 btn-warning" @click="send_new()">Create</button>
                 <button type="button" class="btn min-width-179 btn-outline-secondary" data-bs-dismiss="modal">Close
                 </button>
             </div>

@@ -39,45 +39,18 @@ const app = Vue.createApp({
                 team: '',
                 role: '',
                 cot_type: '',
-                options: {},
             };
-            this.newOptionKey = '';
-            this.newOptionValue = '';
             bootstrap.Modal.getOrCreateInstance(document.getElementById('profile_w')).show();
         },
-        edit: function () {
-            this.form = {
-                callsign: this.current.callsign,
-                team: this.current.team,
-                role: this.current.role,
-                cot_type: this.current.cot_type,
-                options: JSON.parse(JSON.stringify(this.current.options || {})), // Deep copy
-            };
-            this.newOptionKey = '';
-            this.newOptionValue = '';
-
-            bootstrap.Modal.getOrCreateInstance(document.getElementById('profile_w')).show();
-        },
-        send: function () {
+        send_new: function () {
             let vm = this;
-            let requestOptions = {};
-            let url = '';
 
-            if (this.current) {
-                requestOptions = {
-                    method: "PUT",
-                    headers: {"Content-Type": "application/json"},
-                    body: JSON.stringify(this.form)
-                };
-                url = '/api/profile/' + this.current.login + '/' + this.current.uid;
-            } else {
                 requestOptions = {
                     method: "POST",
                     headers: {"Content-Type": "application/json"},
                     body: JSON.stringify(this.form)
                 };
                 url = '/api/profile';
-            }
 
             fetch(url, requestOptions)
                 .then(resp => {
@@ -104,20 +77,91 @@ const app = Vue.createApp({
                     this.error = err;
                 });
         },
+        send: function () {
+            let vm = this;
+
+                requestOptions = {
+                    method: "PUT",
+                    headers: {"Content-Type": "application/json"},
+                    body: JSON.stringify(this.current)
+                };
+                url = '/api/profile/' + this.current.login + '/' + this.current.uid;
+
+            fetch(url, requestOptions)
+                .then(resp => {
+                    if (resp.status > 299) {
+                        vm.error = 'error ' + resp.status;
+                        return null;
+                    }
+                    return resp.json();
+                })
+                .then(data => {
+                    if (!data) return;
+
+                    if (data.error) {
+                        vm.error = data.error;
+                        return;
+                    }
+
+                    vm.error = "";
+                    vm.renew();
+                })
+                .catch(err => {
+                    console.log(err);
+                    this.error = err;
+                });
+        },
         addOption: function () {
             if (this.newOptionKey && this.newOptionValue) {
-                if (!this.form.options) {
-                    this.form.options = {};
+                if (!this.current.options) {
+                    this.current.options = {};
                 }
-                this.form.options[this.newOptionKey] = this.newOptionValue;
+                this.current.options[this.newOptionKey] = this.newOptionValue;
                 this.newOptionKey = '';
                 this.newOptionValue = '';
             }
         },
         removeOption: function (key) {
-            if (this.form.options && this.form.options.hasOwnProperty(key)) {
-                delete this.form.options[key];
+            if (this.current.options && this.current.options.hasOwnProperty(key)) {
+                delete this.current.options[key];
             }
+        },
+        deleteProfile: function () {
+            let vm = this;
+
+            if (!this.current) {
+                vm.error = 'No profile selected';
+                return;
+            }
+
+            const requestOptions = {
+                method: "DELETE",
+                headers: {"Content-Type": "application/json"}
+            };
+            const url = '/api/profile/' + this.current.login + '/' + this.current.uid;
+
+            fetch(url, requestOptions)
+                .then(resp => {
+                    if (resp.status > 299) {
+                        vm.error = 'Error deleting profile: ' + resp.status;
+                        return null;
+                    }
+                    return resp.json();
+                })
+                .then(data => {
+                    if (data && data.error) {
+                        vm.error = data.error;
+                        return;
+                    }
+
+                    vm.error = "";
+                    vm.current = null; // Clear current selection
+                    vm.renew(); // Refresh the profiles list
+                })
+                .catch(err => {
+                    console.log(err);
+                    vm.error = 'Error deleting profile: ' + err.message;
+                });
         },
         printCoords: printCoords,
         dt: dtShort,
