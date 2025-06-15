@@ -17,6 +17,8 @@ We offer a [public TAK server](https://takserver.ru) for the community free of c
 * user `test`
 * password `111111`
 
+![Connection settings](img/connect.jpg?raw=true "Settings")
+
 iTAK connect qr-code:
 
 ![QR](img/qr.png?raw=true "QR")
