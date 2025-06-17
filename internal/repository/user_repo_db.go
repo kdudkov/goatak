@@ -7,8 +7,8 @@ import (
 
 	"gopkg.in/yaml.v3"
 
-	"github.com/kdudkov/goatak/internal/database"
 	"github.com/kdudkov/goatak/internal/cache"
+	"github.com/kdudkov/goatak/internal/database"
 	"github.com/kdudkov/goatak/pkg/model"
 )
 
@@ -72,7 +72,7 @@ func (u UserDbRepository) Stop() {
 func (u UserDbRepository) CheckAuth(username, password string) bool {
 	user := u.cache.Load(username)
 
-	if user.Disabled {
+	if user == nil || user.Disabled {
 		return false
 	}
 
