@@ -15,9 +15,11 @@ We offer a [public TAK server](https://takserver.ru) for the community free of c
 **Connect qr-code**:
 
 ATAK:
+
 ![QR](img/qr-enroll.png?raw=true "QR")
 
 iTAK:
+
 ![QR](img/qr.png?raw=true "QR")
 
 Credentials to join test group:
