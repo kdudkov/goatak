@@ -10,7 +10,17 @@ from [releases page](https://github.com/kdudkov/goatak/releases)
 
 ## Free public server
 
-We offer a [public TAK server](https://takserver.ru) for the community free of charge. Credentials to join test group:
+We offer a [public TAK server](https://takserver.ru) for the community free of charge. 
+
+**Connect qr-code**:
+
+ATAK:
+![QR](img/qr-enroll.png?raw=true "QR")
+
+iTAK:
+![QR](img/qr.png?raw=true "QR")
+
+Credentials to join test group:
 
 * address: `takserver.ru`
 * set `Enroll for Client Certificate`
@@ -18,10 +28,6 @@ We offer a [public TAK server](https://takserver.ru) for the community free of c
 * password `111111`
 
 ![Connection settings](img/connect.jpg?raw=true "Settings")
-
-iTAK connect qr-code:
-
-![QR](img/qr.png?raw=true "QR")
 
 ## GoATAK server features
 
