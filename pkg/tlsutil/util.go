@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/x509"
 	"encoding/pem"
+	"errors"
 	"fmt"
 	"log/slog"
 	"strings"
@@ -26,13 +27,21 @@ func ParseBlock(typ string, b []byte) *pem.Block {
 func ParseCert(s string) (*x509.Certificate, error) {
 	csrBlock := ParseBlock("CERTIFICATE", []byte(s))
 
-	return x509.ParseCertificate(csrBlock.Bytes)
+	if csrBlock != nil {
+		return x509.ParseCertificate(csrBlock.Bytes)
+	}
+
+	return nil, errors.New("no CERTIFICATE block")
 }
 
 func ParseCsr(b []byte) (*x509.CertificateRequest, error) {
 	csrBlock := ParseBlock("REQUEST", b)
 
-	return x509.ParseCertificateRequest(csrBlock.Bytes)
+	if csrBlock != nil {
+		return x509.ParseCertificateRequest(csrBlock.Bytes)
+	}
+
+	return nil, errors.New("no REQUEST block")
 }
 
 func MakeP12TrustStoreNamed(passwd string, certs map[string]*x509.Certificate) ([]byte, error) {
@@ -129,7 +138,11 @@ func LogCert(logger *slog.Logger, name string, cert *x509.Certificate) {
 		return
 	}
 
-	logger.Info(fmt.Sprintf("%s sn: %x", name, cert.SerialNumber))
+	if cert.SerialNumber != nil {
+		logger.Info(fmt.Sprintf("%s sn: %x", name, cert.SerialNumber))
+	} else {
+		logger.Warn("no serial")
+	}
 	logger.Info(fmt.Sprintf("%s subject: %s", name, cert.Subject.String()))
 	logger.Info(fmt.Sprintf("%s issuer: %s", name, cert.Issuer.String()))
 	logger.Info(fmt.Sprintf("%s valid till %s", name, cert.NotAfter))
