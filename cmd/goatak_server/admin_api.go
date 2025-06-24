@@ -4,6 +4,7 @@ import (
 	"encoding/xml"
 	"io"
 	"log/slog"
+	"math/rand"
 	"net/http"
 	"sort"
 	"strconv"
@@ -106,31 +107,32 @@ func (api *AdminAPI) Listen() error {
 
 func (h *HttpServer) getAdminLoginHandler() func(c *fiber.Ctx) error {
 	return func(c *fiber.Ctx) error {
-		var errText string
 		login := c.FormValue("login")
 
-		if login != "" {
-			if user := h.userManager.Get(login); user != nil {
-				if user.CheckPassword(c.FormValue("password")) && !user.Disabled && user.CanLogIn() {
-					token, err := generateToken(login, h.tokenKey, h.tokenMaxAge)
-
-					if err != nil {
-						return c.Status(fiber.StatusInternalServerError).SendString(err.Error())
-					}
-
-					cookie := &fiber.Cookie{Name: cookieName,
-						Value: token, Secure: false, HTTPOnly: true, Expires: time.Now().Add(h.tokenMaxAge)}
-					c.Cookie(cookie)
-
-					return c.Redirect("/")
-				}
-			}
-
-			h.log.Warn("invalid login", "user", login)
-			errText = "bad login or password"
+		if login == "" {
+			return c.Render("templates/login", fiber.Map{"login": "", "error": ""})
 		}
 
-		return c.Render("templates/login", fiber.Map{"login": login, "error": errText})
+		if user := h.userManager.Get(login); user != nil {
+			if user.CheckPassword(c.FormValue("password")) && !user.Disabled && user.CanLogIn() {
+				token, err := generateToken(login, h.tokenKey, h.tokenMaxAge)
+
+				if err != nil {
+					return c.Status(fiber.StatusInternalServerError).SendString(err.Error())
+				}
+
+				cookie := &fiber.Cookie{Name: cookieName,
+					Value: token, Secure: false, HTTPOnly: true, Expires: time.Now().Add(h.tokenMaxAge)}
+				c.Cookie(cookie)
+
+				return c.Redirect("/")
+			}
+		}
+
+		h.log.Warn("invalid login", "user", login)
+		time.Sleep(time.Second * time.Duration(1+rand.Intn(5)))
+
+		return c.Render("templates/login", fiber.Map{"login": login, "error": "bad login or password"})
 	}
 }
 
