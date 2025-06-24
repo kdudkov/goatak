@@ -162,6 +162,7 @@ func (w *WebUnit) ToMsg() *cot.CotMessage {
 	}
 
 	xd.AddOrChangeChild("status", map[string]string{"readiness": "true"})
+	xd.AddOrChangeChild("color", map[string]string{"argb": w.Color})
 
 	if w.Text != "" {
 		xd.AddChild("remarks", nil, w.Text)
