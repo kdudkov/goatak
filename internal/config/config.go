@@ -13,6 +13,7 @@ import (
 	"github.com/knadh/koanf/providers/file"
 	"github.com/knadh/koanf/v2"
 
+	"github.com/kdudkov/goatak/internal/layers"
 	"github.com/kdudkov/goatak/pkg/tlsutil"
 )
 
@@ -126,6 +127,19 @@ func (c *AppConfig) LogExclude() []string {
 
 func (c *AppConfig) BlacklistedUID() []string {
 	return c.k.Strings("blacklist")
+}
+
+func (c *AppConfig) Layers() ([]*layers.LayerDescription, error) {
+	if !c.k.Exists("layers") {
+		return layers.GetDefaultLayers(), nil
+	}
+
+	res := make([]*layers.LayerDescription, 0)
+	if err := c.k.Unmarshal("layers", &res); err != nil {
+		return nil, err
+	}
+
+	return res, nil
 }
 
 func (c *AppConfig) ProcessCerts() error {

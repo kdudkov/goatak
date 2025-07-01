@@ -49,7 +49,7 @@ func TestProfiles(t *testing.T) {
 		m.ProfileQuery().Login(username).UID(uid).One(),
 	)
 
-	require.Len(t, options, 4)
+	require.Len(t, options, 5)
 	require.Equal(t, "Red", options["locationTeam"])
 	require.Equal(t, "bbb", options["locationCallsign"])
 	require.Equal(t, "false", options["dexControls"])

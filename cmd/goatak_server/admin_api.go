@@ -245,8 +245,13 @@ func getConfigHandler(app *App) fiber.Handler {
 	m["lon"] = app.lon
 	m["zoom"] = app.zoom
 	m["version"] = getVersion()
+	l, err := app.config.Layers()
 
-	m["layers"] = getDefaultLayers()
+	if err != nil {
+		app.logger.Error("error loading layers", slog.Any("error", err))
+	}
+
+	m["layers"] = l
 
 	return func(ctx *fiber.Ctx) error {
 		return ctx.JSON(m)
@@ -684,32 +689,4 @@ func getTakWsHandler(app *App) fiber.Handler {
 		app.logger.Info("ws disconnected")
 		app.RemoveHandlerCb(w)
 	})
-}
-
-func getDefaultLayers() []map[string]any {
-	return []map[string]any{
-		{
-			"name":    "OSM",
-			"url":     "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-			"maxzoom": 19,
-			"parts":   []string{"a", "b", "c"},
-		},
-		{
-			"name":    "Opentopo.cz",
-			"url":     "https://tile-{s}.opentopomap.cz/{z}/{x}/{y}.png",
-			"maxzoom": 18,
-			"parts":   []string{"a", "b", "c"},
-		},
-		{
-			"name":    "Google Hybrid",
-			"url":     "http://mt{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}&s=Galileo&scale=2",
-			"maxzoom": 20,
-			"parts":   []string{"0", "1", "2", "3"},
-		},
-		{
-			"name":    "Yandex maps",
-			"url":     "https://core-renderer-tiles.maps.yandex.net/tiles?l=map&x={x}&y={y}&z={z}&scale=2&lang=ru_RU&projection=web_mercator",
-			"maxzoom": 20,
-		},
-	}
 }

@@ -24,6 +24,23 @@ me:
   lon: -97.537283
   zoom: 5
 
+layers:
+  - name: OSM
+    url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+    max_zoom: 19
+    server_parts: [ "a", "b", "c" ]
+  - name: Opentopo.cz
+    url: "https://tile-{s}.opentopomap.cz/{z}/{x}/{y}.png"
+    max_zoom: 18
+    server_parts: [ "a", "b", "c" ]
+  - name: Google Hybrid
+    url: "http://mt{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}&s=Galileo&scale=2"
+    max_zoom: 20,
+    server_parts: [ "0", "1", "2", "3" ]
+  - name: Yandex maps
+    url: "https://core-renderer-tiles.maps.yandex.net/tiles?l=map&x={x}&y={y}&z={z}&scale=2&lang=ru_RU&projection=web_mercator"
+    max_zoom: 20
+
 ssl:
   marti: false
   enroll: false

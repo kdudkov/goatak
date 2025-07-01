@@ -88,14 +88,14 @@ const app = Vue.createApp({
                     layers.addTo(map);
 
                     let first = true;
-                    data.layers.forEach(function (i) {
+                    data.layers.forEach(i => {
                         let opts = {
-                            minZoom: i.minZoom ?? 1,
-                            maxZoom: i.maxZoom ?? 20,
+                            minZoom: i.min_zoom ?? 1,
+                            maxZoom: i.max_zoom ?? 20,
                         }
 
                         if (i.parts) {
-                            opts["subdomains"] = i.parts;
+                            opts["subdomains"] = i.server_parts;
                         }
 
                         l = L.tileLayer(i.url, opts);

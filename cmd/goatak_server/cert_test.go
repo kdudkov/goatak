@@ -79,7 +79,7 @@ func Server(addr, certFile, keyFile string) (err error) {
 		log.Printf("%d", len(c1.ConnectionState().PeerCertificates))
 
 		for _, c := range c1.ConnectionState().PeerCertificates {
-			log.Printf(c.Subject.CommonName)
+			log.Println(c.Subject.CommonName)
 		}
 
 		_, _ = c1.Write([]byte("Ok"))
