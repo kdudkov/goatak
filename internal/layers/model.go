@@ -14,7 +14,7 @@ func GetDefaultLayers() []*LayerDescription {
 	return []*LayerDescription{
 		{
 			Name:        "Google Hybrid",
-			URL:         "http://mt{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}&s=Galileo&scale=2",
+			URL:         "https://mt{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}&s=Galileo&scale=2",
 			MaxZoom:     20,
 			ServerParts: []string{"0", "1", "2", "3"},
 		},
