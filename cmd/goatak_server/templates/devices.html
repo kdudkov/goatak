@@ -12,7 +12,7 @@
                 <th>Certs</th>
             </tr>
             <tr v-for="c in devices" @click="current = c">
-                <td>{{ c.login }}</td>
+                <td><span v-if="c.admin"><i class="bi bi-star-fill"></i>&nbsp;</span>{{ c.login }}</td>
                 <td>{{ c.scope }}</td>
                 <td>{{ dt(c.last_connect) }}</td>
                 <td>{{ c.certs && c.certs.length }}</td>
