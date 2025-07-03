@@ -89,6 +89,10 @@ func (c *AppConfig) Int(key string) int {
 	return c.k.Int(key)
 }
 
+func (c *AppConfig) Set(key string, v any) error {
+	return c.k.Set(key, v)
+}
+
 func (c *AppConfig) DataDir() string {
 	return c.k.String("data_dir")
 }
@@ -205,6 +209,8 @@ func setDefaults(k *koanf.Koanf) {
 
 	k.Set("db", "db.sqlite")
 
+	k.Set("delay", true)
+	
 	k.Set("me.lat", 59.8396)
 	k.Set("me.lon", 31.0213)
 	k.Set("users_file", "users.yml")

@@ -47,7 +47,7 @@ func (h *HttpServer) HeaderAuth(c *fiber.Ctx) error {
 }
 
 func (h *HttpServer) CookieAuth(c *fiber.Ctx) error {
-	if c.Path() == h.loginUrl {
+	if c.Path() == h.loginUrl || c.Path() == "/token" {
 		return c.Next()
 	}
 
@@ -95,7 +95,7 @@ func (h *HttpServer) checkToken(tokenStr string) (*model.Device, error) {
 		return nil, badToken
 	}
 
-	if u := h.userManager.Get(claims.Subject); u != nil && !u.Disabled && u.CanLogIn() {
+	if u := h.userManager.Get(claims.Subject); u != nil && u.CanLogIn() {
 		return u, nil
 	}
 

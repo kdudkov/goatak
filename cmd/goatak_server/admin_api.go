@@ -46,9 +46,10 @@ func (h *HttpServer) NewAdminAPI(app *App, addr string, webtakRoot string) *Admi
 
 	staticfiles.Embed(api.f)
 
-	api.f.Get("/login", h.getAdminLoginHandler())
-	api.f.Post("/login", h.getAdminLoginHandler())
-	api.f.Get("/logout", getLogoutHandler())
+	api.f.Get("/login", h.getAdminLoginHandler(app.config.Bool("delay")))
+	api.f.Post("/login", h.getAdminLoginHandler(app.config.Bool("delay")))
+	api.f.Post("/token", h.getAdminTokenHandler())
+	api.f.Get("/logout", logoutHandler)
 
 	api.f.Get("/", getIndexHandler())
 	api.f.Get("/units", getUnitsHandler())
@@ -105,43 +106,66 @@ func (api *AdminAPI) Listen() error {
 	return api.f.Listen(api.addr)
 }
 
-func (h *HttpServer) getAdminLoginHandler() func(c *fiber.Ctx) error {
+func (h *HttpServer) getAdminLoginHandler(delay bool) func(c *fiber.Ctx) error {
 	return func(c *fiber.Ctx) error {
 		login := c.FormValue("login")
 
-		if login == "" {
-			return c.Render("templates/login", fiber.Map{"login": "", "error": ""})
-		}
+		if user := h.userManager.Get(login); user.CanLogIn() && user.CheckPassword(c.FormValue("password")) {
+			token, err := generateToken(login, h.tokenKey, h.tokenMaxAge)
 
-		if user := h.userManager.Get(login); user != nil {
-			if user.CheckPassword(c.FormValue("password")) && !user.Disabled && user.CanLogIn() {
-				token, err := generateToken(login, h.tokenKey, h.tokenMaxAge)
-
-				if err != nil {
-					return c.Status(fiber.StatusInternalServerError).SendString(err.Error())
-				}
-
-				cookie := &fiber.Cookie{Name: cookieName,
-					Value: token, Secure: false, HTTPOnly: true, Expires: time.Now().Add(h.tokenMaxAge)}
-				c.Cookie(cookie)
-
-				return c.Redirect("/")
+			if err != nil {
+				return c.Status(fiber.StatusInternalServerError).SendString(err.Error())
 			}
+
+			cookie := &fiber.Cookie{Name: cookieName,
+				Value: token, Secure: false, HTTPOnly: true, Expires: time.Now().Add(h.tokenMaxAge)}
+			c.Cookie(cookie)
+
+			return c.Redirect("/")
 		}
 
 		h.log.Warn("invalid login", "user", login)
-		time.Sleep(time.Second * time.Duration(1+rand.Intn(5)))
+		if delay {
+			time.Sleep(time.Second * time.Duration(1+rand.Intn(5)))
+		}
 
 		return c.Render("templates/login", fiber.Map{"login": login, "error": "bad login or password"})
 	}
 }
 
-func getLogoutHandler() func(c *fiber.Ctx) error {
+func (h *HttpServer) getAdminTokenHandler() func(c *fiber.Ctx) error {
 	return func(c *fiber.Ctx) error {
-		c.ClearCookie(cookieName)
+		m := make(map[string]string)
 
-		return c.Redirect("/")
+		if err := c.BodyParser(&m); err != nil {
+			return err
+		}
+		
+		if login := m["login"]; login != "" {
+			if user := h.userManager.Get(login); user != nil {
+				if user.CanLogIn() && user.CheckPassword(m["password"]) {
+					token, err := generateToken(login, h.tokenKey, h.tokenMaxAge)
+
+					if err != nil {
+						h.log.Error("generate token error", slog.Any("error", err))
+						return err
+					}
+
+					return c.JSON(fiber.Map{"token": token})
+				}
+			}
+
+			h.log.Warn("invalid login", "user", login)
+		}
+
+		return c.SendStatus(fiber.StatusUnauthorized)
 	}
+}
+
+func logoutHandler(c *fiber.Ctx) error {
+	c.ClearCookie(cookieName)
+
+	return c.Redirect("/")
 }
 
 func getIndexHandler() fiber.Handler {
@@ -486,19 +510,21 @@ func getApiDevicePostHandler(app *App) fiber.Handler {
 		}
 
 		if m.Login == "" {
-			return ctx.JSON(fiber.Map{"error": "пустой логин"})
+			return SendError(ctx, "empty login")
 		}
 
 		if m.Password == "" {
-			return ctx.JSON(fiber.Map{"error": "пустой пароль"})
+			return SendError(ctx, "empty password")
 		}
 
 		if m.Scope == "" {
-			return ctx.JSON(fiber.Map{"error": "пустой scope"})
+			return SendError(ctx, "empty scope")
 		}
 
 		d := &model.Device{
 			Login:     m.Login,
+			Admin:     m.Admin,
+			Disabled:  m.Disabled,
 			Scope:     m.Scope,
 			ReadScope: m.ReadScope,
 		}
@@ -508,10 +534,10 @@ func getApiDevicePostHandler(app *App) fiber.Handler {
 		}
 
 		if err := app.dbm.Create(d); err != nil {
-			return ctx.JSON(fiber.Map{"error": err.Error()})
+			return SendError(ctx, err.Error())
 		}
 
-		return ctx.JSON(fiber.Map{"status": "ok"})
+		return ctx.JSON(d.DTO())
 	}
 }
 
@@ -551,15 +577,14 @@ func getApiDevicePutHandler(app *App) fiber.Handler {
 			}
 		}
 
-		if m.Scope != "" {
-			d.Scope = m.Scope
-		}
-
+		d.Scope = m.Scope
 		d.ReadScope = m.ReadScope
+		d.Admin = m.Admin
+		d.Disabled = m.Disabled
 
 		app.dbm.Save(d)
 
-		return ctx.JSON(fiber.Map{"status": "ok"})
+		return ctx.JSON(d.DTO())
 	}
 }
 
@@ -586,7 +611,7 @@ func getApiProfilePostHandler(app *App) fiber.Handler {
 		}
 
 		if m.Login == "" {
-			return ctx.JSON(fiber.Map{"error": "empty login"})
+			return SendError(ctx, "empty login")
 		}
 
 		p := &model.Profile{
@@ -604,10 +629,10 @@ func getApiProfilePostHandler(app *App) fiber.Handler {
 		}
 
 		if err := app.dbm.Create(p); err != nil {
-			return ctx.JSON(fiber.Map{"error": err.Error()})
+			return SendError(ctx, err.Error())
 		}
 
-		return ctx.JSON(fiber.Map{"status": "ok"})
+		return ctx.JSON(p.DTO())
 	}
 }
 
@@ -635,10 +660,10 @@ func getApiProfilePutHandler(app *App) fiber.Handler {
 		p.Options = m.Options
 
 		if err := app.dbm.ForceSave(p); err != nil {
-			return ctx.JSON(fiber.Map{"error": err.Error()})
+			return SendError(ctx, err.Error())
 		}
 
-		return ctx.JSON(fiber.Map{"status": "ok"})
+		return ctx.JSON(p.DTO())
 	}
 }
 
@@ -648,7 +673,7 @@ func getApiProfileDeleteHandler(app *App) fiber.Handler {
 		uid := ctx.Params("uid")
 
 		if err := app.dbm.ProfileQuery().Login(login).UID(uid).Delete(); err != nil {
-			return ctx.JSON(fiber.Map{"error": err.Error()})
+			return SendError(ctx, err.Error())
 		}
 
 		return ctx.JSON(fiber.Map{"status": "ok"})

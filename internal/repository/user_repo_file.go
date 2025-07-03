@@ -138,8 +138,8 @@ func (r *AdminMemRepository) CheckAuth(username, password string) bool {
 	r.mx.RLock()
 	defer r.mx.RUnlock()
 
-	if user, ok := r.users[username]; ok && !user.Disabled {
-		return user.CheckPassword(password)
+	if user, ok := r.users[username]; ok {
+		return user.IsGood() && user.CheckPassword(password)
 	}
 
 	return false
@@ -149,7 +149,7 @@ func (r *AdminMemRepository) IsValid(username, sn string) bool {
 	r.mx.RLock()
 	defer r.mx.RUnlock()
 	if u, ok := r.users[username]; ok {
-		return !u.Disabled
+		return u.IsGood()
 	}
 
 	return false

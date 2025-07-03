@@ -24,8 +24,6 @@ func New(db *gorm.DB) *DatabaseManager {
 		logger: slog.With("logger", "dbm"),
 	}
 
-	m.AddDefaults()
-
 	return m
 }
 
@@ -149,7 +147,7 @@ func (mm *DatabaseManager) Migrate() error {
 	); err != nil {
 		return err
 	}
-
+	
 	return nil
 }
 

@@ -53,7 +53,7 @@ func (u UserDbRepository) Start() error {
 				return err
 			}
 
-			d = &model.Device{Login: "admin", Scope: "admin"}
+			d = &model.Device{Login: "admin", Scope: "admin", Admin: true}
 			_ = d.SetPassword("admin")
 
 			if err := u.dbm.Create(d); err != nil {
@@ -72,17 +72,13 @@ func (u UserDbRepository) Stop() {
 func (u UserDbRepository) CheckAuth(username, password string) bool {
 	user := u.cache.Load(username)
 
-	if user == nil || user.Disabled {
-		return false
-	}
-
-	return user.CheckPassword(password)
+	return user.IsGood() && user.CheckPassword(password)
 }
 
 func (u UserDbRepository) IsValid(username, sn string) bool {
 	user := u.cache.Load(username)
 
-	return user != nil && !user.Disabled
+	return user != nil && user.IsGood()
 }
 
 func (u UserDbRepository) Get(username string) *model.Device {

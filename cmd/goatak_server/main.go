@@ -75,6 +75,8 @@ func NewApp(config *config.AppConfig) *App {
 		panic(err)
 	}
 
+	app.dbm.AddDefaults()
+	
 	app.users = repository.NewUserDbRepository(config.UsersFile(), app.dbm)
 
 	return app

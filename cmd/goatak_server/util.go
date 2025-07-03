@@ -27,3 +27,7 @@ func queryIgnoreCase(c *fiber.Ctx, name string) string {
 
 	return ""
 }
+
+func SendError(c *fiber.Ctx, text string) error {
+	return c.Status(fiber.StatusNotAcceptable).JSON(fiber.Map{"error": text})
+}
