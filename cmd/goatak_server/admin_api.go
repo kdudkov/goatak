@@ -110,6 +110,10 @@ func (h *HttpServer) getAdminLoginHandler(delay bool) func(c *fiber.Ctx) error {
 	return func(c *fiber.Ctx) error {
 		login := c.FormValue("login")
 
+		if login == "" {
+			return c.Render("templates/login", nil)
+		}
+
 		if user := h.userManager.Get(login); user.CanLogIn() && user.CheckPassword(c.FormValue("password")) {
 			token, err := generateToken(login, h.tokenKey, h.tokenMaxAge)
 
@@ -125,6 +129,7 @@ func (h *HttpServer) getAdminLoginHandler(delay bool) func(c *fiber.Ctx) error {
 		}
 
 		h.log.Warn("invalid login", "user", login)
+
 		if delay {
 			time.Sleep(time.Second * time.Duration(1+rand.Intn(5)))
 		}
@@ -140,7 +145,7 @@ func (h *HttpServer) getAdminTokenHandler() func(c *fiber.Ctx) error {
 		if err := c.BodyParser(&m); err != nil {
 			return err
 		}
-		
+
 		if login := m["login"]; login != "" {
 			if user := h.userManager.Get(login); user != nil {
 				if user.CanLogIn() && user.CheckPassword(m["password"]) {
