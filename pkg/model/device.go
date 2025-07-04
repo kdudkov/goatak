@@ -22,7 +22,7 @@ type Device struct {
 
 type DeviceDTO struct {
 	Login       string            `json:"login"`
-	Scope       string            `json:"scope,omitempty"`
+	Scope       string            `json:"scope"`
 	Disabled    bool              `json:"disabled"`
 	Admin       bool              `json:"admin,omitempty"`
 	ReadScope   []string          `json:"read_scope,omitempty"`
@@ -119,7 +119,7 @@ func (u *Device) IsGood() bool {
 	if u == nil {
 		return false
 	}
-	
+
 	return !u.Disabled
 }
 
