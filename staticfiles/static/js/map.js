@@ -94,7 +94,7 @@ const app = Vue.createApp({
                             maxZoom: i.max_zoom ?? 20,
                         }
 
-                        if (i.parts) {
+                        if (i.server_parts) {
                             opts["subdomains"] = i.server_parts;
                         }
 
