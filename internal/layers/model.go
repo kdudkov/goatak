@@ -1,13 +1,13 @@
 package layers
 
 type LayerDescription struct {
-	Name        string   `yaml:"name" json:"name"`
-	URL         string   `yaml:"url" json:"url"`
-	MinZoom     int      `yaml:"min_zoom" json:"min_zoom,omitempty"`
-	MaxZoom     int      `yaml:"max_zoom" json:"max_zoom,omitempty"`
-	Tms         bool     `yaml:"tms" json:"tms,omitempty"`
-	TileType    string   `yaml:"tile_type" json:"tile_type,omitempty"`
-	ServerParts []string `yaml:"server_parts" json:"server_parts,omitempty"`
+	Name        string   `yaml:"name" json:"name" koanf:"name"`
+	URL         string   `yaml:"url" json:"url" koanf:"url"`
+	MinZoom     int      `yaml:"min_zoom" json:"min_zoom,omitempty" koanf:"min_zoom"`
+	MaxZoom     int      `yaml:"max_zoom" json:"max_zoom,omitempty" koanf:"max_zoom"`
+	Tms         bool     `yaml:"tms" json:"tms,omitempty" koanf:"tms"`
+	TileType    string   `yaml:"tile_type" json:"tile_type,omitempty" koanf:"tile_type"`
+	ServerParts []string `yaml:"server_parts" json:"server_parts,omitempty" koanf:"server_parts"`
 }
 
 func GetDefaultLayers() []*LayerDescription {
