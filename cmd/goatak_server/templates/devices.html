@@ -2,7 +2,9 @@
     <div class="col-6 h-100 overflow-auto">
         <h4>Devices</h4>
         <div class="my-2">
-            <button class="btn btn-outline-primary" @click="create()">Create</button>
+            <button class="btn btn-outline-primary" @click="create()">
+                Create
+            </button>
         </div>
         <table class="table table-hover table-sm">
             <tr>
@@ -12,7 +14,11 @@
                 <th>Certs</th>
             </tr>
             <tr v-for="c in devices" @click="current = c">
-                <td><span v-if="c.admin"><i class="bi bi-star-fill"></i>&nbsp;</span>{{ c.login }}</td>
+                <td>
+                    <span v-if="c.admin"><i class="bi bi-star-fill text-danger"></i>&nbsp;</span>
+                    <span v-if="c.disabled"><i class="bi bi-sign-stop-fill text-danger"></i>&nbsp;</span>
+                    {{ c.login }}
+                </td>
                 <td>{{ c.scope }}</td>
                 <td>{{ dt(c.last_connect) }}</td>
                 <td>{{ c.certs && c.certs.length }}</td>
@@ -30,15 +36,26 @@
                     </tr>
                     <tr>
                         <th>Scope</th>
-                        <td><span class="badge text-bg-success">{{ current.scope }}</span></td>
+                        <td>
+                            <span class="badge text-bg-success"
+                                >{{ current.scope }}</span
+                            >
+                        </td>
                     </tr>
                     <tr>
                         <th>Read scope</th>
-                        <td><span v-for="s in current.read_scope" class="badge text-bg-success me-1">{{ s }}</span></td>
+                        <td>
+                            <span
+                                v-for="s in current.read_scope"
+                                class="badge text-bg-success me-1"
+                                >{{ s }}</span
+                            >
+                        </td>
                     </tr>
                 </table>
 
-                <button class="btn btn-outline-primary" @click="edit()"><i class="bi bi-pencil-square"></i> edit
+                <button class="btn btn-outline-primary" @click="edit()">
+                    <i class="bi bi-pencil-square"></i> edit
                 </button>
             </div>
             <h4>Certificates</h4>
@@ -56,56 +73,127 @@
                     <td>{{ c.serial }}</td>
                 </tr>
             </table>
-
         </div>
     </div>
 </div>
 <!-- Modal -->
-<div class="modal fade" id="device_w" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1"
-     aria-labelledby="staticBackdropLabel2" aria-hidden="true">
+<div
+    class="modal fade"
+    id="device_w"
+    data-bs-backdrop="static"
+    data-bs-keyboard="false"
+    tabindex="-1"
+    aria-labelledby="staticBackdropLabel2"
+    aria-hidden="true"
+>
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="staticBackdropLabel2"><span v-if="current">{{ current.login }}</span></h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <h5 class="modal-title" id="staticBackdropLabel2">
+                    <span v-if="current">{{ current.login }}</span>
+                </h5>
+                <button
+                    type="button"
+                    class="btn-close"
+                    data-bs-dismiss="modal"
+                    aria-label="Close"
+                ></button>
             </div>
             <div class="modal-body">
                 <div v-if="error" class="alert alert-danger">{{ error }}</div>
                 <form @submit.prevent="send">
                     <div class="mb-3" v-if="!current">
                         <label for="login" class="form-label">Login</label>
-                        <input class="form-control" id="login" v-model="form.login">
+                        <input
+                            class="form-control"
+                            id="login"
+                            v-model="form.login"
+                        />
                     </div>
                     <div class="mb-3">
                         <label for="scope" class="form-label">Scope</label>
-                        <input class="form-control" id="scope" v-model="form.scope">
+                        <input
+                            class="form-control"
+                            id="scope"
+                            v-model="form.scope"
+                        />
                     </div>
 
                     <div class="mb-3">
-                        <label for="password" class="form-label">Password</label>
-                        <input type="password" class="form-control" id="callsign" v-model="form.password">
+                        <label for="password" class="form-label"
+                            >Password</label
+                        >
+                        <input
+                            type="password"
+                            class="form-control"
+                            id="callsign"
+                            v-model="form.password"
+                        />
                     </div>
                     <div class="mb-3">
-                        <label for="add_scope" class="form-label">Read scope</label>
+                        <label for="add_scope" class="form-label"
+                            >Read scope</label
+                        >
                         <div class="row">
                             <div class="col-auto">
-                                <input class="form-control" id="add_scope" v-model="scope1">
+                                <input
+                                    class="form-control"
+                                    id="add_scope"
+                                    v-model="scope1"
+                                />
                             </div>
                             <div class="col-auto">
-                                <button type="button" class="btn btn-warning" @click="form_add()">Add</button>
+                                <button
+                                    type="button"
+                                    class="btn btn-warning"
+                                    @click="form_add()"
+                                >
+                                    Add
+                                </button>
                             </div>
                         </div>
                     </div>
                     <div class="mb-3">
-                        <span v-for="s in form.read_scope" class="badge rounded-pill text-bg-success me-1">{{ s }}
-                            <span class="badge rounded-pill text-bg-danger" @click="form_del(s)">x</span>
+                        <span
+                            v-for="s in form.read_scope"
+                            class="badge rounded-pill text-bg-success me-1"
+                            >{{ s }}
+                            <span
+                                class="badge rounded-pill text-bg-danger"
+                                @click="form_del(s)"
+                                >x</span
+                            >
                         </span>
+                    </div>
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input
+                                class="form-check-input"
+                                type="checkbox"
+                                id="disabled"
+                                v-model="form.disabled"
+                            />
+                            <label class="form-check-label" for="disabled">
+                                Disabled
+                            </label>
+                        </div>
                     </div>
                 </form>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn min-width-179 btn-warning" @click="send()">Сохранить</button>
-                <button type="button" class="btn min-width-179 btn-outline-secondary" data-bs-dismiss="modal">Закрыть
+                <button
+                    type="button"
+                    class="btn min-width-179 btn-warning"
+                    @click="send()"
+                >
+                    Сохранить
+                </button>
+                <button
+                    type="button"
+                    class="btn min-width-179 btn-outline-secondary"
+                    data-bs-dismiss="modal"
+                >
+                    Закрыть
                 </button>
             </div>
         </div>

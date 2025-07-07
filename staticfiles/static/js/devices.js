@@ -37,6 +37,7 @@ const app = Vue.createApp({
                 scope: '',
                 read_scope: ['admin', 'public'],
                 password: '',
+                disabled: false,
             };
             bootstrap.Modal.getOrCreateInstance(document.getElementById('device_w')).show();
         },
@@ -45,6 +46,7 @@ const app = Vue.createApp({
             this.form = {
                 scope: this.current.scope,
                 password: '',
+                disabled: this.current.disabled || false,
             };
 
             if (this.current.read_scope) {
@@ -106,18 +108,20 @@ const app = Vue.createApp({
                         return;
                     }
 
-                    vm.error = "";
-                    bootstrap.Modal.getOrCreateInstance(document.getElementById('device_w')).hide();
-                    vm.renew();
-                })
-                .catch(err => {
-                    console.log(err);
-                    this.error = err;
-                });
-        },
-        printCoords: printCoords,
-        dt: dtShort,
+          vm.error = "";
+          bootstrap.Modal.getOrCreateInstance(
+            document.getElementById("device_w"),
+          ).hide();
+          vm.renew();
+        })
+        .catch((err) => {
+          console.log(err);
+          this.error = err;
+        });
     },
+    printCoords: printCoords,
+    dt: dtShort,
+  },
 });
 
-app.mount('#app');
+app.mount("#app");

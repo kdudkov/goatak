@@ -254,7 +254,7 @@ func (app *App) connect(connectStr string) (net.Conn, error) {
 		return nil, fmt.Errorf("invalid connect string: %s", connectStr)
 	}
 
-	addr := fmt.Sprintf("%s:%s", parts[0], parts[1])
+	addr := net.JoinHostPort(parts[0], parts[1])
 
 	if tlsConn {
 		app.logger.Info(fmt.Sprintf("connecting with SSL to %s...", connectStr))
