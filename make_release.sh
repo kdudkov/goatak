@@ -12,9 +12,16 @@ echo "Current changelog:"
 changie batch $1 -d
 echo
 
+git_tag=$(git describe --tags --abbrev=0)
 rev=$(git rev-list --tags --max-count=1)
+tag=$(changie latest)
 
-if [[ -n "$rev" ]]; then
+if [[ "${git_tag}" != "${tag}" ]]; then
+	echo "last git tag is ${git_tag}, but changie reports ${tag}"
+	exit 1
+fi
+
+if [[ -n "${rev}" ]]; then
         prev_tag=$(git describe --tags ${rev})
         echo "commits from ${prev_tag}:"
         echo "===================================================="
