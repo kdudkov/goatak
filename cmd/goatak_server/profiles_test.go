@@ -43,7 +43,7 @@ func TestProfiles(t *testing.T) {
 		Options:  map[string]string{"dexControls": "false"},
 	})
 
-	options := profileOpts(
+	options := profileOpts(true,
 		m.ProfileQuery().Login("*").UID("*").One(),
 		m.ProfileQuery().Login(username).UID("*").One(),
 		m.ProfileQuery().Login(username).UID(uid).One(),

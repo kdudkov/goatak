@@ -11,7 +11,7 @@ import (
 	"github.com/kdudkov/goatak/pkg/model"
 )
 
-func profileOpts(profiles ...*model.Profile) map[string]string {
+func profileOpts(callsign bool, profiles ...*model.Profile) map[string]string {
 	res := make(map[string]string)
 
 	for _, p := range profiles {
@@ -19,7 +19,7 @@ func profileOpts(profiles ...*model.Profile) map[string]string {
 			continue
 		}
 
-		if p.Callsign != "" {
+		if callsign && p.Callsign != "" {
 			res["locationCallsign"] = p.Callsign
 		}
 
@@ -41,14 +41,19 @@ func profileOpts(profiles ...*model.Profile) map[string]string {
 	return res
 }
 
-func (app *App) GetProfileFiles(username, uid string, addMaps bool) []mp.FileContent {
+func (app *App) GetProfileFiles(username, uid string, enrollment bool) []mp.FileContent {
 	res := make([]mp.FileContent, 0)
 
-	options := profileOpts(
+	options := profileOpts(enrollment,
 		app.dbm.ProfileQuery().Login("*").UID("*").One(),
-		app.dbm.ProfileQuery().Login("*").UID(uid).One(),
 		app.dbm.ProfileQuery().Login(username).UID("*").One(),
-		app.dbm.ProfileQuery().Login(username).UID(uid).One(),
+	)
+
+	maps.Copy(options,
+		profileOpts(true,
+			app.dbm.ProfileQuery().Login("*").UID(uid).One(),
+			app.dbm.ProfileQuery().Login(username).UID(uid).One(),
+		),
 	)
 
 	if len(options) > 0 {
@@ -60,7 +65,8 @@ func (app *App) GetProfileFiles(username, uid string, addMaps bool) []mp.FileCon
 		res = append(res, conf)
 	}
 
-	if !addMaps {
+	if !enrollment {
+		// add maps only for enrollment
 		return res
 	}
 
