@@ -19,20 +19,22 @@ func profileOpts(callsign bool, profiles ...*model.Profile) map[string]string {
 			continue
 		}
 
-		if callsign && p.Callsign != "" {
-			res["locationCallsign"] = p.Callsign
-		}
+		if callsign {
+			if p.Callsign != "" {
+				res["locationCallsign"] = p.Callsign
+			}
 
-		if p.Team != "" {
-			res["locationTeam"] = p.Team
-		}
+			if p.Team != "" {
+				res["locationTeam"] = p.Team
+			}
 
-		if p.Role != "" {
-			res["atakRoleType"] = p.Role
-		}
+			if p.Role != "" {
+				res["atakRoleType"] = p.Role
+			}
 
-		if p.CotType != "" {
-			res["locationUnitType"] = p.CotType
+			if p.CotType != "" {
+				res["locationUnitType"] = p.CotType
+			}
 		}
 
 		maps.Copy(res, p.Options)
@@ -55,6 +57,8 @@ func (app *App) GetProfileFiles(username, uid string, enrollment bool) []mp.File
 			app.dbm.ProfileQuery().Login(username).UID(uid).One(),
 		),
 	)
+
+	options["deviceProfileEnableOnConnect"] = "true"
 
 	if len(options) > 0 {
 		conf := mp.NewPrefFile("user-profile.pref")
