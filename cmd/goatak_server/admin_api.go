@@ -79,8 +79,8 @@ func (h *HttpServer) NewAdminAPI(app *App, addr string, webtakRoot string) *Admi
 	api.f.Get("/api/point", getApiPointsHandler(app))
 	api.f.Get("/api/device", getApiDevicesHandler(app))
 	api.f.Post("/api/device", getApiDevicePostHandler(app))
-	api.f.Get("/api/cert", getApiCertsHandler(app))
 	api.f.Put("/api/device/:id", getApiDevicePutHandler(app))
+	api.f.Get("/api/cert", getApiCertsHandler(app))
 	api.f.Get("/api/profile", getApiProfilesHandler(app))
 	api.f.Post("/api/profile", getApiProfilePostHandler(app))
 	api.f.Put("/api/profile/:login/:uid", getApiProfilePutHandler(app))
@@ -584,7 +584,7 @@ func getApiDevicePutHandler(app *App) fiber.Handler {
 
 		d.Scope = m.Scope
 		d.ReadScope = m.ReadScope
-		d.Admin = m.Admin
+		//d.Admin = m.Admin
 		d.Disabled = m.Disabled
 
 		app.dbm.Save(d)
