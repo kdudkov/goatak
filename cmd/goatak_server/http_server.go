@@ -49,7 +49,7 @@ func NewHttp(app *App) *HttpServer {
 		tokenKey:    mac.Sum(nil),
 		tokenMaxAge: time.Hour * 48,
 		loginUrl:    "/login",
-		noAuth:      nil,
+		noAuth:      []string{"/cot_xml"},
 	}
 
 	if addr := app.config.String("admin_addr"); addr != "" {
