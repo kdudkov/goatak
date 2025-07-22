@@ -1,5 +1,7 @@
 # GoATAK changelog
 
+## v0.22.1: 2025-07-22
+
 ## v0.22.0: 2025-07-08
 ### Added
 * Provisioning via device profiles - you can create profile for any login/uid combination
