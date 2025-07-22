@@ -127,8 +127,6 @@ func (app *App) processTLSConn(ctx context.Context, conn *tls.Conn) {
 	})
 	app.AddClientHandler(h)
 	h.Start()
-
-	return
 }
 
 func (app *App) verifyConnection(st tls.ConnectionState) error {
