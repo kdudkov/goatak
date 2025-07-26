@@ -59,6 +59,7 @@ func (h *HttpServer) NewAdminAPI(app *App, addr string, webtakRoot string) *Admi
 	api.f.Get("/points", getPointsPage())
 	api.f.Get("/devices", getDevicesPage())
 	api.f.Get("/profiles", getProfilesPage())
+	api.f.Get("/feeds", getFeedsPage())
 
 	api.f.Get("/api/config", getConfigHandler(app))
 	api.f.Get("/api/connections", getApiConnHandler(app))
@@ -85,6 +86,11 @@ func (h *HttpServer) NewAdminAPI(app *App, addr string, webtakRoot string) *Admi
 	api.f.Post("/api/profile", getApiProfilePostHandler(app))
 	api.f.Put("/api/profile/:login/:uid", getApiProfilePutHandler(app))
 	api.f.Delete("/api/profile/:login/:uid", getApiProfileDeleteHandler(app))
+
+	api.f.Get("/api/feed", getApiFeedsHandler(app))
+	api.f.Post("/api/feed", getApiFeedPostHandler(app))
+	api.f.Put("/api/feed/:uid", getApiFeedPutHandler(app))
+	api.f.Delete("/api/feed/:uid", getApiFeedDeleteHandler(app))
 
 	api.f.Get("/api/mission", getApiAllMissionHandler(app))
 	api.f.Get("/api/mission/:id/changes", getApiAllMissionChangesHandler(app))
@@ -265,6 +271,18 @@ func getProfilesPage() fiber.Handler {
 		}
 
 		return ctx.Render("templates/profiles", data, "templates/menu", "templates/header")
+	}
+}
+
+func getFeedsPage() fiber.Handler {
+	return func(ctx *fiber.Ctx) error {
+		data := map[string]any{
+			"theme": "auto",
+			"page":  " feeds",
+			"js":    []string{"feeds.js"},
+		}
+
+		return ctx.Render("templates/feeds", data, "templates/menu", "templates/header")
 	}
 }
 
@@ -678,6 +696,100 @@ func getApiProfileDeleteHandler(app *App) fiber.Handler {
 		uid := ctx.Params("uid")
 
 		if err := app.dbm.ProfileQuery().Login(login).UID(uid).Delete(); err != nil {
+			return SendError(ctx, err.Error())
+		}
+
+		return ctx.JSON(fiber.Map{"status": "ok"})
+	}
+}
+
+func getApiFeedsHandler(app *App) fiber.Handler {
+	return func(ctx *fiber.Ctx) error {
+		data := app.dbm.FeedQuery().All(true).Get()
+
+		feeds := make([]*model.FeedDTO, len(data))
+
+		for i, f := range data {
+			feeds[i] = f.DTO(true)
+		}
+
+		return ctx.JSON(feeds)
+	}
+}
+
+func getApiFeedPostHandler(app *App) fiber.Handler {
+	return func(ctx *fiber.Ctx) error {
+		var m *model.FeedPostDTO
+
+		if err := ctx.BodyParser(&m); err != nil {
+			return err
+		}
+
+		if m.UID == "" {
+			m.UID = uuid.NewString()
+		}
+
+		f := &model.Feed2{
+			UID:       m.UID,
+			Active:    m.Active,
+			Alias:     m.Alias,
+			URL:       m.URL,
+			Latitude:  m.Latitude,
+			Longitude: m.Longitude,
+			Fov:       m.Fov,
+			Heading:   m.Heading,
+			Range:     m.Range,
+			User:      Username(ctx),
+			Scope:     m.Scope,
+		}
+
+		if err := app.dbm.Create(f); err != nil {
+			return SendError(ctx, err.Error())
+		}
+
+		return ctx.JSON(f.DTO(true))
+	}
+}
+
+func getApiFeedPutHandler(app *App) fiber.Handler {
+	return func(ctx *fiber.Ctx) error {
+		uid := ctx.Params("uid")
+
+		f := app.dbm.FeedQuery().UID(uid).All(true).One()
+
+		if f == nil {
+			return ctx.SendStatus(fiber.StatusNotFound)
+		}
+
+		var m *model.FeedPutDTO
+
+		if err := ctx.BodyParser(&m); err != nil {
+			return err
+		}
+
+		f.Active = m.Active
+		f.Alias = m.Alias
+		f.URL = m.URL
+		f.Latitude = m.Latitude
+		f.Longitude = m.Longitude
+		f.Fov = m.Fov
+		f.Heading = m.Heading
+		f.Range = m.Range
+		f.Scope = m.Scope
+
+		if err := app.dbm.Save(f); err != nil {
+			return SendError(ctx, err.Error())
+		}
+
+		return ctx.JSON(f.DTO(true))
+	}
+}
+
+func getApiFeedDeleteHandler(app *App) fiber.Handler {
+	return func(ctx *fiber.Ctx) error {
+		uid := ctx.Params("uid")
+
+		if err := app.dbm.FeedQuery().UID(uid).Delete(); err != nil {
 			return SendError(ctx, err.Error())
 		}
 

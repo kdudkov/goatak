@@ -42,7 +42,6 @@ type App struct {
 
 	items    repository.ItemsRepository
 	messages []*model.ChatMessage
-	feeds    repository.FeedsRepository
 	dbm      *database.DatabaseManager
 	users    repository.DeviceRepository
 
@@ -59,7 +58,6 @@ func NewApp(config *config.AppConfig) *App {
 		ch:              make(chan *cot.CotMessage, 100),
 		handlers:        sync.Map{},
 		items:           repository.NewItemsMemoryRepo(),
-		feeds:           repository.NewFeedsFileRepo(filepath.Join(config.DataDir(), "feeds")),
 		uid:             uuid.NewString(),
 		eventProcessors: make([]*EventProcessor, 0),
 	}
@@ -91,12 +89,6 @@ func (app *App) Run() {
 
 	if err := app.users.Start(); err != nil {
 		log.Fatal(err)
-	}
-
-	if app.feeds != nil {
-		if err := app.feeds.Start(); err != nil {
-			log.Fatal(err)
-		}
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())

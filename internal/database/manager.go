@@ -128,6 +128,10 @@ func (mm *DatabaseManager) ProfileQuery() *ProfileQuery {
 	return NewProfileQuery(mm.db)
 }
 
+func (mm *DatabaseManager) FeedQuery() *FeedQuery {
+	return NewFeedQuery(mm.db)
+}
+
 func (mm *DatabaseManager) Migrate() error {
 	if mm == nil || mm.db == nil {
 		return fmt.Errorf("no database")
@@ -144,10 +148,11 @@ func (mm *DatabaseManager) Migrate() error {
 		&model.Device{},
 		&model.Certificate{},
 		&model.Profile{},
+		&model.Feed2{},
 	); err != nil {
 		return err
 	}
-	
+
 	return nil
 }
 

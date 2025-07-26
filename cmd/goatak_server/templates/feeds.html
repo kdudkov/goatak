@@ -1,0 +1,203 @@
+<div class="row h-100">
+    <div class="col-6 h-100 overflow-auto">
+        <h4>Video Feeds</h4>
+        <div class="my-2">
+            <button class="btn btn-outline-primary" @click="create()">Create</button>
+        </div>
+        <table class="table table-hover table-sm">
+            <tr>
+                <th>UID</th>
+                <th>Alias</th>
+                <th>Active</th>
+                <th>URL</th>
+                <th>User</th>
+                <th>Scope</th>
+            </tr>
+            <tr v-for="f in feeds" @click="current = f">
+                <td>{{ f.uid }}</td>
+                <td>{{ f.alias }}</td>
+                <td>
+                    <span v-if="f.active" class="badge bg-success">Active</span>
+                    <span v-else class="badge bg-secondary">Inactive</span>
+                </td>
+                <td>{{ f.url }}</td>
+                <td>{{ f.user }}</td>
+                <td>{{ f.scope }}</td>
+            </tr>
+        </table>
+    </div>
+    <div class="col-6 h-100 overflow-auto">
+        <div v-if="current">
+            <h4>Feed UID: {{ current.uid }}</h4>
+            <div v-if="error" class="alert alert-danger">{{ error }}</div>
+            <form @submit.prevent="send">
+                <div class="mb-3">
+                    <label for="alias" class="form-label">Alias</label>
+                    <input class="form-control form-control-sm" id="alias" v-model="current.alias">
+                </div>
+                <div class="mb-3">
+                    <label for="active" class="form-label">Status</label>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="active" v-model="current.active">
+                        <label class="form-check-label" for="active">Active</label>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label for="url" class="form-label">URL</label>
+                    <input class="form-control form-control-sm" id="url" v-model="current.url" placeholder="rtsp://example.com/stream">
+                </div>
+                <div class="mb-3">
+                    <label for="user" class="form-label">User</label>
+                    <input class="form-control form-control-sm" id="user" v-model="current.user">
+                </div>
+                <div class="mb-3">
+                    <label for="scope" class="form-label">Scope</label>
+                    <input class="form-control form-control-sm" id="scope" v-model="current.scope">
+                </div>
+                <div class="row">
+                    <div class="col-4">
+                        <div class="mb-3">
+                            <label for="lat" class="form-label">Latitude</label>
+                            <input class="form-control form-control-sm" id="lat" type="number" step="any" v-model="current.lat">
+                        </div>
+                    </div>
+                    <div class="col-4">
+                        <div class="mb-3">
+                            <label for="lon" class="form-label">Longitude</label>
+                            <input class="form-control form-control-sm" id="lon" type="number" step="any" v-model="current.lon">
+                        </div>
+                    </div>
+                    <div class="col-4">
+                        <div class="mb-3">
+                            <label for="fov" class="form-label">FOV</label>
+                            <input class="form-control form-control-sm" id="fov" v-model="current.fov">
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-6">
+                        <div class="mb-3">
+                            <label for="heading" class="form-label">Heading</label>
+                            <input class="form-control form-control-sm" id="heading" v-model="current.heading">
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="mb-3">
+                            <label for="range" class="form-label">Range</label>
+                            <input class="form-control form-control-sm" id="range" v-model="current.range">
+                        </div>
+                    </div>
+                </div>
+                <div class="d-flex gap-2">
+                    <button type="button" class="btn min-width-179 btn-warning" @click="send()">Save</button>
+                    <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#deleteModal">Delete</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1"
+     aria-labelledby="deleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteModalLabel">Confirm Delete</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div v-if="current">
+                    <p>Are you sure you want to delete this video feed?</p>
+                    <p><strong>UID:</strong> {{ current.uid }}</p>
+                    <p><strong>Alias:</strong> {{ current.alias }}</p>
+                    <p><strong>URL:</strong> {{ current.url }}</p>
+                    <p class="text-danger">This action cannot be undone.</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-danger" @click="deleteFeed()" data-bs-dismiss="modal">Delete Feed</button>
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Create Feed Modal -->
+<div class="modal fade" id="feed_w" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1"
+     aria-labelledby="staticBackdropLabel2" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="staticBackdropLabel2">Create Video Feed</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div v-if="error" class="alert alert-danger">{{ error }}</div>
+                <form @submit.prevent="send">
+                    <div class="mb-3">
+                        <label for="uid" class="form-label">UID</label>
+                        <input class="form-control form-control-sm" id="uid" v-model="form.uid" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="alias" class="form-label">Alias</label>
+                        <input class="form-control form-control-sm" id="alias" v-model="form.alias">
+                    </div>
+                    <div class="mb-3">
+                        <label for="active" class="form-label">Status</label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="active" v-model="form.active">
+                            <label class="form-check-label" for="active">Active</label>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="url" class="form-label">URL</label>
+                        <input class="form-control form-control-sm" id="url" v-model="form.url" placeholder="rtsp://example.com/stream" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="scope" class="form-label">Scope</label>
+                        <input class="form-control form-control-sm" id="scope" v-model="form.scope">
+                    </div>
+                    <div class="row">
+                        <div class="col-4">
+                            <div class="mb-3">
+                                <label for="lat" class="form-label">Latitude</label>
+                                <input class="form-control form-control-sm" id="lat" type="number" step="any" v-model="form.lat">
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="mb-3">
+                                <label for="lon" class="form-label">Longitude</label>
+                                <input class="form-control form-control-sm" id="lon" type="number" step="any" v-model="form.lon">
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="mb-3">
+                                <label for="fov" class="form-label">FOV</label>
+                                <input class="form-control form-control-sm" id="fov" v-model="form.fov">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-6">
+                            <div class="mb-3">
+                                <label for="heading" class="form-label">Heading</label>
+                                <input class="form-control form-control-sm" id="heading" v-model="form.heading">
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="mb-3">
+                                <label for="range" class="form-label">Range</label>
+                                <input class="form-control form-control-sm" id="range" v-model="form.range">
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn min-width-179 btn-warning" @click="send_new()">Create</button>
+                <button type="button" class="btn min-width-179 btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>

@@ -557,13 +557,9 @@ func getVideoListHandler(app *App) fiber.Handler {
 		r := new(model.VideoConnections)
 		user := app.users.Get(Username(ctx))
 
-		app.feeds.ForEach(func(f *model.Feed2) bool {
-			if user.CanSeeScope(f.Scope) {
-				r.Feeds = append(r.Feeds, f.ToFeed())
-			}
-
-			return true
-		})
+		for _, f := range app.dbm.FeedQuery().Scope(user.Scope).ReadScope(user.ReadScope).Get() {
+			r.Feeds = append(r.Feeds, f.ToFeed())
+		}
 
 		return ctx.XML(r)
 	}
@@ -571,21 +567,16 @@ func getVideoListHandler(app *App) fiber.Handler {
 
 func getVideo2ListHandler(app *App) fiber.Handler {
 	return func(ctx *fiber.Ctx) error {
-		conn := make([]*model.VideoConnections2, 0)
 		user := app.users.Get(Username(ctx))
 
-		app.feeds.ForEach(func(f *model.Feed2) bool {
-			if user.CanSeeScope(f.Scope) {
-				conn = append(conn, &model.VideoConnections2{Feeds: []*model.Feed2{f}})
-			}
+		feeds := app.dbm.FeedQuery().Scope(user.Scope).ReadScope(user.ReadScope).Get()
+		conn := make([]*model.VideoConnections2, len(feeds))
+		
+		for i, f := range feeds {
+				conn[i] = &model.VideoConnections2{Feeds: []*model.FeedDTO{f.DTO(false)}}
+		}
 
-			return true
-		})
-
-		r := make(map[string]any)
-		r["videoConnections"] = conn
-
-		return ctx.JSON(r)
+		return ctx.JSON(fiber.Map{"videoConnections": conn})
 	}
 }
 
@@ -601,7 +592,13 @@ func getVideoPostHandler(app *App) fiber.Handler {
 		}
 
 		for _, f := range r.Feeds {
-			app.feeds.Store(f.ToFeed2().WithUser(username).WithScope(user.Scope))
+			f2 := f.ToFeed2()
+			f2.User = username
+			f2.Scope = user.GetScope()
+			
+			if err := app.dbm.Save(f2); err != nil {
+				app.logger.Error("error save feed", slog.Any("error", err))
+			}
 		}
 
 		return nil

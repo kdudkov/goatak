@@ -24,7 +24,7 @@ type VideoConnections struct {
 
 type VideoConnections2 struct {
 	XMLName xml.Name `json:"-"`
-	Feeds   []*Feed2 `json:"feeds" xml:"feed"`
+	Feeds   []*FeedDTO `json:"feeds" xml:"feed"`
 }
 
 type Feed struct {
@@ -53,17 +53,48 @@ type Feed struct {
 }
 
 type Feed2 struct {
-	UID       string  `json:"uid,omitempty"     yaml:"uid"`
-	Active    bool    `json:"active"            yaml:"active"`
-	Alias     string  `json:"alias,omitempty"   yaml:"alias"`
-	URL       string  `json:"url,omitempty"     yaml:"url"`
-	Latitude  float64 `json:"lat,omitempty"     yaml:"lat,omitempty"`
-	Longitude float64 `json:"lon,omitempty"     yaml:"lon,omitempty"`
-	Fov       string  `json:"fov,omitempty"     yaml:"fov,omitempty"`
-	Heading   string  `json:"heading,omitempty" yaml:"heading,omitempty"`
-	Range     string  `json:"range,omitempty"   yaml:"range,omitempty"`
-	User      string  `json:"-"                 yaml:"user"`
-	Scope     string  `yaml:"scope"`
+	UID       string `gorm:"primaryKey;size:255"`
+	Active    bool
+	Alias     string `gorm:"size:255"`
+	URL       string `gorm:"size:512"`
+	Latitude  float64
+	Longitude float64
+	Fov       string `gorm:"size:100"`
+	Heading   string `gorm:"size:100"`
+	Range     string `gorm:"size:100"`
+	User      string `gorm:"size:255;index"`
+	Scope     string `gorm:"size:255"`
+}
+
+type FeedDTO struct {
+	UID       string  `json:"uid,omitempty"`
+	Active    bool    `json:"active"`
+	Alias     string  `json:"alias,omitempty"`
+	URL       string  `json:"url,omitempty"`
+	Latitude  float64 `json:"lat,omitempty"`
+	Longitude float64 `json:"lon,omitempty"`
+	Fov       string  `json:"fov,omitempty"`
+	Heading   string  `json:"heading,omitempty"`
+	Range     string  `json:"range,omitempty"`
+	User      string  `json:"user,omitempty"`
+	Scope     string  `json:"scope,omitempty"`
+}
+
+type FeedPutDTO struct {
+	Active    bool    `json:"active"`
+	Alias     string  `json:"alias,omitempty"`
+	URL       string  `json:"url,omitempty"`
+	Latitude  float64 `json:"lat,omitempty"`
+	Longitude float64 `json:"lon,omitempty"`
+	Fov       string  `json:"fov,omitempty"`
+	Heading   string  `json:"heading,omitempty"`
+	Range     string  `json:"range,omitempty"`
+	Scope     string  `json:"scope,omitempty"`
+}
+
+type FeedPostDTO struct {
+	UID string `json:"uid,omitempty"`
+	FeedPutDTO
 }
 
 func (f *Feed2) ToFeed() *Feed {
@@ -99,16 +130,29 @@ func (f *Feed2) ToFeed() *Feed {
 	}
 }
 
-func (f *Feed2) WithUser(user string) *Feed2 {
-	f.User = user
+func (f *Feed2) DTO(admin bool) *FeedDTO {
+	if f == nil {
+		return nil
+	}
 
-	return f
-}
-
-func (f *Feed2) WithScope(scope string) *Feed2 {
-	f.Scope = scope
-
-	return f
+	dto := &FeedDTO{
+		UID:       f.UID,
+		Active:    f.Active,
+		Alias:     f.Alias,
+		URL:       f.URL,
+		Latitude:  f.Latitude,
+		Longitude: f.Longitude,
+		Fov:       f.Fov,
+		Heading:   f.Heading,
+		Range:     f.Range,
+	}
+	
+	if admin {
+		dto.User = f.User
+		dto.Scope = f.Scope
+	}
+	
+	return dto
 }
 
 func (f *Feed) ToFeed2() *Feed2 {

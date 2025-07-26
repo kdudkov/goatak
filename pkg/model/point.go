@@ -87,6 +87,4 @@ func (p *Point) UpdateFromMsg(msg *cot.CotMessage) {
 	p.Lat = msg.GetLat()
 	p.Lon = msg.GetLon()
 	p.event = msg.GetTakMessage().GetCotEvent()
-
-	return
 }
