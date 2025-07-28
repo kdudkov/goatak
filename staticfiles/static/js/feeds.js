@@ -6,11 +6,13 @@ const app = Vue.createApp({
             form: {},
             error: null,
             ts: 0,
+            hls: null,
         }
     },
 
     mounted() {
         this.renew();
+        this.hls = new Hls();
     },
     methods: {
         renew: function () {
@@ -27,6 +29,27 @@ const app = Vue.createApp({
                     vm.feeds = data.sort((a, b) => a.uid.toLowerCase().localeCompare(b.uid.toLowerCase()));
                     vm.ts += 1;
                 });
+        },
+        setCurrent: function (f) {
+            this.current = f;
+            let video = document.getElementById('video');
+
+            if (!video) return;
+
+            if (f.url.startsWith('http')) {
+                if (video.canPlayType('application/vnd.apple.mpegurl')) {
+                    video.src = f.url;
+                    video.addEventListener('canplay', () => video.play());
+
+                    return
+                }
+            }
+
+            if (Hls.isSupported()) {
+                this.hls.attachMedia(video);
+                this.hls.loadSource(f.url);
+                this.hls.on(Hls.Events.MANIFEST_PARSED, () => video.play());
+            }
         },
         create: function () {
             this.current = null;

@@ -633,10 +633,6 @@ func getApiProfilePostHandler(app *App) fiber.Handler {
 			return err
 		}
 
-		if m.Login == "" {
-			return SendError(ctx, "empty login")
-		}
-
 		p := &model.Profile{
 			Login:    m.Login,
 			UID:      m.UID,
@@ -645,6 +641,10 @@ func getApiProfilePostHandler(app *App) fiber.Handler {
 			Role:     m.Role,
 			CotType:  m.CotType,
 			Options:  m.Options,
+		}
+
+		if p.Login == "" {
+			p.Login = "*"
 		}
 
 		if p.UID == "" {

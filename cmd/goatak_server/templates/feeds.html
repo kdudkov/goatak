@@ -6,29 +6,30 @@
         </div>
         <table class="table table-hover table-sm">
             <tr>
-                <th>UID</th>
                 <th>Alias</th>
                 <th>Active</th>
                 <th>URL</th>
                 <th>User</th>
                 <th>Scope</th>
             </tr>
-            <tr v-for="f in feeds" @click="current = f">
-                <td>{{ f.uid }}</td>
-                <td>{{ f.alias }}</td>
-                <td>
+            <tr v-for="f in feeds">
+                <td @click="setCurrent(f)">{{ f.alias }}</td>
+                <td @click="setCurrent(f)">
                     <span v-if="f.active" class="badge bg-success">Active</span>
                     <span v-else class="badge bg-secondary">Inactive</span>
                 </td>
-                <td>{{ f.url }}</td>
-                <td>{{ f.user }}</td>
-                <td>{{ f.scope }}</td>
+                <td @click="setCurrent(f)">{{ f.url }}</td>
+                <td @click="setCurrent(f)">{{ f.user }}</td>
+                <td @click="setCurrent(f)">{{ f.scope }}</td>
             </tr>
         </table>
     </div>
     <div class="col-6 h-100 overflow-auto">
         <div v-if="current">
             <h4>Feed UID: {{ current.uid }}</h4>
+            <div class="w-100">
+                <video id="video" class="w-100 ratio ratio-4x3" autoplay controls></video>
+            </div>
             <div v-if="error" class="alert alert-danger">{{ error }}</div>
             <form @submit.prevent="send">
                 <div class="mb-3">
@@ -45,10 +46,6 @@
                 <div class="mb-3">
                     <label for="url" class="form-label">URL</label>
                     <input class="form-control form-control-sm" id="url" v-model="current.url" placeholder="rtsp://example.com/stream">
-                </div>
-                <div class="mb-3">
-                    <label for="user" class="form-label">User</label>
-                    <input class="form-control form-control-sm" id="user" v-model="current.user">
                 </div>
                 <div class="mb-3">
                     <label for="scope" class="form-label">Scope</label>
@@ -116,7 +113,8 @@
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-danger" @click="deleteFeed()" data-bs-dismiss="modal">Delete Feed</button>
+                <button type="button" class="btn btn-danger" @click="deleteFeed()" data-bs-dismiss="modal">Delete Feed
+                </button>
                 <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
             </div>
         </div>
@@ -152,7 +150,8 @@
                     </div>
                     <div class="mb-3">
                         <label for="url" class="form-label">URL</label>
-                        <input class="form-control form-control-sm" id="url" v-model="form.url" placeholder="rtsp://example.com/stream" required>
+                        <input class="form-control form-control-sm" id="url" v-model="form.url"
+                               placeholder="rtsp://example.com/stream" required>
                     </div>
                     <div class="mb-3">
                         <label for="scope" class="form-label">Scope</label>
@@ -162,13 +161,15 @@
                         <div class="col-4">
                             <div class="mb-3">
                                 <label for="lat" class="form-label">Latitude</label>
-                                <input class="form-control form-control-sm" id="lat" type="number" step="any" v-model="form.lat">
+                                <input class="form-control form-control-sm" id="lat" type="number" step="any"
+                                       v-model="form.lat">
                             </div>
                         </div>
                         <div class="col-4">
                             <div class="mb-3">
                                 <label for="lon" class="form-label">Longitude</label>
-                                <input class="form-control form-control-sm" id="lon" type="number" step="any" v-model="form.lon">
+                                <input class="form-control form-control-sm" id="lon" type="number" step="any"
+                                       v-model="form.lon">
                             </div>
                         </div>
                         <div class="col-4">
@@ -196,7 +197,8 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn min-width-179 btn-warning" @click="send_new()">Create</button>
-                <button type="button" class="btn min-width-179 btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn min-width-179 btn-outline-secondary" data-bs-dismiss="modal">Close
+                </button>
             </div>
         </div>
     </div>

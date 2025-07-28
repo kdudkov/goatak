@@ -3,7 +3,7 @@
 set -e
 
 if [[ -z "$1" ]]; then
-  echo "usage: make_relese.sh version|major|minor|patch|auto"
+  echo "usage: make_release.sh version|major|minor|patch|auto"
   exit
 fi
 
@@ -45,4 +45,15 @@ git add .changes/*
 git add CHANGELOG.md
 
 git commit -am 'changelog'
-git tag $(changie latest)
+git tag "$(changie latest)"
+
+while true; do
+    read -p "Push? " yn
+    case $yn in
+        [Yy]* ) break;;
+        [Nn]* ) exit;;
+        * ) echo "Please answer yes or no.";;
+    esac
+done
+
+git push --tags

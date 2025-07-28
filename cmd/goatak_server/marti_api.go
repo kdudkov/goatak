@@ -139,7 +139,7 @@ func getEndpointsHandler(app *App) fiber.Handler {
 				info := make(map[string]any)
 				info["uid"] = item.GetUID()
 				info["callsign"] = item.GetCallsign()
-				info["lastEventTime"] = item.GetLastSeen()
+				info["lastEventTime"] = model.CotTime(item.GetLastSeen())
 
 				if item.IsOnline() {
 					info["lastStatus"] = "Connected"
@@ -593,6 +593,7 @@ func getVideoPostHandler(app *App) fiber.Handler {
 
 		for _, f := range r.Feeds {
 			f2 := f.ToFeed2()
+			f2.Active = true
 			f2.User = username
 			f2.Scope = user.GetScope()
 
