@@ -18,6 +18,8 @@ type Device struct {
 	ReadScope   []string       `gorm:"serializer:json" yaml:"read_scope"`
 	LastConnect *time.Time     `gorm:"type:timestamp"`
 	Certs       []*Certificate `gorm:"foreignKey:Login"`
+	CreatedAt   time.Time      `gorm:"type:timestamp"`
+	UpdatedAt   time.Time      `gorm:"type:timestamp"`
 }
 
 type DeviceDTO struct {
