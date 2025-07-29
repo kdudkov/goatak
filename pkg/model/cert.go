@@ -5,13 +5,13 @@ import (
 )
 
 type Certificate struct {
-	Serial      string `gorm:"primaryKey;size:255"`
-	CreatedAt   time.Time
-	UpdatedAt   time.Time
-	Login       string `gorm:"not null;index;size:255"`
-	UID         string `gorm:"index;size:255"`
-	LastConnect *time.Time
-	ValidTill   *time.Time
+	Serial      string     `gorm:"primaryKey;size:255"`
+	CreatedAt   time.Time  `gorm:"index;type:timestamp"`
+	UpdatedAt   time.Time  `gorm:"type:timestamp"`
+	Login       string     `gorm:"not null;index;size:255"`
+	UID         string     `gorm:"index;size:255"`
+	LastConnect *time.Time `gorm:"type:timestamp"`
+	ValidTill   *time.Time `gorm:"type:timestamp"`
 }
 
 type CertificateDTO struct {

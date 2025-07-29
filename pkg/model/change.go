@@ -12,7 +12,7 @@ const (
 
 type Change struct {
 	ID             uint      `gorm:"primaryKey"`
-	CreatedAt      time.Time `gorm:"index"`
+	CreatedAt      time.Time `gorm:"index;type:timestamp"`
 	Type           string    `gorm:"size:255"`
 	MissionID      uint      `gorm:"index;not null"`
 	CreatorUID     string    `gorm:"size:255"`

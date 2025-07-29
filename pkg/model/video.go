@@ -63,7 +63,7 @@ type Feed2 struct {
 	Heading   string `gorm:"size:100"`
 	Range     string `gorm:"size:100"`
 	User      string `gorm:"size:255;index"`
-	Scope     string `gorm:"size:255"`
+	Scope     string `gorm:"size:255;index"`
 }
 
 type Feed2DTO struct {
