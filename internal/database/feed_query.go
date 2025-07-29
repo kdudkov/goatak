@@ -9,10 +9,10 @@ import (
 
 type FeedQuery struct {
 	Query[model.Feed2]
-	uid    string
-	user   string
+	uid   string
+	user  string
 	scope util.StringSet
-	all bool
+	all   bool
 }
 
 func NewFeedQuery(db *gorm.DB) *FeedQuery {
@@ -92,7 +92,7 @@ func (q *FeedQuery) where() *gorm.DB {
 		tx = tx.Where("scope in (?)", q.scope.List())
 	}
 
-	if ! q.all {
+	if !q.all {
 		tx = tx.Where("active is true")
 	}
 

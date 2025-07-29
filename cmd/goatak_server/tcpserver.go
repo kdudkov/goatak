@@ -154,7 +154,7 @@ func getCert(st *tls.ConnectionState) *x509.Certificate {
 
 func getCertUser(st *tls.ConnectionState) (string, string) {
 	if cert := getCert(st); cert != nil {
-			return cert.Subject.CommonName, hex.EncodeToString(cert.SerialNumber.Bytes())
+		return cert.Subject.CommonName, hex.EncodeToString(cert.SerialNumber.Bytes())
 	}
 
 	return "", ""
@@ -162,7 +162,7 @@ func getCertUser(st *tls.ConnectionState) (string, string) {
 
 func getCertUID(st *tls.ConnectionState) string {
 	if cert := getCert(st); cert != nil && len(cert.EmailAddresses) > 0 {
-			return cert.EmailAddresses[0]
+		return cert.EmailAddresses[0]
 	}
 
 	return ""

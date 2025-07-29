@@ -11,9 +11,10 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/stretchr/testify/require"
+
 	"github.com/kdudkov/goatak/internal/config"
 	"github.com/kdudkov/goatak/pkg/model"
-	"github.com/stretchr/testify/require"
 )
 
 type TestApp struct {
@@ -126,7 +127,7 @@ func TestLogin(t *testing.T) {
 		t.Run("login_as_"+d.login, func(t *testing.T) {
 			resp, err := app.PostJSON("/token", "", fiber.Map{"login": d.login, "password": d.psw})
 			require.NoError(t, err)
-			
+
 			if d.ok {
 				require.Equal(t, fiber.StatusOK, resp.StatusCode)
 			} else {

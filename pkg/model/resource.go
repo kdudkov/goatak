@@ -11,20 +11,20 @@ import (
 )
 
 type Resource struct {
-	ID             uint `gorm:"primaryKey"`
-	CreatedAt      time.Time
-	Scope          string `gorm:"index;not null;size:255"`
-	Hash           string `gorm:"index;size:255"`
-	UID            string `gorm:"uniqueIndex;size:255"`
-	Name           string `gorm:"size:255"`
-	FileName       string `gorm:"size:255"`
-	MIMEType       string `gorm:"size:255"`
+	ID             uint      `gorm:"primaryKey"`
+	CreatedAt      time.Time `gorm:"type:timestamp"`
+	Scope          string    `gorm:"index;not null;size:255"`
+	Hash           string    `gorm:"index;size:255"`
+	UID            string    `gorm:"uniqueIndex;size:255"`
+	Name           string    `gorm:"size:255"`
+	FileName       string    `gorm:"size:255"`
+	MIMEType       string    `gorm:"size:255"`
 	Size           int
 	SubmissionUser string `gorm:"size:255"`
 	CreatorUID     string `gorm:"size:255"`
 	Tool           string `gorm:"index"`
-	Keywords       string
-	Groups         string
+	Keywords       string `gorm:"size:255"`
+	Groups         string `gorm:"size:255"`
 	Expiration     int64
 	KwSet          util.StringSet `gorm:"-"`
 }

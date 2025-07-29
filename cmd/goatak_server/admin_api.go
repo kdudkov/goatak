@@ -707,7 +707,7 @@ func getApiFeedsHandler(app *App) fiber.Handler {
 	return func(ctx *fiber.Ctx) error {
 		data := app.dbm.FeedQuery().All(true).Get()
 
-		feeds := make([]*model.FeedDTO, len(data))
+		feeds := make([]*model.Feed2DTO, len(data))
 
 		for i, f := range data {
 			feeds[i] = f.DTO(true)

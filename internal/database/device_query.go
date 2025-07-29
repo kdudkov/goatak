@@ -96,7 +96,7 @@ func (q *DeviceQuery) Delete(login string) error {
 		if err := tx.Where("login = ?", login).Delete(&model.Device{}).Error; err != nil {
 			return err
 		}
-		
+
 		return tx.Where("login = ?", login).Delete(&model.Certificate{}).Error
 	})
 }

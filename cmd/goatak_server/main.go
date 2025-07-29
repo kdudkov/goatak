@@ -21,9 +21,9 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"software.sslmate.com/src/go-pkcs12"
 
-	"github.com/kdudkov/goatak/internal/database"
 	"github.com/kdudkov/goatak/internal/client"
 	"github.com/kdudkov/goatak/internal/config"
+	"github.com/kdudkov/goatak/internal/database"
 	"github.com/kdudkov/goatak/internal/pm"
 	"github.com/kdudkov/goatak/internal/repository"
 	"github.com/kdudkov/goatak/pkg/cot"
@@ -74,7 +74,7 @@ func NewApp(config *config.AppConfig) *App {
 	}
 
 	app.dbm.AddDefaults()
-	
+
 	app.users = repository.NewUserDbRepository(config.UsersFile(), app.dbm)
 
 	return app

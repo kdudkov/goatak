@@ -18,16 +18,16 @@ var defPorts = map[string]int{
 }
 
 type VideoConnections struct {
-	XMLName xml.Name `xml:"videoConnections"`
-	Feeds   []*Feed  `xml:"feed"`
+	XMLName xml.Name   `xml:"videoConnections"`
+	Feeds   []*FeedDTO `xml:"feed"`
 }
 
 type VideoConnections2 struct {
-	XMLName xml.Name `json:"-"`
-	Feeds   []*FeedDTO `json:"feeds" xml:"feed"`
+	XMLName xml.Name    `json:"-"`
+	Feeds   []*Feed2DTO `json:"feeds" xml:"feed"`
 }
 
-type Feed struct {
+type FeedDTO struct {
 	UID                 string  `xml:"uid"`
 	Active              bool    `xml:"active"`
 	Alias               string  `xml:"alias"`
@@ -66,7 +66,7 @@ type Feed2 struct {
 	Scope     string `gorm:"size:255"`
 }
 
-type FeedDTO struct {
+type Feed2DTO struct {
 	UID       string  `json:"uid,omitempty"`
 	Active    bool    `json:"active"`
 	Alias     string  `json:"alias,omitempty"`
@@ -97,14 +97,18 @@ type FeedPostDTO struct {
 	FeedPutDTO
 }
 
-func (f *Feed2) ToFeed() *Feed {
+func (f *Feed2) TableName() string {
+	return "feeds"
+}
+
+func (f *Feed2) DTOOld() *FeedDTO {
 	if f == nil {
 		return nil
 	}
 
 	proto, addr, port, path := parseURL(f.URL)
 
-	return &Feed{
+	return &FeedDTO{
 		UID:                 f.UID,
 		Active:              f.Active,
 		Alias:               f.Alias,
@@ -130,12 +134,12 @@ func (f *Feed2) ToFeed() *Feed {
 	}
 }
 
-func (f *Feed2) DTO(admin bool) *FeedDTO {
+func (f *Feed2) DTO(admin bool) *Feed2DTO {
 	if f == nil {
 		return nil
 	}
 
-	dto := &FeedDTO{
+	dto := &Feed2DTO{
 		UID:       f.UID,
 		Active:    f.Active,
 		Alias:     f.Alias,
@@ -146,16 +150,16 @@ func (f *Feed2) DTO(admin bool) *FeedDTO {
 		Heading:   f.Heading,
 		Range:     f.Range,
 	}
-	
+
 	if admin {
 		dto.User = f.User
 		dto.Scope = f.Scope
 	}
-	
+
 	return dto
 }
 
-func (f *Feed) ToFeed2() *Feed2 {
+func (f *FeedDTO) ToFeed2() *Feed2 {
 	if f == nil {
 		return nil
 	}

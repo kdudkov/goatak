@@ -210,7 +210,7 @@ func setDefaults(k *koanf.Koanf) {
 	k.Set("db", "db.sqlite")
 
 	k.Set("delay", true)
-	
+
 	k.Set("me.lat", 59.8396)
 	k.Set("me.lon", 31.0213)
 	k.Set("users_file", "users.yml")

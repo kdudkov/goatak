@@ -12,17 +12,17 @@ import (
 )
 
 type Point struct {
-	ID          uint   `gorm:"primaryKey"`
-	Scope       string `gorm:"index;size:255"`
-	CreatedAt   time.Time
-	UpdatedAt   time.Time
-	UID         string `gorm:"uniqueIndex;size:255"`
-	CreatorUID  string `gorm:"size:255"`
-	Type        string `gorm:"size:255"`
-	Callsign    string `gorm:"size:255"`
-	Title       string `gorm:"size:255"`
-	IconsetPath string `gorm:"size:255"`
-	Color       string `gorm:"size:255"`
+	ID          uint      `gorm:"primaryKey"`
+	Scope       string    `gorm:"index;size:255"`
+	CreatedAt   time.Time `gorm:"type:timestamp"`
+	UpdatedAt   time.Time `gorm:"type:timestamp"`
+	UID         string    `gorm:"uniqueIndex;size:255"`
+	CreatorUID  string    `gorm:"size:255"`
+	Type        string    `gorm:"size:255"`
+	Callsign    string    `gorm:"size:255"`
+	Title       string    `gorm:"size:255"`
+	IconsetPath string    `gorm:"size:255"`
+	Color       string    `gorm:"size:255"`
 	Lat         float64
 	Lon         float64
 	EventData   []byte

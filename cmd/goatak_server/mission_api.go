@@ -354,11 +354,11 @@ func getMissionCotHandler(app *App) fiber.Handler {
 
 		for _, item := range mission.Points {
 			evt := cot.CotToEvent(item.GetEvent())
-			
+
 			if evt == nil {
 				continue
 			}
-			
+
 			if err := enc.Encode(evt); err != nil {
 				app.logger.Error("xml encode error", slog.Any("error", err))
 			}

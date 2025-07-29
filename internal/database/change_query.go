@@ -12,7 +12,7 @@ type ChangeQuery struct {
 	Query[model.Change]
 	id        uint
 	missionID uint
-	after time.Time
+	after     time.Time
 }
 
 func NewChangeQuery(db *gorm.DB) *ChangeQuery {
@@ -91,7 +91,7 @@ func (q *ChangeQuery) where() *gorm.DB {
 		tx = tx.Where("changes.mission_id = ?", q.missionID)
 	}
 
-	if ! q.after.IsZero() {
+	if !q.after.IsZero() {
 		tx = tx.Where("changes.created_at > ?", q.after)
 	}
 

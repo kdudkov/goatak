@@ -3,9 +3,9 @@ package model
 import "time"
 
 type Profile struct {
-	Login     string `gorm:"primaryKey;size:255"`
-	UID       string `gorm:"primaryKey;size:255"`
-	UpdatedAt time.Time
+	Login     string            `gorm:"primaryKey;size:255"`
+	UID       string            `gorm:"primaryKey;size:255"`
+	UpdatedAt time.Time         `gorm:"type:timestamp"`
 	Callsign  string            `gorm:"size:255"`
 	Team      string            `gorm:"size:255"`
 	Role      string            `gorm:"size:255"`

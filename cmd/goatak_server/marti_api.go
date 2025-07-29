@@ -558,7 +558,7 @@ func getVideoListHandler(app *App) fiber.Handler {
 		user := app.users.Get(Username(ctx))
 
 		for _, f := range app.dbm.FeedQuery().Scope(user.Scope).ReadScope(user.ReadScope).Get() {
-			r.Feeds = append(r.Feeds, f.ToFeed())
+			r.Feeds = append(r.Feeds, f.DTOOld())
 		}
 
 		return ctx.XML(r)
@@ -571,9 +571,9 @@ func getVideo2ListHandler(app *App) fiber.Handler {
 
 		feeds := app.dbm.FeedQuery().Scope(user.Scope).ReadScope(user.ReadScope).Get()
 		conn := make([]*model.VideoConnections2, len(feeds))
-		
+
 		for i, f := range feeds {
-				conn[i] = &model.VideoConnections2{Feeds: []*model.FeedDTO{f.DTO(false)}}
+			conn[i] = &model.VideoConnections2{Feeds: []*model.Feed2DTO{f.DTO(false)}}
 		}
 
 		return ctx.JSON(fiber.Map{"videoConnections": conn})
@@ -595,7 +595,7 @@ func getVideoPostHandler(app *App) fiber.Handler {
 			f2 := f.ToFeed2()
 			f2.User = username
 			f2.Scope = user.GetScope()
-			
+
 			if err := app.dbm.Save(f2); err != nil {
 				app.logger.Error("error save feed", slog.Any("error", err))
 			}
