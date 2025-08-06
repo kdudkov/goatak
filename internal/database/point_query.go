@@ -1,6 +1,8 @@
 package database
 
 import (
+	"time"
+
 	"gorm.io/gorm"
 
 	"github.com/kdudkov/goatak/pkg/model"
@@ -8,10 +10,10 @@ import (
 
 type PointQuery struct {
 	Query[model.Point]
-	id        uint
-	uid       string
-	scope     string
-	missionID uint
+	id    uint
+	uid   string
+	scope string
+	stale *bool
 }
 
 func NewPointQuery(db *gorm.DB) *PointQuery {
@@ -51,13 +53,13 @@ func (q *PointQuery) UID(uid string) *PointQuery {
 	return q
 }
 
-func (q *PointQuery) Mission(id uint) *PointQuery {
-	q.missionID = id
+func (q *PointQuery) Scope(scope string) *PointQuery {
+	q.scope = scope
 	return q
 }
 
-func (q *PointQuery) Scope(scope string) *PointQuery {
-	q.scope = scope
+func (q *PointQuery) Stale(b bool) *PointQuery {
+	q.stale = &b
 	return q
 }
 
@@ -72,8 +74,12 @@ func (q *PointQuery) where() *gorm.DB {
 		tx = tx.Where("uid = ?", q.uid)
 	}
 
-	if q.missionID != 0 {
-		tx = tx.Where("mission_id = ?", q.missionID)
+	if q.stale != nil {
+		if *q.stale {
+			tx = tx.Where("stale < ?", time.Now())
+		} else {
+			tx = tx.Where("stale >= ?", time.Now())
+		}
 	}
 
 	if q.scope != "" {

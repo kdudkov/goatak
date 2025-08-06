@@ -13,13 +13,14 @@ import (
 
 type Point struct {
 	ID          uint      `gorm:"primaryKey"`
+	UID         string    `gorm:"uniqueIndex;size:255"`
+	Type        string    `gorm:"index;size:255"`
+	Callsign    string    `gorm:"size:255"`
 	Scope       string    `gorm:"index;size:255"`
 	CreatedAt   time.Time `gorm:"type:timestamp"`
 	UpdatedAt   time.Time `gorm:"type:timestamp"`
-	UID         string    `gorm:"uniqueIndex;size:255"`
+	StaleTime   time.Time `gorm:"type:timestamp"`
 	CreatorUID  string    `gorm:"size:255"`
-	Type        string    `gorm:"size:255"`
-	Callsign    string    `gorm:"size:255"`
 	Title       string    `gorm:"size:255"`
 	IconsetPath string    `gorm:"size:255"`
 	Color       string    `gorm:"size:255"`
@@ -66,22 +67,25 @@ func (p *Point) BeforeSave(_ *gorm.DB) error {
 
 	if p.event == nil {
 		p.EventData = nil
+
 		return nil
 	}
 
 	var err error
 
 	p.EventData, err = proto.Marshal(p.event)
+
 	return err
 }
 
 func (p *Point) UpdateFromMsg(msg *cot.CotMessage) {
 	parent, _ := msg.GetParent()
-	p.CreatorUID = parent
-	p.Scope = msg.Scope
-	p.CreatedAt = msg.GetStartTime()
 	p.Type = msg.GetType()
 	p.Callsign = msg.GetCallsign()
+	p.Scope = msg.Scope
+	p.CreatedAt = msg.GetStartTime()
+	p.StaleTime = msg.GetStaleTime()
+	p.CreatorUID = parent
 	p.IconsetPath = msg.GetIconsetPath()
 	p.Color = msg.GetColor()
 	p.Lat = msg.GetLat()
