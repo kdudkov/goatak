@@ -1,6 +1,7 @@
 syntax = "proto3";
 
 option optimize_for = LITE_RUNTIME;
+package goatak.cotproto;
 option go_package = "github.com/kdudkov/goatak/cotproto";
 
 import "detail.proto";

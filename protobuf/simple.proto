@@ -1,4 +1,5 @@
 syntax = "proto3";
+package goatak.cotproto;
 option go_package = "github.com/kdudkov/goatak/cotproto";
 
 // All items are required unless otherwise noted!
