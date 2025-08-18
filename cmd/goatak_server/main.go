@@ -26,6 +26,7 @@ import (
 	"github.com/kdudkov/goatak/internal/database"
 	"github.com/kdudkov/goatak/internal/pm"
 	"github.com/kdudkov/goatak/internal/repository"
+	"github.com/kdudkov/goatak/pkg/chat"
 	"github.com/kdudkov/goatak/pkg/cot"
 	"github.com/kdudkov/goatak/pkg/model"
 )
@@ -41,7 +42,7 @@ type App struct {
 	handlers sync.Map
 
 	items    repository.ItemsRepository
-	messages []*model.ChatMessage
+	messages *chat.Storage
 	dbm      *database.DatabaseManager
 	users    repository.DeviceRepository
 
@@ -58,6 +59,7 @@ func NewApp(config *config.AppConfig) *App {
 		ch:              make(chan *cot.CotMessage, 100),
 		handlers:        sync.Map{},
 		items:           repository.NewItemsMemoryRepo(),
+		messages:        chat.NewStorage(),
 		uid:             uuid.NewString(),
 		eventProcessors: make([]*EventProcessor, 0),
 	}
@@ -91,6 +93,10 @@ func (app *App) Run() {
 		log.Fatal(err)
 	}
 
+	if err := app.messages.Start(); err != nil {
+		log.Fatal(err)
+	}
+	
 	ctx, cancel := context.WithCancel(context.Background())
 
 	if addr := app.config.String("udp_addr"); addr != "" {

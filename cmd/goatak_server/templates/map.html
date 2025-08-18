@@ -48,13 +48,6 @@
                             </li>
                         </ul>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="#" data-bs-toggle="modal" data-bs-target="#messages">
-                            Chat <span class="badge rounded-pill"
-                                       :class="msgNum(false) == 0?'text-bg-success':'text-bg-warning'">
-                            {{ msgNum(false) }}/{{ msgNum(true) }}
-                        </span></a>
-                    </li>
                 </ul>
             </div>
         </div>
@@ -156,30 +149,6 @@
                         </div>
                         {{ current_unit.unit.text }}
                     </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Modal -->
-    <div class="modal fade" id="messages" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1"
-         aria-labelledby="staticBackdropLabel" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="staticBackdropLabel">Chat messages</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <div v-for="m in messages" class="alert alert-secondary">
-                        <span class="badge text-bg-secondary">{{ dt(m.time) }}</span>
-                        <span class="badge mx-1"
-                              :class="m.from_uid == config.uid ? 'text-bg-success':'text-bg-info'">{{ m.from || m.from_uid }}</span>
-                        {{ m.text }}
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                 </div>
             </div>
         </div>

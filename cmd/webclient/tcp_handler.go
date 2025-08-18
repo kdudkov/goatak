@@ -9,7 +9,7 @@ import (
 )
 
 func (app *App) connect() (net.Conn, error) {
-	addr := fmt.Sprintf("%s:%s", app.host, app.tcpPort)
+	addr := net.JoinHostPort(app.host, app.tcpPort)
 	if app.tls {
 		app.logger.Info(fmt.Sprintf("connecting with SSL to %s...", addr))
 

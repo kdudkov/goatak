@@ -67,7 +67,6 @@ func (h *HttpServer) NewAdminAPI(app *App, addr string, webtakRoot string) *Admi
 	api.f.Get("/api/unit", getApiUnitsHandler(app))
 	api.f.Get("/api/unit/:uid/track", getApiUnitTrackHandler(app))
 	api.f.Delete("/api/unit/:uid", deleteItemHandler(app))
-	api.f.Get("/api/message", getMessagesHandler(app))
 
 	api.f.Get("/ws", getWsHandler(app))
 	api.f.Get("/takproto/1", getTakWsHandler(app))
@@ -308,12 +307,6 @@ func getConfigHandler(app *App) fiber.Handler {
 func getApiUnitsHandler(app *App) fiber.Handler {
 	return func(ctx *fiber.Ctx) error {
 		return ctx.JSON(getUnits(app))
-	}
-}
-
-func getMessagesHandler(app *App) fiber.Handler {
-	return func(ctx *fiber.Ctx) error {
-		return ctx.JSON(app.messages)
 	}
 }
 

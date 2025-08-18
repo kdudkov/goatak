@@ -178,14 +178,6 @@ func (m *CotMessage) GetExRole() string {
 	return m.GetDetail().GetFirst("__group").GetAttr("exrole")
 }
 
-func (m *CotMessage) GetStale() time.Time {
-	if m == nil {
-		return time.Time{}
-	}
-
-	return TimeFromMillis(m.GetTakMessage().GetCotEvent().GetStaleTime())
-}
-
 func (m *CotMessage) IsContact() bool {
 	if m == nil || m.GetTakMessage() == nil {
 		return false

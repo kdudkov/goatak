@@ -1,6 +1,7 @@
 package model
 
 import (
+	"slices"
 	"fmt"
 	"strings"
 	"sync"
@@ -97,6 +98,13 @@ func (i *Item) IsOld() bool {
 	}
 }
 
+func (i *Item) GetOnline() (bool, time.Time) {
+	i.mx.RLock()
+	defer i.mx.RUnlock()
+
+	return i.online, i.lastSeen
+}
+
 func (i *Item) IsOnline() bool {
 	i.mx.RLock()
 	defer i.mx.RUnlock()
@@ -161,13 +169,7 @@ func (i *Item) HasMission(name string) bool {
 	i.mx.RLock()
 	defer i.mx.RUnlock()
 
-	for _, m := range i.msg.GetDetail().GetDestMission() {
-		if m == name {
-			return true
-		}
-	}
-
-	return false
+	return slices.Contains(i.msg.GetDetail().GetDestMission(), name)
 }
 
 func FromMsg(msg *cot.CotMessage) *Item {

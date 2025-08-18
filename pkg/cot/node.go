@@ -2,6 +2,7 @@
 package cot
 
 import (
+	"slices"
 	"bytes"
 	"encoding/xml"
 	"fmt"
@@ -124,17 +125,7 @@ func (n *Node) RemoveTags(tags ...string) {
 	newNodes := make([]*Node, 0)
 
 	for _, x := range n.Nodes {
-		found := false
-
-		for _, t := range tags {
-			if t == x.XMLName.Local {
-				found = true
-
-				break
-			}
-		}
-
-		if !found {
+		if !slices.Contains(tags, x.XMLName.Local) {
 			newNodes = append(newNodes, x)
 		}
 	}
@@ -223,7 +214,7 @@ func (n *Node) print(s *bytes.Buffer, prefix string) {
 				s.WriteRune(',')
 			}
 
-			s.WriteString(fmt.Sprintf("%s=\"%s\"", a.Name.Local, a.Value))
+			fmt.Fprintf(s, "%s=\"%s\"", a.Name.Local, a.Value)
 		}
 
 		s.WriteString("]")

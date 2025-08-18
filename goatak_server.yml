@@ -12,6 +12,8 @@ tcp_addr: ":8999"
 udp_addr: ":8999"
 # TCP TLS listener for ATAK clients. Port should be 8089
 tls_addr: ":8089"
+# 
+local_addr: "localhost:8888"
 # if true server will save all messages to files in data/log folder
 log: false
 # directory for all server data (default is "data")

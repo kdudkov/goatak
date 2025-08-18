@@ -8,9 +8,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/uuid"
 	"google.golang.org/protobuf/proto"
 
+	"github.com/kdudkov/goatak/pkg/chat"
 	"github.com/kdudkov/goatak/pkg/cot"
 	"github.com/kdudkov/goatak/pkg/model"
 )
@@ -36,7 +36,7 @@ func (app *App) InitMessageProcessors() {
 
 	app.AddEventProcessor("metrics", app.metricsProcessor, "t-x-c-m")
 	app.AddEventProcessor("remove", app.removeItemProcessor, "t-x-d-d")
-	app.AddEventProcessor("chat", app.chatProcessor, "b-t-f")
+	app.AddEventProcessor("chat", app.chatProcessor, "b-t-f", "b-t-f-")
 	app.AddEventProcessor("items", app.saveItemProcessor, "a-", "b-", "u-")
 	app.AddEventProcessor("filter_control", filterProcessor, "t-")
 
@@ -94,22 +94,17 @@ func (app *App) removeItemProcessor(msg *cot.CotMessage) bool {
 }
 
 func (app *App) chatProcessor(msg *cot.CotMessage) bool {
-	c := model.MsgToChat(msg)
-	if c == nil {
-		app.logger.Error("invalid chat message " + msg.GetTakMessage().String())
+	if msg.IsChat() {
+		c := chat.FromCot(msg)
+		app.messages.Add(c)
 
-		return true
+		if err := logChatMessage(c); err != nil {
+			app.logger.Warn("error logging chat", slog.Any("error", err))
+		}
 	}
 
-	if c.From == "" {
-		c.From = app.items.GetCallsign(c.FromUID)
-	}
+	if msg.IsChatReceipt() {
 
-	app.logger.Info("Chat " + c.String())
-
-	app.messages = append(app.messages, c)
-	if err := logChatMessage(c); err != nil {
-		app.logger.Warn("error logging chat", slog.Any("error", err))
 	}
 
 	return true
@@ -123,31 +118,42 @@ func (app *App) saveItemProcessor(msg *cot.CotMessage) bool {
 	cl := model.GetClass(msg)
 	if c := app.items.Get(msg.GetUID()); c != nil {
 		app.logger.Debug(fmt.Sprintf("update %s %s (%s) %s", cl, msg.GetUID(), msg.GetCallsign(), msg.GetType()))
+		online, lastSeen := c.GetOnline()
 		c.Update(msg)
 		app.items.Store(c)
+
+		if cl == model.CONTACT && !online {
+			app.newContact(c, lastSeen)
+		}
+
 	} else {
 		app.logger.Info(fmt.Sprintf("new %s %s (%s) %s", cl, msg.GetUID(), msg.GetCallsign(), msg.GetType()))
 		item := model.FromMsg(msg)
 		app.items.Store(item)
 
-		if cl == model.CONTACT && app.config.WelcomeMsg() != "" {
-			chat := &model.ChatMessage{
-				ID:       uuid.NewString(),
-				Time:     time.Now(),
-				Parent:   "RootContactGroup",
-				Chatroom: item.GetCallsign(),
-				From:     "",
-				FromUID:  WELCOME_MESSAGE_FROM_UID,
-				ToUID:    item.GetUID(),
-				Direct:   true,
-				Text:     app.config.WelcomeMsg(),
-			}
-
-			app.NewCotMessage(cot.LocalCotMessage(model.MakeChatMessage(chat)))
+		if cl == model.CONTACT {
+			app.newContact(item, time.Time{})
 		}
 	}
 
 	return true
+}
+
+func (app *App) newContact(item *model.Item, lastSeen time.Time) {
+	if time.Since(lastSeen) > time.Hour*24 && app.config.WelcomeMsg() != "" {
+		chat := chat.MakeChatMessage(item.GetUID(), WELCOME_MESSAGE_FROM_UID, item.GetCallsign(), "", "RootContactGroup", app.config.WelcomeMsg())
+		app.sendToUID(item.GetUID(), cot.LocalCotMessage(chat))
+	}
+
+	msgs := app.messages.GetFor(item, lastSeen)
+
+	if len(msgs) > 0 {
+		app.logger.Info(fmt.Sprintf("got %d messages for %s %s", len(msgs), item.GetUID(), item.GetCallsign()))
+
+		for _, c := range msgs {
+			app.sendToUID(item.GetUID(), c)
+		}
+	}
 }
 
 func (app *App) fileLoggerProcessor(msg *cot.CotMessage) bool {
@@ -218,8 +224,8 @@ func logMessage(msg *cot.CotMessage, dir string) error {
 	return nil
 }
 
-func logChatMessage(c *model.ChatMessage) error {
-	if c.FromUID == WELCOME_MESSAGE_FROM_UID {
+func logChatMessage(c *chat.ChatMessage) error {
+	if c.GetUIDFrom() == WELCOME_MESSAGE_FROM_UID {
 		return nil
 	}
 
@@ -229,7 +235,7 @@ func logChatMessage(c *model.ChatMessage) error {
 	}
 
 	defer fd.Close()
-	_, err = fmt.Fprintf(fd, "%s %s (%s) -> %s (%s) \"%s\"\n", c.Time, c.From, c.FromUID, c.Chatroom, c.ToUID, c.Text)
+	_, err = fmt.Fprintf(fd, "%s (%s) -> %s (%s) \"%s\"\n", c.GetUIDFrom(), c.GetCallsignFrom(), c.GetChatroom(), c.GetUIDTo(), c.GetText())
 
 	return err
 }
