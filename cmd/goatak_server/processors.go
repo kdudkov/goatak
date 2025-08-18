@@ -36,7 +36,7 @@ func (app *App) InitMessageProcessors() {
 
 	app.AddEventProcessor("metrics", app.metricsProcessor, "t-x-c-m")
 	app.AddEventProcessor("remove", app.removeItemProcessor, "t-x-d-d")
-	app.AddEventProcessor("chat", app.chatProcessor, "b-t-f", "b-t-f-")
+	app.AddEventProcessor("chat", app.chatProcessor, "b-t-f", "b-t-f-", "b-f-t-")
 	app.AddEventProcessor("items", app.saveItemProcessor, "a-", "b-", "u-")
 	app.AddEventProcessor("filter_control", filterProcessor, "t-")
 
@@ -94,7 +94,7 @@ func (app *App) removeItemProcessor(msg *cot.CotMessage) bool {
 }
 
 func (app *App) chatProcessor(msg *cot.CotMessage) bool {
-	if msg.IsChat() {
+	if msg.IsChat() || msg.IsFileTransfer() {
 		c := chat.FromCot(msg)
 		app.messages.Add(c)
 
@@ -125,7 +125,6 @@ func (app *App) saveItemProcessor(msg *cot.CotMessage) bool {
 		if cl == model.CONTACT && !online {
 			app.newContact(c, lastSeen)
 		}
-
 	} else {
 		app.logger.Info(fmt.Sprintf("new %s %s (%s) %s", cl, msg.GetUID(), msg.GetCallsign(), msg.GetType()))
 		item := model.FromMsg(msg)

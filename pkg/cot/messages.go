@@ -68,6 +68,7 @@ var messages = map[string]string{
 	"b-t-f-p":       "Chat pending receipt",
 	"b-t-f-r":       "Chat read receipt",
 	"b-t-f-s":       "Chat delivery failure",
+	"b-t-f-u":       "Chat ??",
 	"b-w":           "Weather",
 	"c":             "Capability",
 	"r":             "Area restrictions",

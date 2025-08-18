@@ -3,6 +3,7 @@ package tak_ws
 import (
 	"bufio"
 	"bytes"
+	"errors"
 	"fmt"
 	"log/slog"
 	"strings"
@@ -114,7 +115,7 @@ func (w *WsClientHandler) SendCot(msg *cotproto.TakMessage) error {
 		return nil
 	}
 
-	return fmt.Errorf("client is off")
+	return errors.New("client is off")
 }
 
 func (w *WsClientHandler) tryAddPacket(msg []byte) bool {

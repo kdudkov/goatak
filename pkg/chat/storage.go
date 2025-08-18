@@ -25,12 +25,11 @@ func (s *Storage) Add(c *ChatMessage) {
 
 func (s *Storage) Start() error {
 	go func() {
-		for range time.Tick(time.Second*60) {
+		for range time.Tick(time.Second * 60) {
 			s.clean()
 		}
-
 	}()
-	
+
 	return nil
 }
 
@@ -59,6 +58,7 @@ func (s *Storage) GetFor(item *model.Item, t time.Time) []*cot.CotMessage {
 		if dest := c.msg.GetDetail().GetDestCallsign(); len(dest) > 0 {
 			if slices.Contains(dest, item.GetCallsign()) {
 				res = append(res, c.msg)
+
 				return true
 			}
 
@@ -66,6 +66,7 @@ func (s *Storage) GetFor(item *model.Item, t time.Time) []*cot.CotMessage {
 		}
 
 		res = append(res, c.msg)
+
 		return true
 	})
 

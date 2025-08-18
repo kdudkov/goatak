@@ -2,10 +2,10 @@
 package cot
 
 import (
-	"slices"
 	"bytes"
 	"encoding/xml"
 	"fmt"
+	"slices"
 	"strings"
 )
 

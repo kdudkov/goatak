@@ -207,7 +207,8 @@ func (m *CotMessage) IsChatReceipt() bool {
 		return false
 	}
 
-	return m.GetType() == "b-t-f-r" || m.GetType() == "b-t-f-d"
+	return m.GetType() == "b-t-f-d" || m.GetType() == "b-t-f-p" ||
+		m.GetType() == "b-t-f-r" || m.GetType() == "b-t-f-s" || m.GetType() == "b-t-f-u"
 }
 
 func (m *CotMessage) IsFileTransfer() bool {

@@ -96,7 +96,7 @@ func (app *App) Run() {
 	if err := app.messages.Start(); err != nil {
 		log.Fatal(err)
 	}
-	
+
 	ctx, cancel := context.WithCancel(context.Background())
 
 	if addr := app.config.String("udp_addr"); addr != "" {

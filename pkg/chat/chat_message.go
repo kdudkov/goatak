@@ -6,18 +6,19 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+
 	"github.com/kdudkov/goatak/pkg/cot"
 	"github.com/kdudkov/goatak/pkg/cotproto"
 )
 
 type ChatMessage struct {
-	msg *cot.CotMessage
+	msg      *cot.CotMessage
 	received time.Time
 }
 
 func FromCot(c *cot.CotMessage) *ChatMessage {
 	return &ChatMessage{
-		msg: c,
+		msg:      c,
 		received: time.Now(),
 	}
 }
@@ -26,7 +27,7 @@ func (c *ChatMessage) GetMessageID() string {
 	if c == nil || c.msg == nil {
 		return ""
 	}
-	
+
 	return c.msg.GetDetail().GetFirst("__chat").GetAttr("messageId")
 }
 
@@ -34,7 +35,7 @@ func (c *ChatMessage) GetChatroom() string {
 	if c == nil || c.msg == nil {
 		return ""
 	}
-	
+
 	return c.msg.GetDetail().GetFirst("__chat").GetAttr("chatroom")
 }
 
@@ -42,15 +43,23 @@ func (c *ChatMessage) GetCallsignFrom() string {
 	if c == nil || c.msg == nil {
 		return ""
 	}
-	
-	return c.msg.GetDetail().GetFirst("__chat").GetAttr("senderCallsign")
+
+	if cs := c.msg.GetDetail().GetFirst("__chat").GetAttr("senderCallsign"); cs != "" {
+		return cs
+	}
+
+	if cs := c.msg.GetDetail().GetFirst("fileshare").GetAttr("senderCallsign"); cs != "" {
+		return cs
+	}
+
+	return ""
 }
 
 func (c *ChatMessage) GetUIDTo() string {
 	if c == nil || c.msg == nil {
 		return ""
 	}
-	
+
 	return c.msg.GetDetail().GetFirst("__chat").GetAttr("id")
 }
 
@@ -58,15 +67,19 @@ func (c *ChatMessage) GetUIDFrom() string {
 	if c == nil || c.msg == nil {
 		return ""
 	}
-	
+
 	if uid := c.msg.GetDetail().GetFirst("__chat").GetFirst("chatgrp").GetAttr("uid0"); uid != "" {
 		return uid
 	}
-	
-	if uid := c.msg.GetFirstLink("p-p").GetAttr("uid"); uid != "" {
-		return uid	
+
+	if uid := c.msg.GetDetail().GetFirst("fileshare").GetAttr("senderUid"); uid != "" {
+		return uid
 	}
-	
+
+	if uid := c.msg.GetFirstLink("p-p").GetAttr("uid"); uid != "" {
+		return uid
+	}
+
 	return ""
 }
 
@@ -74,11 +87,11 @@ func (c *ChatMessage) GetText() string {
 	if c == nil || c.msg == nil {
 		return ""
 	}
-	
+
 	if rem := c.msg.GetDetail().GetFirst("remarks"); rem != nil {
 		return html.UnescapeString(rem.GetText())
 	}
-	
+
 	return ""
 }
 
@@ -119,7 +132,7 @@ func (c *ChatMessage) GetText() string {
 
 // 	return c
 // }
-// 
+//
 
 func MakeChatMessage(toUID, fromUID, chatroom, from, parent, text string) *cotproto.TakMessage {
 	t := time.Now().UTC().Format(time.RFC3339)

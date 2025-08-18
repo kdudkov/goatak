@@ -1,8 +1,8 @@
 package model
 
 import (
-	"slices"
 	"fmt"
+	"slices"
 	"strings"
 	"sync"
 	"time"
