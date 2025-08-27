@@ -131,7 +131,7 @@ func (app *App) saveItemProcessor(msg *cot.CotMessage) bool {
 		app.items.Store(item)
 
 		if cl == model.CONTACT {
-			app.newContact(item, time.Time{})
+			app.newContact(item, time.Now().Add(-1*model.StaleContactDelete))
 		}
 	}
 

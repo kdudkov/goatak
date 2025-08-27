@@ -158,10 +158,9 @@ const app = Vue.createApp({
 
             fetch('/api/message', {redirect: 'manual'})
                 .then(resp => {
-                    if (!resp.ok) {
-                        window.location.reload();
+                    if (resp.ok) {
+                        return resp.json();
                     }
-                    return resp.json();
                 })
                 .then(d => vm.messages = d);
         },

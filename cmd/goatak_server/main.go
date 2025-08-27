@@ -56,7 +56,7 @@ func NewApp(config *config.AppConfig) *App {
 		logger:          slog.Default(),
 		config:          config,
 		files:           pm.NewBlobManages(filepath.Join(config.DataDir(), "blob")),
-		ch:              make(chan *cot.CotMessage, 100),
+		ch:              make(chan *cot.CotMessage, 128),
 		handlers:        sync.Map{},
 		items:           repository.NewItemsMemoryRepo(),
 		messages:        chat.NewStorage(),
@@ -395,6 +395,7 @@ func (app *App) sendToCallsign(callsign string, msg *cot.CotMessage) {
 	app.ForAllClients(func(ch client.ClientHandler) bool {
 		if ch.HasCallsign(callsign) {
 			found = true
+
 			if err := ch.SendMsg(msg); err != nil {
 				app.logger.Error("send error", slog.Any("error", err))
 			}
@@ -439,6 +440,7 @@ func main() {
 
 	conf := config.NewAppConfig()
 	conf.Load(*configName)
+
 	if err := conf.LoadEnv("GOATAK_"); err != nil {
 		panic(err)
 	}

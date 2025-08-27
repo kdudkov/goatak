@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	StaleContactDelete = time.Hour * 12
+	StaleContactDelete = time.Hour * 24
 	POINT              = "point"
 	UNIT               = "unit"
 	CONTACT            = "contact"
