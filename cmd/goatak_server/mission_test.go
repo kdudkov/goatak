@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"testing"
 	"time"
 
@@ -103,12 +102,23 @@ func TestPointCRUD(t *testing.T) {
 
 	require.NoError(t, m.CreateMission(m1))
 	require.NoError(t, m.CreateMission(m2))
-
-	assert.NotNil(t, m.AddMissionPoint(m1, newCotMessage("scope1", "uid1", 10, 20)))
-	assert.NotNil(t, m.AddMissionPoint(m1, newCotMessage("scope1", "uid2", 10, 20)))
-	assert.Nil(t, m.AddMissionPoint(m1, newCotMessage("scope1", "uid1", 15, 20)))
-	assert.NotNil(t, m.AddMissionPoint(m2, newCotMessage("scope1", "uid1", 15, 20)))
-
+	
+	var c *model.Change
+	var err error
+	
+	c, err = m.AddMissionPoint(m1, newCotMessage("scope1", "uid1", 10, 20))
+	require.NoError(t, err)
+	assert.NotNil(t, c)
+	c, err = m.AddMissionPoint(m1, newCotMessage("scope1", "uid2", 10, 20))
+	require.NoError(t, err)
+	assert.NotNil(t, c)
+	c, err = m.AddMissionPoint(m1, newCotMessage("scope1", "uid1", 15, 20))
+	require.NoError(t, err)
+	assert.Nil(t, c)
+	c, err = m.AddMissionPoint(m2, newCotMessage("scope1", "uid1", 15, 20))
+	require.NoError(t, err)
+	assert.NotNil(t, c)
+	
 	require.Empty(t, m.MissionQuery().Scope("scope1").Name(m1.Name).One().Points)
 	require.Len(t, m.MissionQuery().Scope("scope1").Name(m1.Name).Full().One().Points, 2)
 	require.Len(t, m.MissionQuery().Scope("scope1").Name(m2.Name).Full().One().Points, 1)
@@ -120,7 +130,7 @@ func TestPointCRUD(t *testing.T) {
 	require.Len(t, m.MissionQuery().Scope("scope1").Name(m2.Name).Full().One().Points, 1)
 
 	ch := m.GetChanges(m1.ID, time.Now().Add(-time.Hour), false)
-	fmt.Println(ch)
+	require.Len(t, ch, 4)
 }
 
 func TestMissionContent(t *testing.T) {

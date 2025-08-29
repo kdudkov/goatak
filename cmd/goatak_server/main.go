@@ -348,13 +348,17 @@ func (app *App) processMissionPoint(missionName string, msg *cot.CotMessage) {
 	}
 
 	var change *model.Change
-
+	var err  error
+	
 	if msg.GetType() == "t-x-d-d" {
 		if uid := msg.GetFirstLink("p-p").GetAttr("uid"); uid != "" {
 			change = app.dbm.DeleteMissionPoint(m, uid, "")
 		}
 	} else {
-		change = app.dbm.AddMissionPoint(m, msg)
+		change, err = app.dbm.AddMissionPoint(m, msg)
+		if err != nil {
+			app.logger.Error("error adding point to mission",slog.Any("error", err))
+		}
 	}
 
 	if change != nil {

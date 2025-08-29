@@ -164,17 +164,17 @@ func (mm *DatabaseManager) UpdateContentTool(id uint, tool string) error {
 	return mm.MissionQuery().Id(id).Update(map[string]any{"tool": tool})
 }
 
-func (mm *DatabaseManager) AddMissionPoint(mission *model.Mission, msg *cot.CotMessage) *model.Change {
+func (mm *DatabaseManager) AddMissionPoint(mission *model.Mission, msg *cot.CotMessage) (*model.Change, error) {
 	if mission == nil {
-		return nil
+		return nil, nil
 	}
 
 	// just update point if it is already in mission
 	for _, p := range mission.Points {
 		if p.UID == msg.GetUID() {
 			p.UpdateFromMsg(msg)
-			mm.Save(p)
-			return nil
+			
+			return nil, mm.Save(p)
 		}
 	}
 
@@ -185,9 +185,13 @@ func (mm *DatabaseManager) AddMissionPoint(mission *model.Mission, msg *cot.CotM
 	}
 
 	point.UpdateFromMsg(msg)
-	mm.Save(point)
+	if err := mm.Save(point); err != nil {
+		return nil, err
+	}
 
-	mm.db.Model(mission).Association("Points").Append(point)
+	if err := mm.db.Model(mission).Association("Points").Append(point); err != nil {
+		return nil, err
+	}
 
 	// todo: use sender uid, not parent
 	parent, _ := msg.GetParent()
@@ -200,9 +204,9 @@ func (mm *DatabaseManager) AddMissionPoint(mission *model.Mission, msg *cot.CotM
 		MissionPointID: &point.ID,
 	}
 
-	_ = mm.Create(c)
+	err := mm.Create(c)
 
-	return c
+	return c, err
 }
 
 func (mm *DatabaseManager) DeleteMissionPoint(mission *model.Mission, uid string, authorUID string) *model.Change {
