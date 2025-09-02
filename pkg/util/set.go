@@ -26,6 +26,16 @@ func (s StringSet) Add(keys ...string) {
 	}
 }
 
+func (s StringSet) CheckAdd(key string) bool {
+	if _, ok := s[key]; ok {
+		return false
+	}
+
+	s[key] = struct{}{}
+
+	return true
+}
+
 func (s StringSet) Remove(key string) {
 	delete(s, key)
 }

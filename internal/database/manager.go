@@ -173,7 +173,7 @@ func (mm *DatabaseManager) AddMissionPoint(mission *model.Mission, msg *cot.CotM
 	for _, p := range mission.Points {
 		if p.UID == msg.GetUID() {
 			p.UpdateFromMsg(msg)
-			
+
 			return nil, mm.Save(p)
 		}
 	}
@@ -323,7 +323,6 @@ func (mm *DatabaseManager) GetChanges(missionId uint, after time.Time, squashed 
 
 	uids := util.NewStringSet()
 
-	n := 0
 	ch1 := make([]*model.Change, 0, len(ch))
 
 	for _, c := range ch {
@@ -332,12 +331,12 @@ func (mm *DatabaseManager) GetChanges(missionId uint, after time.Time, squashed 
 		if uids.Has(key) {
 			continue
 		}
+
 		uids.Add(key)
 
 		if c.Type != model.CHANGE_TYPE_REMOVE {
 			ch1 = append(ch1, c)
 		}
-		n++
 	}
 
 	return ch1

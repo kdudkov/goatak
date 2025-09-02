@@ -46,11 +46,15 @@ func (g *JsonDumper) Stop() {
 func (g *JsonDumper) Process(msg *cot.CotMessage) error {
 	// json doesn't support Nan
 	if math.IsNaN(msg.TakMessage.GetCotEvent().GetCe()) {
-		msg.TakMessage.CotEvent.Ce = cot.NotNum
+		msg.TakMessage.CotEvent.Ce = -1
 	}
 
 	if math.IsNaN(msg.TakMessage.GetCotEvent().GetLe()) {
-		msg.TakMessage.CotEvent.Le = cot.NotNum
+		msg.TakMessage.CotEvent.Le = -1
+	}
+
+	if math.IsNaN(msg.TakMessage.GetCotEvent().GetHae()) {
+		msg.TakMessage.CotEvent.Hae = -1
 	}
 
 	b, err := json.Marshal(msg.GetTakMessage())
@@ -72,6 +76,19 @@ func (g *Json2Dumper) Stop() {
 }
 
 func (g *Json2Dumper) Process(msg *cot.CotMessage) error {
+	// json doesn't support Nan
+	if math.IsNaN(msg.TakMessage.GetCotEvent().GetCe()) {
+		msg.TakMessage.CotEvent.Ce = -1
+	}
+
+	if math.IsNaN(msg.TakMessage.GetCotEvent().GetLe()) {
+		msg.TakMessage.CotEvent.Le = -1
+	}
+
+	if math.IsNaN(msg.TakMessage.GetCotEvent().GetHae()) {
+		msg.TakMessage.CotEvent.Hae = -1
+	}
+
 	b, err := json.Marshal(msg.GetTakMessage())
 	if err != nil {
 		return err
