@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"math/rand"
 	"net/http"
+	"path/filepath"
 	"sort"
 	"strconv"
 	"strings"
@@ -74,8 +75,10 @@ func (h *HttpServer) NewAdminAPI(app *App, addr string, webtakRoot string) *Admi
 	api.f.Post("/cot_xml", getCotXMLPostHandler(app))
 
 	api.f.Get("/api/file", getApiFilesHandler(app))
+	api.f.Get("/api/file/:id/zip", getApiZipFileHandler(app))
 	api.f.Get("/api/file/:id", getApiFileHandler(app))
 	api.f.Get("/api/file/delete/:id", getApiFileDeleteHandler(app))
+
 	api.f.Get("/api/point", getApiPointsHandler(app))
 	api.f.Get("/api/device", getApiDevicesHandler(app))
 	api.f.Post("/api/device", getApiDevicePostHandler(app))
@@ -477,6 +480,55 @@ func getApiFileHandler(app *App) fiber.Handler {
 	}
 }
 
+func getApiZipFileHandler(app *App) fiber.Handler {
+	return func(ctx *fiber.Ctx) error {
+		fname := ctx.Query("name")
+		id, err := ctx.ParamsInt("id")
+
+		if err != nil {
+			return err
+		}
+
+		if id == 0 || fname == "" {
+			return ctx.SendStatus(fiber.StatusBadRequest)
+		}
+
+		pi := app.dbm.ResourceQuery().Id(uint(id)).One()
+
+		if pi == nil {
+			return ctx.SendStatus(fiber.StatusNotFound)
+		}
+
+		if pi.MIMEType != "application/x-zip-compressed" {
+			return ctx.SendStatus(fiber.StatusBadRequest)
+		}
+
+		z, err := app.files.GetZipFile(pi.Hash, pi.Scope, fname)
+
+		if err != nil {
+			app.logger.Error("get file error", slog.Any("error", err))
+			return err
+		}
+
+		ctx.Set(fiber.HeaderContentType, getMime(filepath.Ext(fname)))
+		ctx.Set(fiber.HeaderLastModified, z.Modified.Format(http.TimeFormat))
+		ctx.Set(fiber.HeaderContentLength, strconv.Itoa(int(z.UncompressedSize64)))
+		ctx.Set(fiber.HeaderContentDisposition, "inline; filename="+filepath.Base(fname))
+
+		f, err := z.Open()
+
+		if err != nil {
+			return err
+		}
+
+		defer f.Close()
+
+		_, err = io.Copy(ctx, f)
+
+		return err
+	}
+}
+
 func getApiFileDeleteHandler(app *App) fiber.Handler {
 	return func(ctx *fiber.Ctx) error {
 		id, err := ctx.ParamsInt("id")
@@ -489,8 +541,15 @@ func getApiFileDeleteHandler(app *App) fiber.Handler {
 			return ctx.SendStatus(fiber.StatusBadRequest)
 		}
 
-		app.dbm.ResourceQuery().Id(uint(id)).Delete()
+		pi := app.dbm.ResourceQuery().Id(uint(id)).One()
 
+		if pi == nil {
+			return ctx.SendStatus(fiber.StatusNotFound)
+		}
+		
+		app.dbm.ResourceQuery().Id(uint(id)).Delete()
+		app.files.Delete(pi.Hash, pi.Scope)
+		
 		return ctx.RedirectToRoute("admin_files", nil)
 	}
 }
@@ -824,4 +883,27 @@ func getTakWsHandler(app *App) fiber.Handler {
 		app.logger.Info("ws disconnected")
 		app.RemoveHandlerCb(w)
 	})
+}
+
+func getMime(ext string) string {
+	switch strings.ToLower(ext) {
+	case ".jpg", ".jpeg":
+		return "image/jpeg"
+	case ".gif":
+		return "image/gif"
+	case ".kml":
+		return "application/vnd.google-earth.kml+xml"
+	case ".kmz":
+		return "application/vnd.google-earth.kmz"
+	case ".gpx":
+		return "application/gpx+xml"
+	case ".xml", ".cot":
+		return "application/xml"
+	case ".txt":
+		return "text/txt"
+	case ".json":
+		return fiber.MIMEApplicationJSONCharsetUTF8
+	default:
+		return fiber.MIMEOctetStream
+	}
 }

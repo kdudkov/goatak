@@ -289,14 +289,23 @@ func (app *App) uploadMultipart(ctx *fiber.Ctx, uid, hash, filename string, pack
 		return nil, err
 	}
 
+	mime := fh.Header.Get(fiber.HeaderContentType)
+
+	var files []string
+
+	if mime == "application/x-zip-compressed" {
+		files, err = app.files.ListFiles(hash, user.GetScope())
+	}
+
 	c := &model.Resource{
 		Scope:          user.GetScope(),
 		Hash:           hash1,
 		UID:            uid,
 		Name:           filename,
 		FileName:       fh.Filename,
-		MIMEType:       fh.Header.Get(fiber.HeaderContentType),
+		MIMEType:       mime,
 		Size:           int(fh.Size),
+		Files:          files,
 		SubmissionUser: user.GetLogin(),
 		CreatorUID:     queryIgnoreCase(ctx, "creatorUid"),
 		Tool:           "",
@@ -325,14 +334,23 @@ func (app *App) uploadFile(ctx *fiber.Ctx, uid, filename string) (*model.Resourc
 		return nil, err
 	}
 
+	mime := ctx.Get(fiber.HeaderContentType)
+
+	var files []string
+
+	if mime == "application/x-zip-compressed" {
+		files, err = app.files.ListFiles(hash, user.GetScope())
+	}
+
 	c := &model.Resource{
 		Scope:          user.GetScope(),
 		Hash:           hash,
 		UID:            uid,
 		Name:           filename,
 		FileName:       filename,
-		MIMEType:       ctx.Get(fiber.HeaderContentType),
+		MIMEType:       mime,
 		Size:           int(n),
+		Files:          files,
 		SubmissionUser: user.GetLogin(),
 		CreatorUID:     queryIgnoreCase(ctx, "creatorUid"),
 		Tool:           "",

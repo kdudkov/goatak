@@ -52,11 +52,20 @@
                     </tr>
                 </table>
             </div>
-
+            
+            <div class="my-2" v-if="current.Files">
+                <ul>
+                    <li v-for="f in current.Files"><a :href="'/api/file/' + current.ID + '/zip?name=' + encodeURI(f)">{{ f }}</a></li>
+                </ul>
+            </div>
+            
             <div class="my-2">
                 <a class="btn btn-outline-danger" :href="'/api/file/delete/' + current.ID">delete</a><br/>
-                <img class="w-100" v-if="current.MIMEType.startsWith('image/')" :src="'/api/file/' + current.ID"/>
             </div>
+            
+             <div class="my-2" v-if="current.MIMEType.startsWith('image/')">
+                 <img class="w-100" :src="'/api/file/' + current.ID"/>
+             </div>
         </div>
     </div>
 </div>

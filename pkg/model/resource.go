@@ -20,11 +20,12 @@ type Resource struct {
 	FileName       string    `gorm:"size:255"`
 	MIMEType       string    `gorm:"size:255"`
 	Size           int
-	SubmissionUser string `gorm:"size:255"`
-	CreatorUID     string `gorm:"size:255"`
-	Tool           string `gorm:"index"`
-	Keywords       string `gorm:"size:255"`
-	Groups         string `gorm:"size:255"`
+	Files          []string `gorm:"type:text;size:65535;serializer:json"`
+	SubmissionUser string   `gorm:"size:255"`
+	CreatorUID     string   `gorm:"size:255"`
+	Tool           string   `gorm:"index"`
+	Keywords       string   `gorm:"size:255"`
+	Groups         string   `gorm:"size:255"`
 	Expiration     int64
 	KwSet          util.StringSet `gorm:"-"`
 }

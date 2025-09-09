@@ -1,6 +1,7 @@
 package pm
 
 import (
+	"archive/zip"
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
@@ -35,7 +36,7 @@ func NewBlobManages(basedir string) *BlobManager {
 	}
 }
 
-func (m *BlobManager) fileName(scope, hash string) string {
+func (m *BlobManager) Key(scope, hash string) string {
 	if scope == "" {
 		return filepath.Join(m.basedir, hash)
 	}
@@ -49,11 +50,68 @@ func (m *BlobManager) GetFile(hash string, scope string) (io.ReadSeekCloser, err
 	m.mx.RLock()
 	defer m.mx.RUnlock()
 
-	if hash == "" || !util.FileExists(m.fileName(scope, hash)) {
+	if hash == "" || !util.FileExists(m.Key(scope, hash)) {
 		return nil, ErrNotFound
 	}
 
-	return os.Open(m.fileName(scope, hash))
+	return os.Open(m.Key(scope, hash))
+}
+
+func (m *BlobManager) Delete(hash string, scope string) error {
+	m.mx.RLock()
+	defer m.mx.RUnlock()
+
+	if hash == "" || !util.FileExists(m.Key(scope, hash)) {
+		return ErrNotFound
+	}
+
+	return os.Remove(m.Key(scope, hash))
+}
+
+func (m *BlobManager) GetZipFile(hash string, scope string, name string) (*zip.File, error) {
+	m.mx.RLock()
+	defer m.mx.RUnlock()
+
+	if hash == "" || !util.FileExists(m.Key(scope, hash)) {
+		return nil, ErrNotFound
+	}
+
+	z, err := zip.OpenReader(m.Key(scope, hash))
+	
+	if err != nil {
+		return nil, err
+	}
+
+	for _, x := range z.File {
+		if name == x.Name {
+			return x, nil
+		}
+	}
+
+	return nil, errors.New("not found")
+}
+
+func (m *BlobManager) ListFiles(hash string, scope string) ([]string, error) {
+	m.mx.RLock()
+	defer m.mx.RUnlock()
+
+	if hash == "" || !util.FileExists(m.Key(scope, hash)) {
+		return nil, ErrNotFound
+	}
+	
+	z, err := zip.OpenReader(m.Key(scope, hash))
+	
+	if err != nil {
+		return nil, err
+	}
+	
+	res := make([]string, len(z.File))
+	
+	for i, x := range z.File {
+		res[i] = x.Name
+	}
+	
+	return res, nil
 }
 
 func (m *BlobManager) GetFileStat(scope, hash string) (os.FileInfo, error) {
@@ -64,7 +122,7 @@ func (m *BlobManager) GetFileStat(scope, hash string) (os.FileInfo, error) {
 		return nil, ErrNoHash
 	}
 
-	return os.Stat(m.fileName(scope, hash))
+	return os.Stat(m.Key(scope, hash))
 }
 
 func (m *BlobManager) PutFile(scope, hash string, r io.Reader) (string, int64, error) {
@@ -75,11 +133,11 @@ func (m *BlobManager) PutFile(scope, hash string, r io.Reader) (string, int64, e
 	m.mx.Lock()
 	defer m.mx.Unlock()
 
-	if hash != "" && util.FileExists(m.fileName(scope, hash)) {
+	if hash != "" && util.FileExists(m.Key(scope, hash)) {
 		return hash, 0, nil
 	}
 
-	f, err := os.CreateTemp("", "")
+	f, err := os.CreateTemp("", "atak-upl-")
 
 	if err != nil {
 		return "", 0, err
@@ -100,12 +158,12 @@ func (m *BlobManager) PutFile(scope, hash string, r io.Reader) (string, int64, e
 	if hash != "" && hash != hash1 {
 		return "", 0, ErrBadHash
 	}
-
+	
 	if err1 := f.Close(); err1 != nil {
 		return "", 0, err1
 	}
 
-	err = os.Rename(f.Name(), m.fileName(scope, hash1))
+	err = os.Rename(f.Name(), m.Key(scope, hash1))
 
 	return hash1, n, err
 }
