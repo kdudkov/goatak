@@ -1,6 +1,7 @@
 package database
 
 import (
+	"cmp"
 	"fmt"
 	"log/slog"
 	"time"
@@ -326,7 +327,7 @@ func (mm *DatabaseManager) GetChanges(missionId uint, after time.Time, squashed 
 	ch1 := make([]*model.Change, 0, len(ch))
 
 	for _, c := range ch {
-		key := util.FirstString(c.ContentUID, c.ContentHash)
+		key := cmp.Or(c.ContentUID, c.ContentHash)
 
 		if uids.Has(key) {
 			continue

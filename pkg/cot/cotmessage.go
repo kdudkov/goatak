@@ -1,11 +1,11 @@
 package cot
 
 import (
+	"cmp"
 	"strings"
 	"time"
 
 	"github.com/kdudkov/goatak/pkg/cotproto"
-	"github.com/kdudkov/goatak/pkg/util"
 )
 
 const (
@@ -110,7 +110,7 @@ func (m *CotMessage) GetCallsign() string {
 		return ""
 	}
 
-	return util.FirstString(
+	return cmp.Or(
 		m.GetTakMessage().GetCotEvent().GetDetail().GetContact().GetCallsign(),
 		m.GetDetail().GetFirst("contact").GetAttr("callsign"),
 	)
@@ -121,7 +121,7 @@ func (m *CotMessage) GetEndpoint() string {
 		return ""
 	}
 
-	return util.FirstString(
+	return cmp.Or(
 		m.GetTakMessage().GetCotEvent().GetDetail().GetContact().GetEndpoint(),
 		m.GetDetail().GetFirst("contact").GetAttr("endpoint"),
 	)
@@ -153,7 +153,7 @@ func (m *CotMessage) GetTeam() string {
 		return ""
 	}
 
-	return util.FirstString(
+	return cmp.Or(
 		m.GetTakMessage().GetCotEvent().GetDetail().GetGroup().GetName(),
 		m.GetDetail().GetFirst("__group").GetAttr("name"),
 	)
@@ -164,7 +164,7 @@ func (m *CotMessage) GetRole() string {
 		return ""
 	}
 
-	return util.FirstString(
+	return cmp.Or(
 		m.GetTakMessage().GetCotEvent().GetDetail().GetGroup().GetRole(),
 		m.GetDetail().GetFirst("__group").GetAttr("role"),
 	)
