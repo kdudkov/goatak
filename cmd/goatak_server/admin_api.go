@@ -416,13 +416,7 @@ func getApiAllMissionChangesHandler(app *App) fiber.Handler {
 
 		ch := app.dbm.GetChanges(m.ID, time.Now().Add(-time.Hour*24*365), false)
 
-		result := make([]*model.MissionChangeDTO, len(ch))
-
-		for i, c := range ch {
-			result[i] = model.ToChangeDTO(c, m.Name)
-		}
-
-		return ctx.JSON(result)
+		return ctx.JSON(model.MissionDTOList(m.Name, ch))
 	}
 }
 

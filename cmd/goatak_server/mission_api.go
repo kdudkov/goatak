@@ -254,7 +254,7 @@ func getMissionSubscriptionHandler(app *App) fiber.Handler {
 			return ctx.SendStatus(fiber.StatusNotFound)
 		}
 
-		return ctx.JSON(makeAnswer(missionSubscriptionType, model.ToMissionSubscriptionDTO(s, m.Token)))
+		return ctx.JSON(makeAnswer(missionSubscriptionType, s.DTOWithToken(m.Token)))
 	}
 }
 
@@ -276,7 +276,7 @@ func getMissionSubscriptionPutHandler(app *App) fiber.Handler {
 		}
 
 		return ctx.Status(fiber.StatusCreated).JSON(
-			makeAnswer(missionSubscriptionType, model.ToMissionSubscriptionDTO(s, m.Token)),
+			makeAnswer(missionSubscriptionType, s.DTOWithToken(m.Token)),
 		)
 	}
 }
@@ -308,7 +308,7 @@ func getMissionSubscriptionRolesHandler(app *App) fiber.Handler {
 
 		s := app.dbm.SubscriptionQuery().Mission(m.ID).Get()
 
-		return ctx.JSON(makeAnswer(missionSubscriptionType, model.ToMissionSubscriptionsDTO(s)))
+		return ctx.JSON(makeAnswer(missionSubscriptionType, model.DTOList(s)))
 	}
 }
 
@@ -325,13 +325,7 @@ func getMissionChangesHandler(app *App) fiber.Handler {
 
 		ch := app.dbm.GetChanges(mission.ID, d1, ctx.QueryBool("squashed"))
 
-		result := make([]*model.MissionChangeDTO, len(ch))
-
-		for i, c := range ch {
-			result[i] = model.ToChangeDTO(c, mission.Name)
-		}
-
-		return ctx.JSON(makeAnswer(missionChangeType, result))
+		return ctx.JSON(makeAnswer(missionChangeType, model.MissionDTOList(mission.Name, ch)))
 	}
 }
 
@@ -474,13 +468,8 @@ func getMissionContentPackagePutHandler(app *App) fiber.Handler {
 
 		d1 := time.Now().Add(-time.Second * time.Duration(ctx.QueryInt("secago", 31536000)))
 		ch := app.dbm.GetChanges(mission.ID, d1, ctx.QueryBool("squashed"))
-		result := make([]*model.MissionChangeDTO, len(ch))
 
-		for i, c := range ch {
-			result[i] = model.ToChangeDTO(c, mission.Name)
-		}
-
-		return ctx.JSON(makeAnswer(missionChangeType, result))
+		return ctx.JSON(makeAnswer(missionChangeType, model.MissionDTOList(mission.Name, ch)))
 	}
 }
 

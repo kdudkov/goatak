@@ -172,16 +172,8 @@ func ToMissionDTOFull(m *Mission, withToken bool, withScope bool) *MissionDTO {
 		PasswordProtected: m.Password != "",
 		Path:              m.Path,
 		Tool:              m.Tool,
-		Uids:              make([]*MissionPointDTO, len(m.Points)),
-		Contents:          make([]*ContentItemDTO, len(m.Resources)),
-	}
-
-	for i, p := range m.Points {
-		mDTO.Uids[i] = ToMissionPointDTO(p)
-	}
-
-	for i, item := range m.Resources {
-		mDTO.Contents[i] = ToContentItemDTO(item)
+		Uids:              DTOList(m.Points),
+		Contents:          DTOList(m.Resources),
 	}
 
 	if withToken {
@@ -195,7 +187,7 @@ func ToMissionDTOFull(m *Mission, withToken bool, withScope bool) *MissionDTO {
 	return mDTO
 }
 
-func ToMissionSubscriptionDTO(s *Subscription, token string) *MissionSubscriptionDTO {
+func (s *Subscription) DTOWithToken(token string) *MissionSubscriptionDTO {
 	if s == nil {
 		return nil
 	}
@@ -208,20 +200,13 @@ func ToMissionSubscriptionDTO(s *Subscription, token string) *MissionSubscriptio
 		Token:      token,
 	}
 }
-
-func ToMissionSubscriptionsDTO(subscriptions []*Subscription) []*MissionSubscriptionDTO {
-	res := make([]*MissionSubscriptionDTO, len(subscriptions))
-
-	for i, s := range subscriptions {
-		res[i] = ToMissionSubscriptionDTO(s, "")
-	}
-
-	return res
+func (s *Subscription) DTO() *MissionSubscriptionDTO {
+	return s.DTOWithToken("")
 }
 
-func ToMissionInvitationDTO(m *Invitation, name string) *MissionInvitationDTO {
+func (m *Invitation) DTO(missionName string) *MissionInvitationDTO {
 	return &MissionInvitationDTO{
-		MissionName: name,
+		MissionName: missionName,
 		Invitee:     m.Invitee,
 		Type:        m.Typ,
 		CreatorUID:  m.CreatorUID,
@@ -246,10 +231,10 @@ type ResourceDTO struct {
 	Expiration         int64     `json:"Expiration"`
 }
 
-func ToChangeDTO(c *Change, name string) *MissionChangeDTO {
+func (c *Change) DTO(missionName string) *MissionChangeDTO {
 	cd := &MissionChangeDTO{
 		Type:        c.Type,
-		MissionName: name,
+		MissionName: missionName,
 		Timestamp:   CotTime(c.CreatedAt),
 		ServerTime:  CotTime(c.CreatedAt),
 		CreatorUID:  c.CreatorUID,
@@ -277,26 +262,26 @@ func ToChangeDTO(c *Change, name string) *MissionChangeDTO {
 	return cd
 }
 
-func ToMissionPointDTO(i *Point) *MissionPointDTO {
+func (p *Point) DTO() *MissionPointDTO {
 	return &MissionPointDTO{
-		CreatorUID: i.CreatorUID,
-		Timestamp:  CotTime(i.CreatedAt),
-		Data:       i.UID,
+		CreatorUID: p.CreatorUID,
+		Timestamp:  CotTime(p.CreatedAt),
+		Data:       p.UID,
 		Details: &MissionDetailsDTO{
-			Type:        i.Type,
-			Callsign:    i.Callsign,
-			Title:       i.Title,
-			IconsetPath: i.IconsetPath,
-			Color:       i.Color,
+			Type:        p.Type,
+			Callsign:    p.Callsign,
+			Title:       p.Title,
+			IconsetPath: p.IconsetPath,
+			Color:       p.Color,
 			Location: &LocationDTO{
-				Lat: i.Lat,
-				Lon: i.Lon,
+				Lat: p.Lat,
+				Lon: p.Lon,
 			},
 		},
 	}
 }
 
-func ToContentItemDTO(r *Resource) *ContentItemDTO {
+func (r *Resource) DTO() *ContentItemDTO {
 	return &ContentItemDTO{
 		CreatorUID: r.CreatorUID,
 		Timestamp:  CotTime(r.CreatedAt),
