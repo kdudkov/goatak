@@ -158,8 +158,13 @@ const app = Vue.createApp({
 
             fetch('/api/message', {redirect: 'manual'})
                 .then(resp => {
+<<<<<<< Updated upstream
                     if (resp.ok) {
                         return resp.json();
+=======
+                    if (!resp.ok) {
+                        return;
+>>>>>>> Stashed changes
                     }
                 })
                 .then(d => vm.messages = d);
