@@ -20,7 +20,9 @@ log: false
 data_dir: data
 # Webtak files root folder
 webtak_root: ""
-
+welcome_msg:
+  test: "Welcome to test group"
+  
 me:
   lat: 35.462939
   lon: -97.537283

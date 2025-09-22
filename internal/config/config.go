@@ -102,7 +102,15 @@ func (c *AppConfig) UsersFile() string {
 }
 
 func (c *AppConfig) WelcomeMsg() string {
-	return c.k.String("welcome_msg")
+	if len(c.k.StringMap("welcome_msg")) == 0 {
+		return c.k.String("welcome_msg")
+	}
+
+	return ""
+}
+
+func (c *AppConfig) WelcomeForScope(scope string) string {
+	return c.k.StringMap("welcome_msg")[scope]
 }
 
 func (c *AppConfig) LogAll() bool {
