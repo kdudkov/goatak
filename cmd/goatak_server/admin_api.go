@@ -422,7 +422,7 @@ func getApiAllMissionChangesHandler(app *App) fiber.Handler {
 
 func getApiFilesHandler(app *App) fiber.Handler {
 	return func(ctx *fiber.Ctx) error {
-		data := app.dbm.ResourceQuery().Order("created_at DESC").Get()
+		data := app.dbm.ResourceQuery().Order("scope, created_at DESC").Get()
 
 		return ctx.JSON(data)
 	}

@@ -8,7 +8,7 @@
                 <th>File</th>
                 <th>Size</th>
             </tr>
-            <tr v-for="p in all" @click="current = p">
+            <tr v-for="p in all" @click="current = p" :class="{ 'table-active': p === current }">
                 <td>{{ dt(p.CreatedAt) }}</td>
                 <td>{{ p.Scope }}</td>
                 <td>{{ p.FileName }}</td>

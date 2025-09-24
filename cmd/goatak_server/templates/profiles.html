@@ -14,7 +14,7 @@
                 <th>CotType</th>
                 <th>Options</th>
             </tr>
-            <tr v-for="p in profiles" @click="current = p">
+            <tr v-for="p in profiles" @click="current = p" :class="{ 'table-active': p === current }">
                 <td>{{ p.login }}</td>
                 <td>{{ p.uid }}</td>
                 <td>{{ p.callsign }}</td>

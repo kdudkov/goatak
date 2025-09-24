@@ -10,7 +10,7 @@
                 <th>Coords</th>
                 <th>Created</th>
             </tr>
-            <tr v-for="p in all" @click="current = p">
+            <tr v-for="p in all" @click="current = p" :class="{ 'table-active': p === current }">
                 <td>{{ p.Scope }}</td>
                 <td>{{ p.UID }}</td>
                 <td>{{ p.Callsign }}</td>
