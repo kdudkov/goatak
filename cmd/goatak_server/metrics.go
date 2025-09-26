@@ -3,12 +3,12 @@ package main
 
 import (
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
-	"github.com/savsgio/gotils/strings"
 )
 
 var (
@@ -42,7 +42,7 @@ var (
 func NewMetricHandler(api string) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		start := time.Now()
-		m := strings.Copy(c.Method())
+		m := strings.Clone(c.Method())
 		chainErr := c.Next()
 		t := time.Since(start)
 
