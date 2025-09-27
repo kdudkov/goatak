@@ -335,6 +335,15 @@ func (app *App) route(msg *cot.CotMessage) bool {
 		return true
 	}
 
+	if dest := msg.GetDetail().GetDestUid(); len(dest) > 0 {
+		for _, s := range dest {
+			app.logger.Info(fmt.Sprintf("msg %s %s -> uid %s", msg.GetUID(), msg.GetCallsign(), s))
+			app.sendToUID(s, msg)
+		}
+
+		return true
+	}
+	
 	app.sendBroadcast(msg)
 
 	return true

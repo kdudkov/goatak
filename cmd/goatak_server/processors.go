@@ -131,7 +131,7 @@ func (app *App) saveItemProcessor(msg *cot.CotMessage) bool {
 		app.items.Store(item)
 
 		if cl == model.CONTACT {
-			app.processNewContact(item, time.Now().Add(-1*model.StaleContactDelete))
+			app.processNewContact(item, time.Time{})
 		}
 	}
 
@@ -139,7 +139,7 @@ func (app *App) saveItemProcessor(msg *cot.CotMessage) bool {
 }
 
 func (app *App) processNewContact(item *model.Item, lastSeen time.Time) {
-	if time.Since(lastSeen) > time.Hour*24 {
+	if lastSeen.IsZero() {
 		if msg := app.config.WelcomeForScope(item.GetScope()); msg != "" {
 			chat := chat.MakeChatMessage(item.GetUID(), WELCOME_MESSAGE_FROM_UID, item.GetCallsign(), "", "RootContactGroup", msg)
 			app.sendToUID(item.GetUID(), cot.LocalCotMessage(chat))

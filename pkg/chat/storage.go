@@ -46,8 +46,13 @@ func (s *Storage) clean() {
 func (s *Storage) GetFor(item *model.Item, t time.Time) []*cot.CotMessage {
 	res := make([]*cot.CotMessage, 0)
 
+	t1 := t
+	if t1.IsZero() {
+		t1 = time.Now().Add(- time.Hour * 24)
+	}
+	
 	s.ForEach(func(c *ChatMessage) bool {
-		if c.received.Before(t) || c.msg.GetStaleTime().Before(time.Now()) {
+		if c.received.Before(t1) || c.msg.GetStaleTime().Before(time.Now()) {
 			return true
 		}
 
@@ -65,6 +70,17 @@ func (s *Storage) GetFor(item *model.Item, t time.Time) []*cot.CotMessage {
 			return true
 		}
 
+		
+		if dest := c.msg.GetDetail().GetDestUid(); len(dest) > 0 {
+			if slices.Contains(dest, item.GetUID()) {
+				res = append(res, c.msg)
+
+				return true
+			}
+
+			return true
+		}
+		
 		res = append(res, c.msg)
 
 		return true

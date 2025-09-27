@@ -92,6 +92,10 @@ func (n *Node) GetDestCallsign() []string {
 	return n.getDestFor("callsign")
 }
 
+func (n *Node) GetDestUid() []string {
+	return n.getDestFor("uid")
+}
+
 func (n *Node) GetDestMission() []string {
 	return n.getDestFor("mission")
 }
