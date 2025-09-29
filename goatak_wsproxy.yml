@@ -1,0 +1,30 @@
+---
+# server address to connect to
+server_address: 127.0.0.1:8999:tcp
+
+# local port for web server
+web_port: 8088
+# local address for web server
+web_address: 0.0.0.0
+
+# multicast address
+mcast_address: 239.2.3.1
+# multicast port
+mcast_port: 6969
+
+ssl:
+  cert: "servercertificate.p12"
+  # password for certificate file
+  password: atakatak
+  # login for cert enrollment. If not empty, client does cert enrollment
+  enroll_user: ""
+  # password for cert enrollment
+  enroll_password: ""
+
+me:
+  callsign: "Echo01"
+  team: "Blue"
+  role: "HQ"
+  platform: "Echo"
+  os: "Linux"
+  version: "0.0.1"
